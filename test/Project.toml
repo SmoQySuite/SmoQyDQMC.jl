@@ -1,3 +1,4 @@
 [deps]
 JDQMCFramework = "72315111-4c7c-4639-8a62-af4b2dda42e0"
 LatticeUtilities = "33fcf0eb-3ae3-43db-bfbc-1d92a3639bd1"
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
