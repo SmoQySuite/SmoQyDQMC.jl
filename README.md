@@ -2,8 +2,8 @@
 
 <!-- [![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://SmoQySuite.github.io/SmoQyDQMC.jl/stable/) -->
 [![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://SmoQySuite.github.io/SmoQyDQMC.jl/dev/)
-[![Build Status](https://github.com/SmoQySuite/SmoQyDQMC.jl/actions/workflows/CI.yml/badge.svg?branch=master)](https://github.com/SmoQySuite/SmoQyDQMC.jl/actions/workflows/CI.yml?query=branch%3Amaster)
-[![Coverage](https://codecov.io/gh/SmoQySuite/SmoQyDQMC.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/SmoQySuite/SmoQyDQMC.jl)
+[![Build Status](https://github.com/SmoQySuite/SmoQyDQMC.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/SmoQySuite/SmoQyDQMC.jl/actions/workflows/CI.yml?query=branch%3Amain)
+[![Coverage](https://codecov.io/gh/SmoQySuite/SmoQyDQMC.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/SmoQySuite/SmoQyDQMC.jl)
 ![](https://img.shields.io/badge/lifecycle-experimental-orange.svg)
 
 This package implements determinant quantum Monte Carlo (DQMC) method for Hubbard,
@@ -19,7 +19,7 @@ under Award Number DE-SC0022311.
 
 ## Documentation
 
-- [`DEV`](https://SmoQySuite.github.io/SmoQyDQMC.jl/dev/): Documentation associated with most recent commit to master branch.
+- [`DEV`](https://SmoQySuite.github.io/SmoQyDQMC.jl/dev/): Documentation associated with most recent commit to the main branch.
 
 ## Notable Package Dependencies
 

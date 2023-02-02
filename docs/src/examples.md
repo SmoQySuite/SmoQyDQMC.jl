@@ -4,7 +4,7 @@ In this section we link to and discuss some example scripts for running DQMC sim
 
 ## Optical SSH Chain
 
-In the script [`examples/ossh_chain.jl`](https://github.com/SmoQySuite/SmoQyDQMC.jl/blob/master/examples/ossh_chain.jl)
+In the script [`examples/ossh_chain.jl`](https://github.com/SmoQySuite/SmoQyDQMC.jl/blob/main/examples/ossh_chain.jl)
 we set up a simulation of an optical SSH model on a one-dimensional chain, where the Hamiltonian is given by
 ```math
 \begin{align}
@@ -19,7 +19,7 @@ The simulation is run with the command
 
 ## Bond SSH Chain
 
-In the script [`examples/bssh_chain.jl`](https://github.com/SmoQySuite/SmoQyDQMC.jl/blob/master/examples/bssh_chain.jl)
+In the script [`examples/bssh_chain.jl`](https://github.com/SmoQySuite/SmoQyDQMC.jl/blob/main/examples/bssh_chain.jl)
 we set up a simulation of an bond SSH model on a one-dimensional chain, where the Hamiltonian is given by
 ```math
 \begin{align}
@@ -37,7 +37,7 @@ The simulation is run with the command
 
 ## Bond SSH Chain with MPI
 
-In the script [`examples/bssh_chain_mpi.jl`](https://github.com/SmoQySuite/SmoQyDQMC.jl/blob/master/examples/bssh_chain.jl) run simulations identical to the previous section,
+In the script [`examples/bssh_chain_mpi.jl`](https://github.com/SmoQySuite/SmoQyDQMC.jl/blob/main/examples/bssh_chain.jl) run simulations identical to the previous section,
 except we use [`MPI.jl`](https://github.com/JuliaParallel/MPI.jl.git) to run identical simulations in parallel.
 The simulation may be run with either the command
 ```
@@ -53,7 +53,7 @@ documentation for [`MPI.jl`](https://github.com/JuliaParallel/MPI.jl.git).
 
 ## Kagome Holstein Model with Density Tuning
 
-In the script [`examples/holstein_kagome.jl`](https://github.com/SmoQySuite/SmoQyDQMC.jl/blob/master/examples/holstein_kagome.jl)
+In the script [`examples/holstein_kagome.jl`](https://github.com/SmoQySuite/SmoQyDQMC.jl/blob/main/examples/holstein_kagome.jl)
 we simulate the kagome lattice Holstein model
 ```math
 \begin{align}
@@ -69,7 +69,7 @@ is tuned to achieve a target density of ``\langle n \rangle = 2/3.`` The simulat
 
 ## Square Lattice Hubbard Model
 
-In the script [`examples/hubbard_sqaure.jl`](https://github.com/SmoQySuite/SmoQyDQMC.jl/blob/master/examples/hubbard_sqaure.jl)
+In the script [`examples/hubbard_sqaure.jl`](https://github.com/SmoQySuite/SmoQyDQMC.jl/blob/main/examples/hubbard_sqaure.jl)
 we simulate the half-filled, particle-hole symmetric repulsive Hubbard model on a square lattice, given by
 ```math
 \begin{align*}

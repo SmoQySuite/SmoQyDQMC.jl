@@ -114,7 +114,7 @@ function initialize_datafolder(sim_info::SimulationInfo)
 
     (; pID, datafolder, resuming) = sim_info
 
-    # if master process and starting new simulation (not resuming an existing simulation)
+    # if main process and starting new simulation (not resuming an existing simulation)
     if iszero(pID) && !resuming
 
         # make data folder diretory
