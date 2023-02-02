@@ -434,7 +434,7 @@ function run_simulation()
     save_simulation_info(simulation_info, additional_info)
 
     # process measurements
-    process_measurements(simulation_info.datafolder, 40)
+    process_measurements(simulation_info.datafolder, 20)
 
     return nothing
 end

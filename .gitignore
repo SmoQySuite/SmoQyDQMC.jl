@@ -3,4 +3,6 @@
 *.jl.mem
 /Manifest.toml
 /docs/build/
+/examples/*/
+*.jld2
 *.DS_Store
