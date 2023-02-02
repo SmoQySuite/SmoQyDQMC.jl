@@ -24,6 +24,6 @@ makedocs(;
 )
 
 deploydocs(;
-    repo="github.com/SmoQySuite/SmoQyDQMC.jl",
-    devbranch="master",
+    repo="github.com/SmoQySuite/SmoQyDQMC.jl.git",
+    devbranch="main",
 )
