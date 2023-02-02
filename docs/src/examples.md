@@ -37,7 +37,7 @@ The simulation is run with the command
 
 ## Bond SSH Chain with MPI
 
-In the script [`examples/bssh_chain_mpi.jl`](https://github.com/SmoQySuite/SmoQyDQMC.jl/blob/main/examples/bssh_chain.jl) run simulations identical to the previous section,
+In the script [`examples/bssh_chain_mpi.jl`](https://github.com/SmoQySuite/SmoQyDQMC.jl/blob/main/examples/bssh_chain_mpi.jl) run simulations identical to the previous section,
 except we use [`MPI.jl`](https://github.com/JuliaParallel/MPI.jl.git) to run identical simulations in parallel.
 The simulation may be run with either the command
 ```
