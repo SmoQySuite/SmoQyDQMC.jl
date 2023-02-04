@@ -12,6 +12,7 @@
         "spin_x",
         "spin_z",
         "bond",
+        "current"
     )
 
 List of all the correlation functions that can be measured.
@@ -26,6 +27,7 @@ const CORRELATION_FUNCTIONS = (
     "spin_x",
     "spin_z",
     "bond",
+    "current"
 )
 
 

@@ -299,6 +299,15 @@ function run_simulation()
         pairs = [(bond_id, bond_id)]
     )
 
+    # measure time-displaced current-current correlation function
+    initialize_correlation_measurements!(
+        measurement_container = measurement_container,
+        model_geometry = model_geometry,
+        correlation = "current",
+        time_displaced = true,
+        pairs = [(1, 1)]
+    )
+
     # initialize measurement sub-directories
     initialize_measurement_directories(
         simulation_info = simulation_info,

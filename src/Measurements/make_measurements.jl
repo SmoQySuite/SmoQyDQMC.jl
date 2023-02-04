@@ -53,7 +53,8 @@ function make_measurements!(measurement_container::NamedTuple,
     make_equaltime_measurements!(equaltime_correlations, sgn,
                                  Gup, Gup_ττ, Gup_τ0, Gup_0τ,
                                  Gdn, Gdn_ττ, Gdn_τ0, Gdn_0τ,
-                                 model_geometry, coupling_parameters)
+                                 model_geometry, tight_binding_parameters,
+                                 fermion_path_integral_up, fermion_path_integral_dn)
 
     # if there are time-displaced measurements to make
     if length(time_displaced_correlations) > 0
@@ -61,7 +62,8 @@ function make_measurements!(measurement_container::NamedTuple,
         # make time-displaced measuresurements for τ = l⋅Δτ = 0
         make_time_displaced_measurements!(time_displaced_correlations, 0, sgn,
                                           Gup, Gup_ττ, Gup_τ0, Gup_0τ, Gdn, Gdn_ττ, Gdn_τ0, Gdn_0τ,
-                                          model_geometry, coupling_parameters)
+                                          model_geometry, tight_binding_parameters,
+                                          fermion_path_integral_up, fermion_path_integral_dn)
 
         # iterate over imaginary time slice
         for l in fermion_greens_calculator_up
@@ -73,7 +75,8 @@ function make_measurements!(measurement_container::NamedTuple,
             # make time-displaced measuresurements for τ = l⋅Δτ
             make_time_displaced_measurements!(time_displaced_correlations, l, sgn,
                                               Gup, Gup_ττ, Gup_τ0, Gup_0τ, Gdn, Gdn_ττ, Gdn_τ0, Gdn_0τ,
-                                              model_geometry, coupling_parameters)
+                                              model_geometry, tight_binding_parameters,
+                                              fermion_path_integral_up, fermion_path_integral_dn)
 
             # Periodically re-calculate the Green's function matrix for numerical stability.
             logdetGup, sgndetGup, δGup, δθup = stabilize_unequaltime_greens!(Gup_τ0, Gup_0τ, Gup_ττ, logdetGup, sgndetGup, fermion_greens_calculator_up, Bup, update_B̄=false)
@@ -165,7 +168,8 @@ function make_measurements!(measurement_container::NamedTuple,
     # make equal-time correlation measurements
     make_equaltime_measurements!(equaltime_correlations, sgn,
                                  G, G_ττ, G_τ0, G_0τ, G, G_ττ, G_τ0, G_0τ,
-                                 model_geometry, coupling_parameters)
+                                 model_geometry, tight_binding_parameters,
+                                 fermion_path_integral, fermion_path_integral)
 
     # if there are time-displaced measurements to make
     if length(time_displaced_correlations) > 0
@@ -173,7 +177,8 @@ function make_measurements!(measurement_container::NamedTuple,
         # make time-displaced measuresurements of τ = 0
         make_time_displaced_measurements!(time_displaced_correlations, 0, sgn,
                                           G, G_ττ, G_τ0, G_0τ, G, G_ττ, G_τ0, G_0τ,
-                                          model_geometry, coupling_parameters)
+                                          model_geometry, tight_binding_parameters,
+                                          fermion_path_integral, fermion_path_integral)
 
         # iterate over imaginary time slice
         for l in fermion_greens_calculator
@@ -184,7 +189,8 @@ function make_measurements!(measurement_container::NamedTuple,
             # make time-displaced measuresurements of τ = l⋅Δτ
             make_time_displaced_measurements!(time_displaced_correlations, l, sgn,
                                               G, G_ττ, G_τ0, G_0τ, G, G_ττ, G_τ0, G_0τ,
-                                              model_geometry, coupling_parameters)
+                                              model_geometry, tight_binding_parameters,
+                                              fermion_path_integral, fermion_path_integral)
 
             # Periodically re-calculate the Green's function matrix for numerical stability.
             logdetG, sgndetG, δG, δθ = stabilize_unequaltime_greens!(G_τ0, G_0τ, G_ττ, logdetG, sgndetG, fermion_greens_calculator, B, update_B̄=false)
@@ -397,7 +403,10 @@ end
 function make_equaltime_measurements!(equaltime_correlations::Dict{String, CorrelationContainer{D,E}}, sgn::T,
                                       Gup::AbstractMatrix{T}, Gup_ττ::AbstractMatrix{T}, Gup_τ0::AbstractMatrix{T}, Gup_0τ::AbstractMatrix{T},
                                       Gdn::AbstractMatrix{T}, Gdn_ττ::AbstractMatrix{T}, Gdn_τ0::AbstractMatrix{T}, Gdn_0τ::AbstractMatrix{T},
-                                      model_geometry::ModelGeometry{D,E,N}, coupling_parameters::Tuple) where {T<:Number, E<:AbstractFloat, D, N}
+                                      model_geometry::ModelGeometry{D,E,N},
+                                      tight_binding_parameters::TightBindingParameters{T,E},
+                                      fermion_path_integral_up::FermionPathIntegral{T,E},
+                                      fermion_path_integral_dn::FermionPathIntegral{T,E},) where {T<:Number, E<:AbstractFloat, D, N}
 
     unit_cell = model_geometry.unit_cell::UnitCell{D,E,N}
     lattice = model_geometry.lattice::Lattice{D}
@@ -470,6 +479,33 @@ function make_equaltime_measurements!(equaltime_correlations::Dict{String, Corre
                 bond_correlation!(correlation, bonds[pair[2]], bonds[pair[1]], unit_cell, lattice,
                                   Gup_τ0, Gup_0τ, Gup_ττ, Gup, Gdn_τ0, Gdn_0τ, Gdn_ττ, Gdn, sgn)
             end
+
+        elseif correlation == "current"
+
+            (; bond_ids, bond_slices) = tight_binding_parameters
+            (; t, Lτ) = fermion_path_integral_up
+
+            for i in eachindex(pairs)
+                # get the hopping IDs associated with current operators
+                pair = pairs[1]
+                hopping_id_0 = pair[1]
+                hopping_id_1 = pair[2]
+                # get the bond IDs associated with the hopping IDs
+                bond_id_0 = bond_ids[hopping_id_0]
+                bond_id_1 = bond_ids[hopping_id_1]
+                # get the bond definitions
+                bond_0 = bonds[bond_id_0]
+                bond_1 = bonds[bond_id_1]
+                # get the effective hopping amptlitudes for each of the two hopping ID's in question
+                t0 = @view t[bond_slices[hopping_id_0], Lτ]
+                t0′ = reshape(t0, lattice.L...)
+                t1 = @view t[bond_slices[hopping_id_1], Lτ]
+                t1′ = reshape(t1, lattice.L...)
+                # measure the current-current correlation
+                correlation = correlations[i]
+                current_correlation!(correlation, bond_1, bond_0, t1′, t0′, unit_cell, lattice,
+                                     Gup_τ0, Gup_0τ, Gup_ττ, Gup, Gdn_τ0, Gdn_0τ, Gdn_ττ, Gdn, sgn)
+            end
         end
     end
 
@@ -485,7 +521,10 @@ end
 function make_time_displaced_measurements!(time_displaced_correlations::Dict{String, CorrelationContainer{P,T}}, l::Int, sgn::T,
                                            Gup::AbstractMatrix{T}, Gup_ττ::AbstractMatrix{T}, Gup_τ0::AbstractMatrix{T}, Gup_0τ::AbstractMatrix{T},
                                            Gdn::AbstractMatrix{T}, Gdn_ττ::AbstractMatrix{T}, Gdn_τ0::AbstractMatrix{T}, Gdn_0τ::AbstractMatrix{T},
-                                           model_geometry::ModelGeometry{D,E,N}, coupling_parameters::Tuple) where {T<:Number, E<:AbstractFloat, P, D, N}
+                                           model_geometry::ModelGeometry{D,E,N},
+                                           tight_binding_parameters::TightBindingParameters{T,E},
+                                           fermion_path_integral_up::FermionPathIntegral{T,E},
+                                           fermion_path_integral_dn::FermionPathIntegral{T,E},) where {T<:Number, E<:AbstractFloat, P, D, N}
 
     unit_cell = model_geometry.unit_cell::UnitCell{D,E,N}
     lattice = model_geometry.lattice::Lattice{D}
@@ -557,6 +596,33 @@ function make_time_displaced_measurements!(time_displaced_correlations::Dict{Str
                 correlation = selectdim(correlations[i], D+1, l+1)
                 bond_correlation!(correlation, bonds[pair[2]], bonds[pair[1]], unit_cell, lattice,
                                   Gup_τ0, Gup_0τ, Gup_ττ, Gup, Gdn_τ0, Gdn_0τ, Gdn_ττ, Gdn, sgn)
+            end
+        
+        elseif correlation == "current"
+
+            (; bond_ids, bond_slices) = tight_binding_parameters
+            (; t, Lτ) = fermion_path_integral_up
+
+            for i in eachindex(pairs)
+                # get the hopping IDs associated with current operators
+                pair = pairs[1]
+                hopping_id_0 = pair[1]
+                hopping_id_1 = pair[2]
+                # get the bond IDs associated with the hopping IDs
+                bond_id_0 = bond_ids[hopping_id_0]
+                bond_id_1 = bond_ids[hopping_id_1]
+                # get the bond definitions
+                bond_0 = bonds[bond_id_0]
+                bond_1 = bonds[bond_id_1]
+                # get the effective hopping amptlitudes for each of the two hopping ID's in question
+                t0 = @view t[bond_slices[hopping_id_0], Lτ]
+                t0′ = reshape(t0, lattice.L...)
+                t1 = @view t[bond_slices[hopping_id_1], mod1(l,Lτ)]
+                t1′ = reshape(t1, lattice.L...)
+                # measure the current-current correlation
+                correlation = selectdim(correlations[i], D+1, l+1)
+                current_correlation!(correlation, bond_1, bond_0, t1′, t0′, unit_cell, lattice,
+                                     Gup_τ0, Gup_0τ, Gup_ττ, Gup, Gdn_τ0, Gdn_0τ, Gdn_ττ, Gdn, sgn)
             end
         end
     end
