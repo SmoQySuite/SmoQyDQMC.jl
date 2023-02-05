@@ -193,7 +193,10 @@ function make_measurements!(measurement_container::NamedTuple,
                                               fermion_path_integral, fermion_path_integral)
 
             # Periodically re-calculate the Green's function matrix for numerical stability.
-            logdetG, sgndetG, δG, δθ = stabilize_unequaltime_greens!(G_τ0, G_0τ, G_ττ, logdetG, sgndetG, fermion_greens_calculator, B, update_B̄=false)
+            logdetG, sgndetG, δG′, δθ = stabilize_unequaltime_greens!(G_τ0, G_0τ, G_ττ, logdetG, sgndetG, fermion_greens_calculator, B, update_B̄=false)
+
+            # record maximum stablization error
+            δG = max(δG′, δG)
         end
 
         # update stabilization frequency if required

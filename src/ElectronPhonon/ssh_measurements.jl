@@ -48,12 +48,12 @@ function measure_ssh_energy(ssh_parameters::SSHParameters{T},
     α3′ = @view α3[slice]
     α4′ = @view α4[slice]
     nt  = @view neighbor_table[:,slice]
-    ctp = @view coupling_to_phonon[slice]
+    ctp = @view coupling_to_phonon[:,slice]
 
     # iterate over imaginary time slice
     @fastmath @inbounds for l in axes(x, 2)
         # iterate over unit cells
-        for u in eachindex(ctp)
+        for u in axes(ctp, 2)
             p  = ctp[1,u]
             p′ = ctp[2,u]
             Δx = x[p′,l] - x[p,l]
@@ -120,20 +120,20 @@ function measure_ssh_sgn_switch(ssh_parameters::SSHParameters{T},
     α2′ = @view α2[slice]
     α3′ = @view α3[slice]
     α4′ = @view α4[slice]
-    ctp = @view coupling_to_phonon[slice]
+    ctp = @view coupling_to_phonon[:,slice]
     cth = @view coupling_to_hopping[slice]
 
     # iterate over imaginary time slice
-    @fastmath @inbounds for l in axes(x, 2)
+    for l in axes(x, 2)
         # iterate over unit cells
-        for u in eachindex(ctp)
+        for u in axes(ctp, 2)
             p  = ctp[1,u]
             p′ = ctp[2,u]
             Δx = x[p′,l] - x[p,l]
             # get the ssh coupling associated with the current unit cell
             c = slice[u]
             # get hopping associated with ssh coupling
-            h = cth[c]
+            h = cth[u]
             # calculate effective hopping
             t′ = t[h] - (α′[u]*Δx + α2′[u]*Δx^2 + α3′[u]*Δx^3 + α4′[u]*Δx^4)
             # check if sign of effective hopping is different from bare hopping

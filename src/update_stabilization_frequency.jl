@@ -28,7 +28,7 @@ function update_stabalization_frequency!(Gup::Matrix{T}, logdetGup::E, sgndetGup
     @assert n_stab == n_stab_dn
 
     # if numerical instability occured
-    if δG > δG_max || isnan(δG)
+    if δG > δG_max || (!isfinite(δG)) || (!isfinite(logdetGup)) || (!isfinite(logdetGdn))
         
         # if n_stab = 1 already
         if fermion_greens_calculator_up.n_stab == 1
@@ -88,7 +88,7 @@ function update_stabalization_frequency!(G::Matrix{T}, logdetG::E, sgndetG::T;
     n_stab = fermion_greens_calculator.n_stab::Int
 
     # if numerical instability occured
-    if δG > δG_max || isnan(δG)
+    if δG > δG_max || (!isfinite(δG)) || (!isfinite(logdetG))
         
         # if n_stab = 1 already
         if fermion_greens_calculator.n_stab == 1

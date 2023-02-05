@@ -194,7 +194,7 @@ function run_simulation(comm)
         phonon_mode = bssh_phonon
     )
 
-    # define optical ssh coupling
+    # define bond ssh coupling
     bssh_coupling = SSHCoupling(
         model_geometry = model_geometry,
         tight_binding_model = tight_binding_model,
@@ -203,7 +203,7 @@ function run_simulation(comm)
         α_mean = α
     )
 
-    # add optical ssh coupling to electron-phonon model
+    # add bond ssh coupling to electron-phonon model
     bssh_coupling_id = add_ssh_coupling!(
         electron_phonon_model = electron_phonon_model,
         ssh_coupling = bssh_coupling,

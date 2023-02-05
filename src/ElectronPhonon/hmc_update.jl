@@ -101,100 +101,90 @@ function _hmc_update!(Gup::Matrix{T}, logdetGup::E, sgndetGup::E, Gup′::Matrix
     # flag to indicate whether or not hmc trajectory remains numerically stable
     numerically_stable = true
 
-    # attempt to propose HMC update without exception occuring
-    try
+    # initialize trajectory numerical error
+    δG′ = δG
 
-        # iterate of fermionic time-steps
-        for t in 1:Nt
+    # iterate of fermionic time-steps
+    for t in 1:Nt
 
-            # calculate v(t+Δt/2) = v(t) - Δt/2⋅∂S̃f/∂x(t) = v(t) - Δt/2⋅M⁻¹⋅dSf/dx(t)
-            @. v = v - Δt/2 * dSdx
+        # calculate v(t+Δt/2) = v(t) - Δt/2⋅∂S̃f/∂x(t) = v(t) - Δt/2⋅M⁻¹⋅dSf/dx(t)
+        @. v = v - Δt/2 * dSdx
 
-            # initialize derivative of bosonic action ∂Sb/∂x
+        # initialize derivative of bosonic action ∂Sb/∂x
+        fill!(dSdx, 0.0)
+        bosonic_action_derivative!(dSdx, electron_phonon_parameters)
+
+        # calculate ∂S̃b/∂x = M⁻¹⋅∂Sb/∂x
+        lmul!(fourier_mass_matrix, dSdx, -1.0)
+
+        # iterate over bosonic time-steps
+        for t′ in 1:nt
+
+            # calculate v(t+Δt′/2) = v(t) - Δt′/2⋅∂S̃b/∂x(t) = v(t) - Δt′/2⋅M⁻¹⋅dSb/dx(t)
+            @. v = v - Δt′/2 * dSdx
+
+            # calculate x(t+Δt′) = x(t) + Δt′⋅v(t+Δt′/2)
+            @. x = x + Δt′*v
+
+            # re-center phonon fields assuming translationally invariant hamiltonian.
+            # this typically does nothing, and is just the identity operator.
+            recenter!(x)
+
+            # calculate derivative of bosonic action ∂Sb/∂x
             fill!(dSdx, 0.0)
             bosonic_action_derivative!(dSdx, electron_phonon_parameters)
 
             # calculate ∂S̃b/∂x = M⁻¹⋅∂Sb/∂x
             lmul!(fourier_mass_matrix, dSdx, -1.0)
 
-            # iterate over bosonic time-steps
-            for t′ in 1:nt
-
-                # calculate v(t+Δt′/2) = v(t) - Δt′/2⋅∂S̃b/∂x(t) = v(t) - Δt′/2⋅M⁻¹⋅dSb/dx(t)
-                @. v = v - Δt′/2 * dSdx
-
-                # calculate x(t+Δt′) = x(t) + Δt′⋅v(t+Δt′/2)
-                @. x = x + Δt′*v
-
-                # re-center phonon fields assuming translationally invariant hamiltonian.
-                # this typically does nothing, and is just the identity operator.
-                recenter!(x)
-
-                # calculate derivative of bosonic action ∂Sb/∂x
-                fill!(dSdx, 0.0)
-                bosonic_action_derivative!(dSdx, electron_phonon_parameters)
-
-                # calculate ∂S̃b/∂x = M⁻¹⋅∂Sb/∂x
-                lmul!(fourier_mass_matrix, dSdx, -1.0)
-
-                # calculate v(t+Δt′) = v(t+Δt′/2) - Δt′/2⋅∂S̃b/∂x(t+Δt′) = v(t+Δt′) - Δt′/2⋅M⁻¹⋅dSb/dx(t+Δt′)
-                @. v = v - Δt′/2 * dSdx
-            end
-
-            # update the fermion path integrals for spin up and down sectors to reflect current phonon configuration
-            update!(fermion_path_integral_up, fermion_path_integral_dn, electron_phonon_parameters, x, x′)
-            
-            # record the current phonon configuration
-            copyto!(x′, x)
-
-            # update the spin up and spin down propagators to reflect current phonon configuration
-            calculate_propagators!(Bup, fermion_path_integral_up,
-                                calculate_exp_K = calculate_exp_K, calculate_exp_V = calculate_exp_V)
-            calculate_propagators!(Bdn, fermion_path_integral_dn,
-                                calculate_exp_K = calculate_exp_K, calculate_exp_V = calculate_exp_V)
-
-            # update the Green's function to reflect the new phonon configuration
-            logdetGup′, sgndetGup′ = calculate_equaltime_greens!(Gup′, fermion_greens_calculator_up_alt, Bup)
-            logdetGdn′, sgndetGdn′ = calculate_equaltime_greens!(Gdn′, fermion_greens_calculator_dn_alt, Bdn)
-
-            # initialize derivative of action to zero
-            fill!(dSdx, 0.0)
-
-            # calculate derivative of fermionic action for spin up
-            (logdetGup′, sgndetGup′, δG, δθ) = fermionic_action_derivative!(dSdx, Gup′, logdetGup′, sgndetGup′, δG, δθ,
-                                                                            electron_phonon_parameters,
-                                                                            fermion_greens_calculator_up_alt, Bup)
-
-            # calculate derivative of fermionic action for spin down
-            (logdetGdn′, sgndetGdn′, δG, δθ) = fermionic_action_derivative!(dSdx, Gdn′, logdetGdn′, sgndetGdn′, δG, δθ,
-                                                                            electron_phonon_parameters,
-                                                                            fermion_greens_calculator_dn_alt, Bdn)
-
-            # if numerical error too large or nan occurs
-            if δG > δG_max || isnan(δG)
-
-                # record that numerically instability was encountered
-                numerically_stable = false
-
-                # terminate the HMC trajectory
-                break
-            end
-
-            # calculate ∂S̃f/∂x = M⁻¹⋅∂Sf/∂x
-            lmul!(fourier_mass_matrix, dSdx, -1.0)
-
-            # calculate v(t+Δt) = v(t+Δt/2) - Δt/2⋅∂S̃f/∂x(t+Δt) = v(t+Δt/2) - Δt/2⋅M⁻¹⋅dSf/dx(t+Δt)
-            @. v = v - Δt/2 * dSdx
+            # calculate v(t+Δt′) = v(t+Δt′/2) - Δt′/2⋅∂S̃b/∂x(t+Δt′) = v(t+Δt′) - Δt′/2⋅M⁻¹⋅dSb/dx(t+Δt′)
+            @. v = v - Δt′/2 * dSdx
         end
 
-    # if an exception occurs (typically in matrix inversion while performing LU factorization)
-    catch
+        # update the fermion path integrals for spin up and down sectors to reflect current phonon configuration
+        update!(fermion_path_integral_up, fermion_path_integral_dn, electron_phonon_parameters, x, x′)
+        
+        # record the current phonon configuration
+        copyto!(x′, x)
 
-        # set error to infinity to ensure the stabilization frequency is increased
-        δG = Inf::E
+        # update the spin up and spin down propagators to reflect current phonon configuration
+        calculate_propagators!(Bup, fermion_path_integral_up,
+                            calculate_exp_K = calculate_exp_K, calculate_exp_V = calculate_exp_V)
+        calculate_propagators!(Bdn, fermion_path_integral_dn,
+                            calculate_exp_K = calculate_exp_K, calculate_exp_V = calculate_exp_V)
 
-        # record that a numerical instability was encountered
-        numerically_stable = false
+        # update the Green's function to reflect the new phonon configuration
+        logdetGup′, sgndetGup′ = calculate_equaltime_greens!(Gup′, fermion_greens_calculator_up_alt, Bup)
+        logdetGdn′, sgndetGdn′ = calculate_equaltime_greens!(Gdn′, fermion_greens_calculator_dn_alt, Bdn)
+
+        # initialize derivative of action to zero
+        fill!(dSdx, 0.0)
+
+        # calculate derivative of fermionic action for spin up
+        (logdetGup′, sgndetGup′, δG′, δθ) = fermionic_action_derivative!(dSdx, Gup′, logdetGup′, sgndetGup′, δG′, δθ,
+                                                                        electron_phonon_parameters,
+                                                                        fermion_greens_calculator_up_alt, Bup)
+
+        # calculate derivative of fermionic action for spin down
+        (logdetGdn′, sgndetGdn′, δG′, δθ) = fermionic_action_derivative!(dSdx, Gdn′, logdetGdn′, sgndetGdn′, δG′, δθ,
+                                                                        electron_phonon_parameters,
+                                                                        fermion_greens_calculator_dn_alt, Bdn)
+
+        # if numerical error too large or nan occurs
+        if isnan(δG′) || isnan(logdetG′)
+
+            # record that numerically instability was encountered
+            numerically_stable = false
+
+            # terminate the HMC trajectory
+            break
+        end
+
+        # calculate ∂S̃f/∂x = M⁻¹⋅∂Sf/∂x
+        lmul!(fourier_mass_matrix, dSdx, -1.0)
+
+        # calculate v(t+Δt) = v(t+Δt/2) - Δt/2⋅∂S̃f/∂x(t+Δt) = v(t+Δt/2) - Δt/2⋅M⁻¹⋅dSf/dx(t+Δt)
+        @. v = v - Δt/2 * dSdx
     end
 
     # if numerically stable
@@ -228,11 +218,12 @@ function _hmc_update!(Gup::Matrix{T}, logdetGup::E, sgndetGup::E, Gup′::Matrix
         p = zero(E)
     end
 
-    # if proposed phonon configuration is accepted and hmc trajecotry remained numerically stable
-    if rand(rng) < p
+    # determine if update accepted
+    accepted = rand(rng) < p
 
-        # record that the proposed update was accepted
-        accepted = true
+    # if proposed phonon configuration is accepted and hmc trajecotry remained numerically stable
+    if accepted
+
         # record final green function matrices
         copyto!(Gup, Gup′)
         copyto!(Gdn, Gdn′)
@@ -241,15 +232,23 @@ function _hmc_update!(Gup::Matrix{T}, logdetGup::E, sgndetGup::E, Gup′::Matrix
         sgndetGup = sgndetGup′
         logdetGdn = logdetGdn′
         sgndetGdn = sgndetGdn′
+        # record max numerical error that occured during trajectory
+        δG = max(δG′, δG)
         # record the final state of the fermion greens calculator
         copyto!(fermion_greens_calculator_up, fermion_greens_calculator_up_alt)
         copyto!(fermion_greens_calculator_dn, fermion_greens_calculator_dn_alt)
+        # update stabilization frequency if required
+        (logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = update_stabalization_frequency!(
+            Gup, logdetGup, sgndetGup,
+            Gdn, logdetGdn, sgndetGdn,
+            fermion_greens_calculator_up = fermion_greens_calculator_up,
+            fermion_greens_calculator_dn = fermion_greens_calculator_dn,
+            Bup = Bup, Bdn = Bdn, δG = δG, δθ = δθ, δG_max = δG_max
+        )
 
     # otherwise reject proposed update and revert to oringial phonon configuration
     else
 
-        # record that the proposed update was rejected
-        accepted = false
         # update fermion path integrals to reflect initial phonon configuration
         update!(fermion_path_integral_up, fermion_path_integral_dn, electron_phonon_parameters, x0, x)
         # revert to initial phonon configuration
@@ -263,19 +262,15 @@ function _hmc_update!(Gup::Matrix{T}, logdetGup::E, sgndetGup::E, Gup′::Matrix
         copyto!(dSdx, dSdx′)
     end
 
-    # update stabilization frequency if required
-    (logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = update_stabalization_frequency!(
-        Gup, logdetGup, sgndetGup,
-        Gdn, logdetGdn, sgndetGdn,
-        fermion_greens_calculator_up = fermion_greens_calculator_up,
-        fermion_greens_calculator_dn = fermion_greens_calculator_dn,
-        Bup = Bup, Bdn = Bdn, δG = δG, δθ = δθ, δG_max = δG_max
-    )
-
-    # if stablization frequency was updated then copy fermion greens calculators
-    if !numerically_stable
-        copyto!(fermion_greens_calculator_up_alt, fermion_greens_calculator_up)
-        copyto!(fermion_greens_calculator_dn_alt, fermion_greens_calculator_dn)
+    # if numerical instability occurred update stabilization frequency
+    if !(numerically_stable)
+        (logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = update_stabalization_frequency!(
+            Gup, logdetGup, sgndetGup,
+            Gdn, logdetGdn, sgndetGdn,
+            fermion_greens_calculator_up = fermion_greens_calculator_up,
+            fermion_greens_calculator_dn = fermion_greens_calculator_dn,
+            Bup = Bup, Bdn = Bdn, δG = Inf, δθ = δθ, δG_max = δG_max
+        )
     end
 
     return (accepted, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ)
@@ -375,94 +370,84 @@ function  _hmc_update!(G::Matrix{T}, logdetG::E, sgndetG::E, G′::Matrix{T},
     # flag to indicate whether or not hmc trajectory remains numerically stable
     numerically_stable = true
 
-    # attempt to propose HMC update without exception occuring
-    try
+    # initialize trajectory numerical error
+    δG′ = δG
 
-        # iterate of fermionic time-steps
-        for t in 1:Nt
+    # iterate of fermionic time-steps
+    for t in 1:Nt
 
-            # calculate v(t+Δt/2) = v(t) - Δt/2⋅∂S̃f/∂x(t) = v(t) - Δt/2⋅M⁻¹⋅dSf/dx(t)
-            @. v = v - Δt/2 * dSdx
+        # calculate v(t+Δt/2) = v(t) - Δt/2⋅∂S̃f/∂x(t) = v(t) - Δt/2⋅M⁻¹⋅dSf/dx(t)
+        @. v = v - Δt/2 * dSdx
 
-            # initialize derivative of bosonic action ∂Sb/∂x
+        # initialize derivative of bosonic action ∂Sb/∂x
+        fill!(dSdx, 0.0)
+        bosonic_action_derivative!(dSdx, electron_phonon_parameters)
+
+        # calculate ∂S̃b/∂x = M⁻¹⋅∂Sb/∂x
+        lmul!(fourier_mass_matrix, dSdx, -1.0)
+
+        # iterate over bosonic time-steps
+        for t′ in 1:nt
+
+            # calculate v(t+Δt′/2) = v(t) - Δt′/2⋅∂S̃b/∂x(t) = v(t) - Δt′/2⋅M⁻¹⋅dSb/dx(t)
+            @. v = v - Δt′/2 * dSdx
+
+            # calculate x(t+Δt′) = x(t) + Δt′⋅v(t+Δt′/2)
+            @. x = x + Δt′*v
+
+            # re-center phonon fields assuming translationally invariant hamiltonian.
+            # this typically does nothing, and is just the identity operator.
+            recenter!(x)
+
+            # calculate derivative of bosonic action ∂Sb/∂x
             fill!(dSdx, 0.0)
             bosonic_action_derivative!(dSdx, electron_phonon_parameters)
 
             # calculate ∂S̃b/∂x = M⁻¹⋅∂Sb/∂x
             lmul!(fourier_mass_matrix, dSdx, -1.0)
 
-            # iterate over bosonic time-steps
-            for t′ in 1:nt
-
-                # calculate v(t+Δt′/2) = v(t) - Δt′/2⋅∂S̃b/∂x(t) = v(t) - Δt′/2⋅M⁻¹⋅dSb/dx(t)
-                @. v = v - Δt′/2 * dSdx
-
-                # calculate x(t+Δt′) = x(t) + Δt′⋅v(t+Δt′/2)
-                @. x = x + Δt′*v
-
-                # re-center phonon fields assuming translationally invariant hamiltonian.
-                # this typically does nothing, and is just the identity operator.
-                recenter!(x)
-
-                # calculate derivative of bosonic action ∂Sb/∂x
-                fill!(dSdx, 0.0)
-                bosonic_action_derivative!(dSdx, electron_phonon_parameters)
-
-                # calculate ∂S̃b/∂x = M⁻¹⋅∂Sb/∂x
-                lmul!(fourier_mass_matrix, dSdx, -1.0)
-
-                # calculate v(t+Δt′) = v(t+Δt′/2) - Δt′/2⋅∂S̃b/∂x(t+Δt′) = v(t+Δt′) - Δt′/2⋅M⁻¹⋅dSb/dx(t+Δt′)
-                @. v = v - Δt′/2 * dSdx
-            end
-
-            # update the fermion path integrals for spin up and down sectors to reflect current phonon configuration
-            update!(fermion_path_integral, electron_phonon_parameters, x, x′)
-            
-            # record the current phonon configuration
-            copyto!(x′, x)
-
-            # update the propagators to reflect current phonon configuration
-            calculate_propagators!(B, fermion_path_integral, calculate_exp_K = calculate_exp_K, calculate_exp_V = calculate_exp_V)
-
-            # update the Green's function to reflect the new phonon configuration
-            logdetG′, sgndetG′ = calculate_equaltime_greens!(G′, fermion_greens_calculator_alt, B)
-
-            # initialize derivative of action to zero
-            fill!(dSdx, 0.0)
-
-            # calculate derivative of fermionic action
-            (logdetG′, sgndetG′, δG, δθ) = fermionic_action_derivative!(dSdx, G′, logdetG′, sgndetG′, δG, δθ,
-                                                                        electron_phonon_parameters,
-                                                                        fermion_greens_calculator_alt, B)
-
-            # if numerical error too large or nan occurs
-            if δG > δG_max || isnan(δG)
-
-                # record that numerically instability was encountered
-                numerically_stable = false
-
-                # terminate the HMC trajectory
-                break
-            end
-
-            # multiply fermionic action derivative by two to acount for spin degeneracy
-            @. dSdx = 2 * dSdx
-
-            # calculate ∂S̃f/∂x = M⁻¹⋅∂Sf/∂x
-            lmul!(fourier_mass_matrix, dSdx, -1.0)
-
-            # calculate v(t+Δt) = v(t+Δt/2) - Δt/2⋅∂S̃f/∂x(t+Δt) = v(t+Δt/2) - Δt/2⋅M⁻¹⋅dSf/dx(t+Δt)
-            @. v = v - Δt/2 * dSdx
+            # calculate v(t+Δt′) = v(t+Δt′/2) - Δt′/2⋅∂S̃b/∂x(t+Δt′) = v(t+Δt′) - Δt′/2⋅M⁻¹⋅dSb/dx(t+Δt′)
+            @. v = v - Δt′/2 * dSdx
         end
 
-    # if an exception occurs (typically while performing LU factorization for matrix inversion)
-    catch
+        # update the fermion path integrals for spin up and down sectors to reflect current phonon configuration
+        update!(fermion_path_integral, electron_phonon_parameters, x, x′)
+        
+        # record the current phonon configuration
+        copyto!(x′, x)
 
-        # set error to infinity to ensure the stabilization frequency is increased
-        δG = Inf::E
+        # update the propagators to reflect current phonon configuration
+        calculate_propagators!(B, fermion_path_integral, calculate_exp_K = calculate_exp_K, calculate_exp_V = calculate_exp_V)
 
-        # record that a numerical instability was encountered
-        numerically_stable = false
+        # update the Green's function to reflect the new phonon configuration
+        logdetG′, sgndetG′ = calculate_equaltime_greens!(G′, fermion_greens_calculator_alt, B)
+
+        # initialize derivative of action to zero
+        fill!(dSdx, 0.0)
+
+        # calculate derivative of fermionic action
+        (logdetG′, sgndetG′, δG′, δθ) = fermionic_action_derivative!(dSdx, G′, logdetG′, sgndetG′, δG′, δθ,
+                                                                    electron_phonon_parameters,
+                                                                    fermion_greens_calculator_alt, B)
+
+        # if numerical error too large or nan occurs
+        if isnan(δG′) || isnan(logdetG′)
+
+            # record that numerically instability was encountered
+            numerically_stable = false
+
+            # terminate the HMC trajectory
+            break
+        end
+
+        # multiply fermionic action derivative by two to acount for spin degeneracy
+        @. dSdx = 2 * dSdx
+
+        # calculate ∂S̃f/∂x = M⁻¹⋅∂Sf/∂x
+        lmul!(fourier_mass_matrix, dSdx, -1.0)
+
+        # calculate v(t+Δt) = v(t+Δt/2) - Δt/2⋅∂S̃f/∂x(t+Δt) = v(t+Δt/2) - Δt/2⋅M⁻¹⋅dSf/dx(t+Δt)
+        @. v = v - Δt/2 * dSdx
     end
 
     # if numerically stable
@@ -495,25 +480,37 @@ function  _hmc_update!(G::Matrix{T}, logdetG::E, sgndetG::E, G′::Matrix{T},
         # set acceptance probability to zero
         p = zero(E)
     end
+
+    # determine if update accepted
+    accepted = rand(rng) < p
+
+    # println("accepted = ", accepted)
+    # println("logdetG′ = ", logdetG′)
+    # println("sgndetG′ = ", sgndetG′)
+    # println("n_stab   = ", fermion_greens_calculator_alt.n_stab)
+    # println("δG′      = ", δG′)
     
     # if proposed phonon configuration is accepted and hmc trajecotry remained numerically stable
-    if rand(rng) < p
+    if accepted
 
-        # record that the proposed update was accepted
-        accepted = true
         # record final greens function matrix
         copyto!(G, G′)
         # record final greens function determinant
         logdetG = logdetG′
         sgndetG = sgndetG′
+        # record max numerical error that occured during trajectory
+        δG = max(δG′, δG)
         # record the final state of the fermion greens calculator
         copyto!(fermion_greens_calculator, fermion_greens_calculator_alt)
-
+        # update stabilization frequency if required
+        (logdetG, sgndetG, δG, δθ) = update_stabalization_frequency!(
+            G, logdetG, sgndetG,
+            fermion_greens_calculator = fermion_greens_calculator,
+            B = B, δG = δG, δθ = δθ, δG_max = δG_max
+        )
     # otherwise reject proposed update and revert to oringial phonon configuration
     else
 
-        # record that the proposed update was rejected
-        accepted = false
         # update fermion path integrals to reflect initial phonon configuration
         update!(fermion_path_integral, electron_phonon_parameters, x0, x)
         # revert to initial phonon configuration
@@ -524,16 +521,13 @@ function  _hmc_update!(G::Matrix{T}, logdetG::E, sgndetG::E, G′::Matrix{T},
         copyto!(dSdx, dSdx′)
     end
 
-    # update stabilization frequency if required
-    (logdetG, sgndetG, δG, δθ) = update_stabalization_frequency!(
-        G, logdetG, sgndetG,
-        fermion_greens_calculator = fermion_greens_calculator,
-        B = B, δG = δG, δθ = δθ, δG_max = δG_max
-    )
-
-    # if stablization frequency was updated then copy fermion greens calculators
-    if !numerically_stable
-        copyto!(fermion_greens_calculator_alt, fermion_greens_calculator)
+    # if numerical instability occured upate stabilization frequency
+    if !(numerically_stable)
+        (logdetG, sgndetG, δG, δθ) = update_stabalization_frequency!(
+            G, logdetG, sgndetG,
+            fermion_greens_calculator = fermion_greens_calculator,
+            B = B, δG = Inf, δθ = δθ, δG_max = δG_max
+        )
     end
 
     return (accepted, logdetG, sgndetG, δG, δθ)
