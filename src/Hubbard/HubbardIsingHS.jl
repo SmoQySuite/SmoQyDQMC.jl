@@ -524,7 +524,11 @@ function reflection_update!(Gup::Matrix{T}, logdetGup::E, sgndetGup::T,
 
     # calculate acceptance probability P = exp(-ΔS_b)⋅|det(Gup)/det(Gup′)|⋅|det(Gdn)/det(Gdn′)|
     #                                    = exp(-ΔS_b)⋅|det(Mup′)/det(Mup)|⋅|det(Mdn′)/det(Mdn)|
-    P_i = exp(-ΔSb_i + logdetGup + logdetGdn - logdetGup′ - logdetGdn′)
+    if isfinite(logdetGup′) && isfinite(logdetGdn′)
+        P_i = exp(-ΔSb + logdetGup + logdetGdn - logdetGup′ - logdetGdn′)
+    else
+        P_i = 0.0
+    end
 
     # accept or reject the update
     if rand(rng) < P_i
@@ -620,7 +624,11 @@ function reflection_update!(G::Matrix{T}, logdetG::E, sgndetG::T,
 
     # calculate acceptance probability P = exp(-ΔS_b)⋅|det(G)/det(G′)|²
     #                                    = exp(-ΔS_b)⋅|det(M′)/det(M)|²
-    P_i = exp(-ΔSb_i + 2*logdetG - 2*logdetG′)
+    if isfinite(logdetGup′) && isfinite(logdetGdn′)
+        P_i = exp(-ΔSb + logdetGup + logdetGdn - logdetGup′ - logdetGdn′)
+    else
+        P_i = 0.0
+    end
 
     # accept or reject the update
     if rand(rng) < P_i
@@ -755,7 +763,11 @@ function swap_update!(Gup::Matrix{T}, logdetGup::E, sgndetGup::T,
 
     # calculate acceptance probability P = exp(-ΔS_b)⋅|det(Gup)/det(Gup′)|⋅|det(Gdn)/det(Gdn′)|
     #                                    = exp(-ΔS_b)⋅|det(Mup′)/det(Mup)|⋅|det(Mdn′)/det(Mdn)|
-    P_i = exp(-ΔSb + logdetGup + logdetGdn - logdetGup′ - logdetGdn′)
+    if isfinite(logdetGup′) && isfinite(logdetGdn′)
+        P_i = exp(-ΔSb + logdetGup + logdetGdn - logdetGup′ - logdetGdn′)
+    else
+        P_i = 0.0
+    end
 
     # accept or reject the update
     if rand(rng) < P_i
@@ -875,7 +887,13 @@ function swap_update!(G::Matrix{T}, logdetG::E, sgndetG::T,
 
     # calculate acceptance probability P = exp(-ΔS_b)⋅|det(G)/det(G′)|²
     #                                    = exp(-ΔS_b)⋅|det(M′)/det(M)|²
-    P_i = exp(-ΔSb + 2*logdetG - 2*logdetG′)
+    if isfinite(logdetGup′) && isfinite(logdetGdn′)
+        P_i = exp(-ΔSb + logdetGup + logdetGdn - logdetGup′ - logdetGdn′)
+    else
+        P_i = 0.0
+        copyto!(fermion_greens_calculator_up_alt, fermion_greens_calculator_up)
+        copyto!(fermion_greens_calculator_dn_alt, fermion_greens_calculator_dn_alt)
+    end
 
     # accept or reject the update
     if rand(rng) < P_i

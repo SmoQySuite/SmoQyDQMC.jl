@@ -8,3 +8,4 @@
 /examples/*/
 *.jld2
 *.DS_Store
+.DS_Store

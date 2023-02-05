@@ -181,8 +181,8 @@ function eval_tr_dΛdx_invΛ_A!(dSdx::AbstractVector{E}, x::AbstractVector{E},
             # recalling that Λ = exp(-Δτ⋅V), where V is the diagonal on-site energy matrix.
             # therefore, ∂Λ/∂x⋅Λ⁻¹ = -Δτ⋅(∂V/∂x)
             nΔτdVdt_ii = -Δτ * (α[c] + 2*α2[c]*x[p] + 3*α3[c]*x[p]^2 + 4*α4[c]*x[p]^3)
-            # evaluate ∂S/∂x += sgn(det(G))⋅Tr[(∂Λ/∂x)⋅A]
-            dSdx[p] += sgndetG * nΔτdVdt_ii * A[i,i]
+            # evaluate ∂S/∂x += Tr[(∂Λ/∂x)⋅A]
+            dSdx[p] += nΔτdVdt_ii * A[i,i]
         end
     end
 
@@ -215,15 +215,15 @@ function eval_tr_dΓdx_invΓ_A!(dSdx::AbstractVector{E}, x::AbstractVector{E},
             if isfinite(M[p])
                 # get off-diagonal matrix element of -Δτ⋅∂K/∂x
                 nΔτdKdx_ji = -Δτ * (-α[c] - 2*α2[c]*Δx - 3*α3[c]*Δx^2 - 4*α4[c]*Δx^3)
-                # evaluate sgn(det(G))⋅Tr[-Δτ⋅∂K/∂x⋅A]
-                dSdx[p] += sgndetG * (nΔτdKdx_ji * A[i,j] + conj(nΔτdKdx_ji) * A[j,i])
+                # evaluate Tr[-Δτ⋅∂K/∂x⋅A]
+                dSdx[p] += (nΔτdKdx_ji * A[i,j] + conj(nΔτdKdx_ji) * A[j,i])
             end
             # if mass of final phonon is finite
             if isfinite(M[p′])
                 # get off-diagonal matrix element of -Δτ⋅∂K/∂x
                 nΔτdKdx_ji = -Δτ * (α[c] + 2*α2[c]*Δx + 3*α3[c]*Δx^2 + 4*α4[c]*Δx^3)
-                # evaluate sgn(det(G))⋅Tr[-Δτ⋅∂K/∂x⋅A]
-                dSdx[p′] += sgndetG * (nΔτdKdx_ji * A[i,j] + conj(nΔτdKdx_ji) * A[j,i])
+                # evaluate Tr[-Δτ⋅∂K/∂x⋅A]
+                dSdx[p′] += (nΔτdKdx_ji * A[i,j] + conj(nΔτdKdx_ji) * A[j,i])
             end
         end
     end
@@ -271,15 +271,15 @@ function eval_tr_dΓdx_invΓ_A!(dSdx::AbstractVector{E}, x::AbstractVector{E},
                     if isfinite(M[p])
                         # get off-diagonal matrix element of -Δτ⋅∂K/∂x
                         nΔτdKdx_ji = -Δτ * (-α[c] - 2*α2[c]*Δx - 3*α3[c]*Δx^2 - 4*α4[c]*Δx^3)
-                        # evaluate sgn(det(G))⋅Tr[(∂Γ/∂x)⋅A] = sgn(det(G))⋅Tr[-Δτ⋅∂K/∂x⋅Γ⋅A]
-                        dSdx[p] += sgndetG * (nΔτdKdx_ji * A[i,j] + conj(nΔτdKdx_ji) * A[j,i])
+                        # evaluate Tr[(∂Γ/∂x)⋅A] = sgn(det(G))⋅Tr[-Δτ⋅∂K/∂x⋅Γ⋅A]
+                        dSdx[p] += (nΔτdKdx_ji * A[i,j] + conj(nΔτdKdx_ji) * A[j,i])
                     end
                     # if mass of final phonon is finite
                     if isfinite(M[p′])
                         # get off-diagonal matrix element of -Δτ⋅∂K/∂x
                         nΔτdKdx_ji = -Δτ * (α[c] + 2*α2[c]*Δx + 3*α3[c]*Δx^2 + 4*α4[c]*Δx^3)
-                        # evaluate sgn(det(G))⋅Tr[(∂Γ/∂x)⋅A] = sgn(det(G))⋅Tr[-Δτ⋅∂K/∂x⋅Γ⋅A]
-                        dSdx[p′] += sgndetG * (nΔτdKdx_ji * A[i,j] + conj(nΔτdKdx_ji) * A[j,i])
+                        # evaluate Tr[(∂Γ/∂x)⋅A] = sgn(det(G))⋅Tr[-Δτ⋅∂K/∂x⋅Γ⋅A]
+                        dSdx[p′] += (nΔτdKdx_ji * A[i,j] + conj(nΔτdKdx_ji) * A[j,i])
                     end
                 end
             end

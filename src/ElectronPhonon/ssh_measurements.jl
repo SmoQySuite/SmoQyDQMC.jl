@@ -5,7 +5,7 @@
 @doc raw"""
     measure_ssh_energy(electron_phonon_parameters::ElectronPhononParameters{T,E},
                     Gup::Matrix{T}, Gdn::Matrix{T},
-                    ssh_id::Int) where {T<:Number, E<:AbstractFloat,D,N}
+                    ssh_id::Int) where {T<:Number, E<:AbstractFloat}
 
 Calculate the return the SSH interaction energy
 ```math
@@ -17,7 +17,7 @@ for coupling definition specified by `ssh_id`.
 """
 function measure_ssh_energy(electron_phonon_parameters::ElectronPhononParameters{T,E},
                          Gup::Matrix{T}, Gdn::Matrix{T},
-                         ssh_id::Int) where {T<:Number, E<:AbstractFloat,D,N}
+                         ssh_id::Int) where {T<:Number, E<:AbstractFloat}
 
     x = electron_phonon_parameters.x::Matrix{E}
     ssh_parameters = electron_phonon_parameters.ssh_parameters::SSHParameters{T}

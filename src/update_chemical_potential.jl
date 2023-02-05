@@ -99,13 +99,6 @@ function update_chemical_potential!(G::Matrix{T}, logdetG::E, sgndetG::T;
     # calculate ⟨N²⟩
     Nsqrd = measure_Nsqrd(G, G)
 
-    # println("μ = ", μ′)
-    # println("n = ", n)
-    # println("Nsqrd = ", Nsqrd)
-    # println("μ_var = ", chemical_potential_tuner.μ_var)
-    # println("N_var = ", chemical_potential_tuner.N_var)
-    # println()
-
     # update the chemical potential
     μ = MuTuner.update!(μtuner=chemical_potential_tuner, n=n, N²=Nsqrd, s=sgn)
 

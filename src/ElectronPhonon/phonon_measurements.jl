@@ -4,7 +4,7 @@
 
 @doc raw"""
     measure_phonon_kinetic_energy(electron_phonon_parameters::ElectronPhononParameters{T,E},
-                                  n::Int) where {T<:Number, E<:AbstractFloat,D,N}
+                                  n::Int) where {T<:Number, E<:AbstractFloat}
 
 Evaluate the average phonon kinetic energy for phonon mode `n`.
 The measurement is made using the expression
@@ -13,7 +13,7 @@ The measurement is made using the expression
 ```
 """
 function measure_phonon_kinetic_energy(electron_phonon_parameters::ElectronPhononParameters{T,E},
-                                       n::Int) where {T<:Number, E<:AbstractFloat,D,N}
+                                       n::Int) where {T<:Number, E<:AbstractFloat}
 
     (; x, Δτ) = electron_phonon_parameters
     phonon_parameters = electron_phonon_parameters.phonon_parameters::PhononParameters{E}
@@ -67,7 +67,7 @@ end
 
 @doc raw"""
     measure_phonon_potential_energy(electron_phonon_parameters::ElectronPhononParameters{T,E},
-                                    n::Int) where {T<:Number, E<:AbstractFloat, D, N}
+                                    n::Int) where {T<:Number, E<:AbstractFloat}
 
 Calculate the average phonon potential energy, given by
 ```math
@@ -76,7 +76,7 @@ U = \frac{1}{2} M \Omega^2 \langle \hat{X}^2 \rangle + \frac{1}{24} M \Omega_4^2
 for phonon mode `n` in the unit cell.
 """
 function measure_phonon_potential_energy(electron_phonon_parameters::ElectronPhononParameters{T,E},
-                                         n::Int) where {T<:Number, E<:AbstractFloat, D, N}
+                                         n::Int) where {T<:Number, E<:AbstractFloat}
 
     phonon_parameters = electron_phonon_parameters.phonon_parameters::PhononParameters{E}
     (; x) = electron_phonon_parameters
@@ -136,7 +136,7 @@ end
 Measure ``\langle X^m \rangle`` for phonon mode `n` in the unit cell.
 """
 function measure_phonon_position_moment(electron_phonon_parameters::ElectronPhononParameters{T,E},
-                                        n::Int, m::Int) where {T<:Number, E<:AbstractFloat, D, N}
+                                        n::Int, m::Int) where {T<:Number, E<:AbstractFloat}
 
     phonon_parameters = electron_phonon_parameters.phonon_parameters::PhononParameters{E}
     nphonon = phonon_parameters.nphonon::Int

@@ -1,14 +1,14 @@
 @doc raw"""
     measure_hubbard_energy(hubbard_parameters::HubbardParameters{E},
-                        Gup::Matrix{T}, Gdn::Matrix{T},
-                        orbital_id::Int) where {T<:Number, E<:AbstractFloat, D, N}
+                           Gup::Matrix{T}, Gdn::Matrix{T},
+                           orbital_id::Int) where {T<:Number, E<:AbstractFloat}
 
 Calculate the average Hubbard energy ``U \langle \hat{n}_\uparrow \hat{n}_\downarrow \rangle``
 for the orbital corresponding `orbital_id` in the unit cell.
 """
 function measure_hubbard_energy(hubbard_parameters::HubbardParameters{E},
                              Gup::Matrix{T}, Gdn::Matrix{T},
-                             orbital_id::Int) where {T<:Number, E<:AbstractFloat, D, N}
+                             orbital_id::Int) where {T<:Number, E<:AbstractFloat}
 
     (; U, orbitals, sites) = hubbard_parameters
 

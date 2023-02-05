@@ -5,7 +5,7 @@
 @doc raw"""
     measure_holstein_energy(electron_phonon_parameters::ElectronPhononParameters{T,E},
                          Gup::Matrix{T}, Gdn::Matrix{T},
-                         holstein_id::Int) where {T<:Number, E<:AbstractFloat,D,N}
+                         holstein_id::Int) where {T<:Number, E<:AbstractFloat}
 
 Calculate and return the Holstein interaction energy
 ```math
@@ -17,7 +17,7 @@ for the Holstein coupling definition corresponding to `holstein_id`.
 """
 function measure_holstein_energy(electron_phonon_parameters::ElectronPhononParameters{T,E},
                               Gup::Matrix{T}, Gdn::Matrix{T},
-                              holstein_id::Int) where {T<:Number, E<:AbstractFloat,D,N}
+                              holstein_id::Int) where {T<:Number, E<:AbstractFloat}
 
     x = electron_phonon_parameters.x::Matrix{E}
     holstein_parameters = electron_phonon_parameters.holstein_parameters::HolsteinParameters{E}

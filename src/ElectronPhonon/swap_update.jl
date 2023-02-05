@@ -125,10 +125,17 @@ function swap_update!(Gup::Matrix{T}, logdetGup::E, sgndetGup::T,
 
     # calculate acceptance probability P = exp(-ΔS_b)⋅|det(Gup)/det(Gup′)|⋅|det(Gdn)/det(Gdn′)|
     #                                    = exp(-ΔS_b)⋅|det(Mup′)/det(Mup)|⋅|det(Mdn′)/det(Mdn)|
-    P_i = exp(-ΔSb + logdetGup + logdetGdn - logdetGup′ - logdetGdn′)
+    if isfinite(logdetGup′) && isfinite(logdetGdn′)
+        P_i = exp(-ΔSb + logdetGup + logdetGdn - logdetGup′ - logdetGdn′)
+    else
+        P_i = 0.0
+    end
+
+    # accept/reject outcome
+    accept = rand(rng) < P_i
 
     # accept or reject the update
-    if rand(rng) < P_i
+    if accept
         logdetGup = logdetGup′
         logdetGdn = logdetGdn′
         sgndetGup = sgndetGup′
@@ -137,7 +144,6 @@ function swap_update!(Gup::Matrix{T}, logdetGup::E, sgndetGup::T,
         copyto!(Gdn, Gdn′)
         copyto!(fermion_greens_calculator_up, fermion_greens_calculator_up_alt)
         copyto!(fermion_greens_calculator_dn, fermion_greens_calculator_dn_alt)
-        accepted = true
     else
         # substract off the effect of the current phonon configuration on the fermion path integrals
         if calculate_exp_V
@@ -162,7 +168,6 @@ function swap_update!(Gup::Matrix{T}, logdetGup::E, sgndetGup::T,
         # update the fermion path integrals to reflect the original phonon configuration
         calculate_propagators!(Bup, fermion_path_integral_up, calculate_exp_K = calculate_exp_K, calculate_exp_V = calculate_exp_V)
         calculate_propagators!(Bdn, fermion_path_integral_dn, calculate_exp_K = calculate_exp_K, calculate_exp_V = calculate_exp_V)
-        accepted = false
     end
 
     return (accepted, logdetGup, sgndetGup, logdetGdn, sgndetGdn)
@@ -273,15 +278,18 @@ function swap_update!(G::Matrix{T}, logdetG::E, sgndetG::T,
 
     # calculate acceptance probability P = exp(-ΔS_b)⋅|det(G)/det(G′)|²
     #                                    = exp(-ΔS_b)⋅|det(M′)/det(M)|²
-    P_i = exp(-ΔSb + 2*logdetG - 2*logdetG′)
+    if isfinite(logdetG′)
+        P_i = exp(-ΔSb + 2*logdetG - 2*logdetG′)
+    else
+        P_i = 0.0
+    end
 
     # accept or reject the update
-    if rand(rng) < P_i
+    if accepted
         logdetG = logdetG′
         sgndetG = sgndetG′
         copyto!(G, G′)
         copyto!(fermion_greens_calculator, fermion_greens_calculator_alt)
-        accepted = true
     else
         # substract off the effect of the current phonon configuration on the fermion path integrals
         if calculate_exp_V
@@ -301,7 +309,6 @@ function swap_update!(G::Matrix{T}, logdetG::E, sgndetG::T,
         end
         # update the fermion path integrals to reflect the original phonon configuration
         calculate_propagators!(B, fermion_path_integral, calculate_exp_K = calculate_exp_K, calculate_exp_V = calculate_exp_V)
-        accepted = false
     end
 
     return (accepted, logdetG, sgndetG)

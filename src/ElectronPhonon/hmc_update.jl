@@ -44,34 +44,27 @@ function _hmc_update!(Gup::Matrix{T}, logdetGup::E, sgndetGup::E, Gup′::Matrix
         fill!(dSdx, 0.0)
 
         # calculate derivative of fermionic action for spin up
-        (logdetGup′, sgndetGup′, δG, δθ) = fermionic_action_derivative!(dSdx, Gup, logdetGup, sgndetGup, δG, δθ,
-                                                                        electron_phonon_parameters,
-                                                                        fermion_greens_calculator_up, Bup)
+        (logdetGup, sgndetGup, δG, δθ) = fermionic_action_derivative!(dSdx, Gup, logdetGup, sgndetGup, δG, δθ,
+                                                                      electron_phonon_parameters,
+                                                                      fermion_greens_calculator_up, Bup)
 
         # calculate derivative of fermionic action for spin down
-        (logdetGdn′, sgndetGdn′, δG, δθ) = fermionic_action_derivative!(dSdx, Gdn, logdetGdn, sgndetGdn, δG, δθ,
-                                                                        electron_phonon_parameters,
-                                                                        fermion_greens_calculator_dn, Bdn)
-
-        # update stabilization frequency if required
-        (logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = update_stabalization_frequency!(
-            Gup, logdetGup, sgndetGup,
-            Gdn, logdetGdn, sgndetGdn,
-            fermion_greens_calculator_up = fermion_greens_calculator_up,
-            fermion_greens_calculator_dn = fermion_greens_calculator_dn,
-            Bup = Bup, Bdn = Bdn, δG_max = δG_max, δG = δG, δθ = δθ
-        )
+        (logdetGdn, sgndetGdn, δG, δθ) = fermionic_action_derivative!(dSdx, Gdn, logdetGdn, sgndetGdn, δG, δθ,
+                                                                      electron_phonon_parameters,
+                                                                      fermion_greens_calculator_dn, Bdn)
 
         # calculate ∂S̃f/∂x = M⁻¹⋅∂Sf/∂x
         lmul!(fourier_mass_matrix, dSdx, -1.0)
-    else
-        # initialize fermion determinants
-        logdetGup′ = logdetGup
-        sgndetGup′ = sgndetGup
-        logdetGdn′ = logdetGdn
-        sgndetGdn′ = sgndetGdn
     end
 
+    # initialize fermion green's function matrices and their determinants determinants
+    copyto!(Gup′, Gup)
+    copyto!(Gdn′, Gdn)
+    logdetGup′ = logdetGup
+    sgndetGup′ = sgndetGup
+    logdetGdn′ = logdetGdn
+    sgndetGdn′ = sgndetGdn
+    
     # initialize the alternate fermion greens calculators
     copyto!(fermion_greens_calculator_up_alt, fermion_greens_calculator_up)
     copyto!(fermion_greens_calculator_dn_alt, fermion_greens_calculator_dn)
@@ -100,9 +93,6 @@ function _hmc_update!(Gup::Matrix{T}, logdetGup::E, sgndetGup::E, Gup′::Matrix
 
     # flag to indicate whether or not hmc trajectory remains numerically stable
     numerically_stable = true
-
-    # initialize trajectory numerical error
-    δG′ = δG
 
     # iterate of fermionic time-steps
     for t in 1:Nt
@@ -161,20 +151,23 @@ function _hmc_update!(Gup::Matrix{T}, logdetGup::E, sgndetGup::E, Gup′::Matrix
         fill!(dSdx, 0.0)
 
         # calculate derivative of fermionic action for spin up
-        (logdetGup′, sgndetGup′, δG′, δθ) = fermionic_action_derivative!(dSdx, Gup′, logdetGup′, sgndetGup′, δG′, δθ,
+        (logdetGup′, sgndetGup′, δG, δθ) = fermionic_action_derivative!(dSdx, Gup′, logdetGup′, sgndetGup′, δG, δθ,
                                                                         electron_phonon_parameters,
                                                                         fermion_greens_calculator_up_alt, Bup)
 
         # calculate derivative of fermionic action for spin down
-        (logdetGdn′, sgndetGdn′, δG′, δθ) = fermionic_action_derivative!(dSdx, Gdn′, logdetGdn′, sgndetGdn′, δG′, δθ,
+        (logdetGdn′, sgndetGdn′, δG, δθ) = fermionic_action_derivative!(dSdx, Gdn′, logdetGdn′, sgndetGdn′, δG, δθ,
                                                                         electron_phonon_parameters,
                                                                         fermion_greens_calculator_dn_alt, Bdn)
 
         # if numerical error too large or nan occurs
-        if isnan(δG′) || isnan(logdetG′)
+        if !isfinite(δG) || !isfinite(logdetGup) || !isfinite(logdetGdn)
 
             # record that numerically instability was encountered
             numerically_stable = false
+
+            # set numerical error large enough to correct update stabilization frequency
+            δG = δG_max
 
             # terminate the HMC trajectory
             break
@@ -232,19 +225,9 @@ function _hmc_update!(Gup::Matrix{T}, logdetGup::E, sgndetGup::E, Gup′::Matrix
         sgndetGup = sgndetGup′
         logdetGdn = logdetGdn′
         sgndetGdn = sgndetGdn′
-        # record max numerical error that occured during trajectory
-        δG = max(δG′, δG)
         # record the final state of the fermion greens calculator
         copyto!(fermion_greens_calculator_up, fermion_greens_calculator_up_alt)
         copyto!(fermion_greens_calculator_dn, fermion_greens_calculator_dn_alt)
-        # update stabilization frequency if required
-        (logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = update_stabalization_frequency!(
-            Gup, logdetGup, sgndetGup,
-            Gdn, logdetGdn, sgndetGdn,
-            fermion_greens_calculator_up = fermion_greens_calculator_up,
-            fermion_greens_calculator_dn = fermion_greens_calculator_dn,
-            Bup = Bup, Bdn = Bdn, δG = δG, δθ = δθ, δG_max = δG_max
-        )
 
     # otherwise reject proposed update and revert to oringial phonon configuration
     else
@@ -262,16 +245,14 @@ function _hmc_update!(Gup::Matrix{T}, logdetGup::E, sgndetGup::E, Gup′::Matrix
         copyto!(dSdx, dSdx′)
     end
 
-    # if numerical instability occurred update stabilization frequency
-    if !(numerically_stable)
-        (logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = update_stabalization_frequency!(
-            Gup, logdetGup, sgndetGup,
-            Gdn, logdetGdn, sgndetGdn,
-            fermion_greens_calculator_up = fermion_greens_calculator_up,
-            fermion_greens_calculator_dn = fermion_greens_calculator_dn,
-            Bup = Bup, Bdn = Bdn, δG = Inf, δθ = δθ, δG_max = δG_max
-        )
-    end
+    # update stabilization frequency if required
+    (logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = update_stabalization_frequency!(
+        Gup, logdetGup, sgndetGup,
+        Gdn, logdetGdn, sgndetGdn,
+        fermion_greens_calculator_up = fermion_greens_calculator_up,
+        fermion_greens_calculator_dn = fermion_greens_calculator_dn,
+        Bup = Bup, Bdn = Bdn, δG = δG, δθ = δθ, δG_max = δG_max
+    )
 
     return (accepted, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ)
 end
@@ -320,27 +301,21 @@ function  _hmc_update!(G::Matrix{T}, logdetG::E, sgndetG::E, G′::Matrix{T},
         fill!(dSdx, 0.0)
 
         # calculate derivative of fermionic action
-        (logdetG′, sgndetG′, δG, δθ) = fermionic_action_derivative!(dSdx, G, logdetG, sgndetG, δG, δθ,
-                                                                    electron_phonon_parameters,
-                                                                    fermion_greens_calculator, B)
-
-        # update stabilization frequency if required
-        (logdetG, sgndetG, δG, δθ) = update_stabalization_frequency!(
-            G, logdetG, sgndetG,
-            fermion_greens_calculator = fermion_greens_calculator,
-            B = B, δG = δG, δθ = δθ, δG_max = δG_max
-        )
+        (logdetG, sgndetG, δG, δθ) = fermionic_action_derivative!(dSdx, G, logdetG, sgndetG, δG, δθ,
+                                                                  electron_phonon_parameters,
+                                                                  fermion_greens_calculator, B)
 
         # multiply fermionic action derivative by two to acount for spin degeneracy
         @. dSdx = 2 * dSdx
 
         # calculate ∂S̃f/∂x = M⁻¹⋅∂Sf/∂x
         lmul!(fourier_mass_matrix, dSdx, -1.0)
-    else
-        # initialize fermion determinants
-        logdetG′ = logdetG
-        sgndetG′ = sgndetG
     end
+
+    # initialize fermion green's function matrix and determinants
+    copyto!(G′, G)
+    logdetG′ = logdetG
+    sgndetG′ = sgndetG
 
     # intialize the alternate fermion greens calculators
     copyto!(fermion_greens_calculator_alt, fermion_greens_calculator)
@@ -369,9 +344,6 @@ function  _hmc_update!(G::Matrix{T}, logdetG::E, sgndetG::E, G′::Matrix{T},
 
     # flag to indicate whether or not hmc trajectory remains numerically stable
     numerically_stable = true
-
-    # initialize trajectory numerical error
-    δG′ = δG
 
     # iterate of fermionic time-steps
     for t in 1:Nt
@@ -426,15 +398,18 @@ function  _hmc_update!(G::Matrix{T}, logdetG::E, sgndetG::E, G′::Matrix{T},
         fill!(dSdx, 0.0)
 
         # calculate derivative of fermionic action
-        (logdetG′, sgndetG′, δG′, δθ) = fermionic_action_derivative!(dSdx, G′, logdetG′, sgndetG′, δG′, δθ,
+        (logdetG′, sgndetG′, δG, δθ) = fermionic_action_derivative!(dSdx, G′, logdetG′, sgndetG′, δG, δθ,
                                                                     electron_phonon_parameters,
                                                                     fermion_greens_calculator_alt, B)
 
         # if numerical error too large or nan occurs
-        if isnan(δG′) || isnan(logdetG′)
+        if !isfinite(δG) || !isfinite(logdetG′)
 
             # record that numerically instability was encountered
             numerically_stable = false
+
+            # set numerical error large enough to correct update stabilization frequency
+            δG = δG_max
 
             # terminate the HMC trajectory
             break
@@ -483,12 +458,6 @@ function  _hmc_update!(G::Matrix{T}, logdetG::E, sgndetG::E, G′::Matrix{T},
 
     # determine if update accepted
     accepted = rand(rng) < p
-
-    # println("accepted = ", accepted)
-    # println("logdetG′ = ", logdetG′)
-    # println("sgndetG′ = ", sgndetG′)
-    # println("n_stab   = ", fermion_greens_calculator_alt.n_stab)
-    # println("δG′      = ", δG′)
     
     # if proposed phonon configuration is accepted and hmc trajecotry remained numerically stable
     if accepted
@@ -498,16 +467,9 @@ function  _hmc_update!(G::Matrix{T}, logdetG::E, sgndetG::E, G′::Matrix{T},
         # record final greens function determinant
         logdetG = logdetG′
         sgndetG = sgndetG′
-        # record max numerical error that occured during trajectory
-        δG = max(δG′, δG)
         # record the final state of the fermion greens calculator
         copyto!(fermion_greens_calculator, fermion_greens_calculator_alt)
-        # update stabilization frequency if required
-        (logdetG, sgndetG, δG, δθ) = update_stabalization_frequency!(
-            G, logdetG, sgndetG,
-            fermion_greens_calculator = fermion_greens_calculator,
-            B = B, δG = δG, δθ = δθ, δG_max = δG_max
-        )
+
     # otherwise reject proposed update and revert to oringial phonon configuration
     else
 
@@ -521,14 +483,12 @@ function  _hmc_update!(G::Matrix{T}, logdetG::E, sgndetG::E, G′::Matrix{T},
         copyto!(dSdx, dSdx′)
     end
 
-    # if numerical instability occured upate stabilization frequency
-    if !(numerically_stable)
-        (logdetG, sgndetG, δG, δθ) = update_stabalization_frequency!(
-            G, logdetG, sgndetG,
-            fermion_greens_calculator = fermion_greens_calculator,
-            B = B, δG = Inf, δθ = δθ, δG_max = δG_max
-        )
-    end
+    # update stabilization frequency if required
+    (logdetG, sgndetG, δG, δθ) = update_stabalization_frequency!(
+        G, logdetG, sgndetG,
+        fermion_greens_calculator = fermion_greens_calculator,
+        B = B, δG = δG, δθ = δθ, δG_max = δG_max
+    )
 
     return (accepted, logdetG, sgndetG, δG, δθ)
 end
