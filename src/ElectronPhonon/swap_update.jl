@@ -284,6 +284,9 @@ function swap_update!(G::Matrix{T}, logdetG::E, sgndetG::T,
         P_i = 0.0
     end
 
+    # accept/reject outcome
+    accepted = rand(rng) < P_i
+
     # accept or reject the update
     if accepted
         logdetG = logdetG′
