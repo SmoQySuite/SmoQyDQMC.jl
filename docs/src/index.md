@@ -5,7 +5,7 @@ CurrentModule = SmoQyDQMC
 # SmoQyDQMC
 
 Documentation for [SmoQyDQMC.jl](https://github.com/SmoQySuite/SmoQyDQMC.jl).
-This package implements determinant quantum Monte Carlo (DQMC) method for Hubbard,
+This package implements the determinant quantum Monte Carlo (DQMC) method for Hubbard,
 and electron-phonon interactions, including both Holstein and Su-Schrieffer-Heeger (SSH) style
 electron-phonon coupling.
 
@@ -91,7 +91,7 @@ Lastly, the ``\hat{H}_{\textrm{disp.}}`` term describes dispersive coupling betw
 
 ## Notable Package Dependencies
 
-This section reviews some of the more notable and interesting packages package dependencies.
+This section reviews some notable package dependencies.
 
 ### Re-exported Packages
 

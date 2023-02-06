@@ -6,7 +6,7 @@
 [![Coverage](https://codecov.io/gh/SmoQySuite/SmoQyDQMC.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/SmoQySuite/SmoQyDQMC.jl)
 ![](https://img.shields.io/badge/lifecycle-experimental-orange.svg)
 
-This package implements determinant quantum Monte Carlo (DQMC) method for Hubbard,
+This package implements the determinant quantum Monte Carlo (DQMC) method for Hubbard,
 and electron-phonon interactions, including both Holstein and Su-Schrieffer-Heeger (SSH) style
 electron-phonon coupling.
 
@@ -23,7 +23,7 @@ under Award Number DE-SC0022311.
 
 ## Notable Package Dependencies
 
-This section reviews some of the more notable and interesting packages package dependencies.
+This section reviews some notable package dependencies.
 
 ### Re-exported Packages
 
