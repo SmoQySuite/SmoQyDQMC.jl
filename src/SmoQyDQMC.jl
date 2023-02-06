@@ -160,7 +160,7 @@ export measure_dispersion_energy
 
 # initialize measurement container
 include("Measurements/initialize_measurements.jl")
-export CORRELATION_FUNCTIONS, SUSCEPTIBILITIES
+export CORRELATION_FUNCTIONS
 export initialize_measurement_container
 export initialize_measurements!
 export initialize_correlation_measurement!, initialize_correlation_measurements!
