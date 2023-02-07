@@ -6,6 +6,8 @@ using FFTW
 using Random
 using Statistics
 using Printf
+using StaticArrays
+using OffsetArrays
 using JLD2
 using FastLapackInterface
 using BinningAnalysis
@@ -180,6 +182,10 @@ export write_measurements!
 # process measurements at end of the simulation to get final averages and error bars for all measurements
 include("Measurements/process_measurements.jl")
 export process_measurements, process_correlation_measurement
+
+# process composite correlation measurements i.e. calculate functions of correlation functions
+include("Measurements/process_composite_correlation.jl")
+export composite_correlation_stats
 
 # tools for converted binned data, that is saved as *.jld2 binary files, to single csv file
 include("Measurements/binned_data_to_csv.jl")
