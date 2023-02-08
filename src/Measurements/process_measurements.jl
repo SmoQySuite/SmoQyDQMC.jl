@@ -1,12 +1,12 @@
 @doc raw"""
-    process_measurements(folder::String, N_bin::Int; time_displaced::Bool = true)
+    process_measurements(folder::String, N_bin::Int; time_displaced::Bool = false)
 
 Process the measurements recorded in the simulation directory `folder`, where `N_bin` is the number of bins the data is grouped into for calculating error bars.
 Note that this method will over-write an existing correlation stats file if there already is one.
 The boolean flag `time_displaced` determines whether or not to calculate error bars for time-displaced correlation measurements,
 as this can take a non-negligible amount of time for large system, especially when many simulations were run in parallel.
 """
-function process_measurements(folder::String, N_bin::Int; time_displaced::Bool = true)
+function process_measurements(folder::String, N_bin::Int; time_displaced::Bool = false)
 
     # make sure valid directory
     @assert isdir(folder)
