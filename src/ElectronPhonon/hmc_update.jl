@@ -91,6 +91,9 @@ function _hmc_update!(Gup::Matrix{T}, logdetGup::E, sgndetGup::E, Gup′::Matrix
     # record the initial derivative of the fermionic action
     copyto!(dSdx′, dSdx)
 
+    # flag whether numerically stable
+    numerically_unstable = false
+
     # iterate of fermionic time-steps
     for t in 1:Nt
 
@@ -166,6 +169,11 @@ function _hmc_update!(Gup::Matrix{T}, logdetGup::E, sgndetGup::E, Gup′::Matrix
             Bup = Bup, Bdn = Bdn, δG = δG, δθ = δθ, δG_max = δG_max
         )
 
+        # if numerically unstable terminate the hmc update
+        if numerically_unstable
+            break
+        end
+
         # calculate ∂S̃f/∂x = M⁻¹⋅∂Sf/∂x
         lmul!(fourier_mass_matrix, dSdx, -1.0)
 
@@ -173,26 +181,36 @@ function _hmc_update!(Gup::Matrix{T}, logdetGup::E, sgndetGup::E, Gup′::Matrix
         @. v = v - Δt/2 * dSdx
     end
 
-    # calculate the final kinetic energy
-    K′ = velocity_to_kinetic_energy(fourier_mass_matrix, v)
 
-    # calculate final bosonic action
-    Sb′ = bosonic_action(electron_phonon_parameters)
+    # if numerically unstable reject update
+    if numerically_unstable
 
-    # calculate final fermionic action
-    Sf′ = logdetGup′ + logdetGdn′
+        # set acceptance probability to zero
+        p = zero(E)
 
-    # record final total action
-    S′ = Sb′ + Sf′
+    end
+    
+        # calculate the final kinetic energy
+        K′ = velocity_to_kinetic_energy(fourier_mass_matrix, v)
 
-    # calculate the final total energy
-    H′ = S′ + K′
+        # calculate final bosonic action
+        Sb′ = bosonic_action(electron_phonon_parameters)
 
-    # calculate the change in energy
-    ΔH = H′ - H
+        # calculate final fermionic action
+        Sf′ = logdetGup′ + logdetGdn′
 
-    # calculate the probability of accepting the final configuration
-    p = min(1.0, exp(-ΔH))
+        # record final total action
+        S′ = Sb′ + Sf′
+
+        # calculate the final total energy
+        H′ = S′ + K′
+
+        # calculate the change in energy
+        ΔH = H′ - H
+
+        # calculate the probability of accepting the final configuration
+        p = min(1.0, exp(-ΔH))
+    end
 
     # determine if update accepted
     accepted = rand(rng) < p
@@ -330,6 +348,9 @@ function  _hmc_update!(G::Matrix{T}, logdetG::E, sgndetG::E, G′::Matrix{T},
     # calculate the initial total energy
     H = S + K
 
+    # flag whether numerically stable
+    numerically_unstable = false
+
     # iterate of fermionic time-steps
     for t in 1:Nt
 
@@ -388,11 +409,16 @@ function  _hmc_update!(G::Matrix{T}, logdetG::E, sgndetG::E, G′::Matrix{T},
                                                                     fermion_greens_calculator_alt, B)
 
         # update stabilization frequency if required
-        (updated, logdetG, sgndetG, δG, δθ) = update_stabalization_frequency!(
+        (numerically_unstable, logdetG, sgndetG, δG, δθ) = update_stabalization_frequency!(
             G, logdetG, sgndetG,
             fermion_greens_calculator = fermion_greens_calculator_alt,
             B = B, δG = δG, δθ = δθ, δG_max = δG_max
         )
+
+        # if numerically unstable terminate the hmc update
+        if numerically_unstable
+            break
+        end
 
         # multiply fermionic action derivative by two to acount for spin degeneracy
         @. dSdx = 2 * dSdx
@@ -404,26 +430,35 @@ function  _hmc_update!(G::Matrix{T}, logdetG::E, sgndetG::E, G′::Matrix{T},
         @. v = v - Δt/2 * dSdx
     end
 
-    # calculate the final kinetic energy given the velocity
-    K′ = velocity_to_kinetic_energy(fourier_mass_matrix, v)
+    # if numerically unstable reject update
+    if numerically_unstable
 
-    # calculate final bosonic action
-    Sb′ = bosonic_action(electron_phonon_parameters)
+        # set acceptance rate to zero
+        p = zero(E)
 
-    # calculate final fermionic action
-    Sf′ = 2*logdetG′
+    else
 
-    # record final total action
-    S′ = Sb′ + Sf′
+        # calculate the final kinetic energy given the velocity
+        K′ = velocity_to_kinetic_energy(fourier_mass_matrix, v)
 
-    # calculate the final total energy
-    H′ = S′ + K′
+        # calculate final bosonic action
+        Sb′ = bosonic_action(electron_phonon_parameters)
 
-    # calculate the change in energy
-    ΔH = H′ - H
+        # calculate final fermionic action
+        Sf′ = 2*logdetG′
 
-    # calculate the probability of accepting the final configuration
-    p = min(1.0, exp(-ΔH))
+        # record final total action
+        S′ = Sb′ + Sf′
+
+        # calculate the final total energy
+        H′ = S′ + K′
+
+        # calculate the change in energy
+        ΔH = H′ - H
+
+        # calculate the probability of accepting the final configuration
+        p = min(1.0, exp(-ΔH))
+    end
 
     # determine if update accepted
     accepted = rand(rng) < p
