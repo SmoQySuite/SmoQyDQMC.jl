@@ -27,6 +27,7 @@ TOML = "fa267f1f-6049-4f14-aa54-33bafae1ed76"
 [compat]
 BinningAnalysis = "0.6"
 Checkerboard = "1.2"
+FFTW = "1"
 JDQMCFramework = "1.0"
 JDQMCMeasurements = "1.2"
 LatticeUtilities = "2"
