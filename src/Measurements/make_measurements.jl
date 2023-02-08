@@ -91,7 +91,7 @@ function make_measurements!(measurement_container::NamedTuple,
         end
 
         # update stabilization frequency if required
-        (logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = update_stabalization_frequency!(
+        (updated, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = update_stabalization_frequency!(
             Gup, logdetGup, sgndetGup,
             Gdn, logdetGdn, sgndetGdn,
             fermion_greens_calculator_up = fermion_greens_calculator_up,
@@ -200,7 +200,7 @@ function make_measurements!(measurement_container::NamedTuple,
         end
 
         # update stabilization frequency if required
-        (logdetG, sgndetG, δG, δθ) = update_stabalization_frequency!(
+        (updated, logdetG, sgndetG, δG, δθ) = update_stabalization_frequency!(
             G, logdetG, sgndetG,
             fermion_greens_calculator = fermion_greens_calculator,
             B = B, δG = δG, δθ = δθ, δG_max = δG_max

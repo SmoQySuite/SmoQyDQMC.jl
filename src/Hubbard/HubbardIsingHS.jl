@@ -294,7 +294,7 @@ function local_updates!(Gup::Matrix{T}, logdetGup::E, sgndetGup::T,
     end
 
     # update stabilization frequency if required
-    (logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = update_stabalization_frequency!(
+    (updated, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = update_stabalization_frequency!(
         Gup, logdetGup, sgndetGup,
         Gdn, logdetGdn, sgndetGdn,
         fermion_greens_calculator_up = fermion_greens_calculator_up,
@@ -426,7 +426,7 @@ function local_updates!(G::Matrix{T}, logdetG::E, sgndetG::T,
     end
 
     # update stabilization frequency if required
-    (logdetG, sgndetG, δG, δθ) = update_stabalization_frequency!(
+    (updated, logdetG, sgndetG, δG, δθ) = update_stabalization_frequency!(
         G, logdetG, sgndetG,
         fermion_greens_calculator = fermion_greens_calculator,
         B = B, δG = δG, δθ = δθ, δG_max = δG_max
@@ -492,6 +492,16 @@ function reflection_update!(Gup::Matrix{T}, logdetGup::E, sgndetGup::T,
     (; N, U, α, sites, s, Δτ) = hubbard_ising_parameters
     Gup′ = fermion_greens_calculator_up_alt.G′
     Gdn′ = fermion_greens_calculator_dn_alt.G′
+
+    # make sure stabilization frequencies match
+    if fermion_greens_calculator_up.n_stab != fermion_greens_calculator_up_alt.n_stab
+        resize!(fermion_greens_calculator_up_alt, fermion_greens_calculator_up.n_stab)
+    end
+
+    # make sure stabilization frequencies match
+    if fermion_greens_calculator_dn.n_stab != fermion_greens_calculator_dn_alt.n_stab
+        resize!(fermion_greens_calculator_dn_alt, fermion_greens_calculator_dn.n_stab)
+    end
 
     # pick a random site/orbital in lattice with finite Hubbard U to perform reflection update on
     i     = rand(rng, 1:N)
@@ -597,6 +607,11 @@ function reflection_update!(G::Matrix{T}, logdetG::E, sgndetG::T,
 
     (; N, U, α, s, Δτ) = hubbard_ising_hs_params
     G′ = fermion_greens_calculator_alt.G′
+
+    # make sure stabilization frequencies match
+    if fermion_greens_calculator.n_stab != fermion_greens_calculator_alt.n_stab
+        resize!(fermion_greens_calculator_alt, fermion_greens_calculator.n_stab)
+    end
 
     # pick a random site/orbital in lattice with finite Hubbard U to perform reflection update on
     i    = rand(rng, 1:N)
@@ -707,6 +722,16 @@ function swap_update!(Gup::Matrix{T}, logdetGup::E, sgndetGup::T,
     (; N, U, α, sites, s, Δτ) = hubbard_ising_hs_params
     Gup′ = fermion_greens_calculator_up_alt.G′
     Gdn′ = fermion_greens_calculator_dn_alt.G′
+
+    # make sure stabilization frequencies match
+    if fermion_greens_calculator_up.n_stab != fermion_greens_calculator_up_alt.n_stab
+        resize!(fermion_greens_calculator_up_alt, fermion_greens_calculator_up.n_stab)
+    end
+
+    # make sure stabilization frequencies match
+    if fermion_greens_calculator_dn.n_stab != fermion_greens_calculator_dn_alt.n_stab
+        resize!(fermion_greens_calculator_dn_alt, fermion_greens_calculator_dn.n_stab)
+    end
 
     # ranomly pick two sites with Hubbard U interaction on them
     i = rand(rng, 1:N)
@@ -839,6 +864,11 @@ function swap_update!(G::Matrix{T}, logdetG::E, sgndetG::T,
 
     (; N, U, α, sites, s, Δτ) = hubbard_ising_hs_params
     G′ = fermion_greens_calculator_alt.G′
+
+    # make sure stabilization frequencies match
+    if fermion_greens_calculator.n_stab != fermion_greens_calculator_alt.n_stab
+        resize!(fermion_greens_calculator_alt, fermion_greens_calculator.n_stab)
+    end
 
     # ranomly pick two sites with Hubbard U interaction on them
     i = rand(rng, 1:N)

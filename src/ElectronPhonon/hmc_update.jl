@@ -147,6 +147,19 @@ function _hmc_update!(Gup::Matrix{T}, logdetGup::E, sgndetGup::E, Gup′::Matrix
         logdetGup′, sgndetGup′ = calculate_equaltime_greens!(Gup′, fermion_greens_calculator_up_alt, Bup)
         logdetGdn′, sgndetGdn′ = calculate_equaltime_greens!(Gdn′, fermion_greens_calculator_dn_alt, Bdn)
 
+        # if nan occurs terminate update
+        if !isfinite(logdetGup′) || !isfinite(sgndetGdn′)
+
+            # record that numerically instability was encountered
+            numerically_stable = false
+
+            # set numerical error large enough to correct update stabilization frequency
+            δG = 1 + δG_max
+
+            # terminate the HMC trajectory
+            break
+        end
+
         # initialize derivative of action to zero
         fill!(dSdx, 0.0)
 
@@ -246,7 +259,7 @@ function _hmc_update!(Gup::Matrix{T}, logdetGup::E, sgndetGup::E, Gup′::Matrix
     end
 
     # update stabilization frequency if required
-    (logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = update_stabalization_frequency!(
+    (updated, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = update_stabalization_frequency!(
         Gup, logdetGup, sgndetGup,
         Gdn, logdetGdn, sgndetGdn,
         fermion_greens_calculator_up = fermion_greens_calculator_up,
@@ -394,6 +407,19 @@ function  _hmc_update!(G::Matrix{T}, logdetG::E, sgndetG::E, G′::Matrix{T},
         # update the Green's function to reflect the new phonon configuration
         logdetG′, sgndetG′ = calculate_equaltime_greens!(G′, fermion_greens_calculator_alt, B)
 
+        # if nan occurs terminate update
+        if !isfinite(logdetG′)
+
+            # record that numerically instability was encountered
+            numerically_stable = false
+
+            # set numerical error large enough to correct update stabilization frequency
+            δG = 1 + δG_max
+
+            # terminate the HMC trajectory
+            break
+        end
+
         # initialize derivative of action to zero
         fill!(dSdx, 0.0)
 
@@ -403,7 +429,7 @@ function  _hmc_update!(G::Matrix{T}, logdetG::E, sgndetG::E, G′::Matrix{T},
                                                                     fermion_greens_calculator_alt, B)
 
         # if numerical error too large or nan occurs
-        if !isfinite(δG) || !isfinite(logdetG′) # || δG > δG_max
+        if !isfinite(δG) || !isfinite(logdetG′) || δG > δG_max
 
             # record that numerically instability was encountered
             numerically_stable = false
@@ -458,15 +484,6 @@ function  _hmc_update!(G::Matrix{T}, logdetG::E, sgndetG::E, G′::Matrix{T},
 
     # determine if update accepted
     accepted = rand(rng) < p
-
-    println("HMC Update")
-    println("accepted  = ", accepted)
-    println("stability = ", numerically_stable)
-    println("logdetG   = ", logdetG)
-    println("logdetG′  = ", logdetG′)
-    println("δG        = ", δG)
-    println("n_stab    = ", fermion_greens_calculator.n_stab)
-    println()
     
     # if proposed phonon configuration is accepted and hmc trajecotry remained numerically stable
     if accepted
@@ -492,31 +509,12 @@ function  _hmc_update!(G::Matrix{T}, logdetG::E, sgndetG::E, G′::Matrix{T},
         copyto!(dSdx, dSdx′)
     end
 
-    if !numerically_stable
-        display(G′)
-        println()
-        display(G)
-        println()
-    end
-
     # update stabilization frequency if required
-    (logdetG, sgndetG, δG, δθ) = update_stabalization_frequency!(
+    (updated, logdetG, sgndetG, δG, δθ) = update_stabalization_frequency!(
         G, logdetG, sgndetG,
         fermion_greens_calculator = fermion_greens_calculator,
         B = B, δG = δG, δθ = δθ, δG_max = δG_max
     )
-
-    if !numerically_stable
-
-        println("Stabilized")
-        println("logdetG = ", logdetG)
-        println("sgndetG = ", sgndetG)
-        println("δG      = ", δG)
-        println("n_stab  = ", fermion_greens_calculator.n_stab)
-        display(G)
-        println()
-        error()
-    end
 
     return (accepted, logdetG, sgndetG, δG, δθ)
 end

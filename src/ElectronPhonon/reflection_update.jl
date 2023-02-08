@@ -56,6 +56,16 @@ function reflection_update!(Gup::Matrix{T}, logdetGup::E, sgndetGup::T,
     ssh_parameters = electron_phonon_parameters.ssh_parameters::SSHParameters{T}
     x = electron_phonon_parameters.x
 
+    # make sure stabilization frequencies match
+    if fermion_greens_calculator_up.n_stab != fermion_greens_calculator_up_alt.n_stab
+        resize!(fermion_greens_calculator_up_alt, fermion_greens_calculator_up.n_stab)
+    end
+
+    # make sure stabilization frequencies match
+    if fermion_greens_calculator_dn.n_stab != fermion_greens_calculator_dn_alt.n_stab
+        resize!(fermion_greens_calculator_dn_alt, fermion_greens_calculator_dn.n_stab)
+    end
+
     # get the mass associated with each phonon
     M = phonon_parameters.M
 
@@ -212,6 +222,11 @@ function reflection_update!(G::Matrix{T}, logdetG::E, sgndetG::T,
     holstein_parameters = electron_phonon_parameters.holstein_parameters::HolsteinParameters{E}
     ssh_parameters = electron_phonon_parameters.ssh_parameters::SSHParameters{T}
     x = electron_phonon_parameters.x
+
+    # make sure stabilization frequencies match
+    if fermion_greens_calculator.n_stab != fermion_greens_calculator_alt.n_stab
+        resize!(fermion_greens_calculator_alt, fermion_greens_calculator.n_stab)
+    end
 
     # get the mass associated with each phonon
     M = phonon_parameters.M

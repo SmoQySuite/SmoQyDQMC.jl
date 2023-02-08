@@ -12,8 +12,9 @@ and update the equal-time Green's function matrices and all related variables an
 If the frequency of stabilization is udpated, then `δG` and `δθ` are reset to zero.
 This method returns a tuple of the following variables:
 ```julia
-(logdetGup, sgndetGdn, logdetGup, sgndetGdn, δG, δθ)
+(logdetGup, sgndetGdn, logdetGup, sgndetGdn, δG, δθ),
 ```
+where `updated = true` if `n_stab` was decremented.
 """
 function update_stabalization_frequency!(Gup::Matrix{T}, logdetGup::E, sgndetGup::T,
                                          Gdn::Matrix{T}, logdetGdn::E, sgndetGdn::T;
@@ -27,8 +28,14 @@ function update_stabalization_frequency!(Gup::Matrix{T}, logdetGup::E, sgndetGup
     n_stab_dn = fermion_greens_calculator_dn.n_stab::Int
     @assert n_stab == n_stab_dn
 
+    # initialize updated to false
+    updated = false
+
     # if numerical instability occured
     if δG > δG_max || (!isfinite(δG)) || (!isfinite(logdetGup)) || (!isfinite(logdetGdn))
+
+        # set updated to true
+        updated = true
         
         # if n_stab = 1 already
         if fermion_greens_calculator_up.n_stab == 1
@@ -61,7 +68,7 @@ function update_stabalization_frequency!(Gup::Matrix{T}, logdetGup::E, sgndetGup
         end
     end
 
-    return (logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ)
+    return (updated, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ)
 end
 
 @doc raw"""
@@ -76,8 +83,9 @@ and update the equal-time Green's function matrices and all related variables an
 If the frequency of stabilization is udpated, then `δG` and `δθ` are reset to zero.
 This method returns a tuple of the following variables:
 ```julia
-(logdetG, sgndetG, δG, δθ)
+(updated, logdetG, sgndetG, δG, δθ),
 ```
+where `updated = true` if `n_stab` was decremented.
 """
 function update_stabalization_frequency!(G::Matrix{T}, logdetG::E, sgndetG::T;
                                          fermion_greens_calculator::FermionGreensCalculator{T,E},
@@ -87,8 +95,14 @@ function update_stabalization_frequency!(G::Matrix{T}, logdetG::E, sgndetG::T;
     # make sure all fermoin greens calculators are using the same stabilizaiton period
     n_stab = fermion_greens_calculator.n_stab::Int
 
+    # initialize updated to false
+    updated = false
+
     # if numerical instability occured
     if δG > δG_max || (!isfinite(δG)) || (!isfinite(logdetG))
+
+        # set updated to true
+        updated = true
         
         # if n_stab = 1 already
         if fermion_greens_calculator.n_stab == 1
@@ -118,5 +132,5 @@ function update_stabalization_frequency!(G::Matrix{T}, logdetG::E, sgndetG::T;
         end
     end
 
-    return (logdetG, sgndetG, δG, δθ)
+    return (updated, logdetG, sgndetG, δG, δθ)
 end
