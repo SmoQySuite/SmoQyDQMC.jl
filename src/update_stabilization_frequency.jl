@@ -120,10 +120,10 @@ function update_stabalization_frequency!(G::Matrix{T}, logdetG::E, sgndetG::T;
             logdetG, sgndetG = resize!(fermion_greens_calculator, G, logdetG, sgndetG, B, n_stab)
 
             # if failed to evaluate determinant correctly
-            if isnan(logdetG)
+            if !isfinite(logdetG)
 
                 # throw error
-                error("Error: `logdetG = NaN`.")
+                error("Error: `logdetG = $(logdetG)`.")
             end
 
             # intialize errors associated with numerical instability to zero
