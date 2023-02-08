@@ -287,6 +287,13 @@ function swap_update!(G::Matrix{T}, logdetG::E, sgndetG::T,
     # accept/reject outcome
     accepted = rand(rng) < P_i
 
+    println("Swap Update")
+    println("accepted = ", accepted)
+    println("logdetG  = ", logdetG)
+    println("logdetG′ = ", logdetG′)
+    println("n_stab   = ", fermion_greens_calculator.n_stab)
+    println()
+
     # accept or reject the update
     if accepted
         logdetG = logdetG′
