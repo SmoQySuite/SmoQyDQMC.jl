@@ -161,13 +161,13 @@ function _hmc_update!(Gup::Matrix{T}, logdetGup::E, sgndetGup::E, Gup′::Matrix
                                                                         fermion_greens_calculator_dn_alt, Bdn)
 
         # if numerical error too large or nan occurs
-        if !isfinite(δG) || !isfinite(logdetGup) || !isfinite(logdetGdn)
+        if !isfinite(δG) || !isfinite(logdetGup) || !isfinite(logdetGdn) || δG > 10*δG_max
 
             # record that numerically instability was encountered
             numerically_stable = false
 
             # set numerical error large enough to correct update stabilization frequency
-            δG = δG_max
+            δG = 1 + δG_max
 
             # terminate the HMC trajectory
             break
@@ -403,13 +403,13 @@ function  _hmc_update!(G::Matrix{T}, logdetG::E, sgndetG::E, G′::Matrix{T},
                                                                     fermion_greens_calculator_alt, B)
 
         # if numerical error too large or nan occurs
-        if !isfinite(δG) || !isfinite(logdetG′)
+        if !isfinite(δG) || !isfinite(logdetG′) || δG > 10*δG_max
 
             # record that numerically instability was encountered
             numerically_stable = false
 
             # set numerical error large enough to correct update stabilization frequency
-            δG = δG_max
+            δG = 1 + δG_max
 
             # terminate the HMC trajectory
             break
