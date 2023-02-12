@@ -129,8 +129,8 @@ function initialize!(fermion_path_integral::FermionPathIntegral{T,E},
     @assert all(u -> u < 0.0, U)
 
     # add Ising HS field contribution to diagonal on-site energy matrices
-    for l in axes(Vup,2)
-        @views @. V[:,l] = Vup[:,l] - α/Δτ * s[:,l]
+    for l in axes(V,2)
+        @views @. V[:,l] = V[:,l] - α/Δτ * s[:,l]
     end
 
     return nothing
@@ -171,6 +171,7 @@ This method returns the a tuple containing `(acceptance_rate, logdetGup, sgndetG
 - `fermion_greens_calculator_dn::FermionGreensCalculator{T,E}`: An instance of the [`FermionGreensCalculator`](https://smoqysuite.github.io/JDQMCFramework.jl/stable/api/#JDQMCFramework.FermionGreensCalculator) type for the spin-down electrons.
 - `Bup::Vector{P}`: Spin-up propagators for each imaginary time slice.
 - `Bdn::Vector{P}`: Spin-dn propagators for each imaginary time slice.
+- `δG_max::E`: Maximum allowed error corrected by numerical stabilization.
 - `δG::E`: Previously recorded maximum error in the Green's function corrected by numerical stabilization.
 - `δθ::T`: Previously recorded maximum error in the sign/phase of the determinant of the equal-time Green's function matrix corrected by numerical stabilization.
 - `rng::AbstractRNG`: Random number generator used in method instead of global random number generator, important for reproducibility.
@@ -314,7 +315,7 @@ end
                    hubbard_ising_parameters::HubbardIsingHSParameters{E};
                    fermion_path_integral::FermionPathIntegral{T,E},
                    fermion_greens_calculator::FermionGreensCalculator{T,E},
-                   B::Vector{P}, δG, δθ::E,
+                   B::Vector{P}, δG_max::E, δG::E, δθ::E,
                    rng::AbstractRNG) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
 
 Sweep through every imaginary time slice and orbital in the lattice, performing local updates to every
@@ -334,6 +335,7 @@ This method returns the a tuple containing `(acceptance_rate, logdetG, sgndetG, 
 - `fermion_path_integral::FermionPathIntegral{T,E}`: An instance of the [`FermionPathIntegral`](@ref) type.
 - `fermion_greens_calculator::FermionGreensCalculator{T,E}`: An instance of the [`FermionGreensCalculator`](https://smoqysuite.github.io/JDQMCFramework.jl/stable/api/#JDQMCFramework.FermionGreensCalculator) type.
 - `B::Vector{P}`: Propagators for each imaginary time slice.
+- `δG_max::E`: Maximum allowed error corrected by numerical stabilization.
 - `δG::E`: Previously recorded maximum error in the Green's function corrected by numerical stabilization.
 - `δθ::T`: Previously recorded maximum error in the sign/phase of the determinant of the equal-time Green's function matrix corrected by numerical stabilization.
 - `rng::AbstractRNG`: Random number generator used in method instead of global random number generator, important for reproducibility.
@@ -342,7 +344,7 @@ function local_updates!(G::Matrix{T}, logdetG::E, sgndetG::T,
                         hubbard_ising_parameters::HubbardIsingHSParameters{E};
                         fermion_path_integral::FermionPathIntegral{T,E},
                         fermion_greens_calculator::FermionGreensCalculator{T,E},
-                        B::Vector{P}, δG, δθ::E,
+                        B::Vector{P}, δG_max::E, δG::E, δθ::E,
                         rng::AbstractRNG) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
 
     (; update_perm, U, α, sites, s, Δτ) = hubbard_ising_parameters
@@ -415,7 +417,7 @@ function local_updates!(G::Matrix{T}, logdetG::E, sgndetG::T,
         # apply the transformation G(τ,τ) = exp(-Δτ⋅K[l]/2)⋅G̃(τ,τ)⋅exp(+Δτ⋅K[l]/2)
         # if B[l] = exp(-Δτ⋅K[l]/2)⋅exp(-Δτ⋅V[l])⋅exp(-Δτ⋅K[l]/2),
         # otherwise nothing when B[l] = exp(-Δτ⋅V[l])⋅exp(-Δτ⋅K[l])
-        reverse_partially_wrap_greens(G, B[l], M)
+        reverse_partially_wrap_greens(G, B[l], G′)
 
         # Periodically re-calculate the Green's function matrix for numerical stability.
         logdetG, sgndetG, δG′, δθ′ = stabilize_equaltime_greens!(G, logdetG, sgndetG, fermion_greens_calculator, B, update_B̄=true)
@@ -514,7 +516,7 @@ function reflection_update!(Gup::Matrix{T}, logdetGup::E, sgndetGup::T,
     @. s_i = -s_i
 
     # calculate change in bosonic action, only non-zero for attractive Hubbard interaction
-    ΔSb_i = U[i] > zero(E) ? zero(E) : 2 * α[i] * sum(s_i)
+    ΔSb = U[i] > zero(E) ? zero(E) : 2 * α[i] * sum(s_i)
 
     # update diagonal on-site energy matrix
     @. Vup_i = -2*α[i]/Δτ * s_i + Vup_i
@@ -572,7 +574,7 @@ end
 
 @doc raw"""
     reflection_update!(G::Matrix{T}, logdetG::E, sgndetG::T,
-                       hubbard_ising_hs_params::HubbardIsingHSParameters{E};
+                       hubbard_ising_parameters::HubbardIsingHSParameters{E};
                        fermion_path_integral::FermionPathIntegral{T,E},
                        fermion_greens_calculator::FermionGreensCalculator{T,E},
                        fermion_greens_calculator_alt::FermionGreensCalculator{T,E},
@@ -598,14 +600,14 @@ This function returns `(accepted, logdetG, sgndetG)`. This method assumes strict
 - `rng::AbstractRNG`: Random number generator used in method instead of global random number generator, important for reproducibility.
 """
 function reflection_update!(G::Matrix{T}, logdetG::E, sgndetG::T,
-                            hubbard_ising_hs_params::HubbardIsingHSParameters{E};
+                            hubbard_ising_parameters::HubbardIsingHSParameters{E};
                             fermion_path_integral::FermionPathIntegral{T,E},
                             fermion_greens_calculator::FermionGreensCalculator{T,E},
                             fermion_greens_calculator_alt::FermionGreensCalculator{T,E},
                             B::Vector{P},
                             rng::AbstractRNG) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
 
-    (; N, U, α, s, Δτ) = hubbard_ising_hs_params
+    (; N, U, α, sites, s, Δτ) = hubbard_ising_parameters
     G′ = fermion_greens_calculator_alt.G′
 
     # make sure stabilization frequencies match
@@ -623,7 +625,7 @@ function reflection_update!(G::Matrix{T}, logdetG::E, sgndetG::T,
     @. s_i = -s_i
 
     # calculate change in bosonic action, only non-zero for attractive Hubbard interaction
-    ΔSb_i = 2 * α[i] * sum(s_i)
+    ΔSb = 2 * α[i] * sum(s_i)
 
     # update diagonal on-site energy matrix
     @. V_i = -2*α[i]/Δτ * s_i + V_i
@@ -639,8 +641,8 @@ function reflection_update!(G::Matrix{T}, logdetG::E, sgndetG::T,
 
     # calculate acceptance probability P = exp(-ΔS_b)⋅|det(G)/det(G′)|²
     #                                    = exp(-ΔS_b)⋅|det(M′)/det(M)|²
-    if isfinite(logdetGup′) && isfinite(logdetGdn′)
-        P_i = exp(-ΔSb + logdetGup + logdetGdn - logdetGup′ - logdetGdn′)
+    if isfinite(logdetG′)
+        P_i = exp(-ΔSb + 2*logdetG - 2*logdetG′)
     else
         P_i = 0.0
     end
@@ -658,7 +660,7 @@ function reflection_update!(G::Matrix{T}, logdetG::E, sgndetG::T,
         # revert diagonal on-site energy matrix
         @. V_i = -2*α[i]/Δτ * s_i + V_i
         # revert propagator matrices
-        @fastmath @inbounds for l in eachindex(Bup)
+        @fastmath @inbounds for l in eachindex(B)
             expmΔτV_l = B[l].expmΔτV::Vector{E}
             expmΔτV_l[site] = exp(-Δτ*V_i[l])
         end
@@ -672,7 +674,7 @@ end
 @doc raw"""
     swap_update!(Gup::Matrix{T}, logdetGup::E, sgndetGup::T,
                  Gdn::Matrix{T}, logdetGdn::E, sgndetGdn::T,
-                 hubbard_ising_hs_params::HubbardIsingHSParameters{E};
+                 hubbard_ising_parameters::HubbardIsingHSParameters{E};
                  fermion_path_integral_up::FermionPathIntegral{T,E},
                  fermion_path_integral_dn::FermionPathIntegral{T,E},
                  fermion_greens_calculator_up::FermionGreensCalculator{T,E},
@@ -709,7 +711,7 @@ This function returns `(accepted, logdetGup, sgndetGup, logdetGdn, sgndetGdn)`.
 """
 function swap_update!(Gup::Matrix{T}, logdetGup::E, sgndetGup::T,
                       Gdn::Matrix{T}, logdetGdn::E, sgndetGdn::T,
-                      hubbard_ising_hs_params::HubbardIsingHSParameters{E};
+                      hubbard_ising_parameters::HubbardIsingHSParameters{E};
                       fermion_path_integral_up::FermionPathIntegral{T,E},
                       fermion_path_integral_dn::FermionPathIntegral{T,E},
                       fermion_greens_calculator_up::FermionGreensCalculator{T,E},
@@ -719,7 +721,7 @@ function swap_update!(Gup::Matrix{T}, logdetGup::E, sgndetGup::T,
                       Bup::Vector{P}, Bdn::Vector{P},
                       rng::AbstractRNG) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
 
-    (; N, U, α, sites, s, Δτ) = hubbard_ising_hs_params
+    (; N, U, α, sites, s, Δτ) = hubbard_ising_parameters
     Gup′ = fermion_greens_calculator_up_alt.G′
     Gdn′ = fermion_greens_calculator_dn_alt.G′
 
@@ -831,7 +833,7 @@ end
 
 @doc raw"""
     swap_update!(G::Matrix{T}, logdetG::E, sgndetG::T,
-                 hubbard_ising_hs_params::HubbardIsingHSParameters{E};
+                 hubbard_ising_parameters::HubbardIsingHSParameters{E};
                  fermion_path_integral::FermionPathIntegral{T,E},
                  fermion_greens_calculator::FermionGreensCalculator{T,E},
                  fermion_greens_calculator_alt::FermionGreensCalculator{T,E},
@@ -856,13 +858,13 @@ sites in the lattice are exchanged. This function returns `(accepted, logdetG, s
 - `rng::AbstractRNG`: Random number generator used in method instead of global random number generator, important for reproducibility.
 """
 function swap_update!(G::Matrix{T}, logdetG::E, sgndetG::T,
-                      hubbard_ising_hs_params::HubbardIsingHSParameters{E};
+                      hubbard_ising_parameters::HubbardIsingHSParameters{E};
                       fermion_path_integral::FermionPathIntegral{T,E},
                       fermion_greens_calculator::FermionGreensCalculator{T,E},
                       fermion_greens_calculator_alt::FermionGreensCalculator{T,E},
                       B::Vector{P}, rng::AbstractRNG) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
 
-    (; N, U, α, sites, s, Δτ) = hubbard_ising_hs_params
+    (; N, U, α, sites, s, Δτ) = hubbard_ising_parameters
     G′ = fermion_greens_calculator_alt.G′
 
     # make sure stabilization frequencies match
@@ -906,7 +908,7 @@ function swap_update!(G::Matrix{T}, logdetG::E, sgndetG::T,
     @. V_j = V_j - α[j]/Δτ * (s_j - s_i) 
 
     # update propagator matrices
-    @fastmath @inbounds for l in eachindex(Bup)
+    @fastmath @inbounds for l in eachindex(B)
         expmΔτV_l = B[l].expmΔτV::Vector{E}
         expmΔτV_l[site_i] = exp(-Δτ*V_i[l])
         expmΔτV_l[site_j] = exp(-Δτ*V_j[l])
@@ -917,12 +919,10 @@ function swap_update!(G::Matrix{T}, logdetG::E, sgndetG::T,
 
     # calculate acceptance probability P = exp(-ΔS_b)⋅|det(G)/det(G′)|²
     #                                    = exp(-ΔS_b)⋅|det(M′)/det(M)|²
-    if isfinite(logdetGup′) && isfinite(logdetGdn′)
-        P_i = exp(-ΔSb + logdetGup + logdetGdn - logdetGup′ - logdetGdn′)
+    if isfinite(logdetG′)
+        P_i = exp(-ΔSb + 2*logdetG - 2*logdetG′)
     else
         P_i = 0.0
-        copyto!(fermion_greens_calculator_up_alt, fermion_greens_calculator_up)
-        copyto!(fermion_greens_calculator_dn_alt, fermion_greens_calculator_dn_alt)
     end
 
     # accept or reject the update
@@ -939,7 +939,7 @@ function swap_update!(G::Matrix{T}, logdetG::E, sgndetG::T,
         @. V_i = V_i - α[i]/Δτ * (s_i - s_j) 
         @. V_j = V_j - α[j]/Δτ * (s_j - s_i) 
         # revert propagator matrices
-        @fastmath @inbounds for l in eachindex(Bup)
+        @fastmath @inbounds for l in eachindex(B)
             expmΔτV_l = B[l].expmΔτV::Vector{E}
             expmΔτV_l[site_i] = exp(-Δτ*V_i[l])
             expmΔτV_l[site_j] = exp(-Δτ*V_j[l])
