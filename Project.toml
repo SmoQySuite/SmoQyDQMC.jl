@@ -30,9 +30,11 @@ Checkerboard = "1.2"
 FFTW = "1"
 JDQMCFramework = "1.0"
 JDQMCMeasurements = "1.2"
+JLD2 = "0.4"
 LatticeUtilities = "2"
 PkgVersion = "0.3"
 Reexport = "1"
+StaticArrays = "1"
 julia = "1.8"
 
 [extras]
