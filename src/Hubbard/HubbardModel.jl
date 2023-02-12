@@ -131,7 +131,7 @@ function HubbardParameters(; hubbard_model::HubbardModel{T},
             # calculate the site associated with the hubbard interaction
             sites′[u,n] = loc_to_site(u, o, unit_cell)
             # get the Hubbard U interaction on the site
-            U′[u,n] = U_mean[o] + U_std[o] * randn(rng)
+            U′[u,n] = U_mean[n] + U_std[n] * randn(rng)
         end
     end
 

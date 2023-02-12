@@ -237,7 +237,7 @@ function local_updates!(Gup::Matrix{T}, logdetGup::E, sgndetGup::T,
 
             # calculate the change in the bosonic action, only non-zero for attractive hubbard interactions
             if U[i] < 0.0
-                ΔSb_il = 2 * α[i] * (-s[i,l])
+                ΔSb_il = -2 * α[i] * s[i,l]
             else
                 ΔSb_il = 0.0
             end
