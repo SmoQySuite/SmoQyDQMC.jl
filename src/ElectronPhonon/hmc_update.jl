@@ -14,6 +14,7 @@ function _hmc_update!(Gup::Matrix{T}, logdetGup::E, sgndetGup::E, Gup′::Matrix
                       fourier_mass_matrix::FourierMassMatrix{E},
                       Nt::Int, nt::Int, Δt::E, initialize_force::Bool, first_update::Bool,
                       δG_max::E, δG::E, δθ::E, rng::AbstractRNG,
+                      δG_reject::E = sqrt(δG_max),
                       recenter!::Function = identity) where {T, E, P<:AbstractPropagator{T,E}}
 
     holstein_parameters = electron_phonon_parameters.holstein_parameters::HolsteinParameters{E}
@@ -94,6 +95,9 @@ function _hmc_update!(Gup::Matrix{T}, logdetGup::E, sgndetGup::E, Gup′::Matrix
     # flag to indicate whether or not hmc trajectory remains numerically stable
     numerically_stable = true
 
+    # initialize numerical error for hmc trajectory
+    δG′ = δG
+
     # iterate of fermionic time-steps
     for t in 1:Nt
 
@@ -139,9 +143,9 @@ function _hmc_update!(Gup::Matrix{T}, logdetGup::E, sgndetGup::E, Gup′::Matrix
 
         # update the spin up and spin down propagators to reflect current phonon configuration
         calculate_propagators!(Bup, fermion_path_integral_up,
-                            calculate_exp_K = calculate_exp_K, calculate_exp_V = calculate_exp_V)
+                               calculate_exp_K = calculate_exp_K, calculate_exp_V = calculate_exp_V)
         calculate_propagators!(Bdn, fermion_path_integral_dn,
-                            calculate_exp_K = calculate_exp_K, calculate_exp_V = calculate_exp_V)
+                               calculate_exp_K = calculate_exp_K, calculate_exp_V = calculate_exp_V)
 
         # update the Green's function to reflect the new phonon configuration
         logdetGup′, sgndetGup′ = calculate_equaltime_greens!(Gup′, fermion_greens_calculator_up_alt, Bup)
@@ -153,9 +157,6 @@ function _hmc_update!(Gup::Matrix{T}, logdetGup::E, sgndetGup::E, Gup′::Matrix
             # record that numerically instability was encountered
             numerically_stable = false
 
-            # set numerical error large enough to correct update stabilization frequency
-            δG = 1 + δG_max
-
             # terminate the HMC trajectory
             break
         end
@@ -164,23 +165,20 @@ function _hmc_update!(Gup::Matrix{T}, logdetGup::E, sgndetGup::E, Gup′::Matrix
         fill!(dSdx, 0.0)
 
         # calculate derivative of fermionic action for spin up
-        (logdetGup′, sgndetGup′, δG, δθ) = fermionic_action_derivative!(dSdx, Gup′, logdetGup′, sgndetGup′, δG, δθ,
+        (logdetGup′, sgndetGup′, δG′, δθ) = fermionic_action_derivative!(dSdx, Gup′, logdetGup′, sgndetGup′, δG′, δθ,
                                                                         electron_phonon_parameters,
                                                                         fermion_greens_calculator_up_alt, Bup)
 
         # calculate derivative of fermionic action for spin down
-        (logdetGdn′, sgndetGdn′, δG, δθ) = fermionic_action_derivative!(dSdx, Gdn′, logdetGdn′, sgndetGdn′, δG, δθ,
+        (logdetGdn′, sgndetGdn′, δG′, δθ) = fermionic_action_derivative!(dSdx, Gdn′, logdetGdn′, sgndetGdn′, δG′, δθ,
                                                                         electron_phonon_parameters,
                                                                         fermion_greens_calculator_dn_alt, Bdn)
 
         # if numerical error too large or nan occurs
-        if !isfinite(δG) || !isfinite(logdetGup) || !isfinite(logdetGdn) || δG > δG_max
+        if !isfinite(δG) || !isfinite(logdetGup) || !isfinite(logdetGdn) || δG′ > δG_reject
 
             # record that numerically instability was encountered
             numerically_stable = false
-
-            # set numerical error large enough to correct update stabilization frequency
-            δG = 1 + δG_max
 
             # terminate the HMC trajectory
             break
@@ -229,7 +227,6 @@ function _hmc_update!(Gup::Matrix{T}, logdetGup::E, sgndetGup::E, Gup′::Matrix
 
     # if proposed phonon configuration is accepted and hmc trajecotry remained numerically stable
     if accepted
-
         # record final green function matrices
         copyto!(Gup, Gup′)
         copyto!(Gdn, Gdn′)
@@ -241,10 +238,18 @@ function _hmc_update!(Gup::Matrix{T}, logdetGup::E, sgndetGup::E, Gup′::Matrix
         # record the final state of the fermion greens calculator
         copyto!(fermion_greens_calculator_up, fermion_greens_calculator_up_alt)
         copyto!(fermion_greens_calculator_dn, fermion_greens_calculator_dn_alt)
-
+        # record numerical error associated up hmc update
+        δG = δG′
+        # update stabilization frequency if required
+        (updated, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = update_stabalization_frequency!(
+            Gup, logdetGup, sgndetGup,
+            Gdn, logdetGdn, sgndetGdn,
+            fermion_greens_calculator_up = fermion_greens_calculator_up,
+            fermion_greens_calculator_dn = fermion_greens_calculator_dn,
+            Bup = Bup, Bdn = Bdn, δG = δG, δθ = δθ, δG_max = δG_max
+        )
     # otherwise reject proposed update and revert to oringial phonon configuration
     else
-
         # update fermion path integrals to reflect initial phonon configuration
         update!(fermion_path_integral_up, fermion_path_integral_dn, electron_phonon_parameters, x0, x)
         # revert to initial phonon configuration
@@ -257,15 +262,6 @@ function _hmc_update!(Gup::Matrix{T}, logdetGup::E, sgndetGup::E, Gup′::Matrix
         # revert to oringial action derivative
         copyto!(dSdx, dSdx′)
     end
-
-    # update stabilization frequency if required
-    (updated, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = update_stabalization_frequency!(
-        Gup, logdetGup, sgndetGup,
-        Gdn, logdetGdn, sgndetGdn,
-        fermion_greens_calculator_up = fermion_greens_calculator_up,
-        fermion_greens_calculator_dn = fermion_greens_calculator_dn,
-        Bup = Bup, Bdn = Bdn, δG = δG, δθ = δθ, δG_max = δG_max
-    )
 
     return (accepted, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ)
 end
@@ -284,6 +280,7 @@ function  _hmc_update!(G::Matrix{T}, logdetG::E, sgndetG::E, G′::Matrix{T},
                        fourier_mass_matrix::FourierMassMatrix{E},
                        Nt::Int, nt::Int, Δt::E, initialize_force::Bool, first_update::Bool,
                        δG_max::E, δG::E, δθ::E, rng::AbstractRNG,
+                       δG_reject::E = sqrt(δG_max),
                        recenter!::Function = identity) where {T, E, P<:AbstractPropagator{T,E}}
 
     holstein_parameters = electron_phonon_parameters.holstein_parameters::HolsteinParameters{E}
@@ -358,6 +355,9 @@ function  _hmc_update!(G::Matrix{T}, logdetG::E, sgndetG::E, G′::Matrix{T},
     # flag to indicate whether or not hmc trajectory remains numerically stable
     numerically_stable = true
 
+    # initialize numerical error for hmc trajectory
+    δG′ = δG
+
     # iterate of fermionic time-steps
     for t in 1:Nt
 
@@ -413,9 +413,6 @@ function  _hmc_update!(G::Matrix{T}, logdetG::E, sgndetG::E, G′::Matrix{T},
             # record that numerically instability was encountered
             numerically_stable = false
 
-            # set numerical error large enough to correct update stabilization frequency
-            δG = 1 + δG_max
-
             # terminate the HMC trajectory
             break
         end
@@ -424,18 +421,15 @@ function  _hmc_update!(G::Matrix{T}, logdetG::E, sgndetG::E, G′::Matrix{T},
         fill!(dSdx, 0.0)
 
         # calculate derivative of fermionic action
-        (logdetG′, sgndetG′, δG, δθ) = fermionic_action_derivative!(dSdx, G′, logdetG′, sgndetG′, δG, δθ,
+        (logdetG′, sgndetG′, δG′, δθ) = fermionic_action_derivative!(dSdx, G′, logdetG′, sgndetG′, δG′, δθ,
                                                                     electron_phonon_parameters,
                                                                     fermion_greens_calculator_alt, B)
 
         # if numerical error too large or nan occurs
-        if !isfinite(δG) || !isfinite(logdetG′) || δG > δG_max
+        if !isfinite(δG) || !isfinite(logdetG′) || δG′ > δG_reject
 
             # record that numerically instability was encountered
             numerically_stable = false
-
-            # set numerical error large enough to correct update stabilization frequency
-            δG = 1 + δG_max
 
             # terminate the HMC trajectory
             break
@@ -487,7 +481,6 @@ function  _hmc_update!(G::Matrix{T}, logdetG::E, sgndetG::E, G′::Matrix{T},
     
     # if proposed phonon configuration is accepted and hmc trajecotry remained numerically stable
     if accepted
-
         # record final greens function matrix
         copyto!(G, G′)
         # record final greens function determinant
@@ -495,10 +488,16 @@ function  _hmc_update!(G::Matrix{T}, logdetG::E, sgndetG::E, G′::Matrix{T},
         sgndetG = sgndetG′
         # record the final state of the fermion greens calculator
         copyto!(fermion_greens_calculator, fermion_greens_calculator_alt)
-
+        # record numerical error associated up hmc update
+        δG = δG′
+        # update stabilization frequency if required
+        (updated, logdetG, sgndetG, δG, δθ) = update_stabalization_frequency!(
+            G, logdetG, sgndetG,
+            fermion_greens_calculator = fermion_greens_calculator,
+            B = B, δG = δG, δθ = δθ, δG_max = δG_max
+        )
     # otherwise reject proposed update and revert to oringial phonon configuration
     else
-
         # update fermion path integrals to reflect initial phonon configuration
         update!(fermion_path_integral, electron_phonon_parameters, x0, x)
         # revert to initial phonon configuration
@@ -508,13 +507,6 @@ function  _hmc_update!(G::Matrix{T}, logdetG::E, sgndetG::E, G′::Matrix{T},
         # revert to oringial action derivative
         copyto!(dSdx, dSdx′)
     end
-
-    # update stabilization frequency if required
-    (updated, logdetG, sgndetG, δG, δθ) = update_stabalization_frequency!(
-        G, logdetG, sgndetG,
-        fermion_greens_calculator = fermion_greens_calculator,
-        B = B, δG = δG, δθ = δθ, δG_max = δG_max
-    )
 
     return (accepted, logdetG, sgndetG, δG, δθ)
 end
