@@ -99,7 +99,7 @@ The [SmoQyDQMC.jl](https://github.com/SmoQySuite/SmoQyDQMC.jl) re-exports certai
 the [`Reexport.jl`](https://github.com/simonster/Reexport.jl.git) package in order to simplify the installation process.
 
 - [`LatticeUtilties.jl`](https://github.com/cohensbw/LatticeUtilities.jl.git): Used to represent arbitrary lattice geometries.
-- [`JDQMCFramework.jl`](https://github.com/SmoQySuite/JDQMCFramework.jl.git): Impelements and exports the basic framework for running a DQMC simulation.
+- [`JDQMCFramework.jl`](https://github.com/SmoQySuite/JDQMCFramework.jl.git): Implements and exports the basic framework for running a DQMC simulation.
 - [`JDQMCMeasurements.jl`](https://github.com/SmoQySuite/JDQMCMeasurements.jl.git): Implements various global, local and correlation measurements for a DQMC simulation.
 - [`MuTuner.jl`](https://github.com/cohensbw/MuTuner.jl.git): Impelments and exports an algorithm for tuning the chemical potential to achieve a target density in grand canonical Monte Carlo simulations.
 
