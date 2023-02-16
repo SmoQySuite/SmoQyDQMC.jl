@@ -69,7 +69,7 @@ is tuned to achieve a target density of ``\langle n \rangle = 2/3.`` The simulat
 
 ## Square Lattice Hubbard Model
 
-In the script [`examples/hubbard_sqaure.jl`](https://github.com/SmoQySuite/SmoQyDQMC.jl/blob/main/examples/hubbard_sqaure.jl)
+In the script [`examples/hubbard_square.jl`](https://github.com/SmoQySuite/SmoQyDQMC.jl/blob/main/examples/hubbard_square.jl)
 we simulate the half-filled, particle-hole symmetric repulsive Hubbard model on a square lattice, given by
 ```math
 \begin{align*}

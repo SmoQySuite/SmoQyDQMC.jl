@@ -110,7 +110,7 @@ end
                 Bup::Vector{P}, Bdn::Vector{P},
                 δG_max::E, δG::E, δθ::E, rng::AbstractRNG,
                 initialize_force::Bool = true,
-                δG_reject::E = sqrt(δG_max)) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
+                δG_reject::E = 1e-2) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
 
 Perform HMC update to the phonon degrees of freedom.
 This method returns `(accepted, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ)`, where `accepted`
@@ -129,7 +129,7 @@ function hmc_update!(Gup::Matrix{T}, logdetGup::E, sgndetGup::T,
                      Bup::Vector{P}, Bdn::Vector{P},
                      δG_max::E, δG::E, δθ::E, rng::AbstractRNG,
                      initialize_force::Bool = true,
-                     δG_reject::E = sqrt(δG_max),
+                     δG_reject::E = 1e-2,
                      recenter!::Function = identity) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
 
     (; nt, Δt, M, dSdx, dSfdx0, x′, x0, v, Gup′, Gdn′, Nt, first_update) = hmc_updater
@@ -164,7 +164,7 @@ end
                 fermion_greens_calculator_alt::FermionGreensCalculator{T,E},
                 B::Vector{P}, δG_max::E, δG::E, δθ::E, rng::AbstractRNG,
                 initialize_force::Bool = true,
-                δG_reject::E = sqrt(δG_max)) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
+                δG_reject::E = 1e-2) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
 
 Perform HMC update to the phonon degrees of freedom assuming the spin-up and spin-down sectors are equivalent.
 This method returns `(accepted, logdetG, sgndetG, δG, δθ)`, where `accepted`
@@ -178,7 +178,7 @@ function hmc_update!(G::Matrix{T}, logdetG::E, sgndetG::T,
                      fermion_greens_calculator_alt::FermionGreensCalculator{T,E},
                      B::Vector{P}, δG_max::E, δG::E, δθ::E, rng::AbstractRNG,
                      initialize_force::Bool = true,
-                     δG_reject::E = sqrt(δG_max),
+                     δG_reject::E = 1e-2,
                      recenter!::Function = identity) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
 
     (; nt, Δt, M, dSdx, dSfdx0, x′, x0, v, Gup′, Nt, first_update) = hmc_updater
