@@ -135,7 +135,7 @@ function hmc_update!(Gup::Matrix{T}, logdetGup::E, sgndetGup::T,
     (; nt, Δt, M, dSdx, dSfdx0, x′, x0, v, Gup′, Gdn′, Nt, first_update) = hmc_updater
     
     # sample the trajectory length from geometric distribution with mean given by Nt
-    Nt′ = Nt > 1 ? max(1, floor(Int, log(rand(rng))/log(1-1/Nt))) : 1
+    Nt′ = Nt > 1 ? floor(Int, log(rand())/log(1-1/Nt)) + 1 : 1
 
     # perform HMC update
     (accepted, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = _hmc_update!(
