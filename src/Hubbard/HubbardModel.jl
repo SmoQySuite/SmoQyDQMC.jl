@@ -154,10 +154,7 @@ function initialize!(fermion_path_integral_up::FermionPathIntegral{T,E},
                      hubbard_parameters::HubbardParameters{E}) where {T,E}
 
     initialize!(fermion_path_integral_up, hubbard_parameters)
-    
-    if !(fermion_path_integral_up===fermion_path_integral_dn)
-        initialize!(fermion_path_integral_up, hubbard_parameters)
-    end
+    initialize!(fermion_path_integral_dn, hubbard_parameters)
 
     return nothing
 end
@@ -165,14 +162,14 @@ end
 function initialize!(fermion_path_integral::FermionPathIntegral{T,E},
                      hubbard_parameters::HubbardParameters{E}) where {T,E}
 
-    (; shifted, U) = hubbard_parameters
+    (; shifted, U, sites) = hubbard_parameters
     (; V) = fermion_path_integral
 
     # shift on-site energies if necessary
     if shifted
         for i in eachindex(U)
             # shift on-site energies by +U/2
-            @views @. V[i,:] = V[i,:] + U[i]/2
+            @views @. V[sites[i],:] = V[sites[i],:] + U[i]/2
         end
     end
 
