@@ -8,10 +8,6 @@ import SmoQyDQMC.JDQMCFramework    as dqmcf
 import SmoQyDQMC.JDQMCMeasurements as dqmcm
 import SmoQyDQMC.MuTuner           as mt
 
-using StableLinearAlgebra
-using JDQMCFramework
-import JDQMCFramework: update_factorizations!
-
 # top level function to run simulation
 function run_simulation()
 
@@ -75,7 +71,7 @@ function run_simulation()
     N_burnin = 5_000
 
     # number of simulation updates
-    N_updates = 20_000
+    N_updates = 10_000
 
     # number of bins/number of time 
     N_bins = 100
