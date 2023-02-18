@@ -7,7 +7,7 @@ If `shifted = true`, then a Hubbard interaction of the form
 ```
 is assumed, where ``\mathbf{i}`` specifies the unit cell, and ``\nu`` denotes the orbital in the unit cell.
 For a bipartite lattice with only nearest neighbor hopping, the on-site energy corresponding to half-filling
-and particle-hole symmetry is ``\epsilon_{\nu,\mathbf{i}} = -U_{\nu,\mathbf{i}}/2.``
+and particle-hole symmetry is ``\epsilon_{\nu,\mathbf{i}} = +U_{\nu,\mathbf{i}}/2.``
 
 If `shifted = false`, then a Hubbard interaction of the form
 ```math
@@ -167,9 +167,12 @@ function initialize!(fermion_path_integral::FermionPathIntegral{T,E},
 
     # shift on-site energies if necessary
     if shifted
-        for i in eachindex(U)
-            # shift on-site energies by +U/2
-            @views @. V[sites[i],:] = V[sites[i],:] + U[i]/2
+        for l in axes(V,2)
+            for i in eachindex(U)
+                # shift on-site energies by -U/2
+                site = sites[i]
+                V[site,l] = V[site,l] - U[i]/2
+            end
         end
     end
 

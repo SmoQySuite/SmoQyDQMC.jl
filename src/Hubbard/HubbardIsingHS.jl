@@ -93,18 +93,16 @@ function initialize!(fermion_path_integral_up::FermionPathIntegral{T,E},
                      fermion_path_integral_dn::FermionPathIntegral{T,E},
                      hubbard_ising_parameters::HubbardIsingHSParameters{E}) where {T,E}
     
-    (; α, U, Δτ, s) = hubbard_ising_parameters
+    (; α, U, Δτ, s, sites) = hubbard_ising_parameters
     Vup = fermion_path_integral_up.V
     Vdn = fermion_path_integral_dn.V
 
     # add Ising HS field contribution to diagonal on-site energy matrices
     for l in axes(Vup,2)
-        @views @. Vup[:,l] = Vup[:,l] - α/Δτ * s[:,l]
-    end
-
-    if !(Vup === Vdn)
-        for l in axes(Vdn,2)
-            @views @. Vdn[:,l] = Vdn[:,l] + sign(U)*α/Δτ * s[:,l]
+        for i in eachindex(sites)
+            site = sites[i]
+            Vup[site,l] = Vup[site,l] - α[i]/Δτ * s[i,l]
+            Vdn[site,l] = Vdn[site,l] + sign(U[i]) * α[i]/Δτ * s[i,l]
         end
     end
 
@@ -122,7 +120,7 @@ instance `fermion_path_integral`.
 function initialize!(fermion_path_integral::FermionPathIntegral{T,E},
                      hubbard_ising_parameters::HubbardIsingHSParameters{E}) where {T,E}
     
-    (; α, U, Δτ, s) = hubbard_ising_parameters
+    (; α, U, Δτ, s, sites) = hubbard_ising_parameters
     V = fermion_path_integral.V
 
     # make sure its a strictly attractive hubbard interaction
@@ -130,7 +128,10 @@ function initialize!(fermion_path_integral::FermionPathIntegral{T,E},
 
     # add Ising HS field contribution to diagonal on-site energy matrices
     for l in axes(V,2)
-        @views @. V[:,l] = V[:,l] - α/Δτ * s[:,l]
+        for i in eachindex(sites)
+            site = sites[i]
+            V[site,l] = V[site,l] - α[i]/Δτ * s[i,l]
+        end
     end
 
     return nothing
