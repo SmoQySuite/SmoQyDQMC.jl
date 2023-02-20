@@ -34,7 +34,7 @@ function update_chemical_potential!(Gup::Matrix{T}, logdetGup::E, sgndetGup::T,
     n = nup + ndn
 
     # calculate ⟨N²⟩
-    N² = measure_N²(Gup, Gdn)
+    N² = measure_Nsqrd(Gup, Gdn)
 
     # update the chemical potential
     μ = MuTuner.update!(μtuner=chemical_potential_tuner, n=n, N²=N², s=sgn)
@@ -44,7 +44,7 @@ function update_chemical_potential!(Gup::Matrix{T}, logdetGup::E, sgndetGup::T,
 
     # update fermion path integrals
     Vup = fermion_path_integral_up.Vup
-    Vdn = fermion_path_integral_dn.up
+    Vdn = fermion_path_integral_dn.Vdn
     @. Vup += -μ + μ′
     @. Vdn += -μ + μ′
 
