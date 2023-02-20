@@ -1,5 +1,5 @@
 @doc raw"""
-    HubbardIsingHSParameters{T<:AbstractFloat}
+    HubbardIsingHSParameters{T<:AbstractFloat} <: AbstractHubbardHS
 
 Parameters associated with decoupling the Hubbard interaction using the standard Ising
 Hubbard-Stratonovich (HS) transformation.
@@ -16,7 +16,7 @@ Hubbard-Stratonovich (HS) transformation.
 - `s::Matrix{Int}`: Ising Hubbard-Stratonovich fields.
 - `update_perm::Vector{Int}`: Order in which to iterate over HS fields in time slice when performing local updates.
 """
-struct HubbardIsingHSParameters{T<:AbstractFloat}
+struct HubbardIsingHSParameters{T<:AbstractFloat} <: AbstractHubbardHS
 
     # inverse temperature
     β::T

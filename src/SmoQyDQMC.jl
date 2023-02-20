@@ -15,6 +15,10 @@ using Reexport
 using PkgVersion
 using TOML
 
+# packages for numerically solving for c in
+# the continuous hubbard-stratonovich transformation
+using QuadGK, Roots
+
 # import "our" packages
 using MuTuner
 using Checkerboard
@@ -85,6 +89,9 @@ export HubbardModel, HubbardParameters, initialize!
 # Implement Ising Hubbard-Statonovich (HS) decoupling of Hubbard interaction, and various methods for update the IS HS fields
 include("Hubbard/HubbardIsingHS.jl")
 export HubbardIsingHSParameters, local_updates!, reflection_update!, swap_update!
+
+# Implement Continuous Hubbard-Stratonovich (HS) decoupling of Hubbard interaction.
+include("Hubbard/HubbardContinuousHS.jl")
 
 ###########################
 ## ELECTRON-PHONON MODEL ##
