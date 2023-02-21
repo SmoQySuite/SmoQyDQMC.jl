@@ -90,8 +90,10 @@ function write_measurements!(; measurement_container::NamedTuple,
         pairs = correlation_container.pairs::Vector{NTuple{2,Int}}
         correlations = correlation_container.correlations::Vector{Array{Complex{E}, D+1}}
 
-        # write position space equal-time correlation to file
-        save(joinpath(datafolder, "time-displaced", correlation, "position", fn), correlation_container)
+        # write position space time-displaced correlation to file
+        if correlation_container.time_displaced
+            save(joinpath(datafolder, "time-displaced", correlation, "position", fn), correlation_container)
+        end
 
         # get susceptibility container
         susceptibility_container = integrated_correlations[correlation]
@@ -116,8 +118,10 @@ function write_measurements!(; measurement_container::NamedTuple,
             fourier_transform!(correlations[i], a, b, D+1, unit_cell, lattice)
         end
 
-        # write momentum space equal-time correlation to file
-        save(joinpath(datafolder, "time-displaced", correlation, "momentum", fn), correlation_container)
+        # write momentum space time-displaced correlation to file
+        if correlation_container.time_displaced
+            save(joinpath(datafolder, "time-displaced", correlation, "momentum", fn), correlation_container)
+        end
 
         # calculate momentum space susceptibilies/integrated correlations
         for i in eachindex(pairs)
