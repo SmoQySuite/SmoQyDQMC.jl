@@ -422,7 +422,16 @@ function make_equaltime_measurements!(equaltime_correlations::Dict{String, Corre
         pairs = correlation_container.pairs::Vector{NTuple{2,Int}}
         correlations = correlation_container.correlations::Vector{Array{Complex{T}, D}}
 
-        if correlation == "greens_up"
+        if correlation == "greens"
+
+            for i in eachindex(pairs)
+                pair = pairs[i]
+                correlation = correlations[i]
+                greens!(correlation, pair[2], pair[1], unit_cell, lattice, Gup_τ0, sgn/2)
+                greens!(correlation, pair[2], pair[1], unit_cell, lattice, Gdn_τ0, sgn/2)
+            end
+
+        elseif correlation == "greens_up"
 
             for i in eachindex(pairs)
                 pair = pairs[i]
@@ -540,7 +549,16 @@ function make_time_displaced_measurements!(time_displaced_correlations::Dict{Str
         pairs = correlation_container.pairs::Vector{NTuple{2,Int}}
         correlations = correlation_container.correlations::Vector{Array{Complex{T}, P}}
 
-        if correlation == "greens_up"
+        if correlation == "greens"
+
+            for i in eachindex(pairs)
+                pair = pairs[i]
+                correlation = selectdim(correlations[i], D+1, l+1)
+                greens!(correlation, pair[2], pair[1], unit_cell, lattice, Gup_τ0, sgn/2)
+                greens!(correlation, pair[2], pair[1], unit_cell, lattice, Gdn_τ0, sgn/2)
+            end
+
+        elseif correlation == "greens_up"
 
             for i in eachindex(pairs)
                 pair = pairs[i]

@@ -240,7 +240,7 @@ function run_simulation()
     initialize_correlation_measurements!(
         measurement_container = measurement_container,
         model_geometry = model_geometry,
-        correlation = "greens_up", # Gup = Gdn, so just measure Gup
+        correlation = "greens", # Gup = Gdn, so just measure Gup
         time_displaced = true,
         pairs = [(1, 1)]
     )
@@ -259,7 +259,8 @@ function run_simulation()
         measurement_container = measurement_container,
         model_geometry = model_geometry,
         correlation = "density",
-        time_displaced = true,
+        time_displaced = false,
+        integrated = true,
         pairs = [(1, 1)]
     )
 
@@ -268,7 +269,8 @@ function run_simulation()
         measurement_container = measurement_container,
         model_geometry = model_geometry,
         correlation = "pair",
-        time_displaced = true,
+        time_displaced = false,
+        integrated = true,
         pairs = [(1, 1), (bond_id, bond_id)]
     )
 
@@ -277,7 +279,8 @@ function run_simulation()
         measurement_container = measurement_container,
         model_geometry = model_geometry,
         correlation = "spin_x",
-        time_displaced = true,
+        time_displaced = false,
+        integrated = true,
         pairs = [(1, 1)]
     )
 
@@ -286,7 +289,8 @@ function run_simulation()
         measurement_container = measurement_container,
         model_geometry = model_geometry,
         correlation = "spin_z",
-        time_displaced = true,
+        time_displaced = false,
+        integrated = true,
         pairs = [(1, 1)]
     )
 
@@ -295,7 +299,8 @@ function run_simulation()
         measurement_container = measurement_container,
         model_geometry = model_geometry,
         correlation = "bond",
-        time_displaced = true,
+        time_displaced = false,
+        integrated = true,
         pairs = [(bond_id, bond_id)]
     )
 
@@ -462,25 +467,7 @@ function run_simulation()
     # calculate time-displaced green's function stats in momentum space
     process_correlation_measurement(
         folder = simulation_info.datafolder,
-        correlation = "greens_up",
-        type = "time-displaced",
-        space = "momentum",
-        N_bin = 20
-    )
-
-    # calculate time-displaced green's function stats in position space
-    process_correlation_measurement(
-        folder = simulation_info.datafolder,
-        correlation = "greens_up",
-        type = "time-displaced",
-        space = "position",
-        N_bin = 20
-    )
-
-    # calculate time-displaced phonon green's function stats in momentum space
-    process_correlation_measurement(
-        folder = simulation_info.datafolder,
-        correlation = "phonon_greens",
+        correlation = "greens",
         type = "time-displaced",
         space = "momentum",
         N_bin = 20

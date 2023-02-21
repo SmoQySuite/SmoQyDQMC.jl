@@ -4,6 +4,7 @@
 
 @doc raw"""
     const CORRELATION_FUNCTIONS = (
+        "greens",
         "greens_up",
         "greens_dn",
         "phonon_greens",
@@ -19,6 +20,7 @@ List of all the correlation functions that can be measured.
 Correlation functions are well defined in both position and momentum space.
 """
 const CORRELATION_FUNCTIONS = (
+    "greens",
     "greens_up",
     "greens_dn",
     "phonon_greens",
@@ -40,7 +42,7 @@ Container to hold correlation function data.
 
 - `pairs::Vector{NTuple{2,Int}}`: Pairs of bond/orbital IDs to measure.
 - `correlations::Vector{Array{Complex{T}, D}}`: Vector of arrays, where each array contains the correlation measurements for a bond/orbital ID pair.
-- `time_displaced::Bool`: Whether or not the correlation data being stored corresponds to a time-displaced correlation function.
+- `time_displaced::Bool`: Whether or not the correlation measurement is time-displaced and will also be written to file.
 """
 struct CorrelationContainer{D, T<:AbstractFloat}
 
@@ -50,7 +52,7 @@ struct CorrelationContainer{D, T<:AbstractFloat}
     # correlation data for each pair of bond/orbital IDs getting measured
     correlations::Vector{Array{Complex{T}, D}}
 
-    # whether the correlation data corresponds to a time-displaced correlation function
+    # whether or not the correlation measurement is time-displaced and will also be written to file.
     time_displaced::Bool
 end
 
@@ -58,17 +60,11 @@ end
     CorrelationContainer(D::Int, T::DataType, time_displaced::Bool)
 
 Initialize and return an empty instance of  `CorrelationContainer` for containing correlation data
-collected from a `D` dimenionsal system.
-If `time_displaced = true`, then the return type is `CorrelationContainer{D+1, T}`.
-If `time_displaced = false`, then the return type is `CorrelationContainer{D, T}`.
+in a `D` dimensional array.
 """
 function CorrelationContainer(D::Int, T::DataType, time_displaced::Bool)
 
-    if time_displaced
-        correlation_container = CorrelationContainer(NTuple{2,Int}[], Array{Complex{T},D+1}[], time_displaced)
-    else
-        correlation_container = CorrelationContainer(NTuple{2,Int}[], Array{Complex{T},D}[], time_displaced)
-    end
+    correlation_container = CorrelationContainer(NTuple{2,Int}[], Array{Complex{T},D}[], time_displaced)
 
     return correlation_container
 end
@@ -337,15 +333,20 @@ end
     initialize_correlation_measurements!(; measurement_container::NamedTuple,
                                          model_geometry::ModelGeometry{D,T,N},
                                          correlation::String, pairs::AbstractVector{NTuple{2,Int}},
-                                         time_displaced::Bool)  where {T<:AbstractFloat, D, N}
+                                         time_displaced::Bool,
+                                         integrated::Bool = false)  where {T<:AbstractFloat, D, N}
 
 Initialize measurements of `correlation` for all pairs of bond ID's in `pairs`.
 The name `correlation` must appear in `CORRELATION_FUNCTIONS`.
+If `time-displaced = true` then time-displaced and integrated correlation measurements are made.
+If `time-displaced = false` and `integrated = false`, then just equal-time correlation measurements are made.
+If `time-displaced = false` and `integrated = true`, then both equal-time and integrated correlation measurements are made.
 """
 function initialize_correlation_measurements!(; measurement_container::NamedTuple,
                                               model_geometry::ModelGeometry{D,T,N},
                                               correlation::String, pairs::AbstractVector{NTuple{2,Int}},
-                                              time_displaced::Bool)  where {T<:AbstractFloat, D, N}
+                                              time_displaced::Bool,
+                                              integrated::Bool = false)  where {T<:AbstractFloat, D, N}
 
     # iterate over all bond/orbial ID pairs
     for pair in pairs
@@ -353,7 +354,8 @@ function initialize_correlation_measurements!(; measurement_container::NamedTupl
                                             model_geometry = model_geometry,
                                             correlation = correlation,
                                             pair = pair,
-                                            time_displaced = time_displaced)
+                                            time_displaced = time_displaced,
+                                            integrated = integrated)
     end
 
     return nothing
@@ -363,15 +365,20 @@ end
     initialize_correlation_measurement!(; measurement_container::NamedTuple,
                                         model_geometry::ModelGeometry{D,T,N},
                                         correlation::String, pair::NTuple{2,Int},
-                                        time_displaced::Bool)  where {T<:AbstractFloat, D, N}
+                                        time_displaced::Bool,
+                                        integrated::Bool = false)  where {T<:AbstractFloat, D, N}
 
 Initialize a measurement of `correlation` between the pair of bond ID's `pair`.
 The name `correlation` must appear in `CORRELATION_FUNCTIONS`.
+If `time-displaced = true` then time-displaced and integrated correlation measurements are made.
+If `time-displaced = false` and `integrated = false`, then just equal-time correlation measurements are made.
+If `time-displaced = false` and `integrated = true`, then both equal-time and integrated correlation measurements are made.
 """
 function initialize_correlation_measurement!(; measurement_container::NamedTuple,
                                              model_geometry::ModelGeometry{D,T,N},
                                              correlation::String, pair::NTuple{2,Int},
-                                             time_displaced::Bool)  where {T<:AbstractFloat, D, N}
+                                             time_displaced::Bool,
+                                             integrated::Bool = false)  where {T<:AbstractFloat, D, N}
 
     (; time_displaced_correlations, integrated_correlations, equaltime_correlations) = measurement_container
 
@@ -384,13 +391,13 @@ function initialize_correlation_measurement!(; measurement_container::NamedTuple
     # length of imaginary time axis
     Lτ = measurement_container.Lτ
 
-    # if time displaced measurement
-    if time_displaced
+    # if time displaced or integrated measurement should be made
+    if time_displaced || integrated
 
         # add time-displaced and integrated correlation key if not present
         if !haskey(time_displaced_correlations, correlation)
-            time_displaced_correlations[correlation] = CorrelationContainer(D, T, time_displaced)
-            integrated_correlations[correlation] = CorrelationContainer(D, T, !time_displaced)
+            time_displaced_correlations[correlation] = CorrelationContainer(D+1, T, time_displaced)
+            integrated_correlations[correlation] = CorrelationContainer(D, T, false)
         end
 
         # add time-dispalced correlation measurement
@@ -400,13 +407,14 @@ function initialize_correlation_measurement!(; measurement_container::NamedTuple
         # add integrated correlation measurement
         push!(integrated_correlations[correlation].pairs, pair)
         push!(integrated_correlations[correlation].correlations, zeros(Complex{T}, L...))
+    end
 
-    # if equal-time measurement
-    else
+    # if equal-time measurement should be made
+    if !time_displaced
 
         # add equal-time correlation key if not present
         if !haskey(equaltime_correlations, correlation)
-            equaltime_correlations[correlation] = CorrelationContainer(D, T, time_displaced)
+            equaltime_correlations[correlation] = CorrelationContainer(D, T, false)
         end
 
         # add equal-time correlation measurement
@@ -432,7 +440,7 @@ function initialize_measurement_directories(; simulation_info::SimulationInfo,
                                             measurement_container::NamedTuple)
 
     (; datafolder, resuming, pID) = simulation_info
-    (; time_displaced_correlations, equaltime_correlations) = measurement_container
+    (; time_displaced_correlations, equaltime_correlations, integrated_correlations) = measurement_container
 
     # only initialize folders if pID = 0
     if iszero(pID) && !resuming
@@ -469,24 +477,28 @@ function initialize_measurement_directories(; simulation_info::SimulationInfo,
         integrated_directory = joinpath(datafolder, "integrated")
         mkdir(integrated_directory)
 
-        # iterate over time-displaced correlation measurements
-        for correlation in keys(time_displaced_correlations)
+        # iterate over integrated correlation measurements
+        for correlation in keys(integrated_correlations)
 
-            # make directory for each individual time-displaced correlation measurement
-            time_displaced_correlation_directory = joinpath(time_displaced_directory, correlation)
-            mkdir(time_displaced_correlation_directory)
-
-            # create sub-directories for position and momentum space time-displaced correlation measurements
-            mkdir(joinpath(time_displaced_correlation_directory, "position"))
-            mkdir(joinpath(time_displaced_correlation_directory, "momentum"))
-
-            # make directory for each individual integrated correlation measurement
+            # make directory for integrated correlation measurement
             integrated_correlation_directory = joinpath(integrated_directory, correlation)
             mkdir(integrated_correlation_directory)
 
             # create sub-directories for position and momentum space time-displaced correlation measurements
             mkdir(joinpath(integrated_correlation_directory, "position"))
             mkdir(joinpath(integrated_correlation_directory, "momentum"))
+
+            # check if also a time-displaced measurement should also be made
+            if time_displaced_correlations[correlation].time_displaced
+
+                # make directory for time-displaced correlation measurement
+                time_displaced_correlation_directory = joinpath(time_displaced_directory, correlation)
+                mkdir(time_displaced_correlation_directory)
+
+                # create sub-directories for position and momentum space time-displaced correlation measurements
+                mkdir(joinpath(time_displaced_correlation_directory, "position"))
+                mkdir(joinpath(time_displaced_correlation_directory, "momentum"))
+            end
         end
     end
 
