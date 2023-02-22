@@ -93,6 +93,12 @@ export HubbardIsingHSParameters, local_updates!, reflection_update!, swap_update
 # Implement Continuous Hubbard-Stratonovich (HS) decoupling of Hubbard interaction.
 include("Hubbard/HubbardContinuousHS.jl")
 
+# evaluate the derivative of the action with respect to continuous HS fields
+include("Hubbard/hubbard_action_derivative.jl")
+
+# implement HMC update for continuous HS fields
+include("Hubbard/hubbard_hmc_update.jl")
+
 ###########################
 ## ELECTRON-PHONON MODEL ##
 ###########################

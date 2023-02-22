@@ -181,9 +181,9 @@ end
 
 
 @doc raw"""
-    abstract type AbstractHubbardHS end
+    abstract type AbstractHubbardHS{F<:Number} end
 
 Type representing an abstract Hubbard-Stranonovich transformation for decoupling a
 Hubbard interaction of the form ``U (\hat{n}_\uparrow - \tfrac{1/2}) (\hat{n}_\downarrow- \tfrac{1/2}).``
 """
-abstract type AbstractHubbardHS end
+abstract type AbstractHubbardHS{F<:Number} end
