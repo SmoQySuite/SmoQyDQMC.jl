@@ -27,8 +27,17 @@ struct HubbardContinuousHSParameters{T<:AbstractFloat} <: AbstractHubbardHS{T}
     # hubbard-stratonvich fields
     s::Matrix{T}
 
+    # array to store initial HS field in HMC update
+    s0::Matrix{T}
+
     # conjugate velocity for performing hmc update
     v::Matrix{T}
+
+    # array for evaluating derivative of action for hmc updates
+    dSds::Matrix{T}
+
+    # array for storing original derivative of action
+    dSds0::Matrix{T}
 end
 
 function HubbardContinuousHSParameters(; β::T, Δτ::T, p::T,
@@ -56,10 +65,19 @@ function HubbardContinuousHSParameters(; β::T, Δτ::T, p::T,
         s[i] = 2 * π * (rand(rng) - 0.5)
     end
 
+    # array to store initial HS field in HMC update
+    s0::Matrix{T}
+
     # conjugate velocities for hmc update
     v = zeros(T, N, Lτ)
 
-    return HubbardContinuousHS(p, β, Δτ, Lτ, N, U, c, sites, s, v)
+    # allocate array for derivative of action with respect to HS fields for HMC updates
+    dSds = zeros(T, N, Lτ)
+
+    # allocate array for derivative of action with respect to HS fields for HMC updates
+    dSds0 = zeros(T, N, Lτ)
+
+    return HubbardContinuousHS(p, β, Δτ, Lτ, N, U, c, sites, s, s0, v, dSds, dSds0)
 end
 
 
