@@ -21,7 +21,7 @@ function global_measurement_bins_to_csv(folder::String)
     filename = joinpath(folder, "global_bins.csv")
 
     # load sample global measurement
-    sample_global_measurements = JLD2.load(joinpath(global_folder, "bin-1_pID-1.jld2"))
+    sample_global_measurements = JLD2.load(joinpath(global_folder, "bin-1_pID-0.jld2"))
 
     # get the measurements
     measurements = sort(collect(keys(sample_global_measurements)))
