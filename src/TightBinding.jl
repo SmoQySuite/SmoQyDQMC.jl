@@ -82,7 +82,7 @@ function Base.show(io::IO, ::MIME"text/plain", tbm::TightBindingModel{T,E,D}) wh
     @printf io "chemical_potential = %.8f\n\n" tbm.μ
     @printf io "[tight_binding_model.onsite_energy]\n\n"
     @printf io "e_mean = %s\n" string(tbm.ϵ_mean)
-    @printf io "e_std  = %s\n\n" string(tbm.ϵ_mean)
+    @printf io "e_std  = %s\n\n" string(tbm.ϵ_std)
     for i in eachindex(tbm.t_bonds)
         @printf io "[[tight_binding_model.hopping]]\n\n"
         @printf io "ID           = %d\n" i
