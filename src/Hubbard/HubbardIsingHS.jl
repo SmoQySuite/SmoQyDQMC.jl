@@ -176,7 +176,7 @@ This method returns the a tuple containing `(acceptance_rate, logdetGup, sgndetG
 - `δG::E`: Previously recorded maximum error in the Green's function corrected by numerical stabilization.
 - `δθ::T`: Previously recorded maximum error in the sign/phase of the determinant of the equal-time Green's function matrix corrected by numerical stabilization.
 - `rng::AbstractRNG`: Random number generator used in method instead of global random number generator, important for reproducibility.
-- `update_stabilization_frequency::Bool=true`: If true, the stabilization frequency, or `n_stab`, to be dynamically adjusted.
+- `update_stabilization_frequency::Bool=true`: If true, allows the stabilization frequency `n_stab` to be dynamically adjusted.
 """
 function local_updates!(Gup::Matrix{T}, logdetGup::E, sgndetGup::T,
                         Gdn::Matrix{T}, logdetGdn::E, sgndetGdn::T,
@@ -344,7 +344,7 @@ This method returns the a tuple containing `(acceptance_rate, logdetG, sgndetG, 
 - `δG::E`: Previously recorded maximum error in the Green's function corrected by numerical stabilization.
 - `δθ::T`: Previously recorded maximum error in the sign/phase of the determinant of the equal-time Green's function matrix corrected by numerical stabilization.
 - `rng::AbstractRNG`: Random number generator used in method instead of global random number generator, important for reproducibility.
-- `update_stabilization_frequency::Bool=true`: If true, the stabilization frequency, or `n_stab`, to be dynamically adjusted.
+- `update_stabilization_frequency::Bool=true`:  If true, allows the stabilization frequency `n_stab` to be dynamically adjusted.
 """
 function local_updates!(G::Matrix{T}, logdetG::E, sgndetG::T,
                         hubbard_ising_parameters::HubbardIsingHSParameters{E};
