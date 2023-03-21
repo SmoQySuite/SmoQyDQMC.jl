@@ -89,15 +89,6 @@ function make_measurements!(measurement_container::NamedTuple,
             # Keep up and down spin Green's functions synchronized as iterating over imaginary time.
             iterate(fermion_greens_calculator_dn, fermion_greens_calculator_up.forward)
         end
-
-        # update stabilization frequency if required
-        (updated, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = update_stabalization_frequency!(
-            Gup, logdetGup, sgndetGup,
-            Gdn, logdetGdn, sgndetGdn,
-            fermion_greens_calculator_up = fermion_greens_calculator_up,
-            fermion_greens_calculator_dn = fermion_greens_calculator_dn,
-            Bup = Bup, Bdn = Bdn, δG = δG, δθ = δθ, δG_max = δG_max
-        )
     end
 
     # measure equal-time phonon greens function
@@ -198,13 +189,6 @@ function make_measurements!(measurement_container::NamedTuple,
             # record maximum stablization error
             δG = max(δG′, δG)
         end
-
-        # update stabilization frequency if required
-        (updated, logdetG, sgndetG, δG, δθ) = update_stabalization_frequency!(
-            G, logdetG, sgndetG,
-            fermion_greens_calculator = fermion_greens_calculator,
-            B = B, δG = δG, δθ = δθ, δG_max = δG_max
-        )
     end
 
     # measure equal-time phonon greens function
