@@ -610,7 +610,7 @@ function make_time_displaced_measurements!(time_displaced_correlations::Dict{Str
 
             for i in eachindex(pairs)
                 # get the hopping IDs associated with current operators
-                pair = pairs[1]
+                pair = pairs[i]
                 hopping_id_0 = pair[1]
                 hopping_id_1 = pair[2]
                 # get the bond IDs associated with the hopping IDs
