@@ -89,15 +89,6 @@ function make_measurements!(measurement_container::NamedTuple,
             # Keep up and down spin Green's functions synchronized as iterating over imaginary time.
             iterate(fermion_greens_calculator_dn, fermion_greens_calculator_up.forward)
         end
-
-        # update stabilization frequency if required
-        (updated, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = update_stabalization_frequency!(
-            Gup, logdetGup, sgndetGup,
-            Gdn, logdetGdn, sgndetGdn,
-            fermion_greens_calculator_up = fermion_greens_calculator_up,
-            fermion_greens_calculator_dn = fermion_greens_calculator_dn,
-            Bup = Bup, Bdn = Bdn, δG = δG, δθ = δθ, δG_max = δG_max
-        )
     end
 
     # measure equal-time phonon greens function
@@ -198,13 +189,6 @@ function make_measurements!(measurement_container::NamedTuple,
             # record maximum stablization error
             δG = max(δG′, δG)
         end
-
-        # update stabilization frequency if required
-        (updated, logdetG, sgndetG, δG, δθ) = update_stabalization_frequency!(
-            G, logdetG, sgndetG,
-            fermion_greens_calculator = fermion_greens_calculator,
-            B = B, δG = δG, δθ = δθ, δG_max = δG_max
-        )
     end
 
     # measure equal-time phonon greens function
@@ -415,6 +399,11 @@ function make_equaltime_measurements!(equaltime_correlations::Dict{String, Corre
     lattice = model_geometry.lattice::Lattice{D}
     bonds = model_geometry.bonds::Vector{Bond{D}}
 
+    # note that for equal-time measurements:
+    # Gup_τ0 = Gup and Gdn_τ0 = Gdn
+    # Gup_ττ = Gup and Gdn_ττ = Gdn
+    # Gup_0τ = Gup-I and Gdn_0τ = Gdn-I
+
     # iterate over equal-time correlation function getting measured
     for correlation in keys(equaltime_correlations)
         
@@ -446,6 +435,31 @@ function make_equaltime_measurements!(equaltime_correlations::Dict{String, Corre
                 correlation = correlations[i]
                 greens!(correlation, pair[2], pair[1], unit_cell, lattice, Gdn_τ0, sgn)
             end
+
+        elseif correlation == "greens_tautau"
+
+            for i in eachindex(pairs)
+                pair = pairs[i]
+                correlation = correlations[i]
+                greens!(correlation, pair[2], pair[1], unit_cell, lattice, Gup_τ0, sgn/2)
+                greens!(correlation, pair[2], pair[1], unit_cell, lattice, Gdn_τ0, sgn/2)
+            end
+
+        elseif correlation == "greens_tautau_up"
+
+            for i in eachindex(pairs)
+                pair = pairs[i]
+                correlation = correlations[i]
+                greens!(correlation, pair[2], pair[1], unit_cell, lattice, Gup_τ0, sgn)
+            end
+
+        elseif correlation == "greens_tautau_dn"
+
+            for i in eachindex(pairs)
+                pair = pairs[i]
+                correlation = correlations[i]
+                greens!(correlation, pair[2], pair[1], unit_cell, lattice, Gdn_τ0, sgn)
+            end    
 
         elseif correlation == "density"
 
@@ -574,6 +588,31 @@ function make_time_displaced_measurements!(time_displaced_correlations::Dict{Str
                 greens!(correlation, pair[2], pair[1], unit_cell, lattice, Gdn_τ0, sgn)
             end
 
+        elseif correlation == "greens_tautau"
+
+            for i in eachindex(pairs)
+                pair = pairs[i]
+                correlation = selectdim(correlations[i], D+1, l+1)
+                greens!(correlation, pair[2], pair[1], unit_cell, lattice, Gup_ττ, sgn/2)
+                greens!(correlation, pair[2], pair[1], unit_cell, lattice, Gdn_ττ, sgn/2)
+            end
+
+        elseif correlation == "greens_tautau_up"
+
+            for i in eachindex(pairs)
+                pair = pairs[i]
+                correlation = selectdim(correlations[i], D+1, l+1)
+                greens!(correlation, pair[2], pair[1], unit_cell, lattice, Gup_ττ, sgn)
+            end
+
+        elseif correlation == "greens_tautau_dn"
+
+            for i in eachindex(pairs)
+                pair = pairs[i]
+                correlation = selectdim(correlations[i], D+1, l+1)
+                greens!(correlation, pair[2], pair[1], unit_cell, lattice, Gdn_ττ, sgn)
+            end
+
         elseif correlation == "density"
 
             for i in eachindex(pairs)
@@ -626,7 +665,7 @@ function make_time_displaced_measurements!(time_displaced_correlations::Dict{Str
 
             for i in eachindex(pairs)
                 # get the hopping IDs associated with current operators
-                pair = pairs[1]
+                pair = pairs[i]
                 hopping_id_0 = pair[1]
                 hopping_id_1 = pair[2]
                 # get the bond IDs associated with the hopping IDs

@@ -146,8 +146,8 @@ end
                    fermion_path_integral_dn::FermionPathIntegral{T,E},
                    fermion_greens_calculator_up::FermionGreensCalculator{T,E},
                    fermion_greens_calculator_dn::FermionGreensCalculator{T,E},
-                   Bup::Vector{P}, Bdn::Vector{P},
-                   δG_max::E, δG::E, δθ::E, rng::AbstractRNG) where {T<:Number, E<:AbstractFloat, F<:Int, P<:AbstractPropagator{T,E}}
+                   Bup::Vector{P}, Bdn::Vector{P}, rng::AbstractRNG,
+                   update_stabilization_frequency::Bool=true) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
 
 Sweep through every imaginary time slice and orbital in the lattice, peforming local updates to every
 Ising Hubbard-Stratonovich (HS) field.
@@ -176,6 +176,7 @@ This method returns the a tuple containing `(acceptance_rate, logdetGup, sgndetG
 - `δG::E`: Previously recorded maximum error in the Green's function corrected by numerical stabilization.
 - `δθ::T`: Previously recorded maximum error in the sign/phase of the determinant of the equal-time Green's function matrix corrected by numerical stabilization.
 - `rng::AbstractRNG`: Random number generator used in method instead of global random number generator, important for reproducibility.
+- `update_stabilization_frequency::Bool=true`: If true, allows the stabilization frequency `n_stab` to be dynamically adjusted.
 """
 function local_updates!(Gup::Matrix{T}, logdetGup::E, sgndetGup::T,
                         Gdn::Matrix{T}, logdetGdn::E, sgndetGdn::T,
@@ -185,7 +186,8 @@ function local_updates!(Gup::Matrix{T}, logdetGup::E, sgndetGup::T,
                         fermion_greens_calculator_up::FermionGreensCalculator{T,E},
                         fermion_greens_calculator_dn::FermionGreensCalculator{T,E},
                         Bup::Vector{P}, Bdn::Vector{P},
-                        δG_max::E, δG::E, δθ::E, rng::AbstractRNG) where {T<:Number, E<:AbstractFloat, F<:Int, P<:AbstractPropagator{T,E}}
+                        δG_max::E, δG::E, δθ::E,  rng::AbstractRNG,
+                        update_stabilization_frequency::Bool=true) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
 
     Δτ          = hubbard_ising_parameters.Δτ::E
     U           = hubbard_ising_parameters.U::Vector{E}
@@ -296,13 +298,15 @@ function local_updates!(Gup::Matrix{T}, logdetGup::E, sgndetGup::T,
     end
 
     # update stabilization frequency if required
-    (updated, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = update_stabalization_frequency!(
-        Gup, logdetGup, sgndetGup,
-        Gdn, logdetGdn, sgndetGdn,
-        fermion_greens_calculator_up = fermion_greens_calculator_up,
-        fermion_greens_calculator_dn = fermion_greens_calculator_dn,
-        Bup = Bup, Bdn = Bdn, δG = δG, δθ = δθ, δG_max = δG_max
-    )
+    if update_stabilization_frequency
+        (updated, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = update_stabalization_frequency!(
+            Gup, logdetGup, sgndetGup,
+            Gdn, logdetGdn, sgndetGdn,
+            fermion_greens_calculator_up = fermion_greens_calculator_up,
+            fermion_greens_calculator_dn = fermion_greens_calculator_dn,
+            Bup = Bup, Bdn = Bdn, δG = δG, δθ = δθ, δG_max = δG_max
+        )
+    end
 
     # calculate the acceptance rate
     acceptance_rate = accepted_spin_flips / proposed_spin_flips
@@ -316,8 +320,8 @@ end
                    hubbard_ising_parameters::HubbardIsingHSParameters{E,F};
                    fermion_path_integral::FermionPathIntegral{T,E},
                    fermion_greens_calculator::FermionGreensCalculator{T,E},
-                   B::Vector{P}, δG_max::E, δG::E, δθ::E,
-                   rng::AbstractRNG) where {T<:Number, E<:AbstractFloat, F<:Int, P<:AbstractPropagator{T,E}}
+                   B::Vector{P}, δG_max::E, δG::E, δθ::E, rng::AbstractRNG,
+                   update_stabilization_frequency::Bool=true) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
 
 Sweep through every imaginary time slice and orbital in the lattice, performing local updates to every
 Ising Hubbard-Stratonovich (HS) field, assuming strictly attractive Hubbard interactions and perfect spin symmetry.
@@ -340,13 +344,14 @@ This method returns the a tuple containing `(acceptance_rate, logdetG, sgndetG, 
 - `δG::E`: Previously recorded maximum error in the Green's function corrected by numerical stabilization.
 - `δθ::T`: Previously recorded maximum error in the sign/phase of the determinant of the equal-time Green's function matrix corrected by numerical stabilization.
 - `rng::AbstractRNG`: Random number generator used in method instead of global random number generator, important for reproducibility.
+- `update_stabilization_frequency::Bool=true`:  If true, allows the stabilization frequency `n_stab` to be dynamically adjusted.
 """
 function local_updates!(G::Matrix{T}, logdetG::E, sgndetG::T,
                         hubbard_ising_parameters::HubbardIsingHSParameters{E,F};
                         fermion_path_integral::FermionPathIntegral{T,E},
                         fermion_greens_calculator::FermionGreensCalculator{T,E},
-                        B::Vector{P}, δG_max::E, δG::E, δθ::E,
-                        rng::AbstractRNG) where {T<:Number, E<:AbstractFloat, F<:Int, P<:AbstractPropagator{T,E}}
+                        B::Vector{P}, δG_max::E, δG::E, δθ::E, rng::AbstractRNG,
+                        update_stabilization_frequency::Bool=true) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
 
     (; update_perm, U, α, sites, s, Δτ) = hubbard_ising_parameters
     (; u, v) = fermion_path_integral
@@ -429,11 +434,13 @@ function local_updates!(G::Matrix{T}, logdetG::E, sgndetG::T,
     end
 
     # update stabilization frequency if required
-    (updated, logdetG, sgndetG, δG, δθ) = update_stabalization_frequency!(
-        G, logdetG, sgndetG,
-        fermion_greens_calculator = fermion_greens_calculator,
-        B = B, δG = δG, δθ = δθ, δG_max = δG_max
-    )
+    if update_stabilization_frequency
+        (updated, logdetG, sgndetG, δG, δθ) = update_stabalization_frequency!(
+            G, logdetG, sgndetG,
+            fermion_greens_calculator = fermion_greens_calculator,
+            B = B, δG = δG, δθ = δθ, δG_max = δG_max
+        )
+    end
 
     # calculate the acceptance rate
     acceptance_rate = accepted_spin_flips / proposed_spin_flips

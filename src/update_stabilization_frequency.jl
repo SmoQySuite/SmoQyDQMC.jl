@@ -41,7 +41,7 @@ function update_stabalization_frequency!(Gup::Matrix{T}, logdetGup::E, sgndetGup
         if fermion_greens_calculator_up.n_stab == 1
 
             # throw error as stabilization frequency can no longer be increased
-            error("Error: `δG = $(δG)` and `n_stab = 1` already.")
+            @warn "Error: `δG = $(δG)` and `n_stab = 1` already."
 
         # increase stabilization frequency
         else
