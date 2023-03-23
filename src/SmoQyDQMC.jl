@@ -84,7 +84,7 @@ export update_chemical_potential!, save_density_tuning_profile
 
 # Define HubbardModel
 include("Hubbard/HubbardModel.jl")
-export HubbardModel, HubbardParameters, initialize!
+export AbstractHubbardHS, HubbardModel, HubbardParameters, initialize!
 
 # Implement Ising Hubbard-Statonovich (HS) decoupling of Hubbard interaction, and various methods for update the IS HS fields
 include("Hubbard/HubbardIsingHS.jl")
@@ -92,12 +92,14 @@ export HubbardIsingHSParameters, local_updates!, reflection_update!, swap_update
 
 # Implement Continuous Hubbard-Stratonovich (HS) decoupling of Hubbard interaction.
 include("Hubbard/HubbardContinuousHS.jl")
+export HubbardContinuousHSParameters
 
 # evaluate the derivative of the action with respect to continuous HS fields
 include("Hubbard/hubbard_action_derivative.jl")
 
 # implement HMC update for continuous HS fields
 include("Hubbard/hubbard_hmc_update.jl")
+export hmc_update!, lmc_update!
 
 ###########################
 ## ELECTRON-PHONON MODEL ##
@@ -131,11 +133,11 @@ include("ElectronPhonon/hmc_update.jl")
 
 # defines HMC udpater struct and public API for perform HMC updates to phonon fields
 include("ElectronPhonon/HMCUpdater.jl")
-export HMCUpdater, hmc_update!
+export HMCUpdater
 
 # defines LMC (langevin Monte Carlo) updater struct and public API for performing LMC updates to phonon fields
 include("ElectronPhonon/LMCUpdater.jl")
-export LMCUpdater, lmc_update!
+export LMCUpdater
 
 # impelment reflection and swap updates for phonon fields
 include("ElectronPhonon/reflection_update.jl")

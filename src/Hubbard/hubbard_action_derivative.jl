@@ -21,7 +21,7 @@ function hubbard_action_derivative!(dSds::AbstractMatrix{E},
     # calculate bosonic component of derivative
     _bosonic_action_derivative!(dSds, hubbard_hs_parameters)
 
-    return (logdetGup, sgndetGup, logdetGup, sgndetGup, δG, δθ)
+    return (logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ)
 end
 
 function hubbard_action_derivative!(dSds::AbstractMatrix{E},
@@ -66,12 +66,12 @@ function _fermionic_action_derivative!(dSds::AbstractMatrix{E},
     # Iterate over imaginary time τ=Δτ⋅l.
     for l in fermion_greens_calculator
 
+        # get propagator for current time slice
+        B_l = B[l]::P
+
         # Propagate equal-time Green's function matrix to current imaginary time G(τ±Δτ,τ±Δτ) ==> G(τ,τ)
         # depending on whether iterating over imaginary time in the forward or reverse direction
         propagate_equaltime_greens!(G, fermion_greens_calculator, B)
-
-        # get propagator for current time slice
-        B_l = B[l]::P
 
         # apply the transformation G̃(τ,τ) = exp(+Δτ⋅K[l]/2)⋅G(τ,τ)⋅exp(-Δτ⋅K[l]/2)
         # if B[l] = exp(-Δτ⋅K[l]/2)⋅exp(-Δτ⋅V[l])⋅exp(-Δτ⋅K[l]/2),
@@ -101,14 +101,44 @@ end
 function _fermionic_action_derivative!(dSds::Matrix{E}, l::Int, G::Matrix{T}, σ::Int,
                                        hubbard_hs_parameters::AbstractHubbardHS{E}) where {T<:Number, E<:AbstractFloat}
 
-    (; Δτ, sites, s) = hubbard_hs_parameters
+    (; Δτ, sites, s, U) = hubbard_hs_parameters
 
     # iterate over HS field
     for i in axes(s,1)
         # get the orbital associated with the HS field
         site = sites[i]
         # evaluate the derivative
-        dSds[i,l] += -σ * Δτ * eval_dads(i, l, hubbard_hs_parameters) * (G[site,site] - 1)
+        dSds[i,l] = dSds[i,l] + (σ*heaviside(U[i]) + heaviside(-U[i])) * eval_dads(i, l, hubbard_hs_parameters) * (G[site,site] - 1)
+    end
+
+    return nothing
+end
+
+@doc raw"""
+    update!(fermion_path_integral::FermionPathIntegral{T,E},
+            hubbard_hs_parameters::AbstractHubbardHS{E},
+            σ::Int, sgn::Int) where {T, E}
+
+Update `fermion_path_integral` according to the Hubbard-Stranonovich (HS) fields `hubbard_hs_parameters.s`,
+where `σ` specified the spin, and `sgn` specifies whether the effect of the current HS configuration
+should be added to (`sgn = +1`) or subtracted from (`sgn = -1`) the `fermion_path_integral`.
+"""
+function update!(fermion_path_integral::FermionPathIntegral{T,E},
+                 hubbard_hs_parameters::AbstractHubbardHS{E},
+                 σ::Int, sgn::Int) where {T, E}
+
+    (; s, U, sites, Δτ) = hubbard_hs_parameters
+    (; V) = fermion_path_integral
+
+    # iterate over imaginary time axis
+    for l in axes(s,2)
+        # iterate over fields for current imaginary time slice
+        for i in axes(s,1)
+            # get the corresponding site/orbital associated with the HS field
+            site = sites[i]
+            # upate fermion path integral
+            V[site,l] = V[site,l] - sgn * (σ*heaviside(U[i]) + heaviside(-U[i]))/Δτ * eval_a(i, l, hubbard_hs_parameters)
+        end
     end
 
     return nothing

@@ -175,7 +175,7 @@ function _hmc_update!(Gup::Matrix{T}, logdetGup::E, sgndetGup::E, Gup′::Matrix
                                                                         fermion_greens_calculator_dn_alt, Bdn)
 
         # if numerical error too large or nan occurs
-        if !isfinite(δG) || !isfinite(logdetGup) || !isfinite(logdetGdn) || δG′ > δG_reject
+        if δG′ > δG_reject || !isfinite(δG′) || !isfinite(logdetGup′) || !isfinite(logdetGdn′)
 
             # record that numerically instability was encountered
             numerically_stable = false

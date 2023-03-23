@@ -124,3 +124,10 @@ function swap!(a::AbstractArray{T}, b::AbstractArray{T}) where {T}
 
     return nothing
 end
+
+@doc raw"""
+    heaviside(x::Real)
+
+Evaluate the Heaviside step function given the arugment `x`.
+"""
+heaviside(x::Real) = (1+sign(x))/2

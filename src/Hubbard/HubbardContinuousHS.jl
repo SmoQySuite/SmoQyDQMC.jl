@@ -66,7 +66,7 @@ function HubbardContinuousHSParameters(; β::T, Δτ::T, p::T,
     end
 
     # array to store initial HS field in HMC update
-    s0::Matrix{T}
+    s0 = copy(s)
 
     # conjugate velocities for hmc update
     v = zeros(T, N, Lτ)
@@ -77,7 +77,7 @@ function HubbardContinuousHSParameters(; β::T, Δτ::T, p::T,
     # allocate array for derivative of action with respect to HS fields for HMC updates
     dSds0 = zeros(T, N, Lτ)
 
-    return HubbardContinuousHS(p, β, Δτ, Lτ, N, U, c, sites, s, s0, v, dSds, dSds0)
+    return HubbardContinuousHSParameters(p, β, Δτ, Lτ, N, U, c, sites, s, s0, v, dSds, dSds0)
 end
 
 
@@ -93,8 +93,8 @@ function initialize!(fermion_path_integral_up::FermionPathIntegral{T,E},
     for l in axes(Vup,2)
         for i in eachindex(sites)
             site = sites[i]
-            Vup[site,l] = Vup[site,l] - sign(U[i])/Δτ * eval_a(i, l, hubbard_continuous_parameters)
-            Vdn[site,l] = Vdn[site,l] + sign(U[i])/Δτ * eval_a(i, l, hubbard_continuous_parameters)
+            Vup[site,l] = Vup[site,l] - (+heaviside(U[i]) + heaviside(-U[i]))/Δτ * eval_a(i, l, hubbard_continuous_parameters)
+            Vdn[site,l] = Vdn[site,l] - (-heaviside(U[i]) + heaviside(-U[i]))/Δτ * eval_a(i, l, hubbard_continuous_parameters)
         end
     end
 
@@ -114,7 +114,7 @@ function initialize!(fermion_path_integral::FermionPathIntegral{T,E},
     for l in axes(Vup,2)
         for i in eachindex(sites)
             site = sites[i]
-            V[site,l] = V[site,l] - sign(U[i])/Δτ * eval_a(i, l, hubbard_continuous_parameters)
+            V[site,l] = V[site,l] - (+heaviside(U[i]) + heaviside(-U[i]))/Δτ * eval_a(i, l, hubbard_continuous_parameters)
         end
     end
 
@@ -133,7 +133,7 @@ end
 
 # evaluate the function a(s) defined in equation (30) from
 # the paper "A flexible class of exact Hubbard-Stratonovich transformations"
-function eval_a(i::Int, l::Int, hubbard_parameters::HubbardContinuousHSParameters{E})
+function eval_a(i::Int, l::Int, hubbard_parameters::HubbardContinuousHSParameters{E}) where {E}
 
     p = hubbard_parameters.p::E
     c = hubbard_parameters.c::Vector{E}
@@ -144,31 +144,54 @@ end
 
 # evaluate the derivative function da(s)/ds where a(s) us defined in equation (30) from
 # the paper "A flexible class of exact Hubbard-Stratonovich transformations"
-function eval_dads(i::Int, l::Int, hubbard_parameters::HubbardContinuousHSParameters{E})
+function eval_dads(i::Int, l::Int, hubbard_parameters::HubbardContinuousHSParameters{E}) where {E}
 
     p = hubbard_parameters.p::E
     c = hubbard_parameters.c::Vector{E}
     s = hubbard_parameters.s::Matrix{E}
 
-    return iszero(p) ? sqrt(c[i])*cos(s[i,l]) : sqrt(c[i])*p*cos(s[i,l])/(atan(p)*(1 + p^2*sin(s[i,l])^2))
+    return iszero(p) ? sqrt(c[i]) * cos(s[i,l]) : sqrt(c[i]) * p * cos(s[i,l]) / (atan(p) * (1 + p^2*sin(s[i,l])^2))
+end
+
+# calculate the bosonic action
+function _bosonic_action(hubbard_hs_parameters::HubbardContinuousHSParameters{E}) where {E}
+
+    (; U, s) = hubbard_hs_parameters
+
+    # initialize bosonic action to zero
+    Sb = zero(E)
+
+    # iterate over imaginary time slice
+    @fastmath @inbounds for l in axes(s, 2)
+        # iterate of finite hubbard U terms
+        for i in axes(s, 1)
+            # if negative U attractive hubbard interaction
+            if U[i] < 0
+                # Sb += a(s)
+                Sb += eval_a(i, l, hubbard_hs_parameters)
+            end
+        end
+    end
+
+    return Sb
 end
 
 # bosonic action derivative accounting for the -1 factor appearing in
 # exp{-Δτ⋅U⋅(nup-1/2)⋅(ndn-1/2)} = ∫ds exp{a(s)(nup+ndn-1) + ln(b(s))}
 #                                = ∫ds exp{a(s)(nup+ndn) + ln(b(s)) - a(s)}, 
 # where b(s) is a constant whose derivative goes to zero.
-function _bosonic_action_derivative(dSds::Matrix{E}, hubbard_hs_parameters::HubbardContinuousHSParameters{E}) where {E}
+function _bosonic_action_derivative!(dSds::Matrix{E}, hubbard_hs_parameters::HubbardContinuousHSParameters{E}) where {E}
 
-    (; U, s) = hubbard_hs_parameters
+    (; U, s, Δτ) = hubbard_hs_parameters
 
     # iterate over imaginary time slice
     @fastmath @inbounds for l in axes(s, 2)
         # iterate of finite hubbard U terms
-        for i in eachindex(U)
+        for i in axes(s, 1)
             # if negative U attractive hubbard interaction
             if U[i] < 0
                 # ∂S/∂s(i,l) += ∂a/∂s(i,l)
-                dSds[i,l] += eval_dads(i, l, hubbard_hs_parameters)
+                dSds[i,l] += Δτ * eval_dads(i, l, hubbard_hs_parameters)
             end
         end
     end
