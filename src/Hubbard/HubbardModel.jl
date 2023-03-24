@@ -181,9 +181,47 @@ end
 
 
 @doc raw"""
-    abstract type AbstractHubbardHS{F<:Number} end
+    abstract type AbstractHubbardHS{T<:Number} end
 
 Type representing an abstract Hubbard-Stranonovich transformation for decoupling a
 Hubbard interaction of the form ``U (\hat{n}_\uparrow - \tfrac{1/2}) (\hat{n}_\downarrow- \tfrac{1/2}).``
 """
-abstract type AbstractHubbardHS{F<:Number} end
+abstract type AbstractHubbardHS{T<:Number} end
+
+
+function initialize!(fermion_path_integral_up::FermionPathIntegral{T,E},
+                     fermion_path_integral_dn::FermionPathIntegral{T,E},
+                     hubbard_hs_parameters::AbstractHubbardHS{E}) where {T, E<:AbstractFloat}
+
+    (; U, Δτ, sites) = hubbard_hs_parameters
+    Vup = fermion_path_integral_up.V
+    Vdn = fermion_path_integral_dn.V
+
+    # add continuous HS field contribution to diagonal on-site energy matrices
+    for l in axes(Vup,2)
+        for i in eachindex(sites)
+            site = sites[i]
+            Vup[site,l] = Vup[site,l] - (+heaviside(U[i]) + heaviside(-U[i]))/Δτ * eval_a(i, l, hubbard_hs_parameters)
+            Vdn[site,l] = Vdn[site,l] - (-heaviside(U[i]) + heaviside(-U[i]))/Δτ * eval_a(i, l, hubbard_hs_parameters)
+        end
+    end
+
+    return nothing
+end
+
+function initialize!(fermion_path_integral::FermionPathIntegral{T,E},
+                     hubbard_hs_parameters::AbstractHubbardHS{E}) where {T,E<:AbstractFloat}
+
+    (; U, Δτ, sites) = hubbard_hs_parameters
+    V = fermion_path_integral.V
+
+    # add continuous HS field contribution to diagonal on-site energy matrices
+    for l in axes(Vup,2)
+        for i in eachindex(sites)
+            site = sites[i]
+            V[site,l] = V[site,l] - (+heaviside(U[i]) + heaviside(-U[i]))/Δτ * eval_a(i, l, hubbard_hs_parameters)
+        end
+    end
+
+    return nothing
+end

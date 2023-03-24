@@ -94,6 +94,10 @@ export HubbardIsingHSParameters, local_updates!, reflection_update!, swap_update
 include("Hubbard/HubbardContinuousHS.jl")
 export HubbardContinuousHSParameters
 
+# Implement Gaussian Hubbard-Stratonovich (HS) decoupling of Hubbard interaction.
+include("Hubbard/HubbardGaussianHS.jl")
+export HubbardGaussianHSParameters
+
 # evaluate the derivative of the action with respect to continuous HS fields
 include("Hubbard/hubbard_action_derivative.jl")
 

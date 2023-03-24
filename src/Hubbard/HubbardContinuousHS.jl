@@ -40,8 +40,7 @@ struct HubbardContinuousHSParameters{T<:AbstractFloat} <: AbstractHubbardHS{T}
     dSds0::Matrix{T}
 end
 
-function HubbardContinuousHSParameters(; β::T, Δτ::T, p::T,
-                                       hubbard_parameters::HubbardParameters{T},
+function HubbardContinuousHSParameters(; β::T, Δτ::T, p::T, hubbard_parameters::HubbardParameters{T},
                                        rng::AbstractRNG) where {T<:AbstractFloat}
 
     (; U, sites) = hubbard_parameters
@@ -79,48 +78,6 @@ function HubbardContinuousHSParameters(; β::T, Δτ::T, p::T,
 
     return HubbardContinuousHSParameters(p, β, Δτ, Lτ, N, U, c, sites, s, s0, v, dSds, dSds0)
 end
-
-
-function initialize!(fermion_path_integral_up::FermionPathIntegral{T,E},
-                     fermion_path_integral_dn::FermionPathIntegral{T,E},
-                     hubbard_continuous_parameters::HubbardContinuousHSParameters{E}) where {T,E}
-
-    (; p, c, U, Δτ, s, sites) = hubbard_continuous_parameters
-    Vup = fermion_path_integral_up.V
-    Vdn = fermion_path_integral_dn.V
-
-    # add continuous HS field contribution to diagonal on-site energy matrices
-    for l in axes(Vup,2)
-        for i in eachindex(sites)
-            site = sites[i]
-            Vup[site,l] = Vup[site,l] - (+heaviside(U[i]) + heaviside(-U[i]))/Δτ * eval_a(i, l, hubbard_continuous_parameters)
-            Vdn[site,l] = Vdn[site,l] - (-heaviside(U[i]) + heaviside(-U[i]))/Δτ * eval_a(i, l, hubbard_continuous_parameters)
-        end
-    end
-
-    return nothing
-end
-
-function initialize!(fermion_path_integral::FermionPathIntegral{T,E},
-                     hubbard_continuous_parameters::HubbardContinuousHSParameters{E}) where {T,E}
-
-    (; p, c, U, Δτ, s, sites) = hubbard_continuous_parameters
-    V = fermion_path_integral.V
-
-    # make sure its a strictly attractive hubbard interaction
-    @assert all(u -> u < 0.0, U)
-
-    # add continuous HS field contribution to diagonal on-site energy matrices
-    for l in axes(Vup,2)
-        for i in eachindex(sites)
-            site = sites[i]
-            V[site,l] = V[site,l] - (+heaviside(U[i]) + heaviside(-U[i]))/Δτ * eval_a(i, l, hubbard_continuous_parameters)
-        end
-    end
-
-    return nothing
-end
-
 
 # solve eqn (35) from the paper "A flexible class of exact Hubbard-Stratonovich transformations"
 # note that if p=0 eqn (24) is solved instead

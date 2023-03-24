@@ -147,7 +147,7 @@ end
                    fermion_greens_calculator_up::FermionGreensCalculator{T,E},
                    fermion_greens_calculator_dn::FermionGreensCalculator{T,E},
                    Bup::Vector{P}, Bdn::Vector{P}, rng::AbstractRNG,
-                   update_stabilization_frequency::Bool=true) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
+                   update_stabilization_frequency::Bool=true) where {T<:Number, E<:AbstractFloat, F<:Int, P<:AbstractPropagator{T,E}}
 
 Sweep through every imaginary time slice and orbital in the lattice, peforming local updates to every
 Ising Hubbard-Stratonovich (HS) field.
@@ -162,7 +162,7 @@ This method returns the a tuple containing `(acceptance_rate, logdetGup, sgndetG
 - `Gdn::Matrix{T}`: Spin-down equal-time Green's function matrix.
 - `logdetGdn::E`: The log of the absolute value of the determinant of the spin-down equal-time Green's function matrix, ``\log \vert \det G_\downarrow(\tau,\tau) \vert.``
 - `sgndetGdn::T`: The sign/phase of the determinant of the spin-down equal-time Green's function matrix, ``\det G_\downarrow(\tau,\tau) / \vert \det G_\downarrow(\tau,\tau) \vert.``
-- `hubbard_ising_parameters::HubbardIsingHSParameters{E}`: Ising Hubbard-Stratonovich fields and associated parameters to update.
+- `hubbard_ising_parameters::HubbardIsingHSParameters{E,F}`: Ising Hubbard-Stratonovich fields and associated parameters to update.
 
 ## Keyword Arguments
 
@@ -187,7 +187,7 @@ function local_updates!(Gup::Matrix{T}, logdetGup::E, sgndetGup::T,
                         fermion_greens_calculator_dn::FermionGreensCalculator{T,E},
                         Bup::Vector{P}, Bdn::Vector{P},
                         δG_max::E, δG::E, δθ::E,  rng::AbstractRNG,
-                        update_stabilization_frequency::Bool=true) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
+                        update_stabilization_frequency::Bool=true) where {T<:Number, E<:AbstractFloat, F<:Int, P<:AbstractPropagator{T,E}}
 
     Δτ          = hubbard_ising_parameters.Δτ::E
     U           = hubbard_ising_parameters.U::Vector{E}
@@ -321,7 +321,7 @@ end
                    fermion_path_integral::FermionPathIntegral{T,E},
                    fermion_greens_calculator::FermionGreensCalculator{T,E},
                    B::Vector{P}, δG_max::E, δG::E, δθ::E, rng::AbstractRNG,
-                   update_stabilization_frequency::Bool=true) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
+                   update_stabilization_frequency::Bool=true) where {T<:Number, E<:AbstractFloat, F<:Int, P<:AbstractPropagator{T,E}}
 
 Sweep through every imaginary time slice and orbital in the lattice, performing local updates to every
 Ising Hubbard-Stratonovich (HS) field, assuming strictly attractive Hubbard interactions and perfect spin symmetry.
@@ -333,7 +333,7 @@ This method returns the a tuple containing `(acceptance_rate, logdetG, sgndetG, 
 - `G::Matrix{T}`: Equal-time Green's function matrix.
 - `logdetG::E`: The log of the absolute value of the determinant of theequal-time Green's function matrix, ``\log \vert \det G_\uparrow(\tau,\tau) \vert.``
 - `sgndetG::T`: The sign/phase of the determinant of the equal-time Green's function matrix, ``\det G_\uparrow(\tau,\tau) / \vert \det G_\uparrow(\tau,\tau) \vert.``
-- `hubbard_ising_parameters::HubbardIsingHSParameters{E}`: Ising Hubbard-Stratonovich fields and associated parameters to update.
+- `hubbard_ising_parameters::HubbardIsingHSParameters{E,F}`: Ising Hubbard-Stratonovich fields and associated parameters to update.
 
 ## Keyword Arguments
 
@@ -351,7 +351,7 @@ function local_updates!(G::Matrix{T}, logdetG::E, sgndetG::T,
                         fermion_path_integral::FermionPathIntegral{T,E},
                         fermion_greens_calculator::FermionGreensCalculator{T,E},
                         B::Vector{P}, δG_max::E, δG::E, δθ::E, rng::AbstractRNG,
-                        update_stabilization_frequency::Bool=true) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
+                        update_stabilization_frequency::Bool=true) where {T<:Number, E<:AbstractFloat, F<:Int, P<:AbstractPropagator{T,E}}
 
     (; update_perm, U, α, sites, s, Δτ) = hubbard_ising_parameters
     (; u, v) = fermion_path_integral
@@ -473,7 +473,7 @@ This function returns `(accepted, logdetGup, sgndetGup, logdetGdn, sgndetGdn)`.
 - `Gdn::Matrix{T}`: Spin-down eqaul-time Greens function matrix.
 - `logdetGdn::E`: Log of the determinant of the spin-down eqaul-time Greens function matrix.
 - `sgndetGdn::T`: Sign/phase of the determinant of the spin-down eqaul-time Greens function matrix.
-- `hubbard_ising_parameters::HubbardIsingHSParameters{E}`: Ising Hubbard-Stratonovich fields and associated parameters to update.
+- `hubbard_ising_parameters::HubbardIsingHSParameters{E,F}`: Ising Hubbard-Stratonovich fields and associated parameters to update.
 
 # Keyword Arguments
 
@@ -597,7 +597,7 @@ This function returns `(accepted, logdetG, sgndetG)`. This method assumes strict
 - `G::Matrix{T}`: Eqaul-time Greens function matrix.
 - `logdetG::E`: Log of the determinant of the eqaul-time Greens function matrix.
 - `sgndetG::T`: Sign/phase of the determinant of the eqaul-time Greens function matrix.
-- `hubbard_ising_parameters::HubbardIsingHSParameters{E}`: Ising Hubbard-Stratonovich fields and associated parameters to update.
+- `hubbard_ising_parameters::HubbardIsingHSParameters{E,F}`: Ising Hubbard-Stratonovich fields and associated parameters to update.
 
 # Keyword Arguments
 
@@ -703,7 +703,7 @@ This function returns `(accepted, logdetGup, sgndetGup, logdetGdn, sgndetGdn)`.
 - `Gdn::Matrix{T}`: Spin-down eqaul-time Greens function matrix.
 - `logdetGdn::E`: Log of the determinant of the spin-down eqaul-time Greens function matrix.
 - `sgndetGdn::T`: Sign/phase of the determinant of the spin-down eqaul-time Greens function matrix.
-- `hubbard_ising_parameters::HubbardIsingHSParameters{E}`: Ising Hubbard-Stratonovich fields and associated parameters to update.
+- `hubbard_ising_parameters::HubbardIsingHSParameters{E,F}`: Ising Hubbard-Stratonovich fields and associated parameters to update.
 
 # Keyword Arguments
 
@@ -855,7 +855,7 @@ sites in the lattice are exchanged. This function returns `(accepted, logdetG, s
 - `G::Matrix{T}`: Eqaul-time Greens function matrix.
 - `logdetG::E`: Log of the determinant of the eqaul-time Greens function matrix.
 - `sgndetG::T`: Sign/phase of the determinant of the eqaul-time Greens function matrix.
-- `hubbard_ising_parameters::HubbardIsingHSParameters{E}`: Ising Hubbard-Stratonovich fields and associated parameters to update.
+- `hubbard_ising_parameters::HubbardIsingHSParameters{E,F}`: Ising Hubbard-Stratonovich fields and associated parameters to update.
 
 # Keyword Arguments
 
