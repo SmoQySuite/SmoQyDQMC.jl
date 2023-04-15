@@ -57,10 +57,10 @@ function Base.show(io::IO, ::MIME"text/plain", hm::HubbardModel)
     (; U_orbital, U_mean, U_std, shifted) = hm
 
     @printf io "[HubbardModel]\n\n"
-    @printf io "U_orbital = %s\n" string(U_orbital)
-    @printf io "U_mean    = %s\n" string(round.(U_mean, digits=6))
-    @printf io "U_std     = %s\n" string(round.(U_std, digits=6))
-    @printf io "shifted   = %s\n\n" string(shifted)
+    @printf io "U_orbital_ids = %s\n" string(U_orbital)
+    @printf io "U_mean        = %s\n" string(round.(U_mean, digits=6))
+    @printf io "U_std         = %s\n" string(round.(U_std, digits=6))
+    @printf io "shifted       = %s\n\n" string(shifted)
 
     return nothing
 end

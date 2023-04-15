@@ -129,10 +129,10 @@ swap_update!(::Matrix{T}, ::E, ::T, ::HubbardIsingHSParameters{E}) where {T<:Num
 **Electron-Phonon Parameter Types and Methods**
 
 - [`ElectronPhononParameters`](@ref)
-- [`PhononParameters`](@ref)
-- [`HolsteinParameters`](@ref)
-- [`SSHParameters`](@ref)
-- [`DispersionParameters`](@ref)
+- [`SmoQyDQMC.PhononParameters`](@ref)
+- [`SmoQyDQMC.HolsteinParameters`](@ref)
+- [`SmoQyDQMC.SSHParameters`](@ref)
+- [`SmoQyDQMC.DispersionParameters`](@ref)
 - [`initialize!`](@ref)
 - [`update!`](@ref)
 
@@ -229,6 +229,7 @@ save_density_tuning_profile
 
 ## Measurement Methods
 
+- [`LOCAL_MEASUREMENTS`](@ref)
 - [`CORRELATION_FUNCTIONS`](@ref)
 
 **Initialize Measurements**

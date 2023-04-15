@@ -63,10 +63,11 @@ function Base.show(io::IO, ::MIME"text/plain", model_geo::ModelGeometry{D,T}) wh
         @printf io "b_%d = %s\n" d string(round.(b, digits=6)) 
     end
     @printf io "\n"
-    @printf io "[geometry.unit_cell.basis_vectors]\n\n"
     for i in 1:unit_cell.n
         r = unit_cell.basis_vecs[i]
-        @printf io "r_%d = %s\n" i string(round.(r, digits=6))
+        @printf io "[[geometry.unit_cell.basis_vector]]\n\n"
+        @printf io "ORBITAL_ID = %d\n" i
+        @printf io "r          = %s\n" string(round.(r, digits=6))
     end
     @printf io "\n"
     @printf io "[geometry.lattice]\n\n"
@@ -74,7 +75,7 @@ function Base.show(io::IO, ::MIME"text/plain", model_geo::ModelGeometry{D,T}) wh
     @printf io "periodic = [%s]\n\n" join(lattice.periodic, ", ")
     for i in eachindex(bonds)
         @printf io "[[geometry.bond]]\n\n"
-        @printf io "ID           = %d\n" i
+        @printf io "BOND_ID      = %d\n" i
         @printf io "orbitals     = [%d, %d]\n" bonds[i].orbitals[1] bonds[i].orbitals[2]
         @printf io "displacement = %s\n\n" string(bonds[i].displacement)
     end

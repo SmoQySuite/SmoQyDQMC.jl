@@ -68,10 +68,10 @@ function run_simulation()
     δG_max = 1e-6
 
     # number of thermalization/burnin updates
-    N_burnin = 5_000
+    N_burnin = 2_000
 
     # number of simulation updates
-    N_updates = 10_000
+    N_updates = 5_000
 
     # number of bins/number of time 
     N_bins = 100
