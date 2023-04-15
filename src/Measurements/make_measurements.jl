@@ -345,8 +345,8 @@ function make_local_measurements!(local_measurements::Dict{String, Vector{Comple
 
     # make phonon mode related measurements
     for n in 1:nphonon
-        local_measurements["phonon_kinetic_energy"][n]   += sgn * measure_phonon_kinetic_energy(electron_phonon_parameters, n)
-        local_measurements["phonon_potential_energy"][n] += sgn * measure_phonon_potential_energy(electron_phonon_parameters, n)
+        local_measurements["phonon_kin_energy"][n]   += sgn * measure_phonon_kinetic_energy(electron_phonon_parameters, n)
+        local_measurements["phonon_pot_energy"][n] += sgn * measure_phonon_potential_energy(electron_phonon_parameters, n)
         local_measurements["X"][n]  += sgn * measure_phonon_position_moment(electron_phonon_parameters, n, 1)
         local_measurements["X2"][n] += sgn * measure_phonon_position_moment(electron_phonon_parameters, n, 2)
         local_measurements["X3"][n] += sgn * measure_phonon_position_moment(electron_phonon_parameters, n, 3)

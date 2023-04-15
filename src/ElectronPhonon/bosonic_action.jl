@@ -69,8 +69,8 @@ function _eval_bosonic_action(x::Matrix{E}, Δτ::E, dispersion_parameters::Disp
                 M″ = reduced_mass(M[p′], M[p])
                 # calculate the difference in phonon position
                 Δx = x[p′,l] - x[p,l]
-                # calculate the potential energy M″⋅Ω²⋅(xᵢ-xⱼ)²/2 + M″⋅Ω₄²⋅(xᵢ-xⱼ)⁴/12
-                Sb += Δτ*M″*(Ω[n]^2*Δx^2/2 + Ω4[n]^2*Δx^4/12)
+                # calculate the potential energy M″⋅Ω²⋅(xᵢ-xⱼ)² + M″⋅Ω₄²⋅(xᵢ-xⱼ)⁴/12
+                Sb += Δτ*M″*(Ω[n]^2*Δx^2 + Ω4[n]^2*Δx^4/12)
             end
         end
     end
@@ -173,11 +173,11 @@ function _eval_derivative_bosonic_action(dSdx::Matrix{E}, x::Matrix{E}, Δτ::E,
             Δx = x[p′,l] - x[p,l]
             # evaluate derivative with respect to first phonon field
             if isfinite(M[p])
-                dSdx[p,l] -= Δτ*M″*(Ω[n]^2*Δx + Ω4^2*Δx^3/3)
+                dSdx[p,l] -= Δτ*M″*(2*Ω[n]^2*Δx + Ω4[n]^2*Δx^3/3)
             end
             # evaluate derivative with respect to second phonon field
             if isfinite(M[p′])
-                dSdx[p′,l] += Δτ*M″*(Ω[n]^2*Δx + Ω4^2*Δx^3/3)
+                dSdx[p′,l] += Δτ*M″*(2*Ω[n]^2*Δx + Ω4[n]^2*Δx^3/3)
             end
         end
     end

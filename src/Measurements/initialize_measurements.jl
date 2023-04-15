@@ -3,39 +3,81 @@
 ##############################################
 
 @doc raw"""
-    const CORRELATION_FUNCTIONS = (
-        "greens",
-        "greens_up",
-        "greens_dn",
-        "greens_tautau",
-        "greens_tautau_up",
-        "greens_tautau_dn",
-        "phonon_greens",
-        "density",
-        "pair",
-        "spin_x",
-        "spin_z",
-        "bond",
-        "current"
+    const CORRELATION_FUNCTIONS = Dict(
+        "greens"           => "ORBITAL_ID",
+        "greens_up"        => "ORBITAL_ID",
+        "greens_dn"        => "ORBITAL_ID",
+        "greens_tautau"    => "ORBITAL_ID",
+        "greens_tautau_up" => "ORBITAL_ID",
+        "greens_tautau_dn" => "ORBITAL_ID",
+        "phonon_greens"    => "ORBITAL_ID",
+        "density"          => "ORBITAL_ID",
+        "spin_x"           => "ORBITAL_ID",
+        "spin_z"           => "ORBITAL_ID",
+        "pair"             => "BOND_ID",
+        "bond"             => "BOND_ID",
+        "current"          => "HOPPING_ID"
     )
 
-List of all the correlation functions that can be measured.
+List of all the correlation functions that can be measured, along with the corresponding
+type of ID the correlation measurement is reported in terms of.
 Correlation functions are well defined in both position and momentum space.
 """
-const CORRELATION_FUNCTIONS = (
-    "greens",
-    "greens_up",
-    "greens_dn",
-    "greens_tautau",
-    "greens_tautau_up",
-    "greens_tautau_dn",
-    "phonon_greens",
-    "density",
-    "pair",
-    "spin_x",
-    "spin_z",
-    "bond",
-    "current"
+const CORRELATION_FUNCTIONS = Dict(
+    "greens"           => "ORBITAL_ID",
+    "greens_up"        => "ORBITAL_ID",
+    "greens_dn"        => "ORBITAL_ID",
+    "greens_tautau"    => "ORBITAL_ID",
+    "greens_tautau_up" => "ORBITAL_ID",
+    "greens_tautau_dn" => "ORBITAL_ID",
+    "phonon_greens"    => "ORBITAL_ID",
+    "density"          => "ORBITAL_ID",
+    "spin_x"           => "ORBITAL_ID",
+    "spin_z"           => "ORBITAL_ID",
+    "pair"             => "BOND_ID",
+    "bond"             => "BOND_ID",
+    "current"          => "HOPPING_ID"
+)
+
+
+@doc raw"""
+    const LOCAL_MEASUREMENTS = Dict(
+        "density"           => "ORBITAL_ID",
+        "double_occ"        => "ORBITAL_ID",
+        "onsite_energy"     => "ORBITAL_ID",
+        "hopping_energy"    => "HOPPING_ID",
+        "hubbard_energy"    => "ORBITAL_ID",
+        "phonon_kin_energy" => "PHONON_ID",
+        "phonon_pot_energy" => "PHONON_ID",
+        "X"                 => "PHONON_ID",
+        "X2"                => "PHONON_ID",
+        "X3"                => "PHONON_ID",
+        "X4"                => "PHONON_ID",
+        "holstein_energy"   => "HOLSTEIN_ID",
+        "ssh_energy"        => "SSH_ID",
+        "ssh_sgn_switch"    => "SSH_ID",
+        "dispersion_energy" => "DISPERSION_ID"
+    )
+
+List of all the local measurements than can be made, with a mapping to the
+corresponding type of ID each measurement is reported in terms of.
+"""
+const LOCAL_MEASUREMENTS = Dict(
+    "density"           => "ORBITAL_ID",
+    "double_occ"        => "ORBITAL_ID",
+    "onsite_energy"     => "ORBITAL_ID",
+    "hopping_energy"    => "HOPPING_ID",
+    "hubbard_energy"    => "ORBITAL_ID",
+    "phonon_kin_energy" => "PHONON_ID",
+    "phonon_pot_energy" => "PHONON_ID",
+    "X"                 => "PHONON_ID",
+    "X2"                => "PHONON_ID",
+    "X3"                => "PHONON_ID",
+    "X4"                => "PHONON_ID",
+    "holstein_energy"   => "HOLSTEIN_ID",
+    "ssh_energy"        => "SSH_ID",
+    "ssh_sgn_switch"    => "SSH_ID",
+    "dispersion_energy" => "DISPERSION_ID"
 )
 
 
@@ -280,9 +322,9 @@ function _initialize_measurements!(local_measurements::Dict{String, Vector{Compl
     n_modes = length(phonon_modes)
 
     # add measurements
-    local_measurements["phonon_kinetic_energy"] = zeros(Complex{T}, n_modes)
-    local_measurements["phonon_potential_energy"] = zeros(Complex{T}, n_modes)
-    local_measurements["X"] = zeros(Complex{T}, n_modes)
+    local_measurements["phonon_kin_energy"] = zeros(Complex{T}, n_modes)
+    local_measurements["phonon_pot_energy"] = zeros(Complex{T}, n_modes)
+    local_measurements["X"]  = zeros(Complex{T}, n_modes)
     local_measurements["X2"] = zeros(Complex{T}, n_modes)
     local_measurements["X3"] = zeros(Complex{T}, n_modes)
     local_measurements["X4"] = zeros(Complex{T}, n_modes)
@@ -344,9 +386,9 @@ end
 
 Initialize measurements of `correlation` for all pairs of bond ID's in `pairs`.
 The name `correlation` must appear in `CORRELATION_FUNCTIONS`.
-If `time-displaced = true` then time-displaced and integrated correlation measurements are made.
-If `time-displaced = false` and `integrated = false`, then just equal-time correlation measurements are made.
-If `time-displaced = false` and `integrated = true`, then both equal-time and integrated correlation measurements are made.
+If `time_displaced = true` then time-displaced and integrated correlation measurements are made.
+If `time_displaced = false` and `integrated = false`, then just equal-time correlation measurements are made.
+If `time_displaced = false` and `integrated = true`, then both equal-time and integrated correlation measurements are made.
 """
 function initialize_correlation_measurements!(; measurement_container::NamedTuple,
                                               model_geometry::ModelGeometry{D,T,N},
@@ -389,7 +431,7 @@ function initialize_correlation_measurement!(; measurement_container::NamedTuple
     (; time_displaced_correlations, integrated_correlations, equaltime_correlations) = measurement_container
 
     # check to make sure valid correlation measurement
-    @assert correlation in CORRELATION_FUNCTIONS
+    @assert correlation in keys(CORRELATION_FUNCTIONS)
 
     # extent of lattice in unit cells
     L = measurement_container.L
