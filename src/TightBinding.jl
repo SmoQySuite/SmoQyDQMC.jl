@@ -85,8 +85,8 @@ function Base.show(io::IO, ::MIME"text/plain", tbm::TightBindingModel{T,E,D}) wh
     @printf io "e_std  = %s\n\n" string(tbm.ϵ_std)
     for i in eachindex(tbm.t_bonds)
         @printf io "[[tight_binding_model.hopping]]\n\n"
-        @printf io "ID           = %d\n" i
-        @printf io "bond_id      = %d\n" tbm.t_bond_ids[i]
+        @printf io "HOPPING_ID   = %d\n" i
+        @printf io "BOND_ID      = %d\n" tbm.t_bond_ids[i]
         @printf io "orbitals     = [%d, %d]\n" tbm.t_bonds[i].orbitals[1] tbm.t_bonds[i].orbitals[2]
         @printf io "displacement = %s\n" string(tbm.t_bonds[i].displacement)
         @printf io "t_mean       = %.8f\n" tbm.t_mean[i]
@@ -106,8 +106,8 @@ function Base.show(io::IO, ::MIME"text/plain", tbm::TightBindingModel{T,E,D}) wh
     @printf io "e_std  = %s\n\n" string(tbm.ϵ_mean)
     for i in eachindex(tbm.t_bonds)
         @printf io "[[tight_binding_model.hopping]]\n\n"
-        @printf io "ID           = %d\n" i
-        @printf io "bond_id      = %d\n" tbm.t_bond_ids[i]
+        @printf io "HOPPING_ID   = %d\n" i
+        @printf io "BOND_ID      = %d\n" tbm.t_bond_ids[i]
         @printf io "orbitals     = [%d, %d]\n" tbm.t_bonds[i].orbitals[1] tbm.t_bonds[i].orbitals[2]
         @printf io "displacement = %s\n" string(tbm.t_bonds[i].displacement)
         @printf io "t_mean_real  = %.8f\n" real(tbm.t_mean[i])

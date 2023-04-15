@@ -120,7 +120,7 @@ function _load_model_summary(folder::String)
     unit_cell_info = geometry_info["unit_cell"]
     unit_cell = UnitCell(
         lattice_vecs = collect(unit_cell_info["lattice_vectors"][key] for key in keys(unit_cell_info["lattice_vectors"])),
-        basis_vecs = collect(unit_cell_info["basis_vectors"][key] for key in keys(unit_cell_info["basis_vectors"])),
+        basis_vecs = collect(basis_vec_dict["r"] for basis_vec_dict in unit_cell_info["basis_vector"]),
     )
 
     # construct lattice
@@ -275,7 +275,7 @@ function _process_global_measurements(folder::String, bin_to_filenames::Vector{V
     open(joinpath(folder, "global_stats.csv"), "w") do fout
 
         # write header to file
-        write(fout, "measurement mean_r mean_i std\n")
+        write(fout, "MEASUREMENT MEAN_R MEAN_I STD\n")
 
         # iterate over measurements
         for measurement in sort(collect(keys(binned_global_measurements)))
@@ -379,7 +379,7 @@ function _process_local_measurements(folder::String, bin_to_filenames::Vector{Ve
     open(joinpath(folder, "local_stats.csv"), "w") do fout
 
         # write header
-        write(fout, "measurement ID mean_r mean_i std\n")
+        write(fout, "MEASUREMENT ID_TYPE ID MEAN_R MEAN_I STD\n")
 
         # iterate over measurements
         for measurement in sort(collect(keys(binned_local_measurements)))
@@ -437,7 +437,7 @@ function _write_local_measurement(fout::IO, measurement::String, binned_local_me
             m, Δm = jackknife(/, binned_vals, binned_sgn)
 
             # write stats to file
-            @printf(fout, "%s %d %.8f %.8f %.8f\n", measurement, id, real(m), imag(m), Δm)
+            @printf(fout, "%s %s %d %.8f %.8f %.8f\n", measurement, LOCAL_MEASUREMENTS[measurement], id, real(m), imag(m), Δm)
         end
 
     return nothing
@@ -528,11 +528,14 @@ function _process_equaltime_correlation(correlation::String, folder::String, spa
     # open stats file
     open(joinpath(correlation_folder, filename), "w") do fout
 
+        # get the id type
+        id_type = CORRELATION_FUNCTIONS[correlation]
+
         # write header to file
         if space == "position"
-            write(fout, join(("index", "ID2", "ID1", ("R_$d" for d in D:-1:1)..., "mean_r", "mean_i", "std\n"), " "))
+            write(fout, join(("INDEX", "$(id_type)_2", "$(id_type)_1", ("R_$d" for d in D:-1:1)..., "MEAN_R", "MEAN_I", "STD\n"), " "))
         else
-            write(fout, join(("index", "ID2", "ID1", ("K_$d" for d in D:-1:1)..., "mean_r", "mean_i", "std\n"), " "))
+            write(fout, join(("INDEX", "$(id_type)_2", "$(id_type)_1", ("K_$d" for d in D:-1:1)..., "MEAN_R", "MEAN_I", "STD\n"), " "))
         end
 
         # initialize index to zero
@@ -676,11 +679,14 @@ function _process_displaced_correlation(correlation::String, folder::String, spa
     # open stats file
     open(joinpath(correlation_folder, filename), "w") do fout
 
+        # get id type
+        id_type = CORRELATION_FUNCTIONS[correlation]
+
         # write header to file
         if space == "position"
-            write(fout, join(("Index", "ID_2", "ID_1", "Tau", ("R_$d" for d in D:-1:1)..., "mean_r", "mean_i", "std\n"), " "))
+            write(fout, join(("INDEX", "$(id_type)_2", "$(id_type)_1", "TAU", ("R_$d" for d in D:-1:1)..., "MEAN_R", "MEAN_I", "STD\n"), " "))
         else
-            write(fout, join(("Index", "ID_2", "ID_1", "Tau", ("K_$d" for d in D:-1:1)..., "mean_r", "mean_i", "std\n"), " "))
+            write(fout, join(("INDEX", "$(id_type)_2", "$(id_type)_1", "TAU", ("K_$d" for d in D:-1:1)..., "MEAN_R", "MEAN_I", "STD\n"), " "))
         end
 
         # initialize index to zero

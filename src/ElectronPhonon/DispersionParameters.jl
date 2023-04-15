@@ -76,7 +76,7 @@ function DispersionParameters(; model_geometry::ModelGeometry{D,E},
         Ndispersion = ndispersion * Ncells
 
         # get dispersive bonds
-        dispersion_bonds = [phonon_dispersion.bong for phonon_dispersion in phonon_dispersions]
+        dispersion_bonds = [phonon_dispersion.bond for phonon_dispersion in phonon_dispersions]
 
         # build site neighbor table
         site_neighbor_table = build_neighbor_table(dispersion_bonds, unit_cell, lattice)
@@ -95,7 +95,7 @@ function DispersionParameters(; model_geometry::ModelGeometry{D,E},
             phonon_dispersion = phonon_dispersions[n]
             # get the two phonon mode definitions that are coupled
             phonon_mode_i = phonon_dispersion.phonon_modes[1]
-            phonon_mode_f = phonon.dispersion.phonon_modes[2]
+            phonon_mode_f = phonon_dispersion.phonon_modes[2]
             # iterate over unit cells
             for uc in 1:Ncells
                 # increment dispersive coupling counter
@@ -104,14 +104,14 @@ function DispersionParameters(; model_geometry::ModelGeometry{D,E},
                 Ω[dipsersion_counter]  = phonon_dispersion.Ω_mean  + phonon_dispersion.Ω_std  * randn(rng)
                 Ω4[dipsersion_counter] = phonon_dispersion.Ω4_mean + phonon_dispersion.Ω4_std * randn(rng)
                 # record the initial phonon getting coupled to
-                phonon_i = (phonon_mode_i - 1) * Ncell + uc
+                phonon_i = (phonon_mode_i - 1) * Ncells + uc
                 dispersion_to_phonon[1, dipsersion_counter] = phonon_i
                 # get view into phonons phonon_to_site that corresponds to final phonon type
-                phonons = @view phonon_to_site[(phonon_mode_f-1)*Ncell + 1 : phonon_mode_f*Ncell]
+                phonons = @view phonon_to_site[(phonon_mode_f-1)*Ncells + 1 : phonon_mode_f*Ncells]
                 # get the terminating site of the phonon dispersion
-                site_f = site_neighbor_table[2,dispedipsersion_counterrsion_c]
+                site_f = site_neighbor_table[2,dipsersion_counter]
                 # get the corresponding phonon in the lattice
-                phonon_f = findfirst(i -> i==site_f, phonons) + (phonon_mode_f - 1) * Ncell
+                phonon_f = findfirst(i -> i==site_f, phonons) + (phonon_mode_f - 1) * Ncells
                 dispersion_to_phonon[2, dipsersion_counter] = phonon_f
             end
         end

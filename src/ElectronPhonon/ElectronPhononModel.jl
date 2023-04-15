@@ -360,8 +360,8 @@ function Base.show(io::IO, ::MIME"text/plain", elphm::ElectronPhononModel{T,E,D}
     @printf io "[ElectronPhononModel]\n\n"
     for (i, phonon_mode) in enumerate(elphm.phonon_modes)
         @printf io "[[ElectronPhononModel.PhononMode]]\n\n"
-        @printf io "ID           = %d\n" i
-        @printf io "orbital      = %d\n" phonon_mode.orbital
+        @printf io "PHONON_ID    = %d\n" i
+        @printf io "ORBITAL_ID   = %d\n" phonon_mode.orbital
         if isfinite(phonon_mode.M)
             @printf io "mass         = %.6f\n" phonon_mode.M
         else
@@ -375,9 +375,9 @@ function Base.show(io::IO, ::MIME"text/plain", elphm::ElectronPhononModel{T,E,D}
     for (i, holstein_coupling) in enumerate(elphm.holstein_couplings)
         bond::Bond{D} = holstein_coupling.bond
         @printf io "[[ElectronPhononModel.HolsteinCoupling]]\n\n"
-        @printf io "ID              = %d\n" i
-        @printf io "phonon_id       = %d\n" holstein_coupling.phonon_mode
-        @printf io "bond_id         = %d\n" holstein_coupling.bond_id
+        @printf io "HOLSTEIN_ID     = %d\n" i
+        @printf io "PHONON_ID       = %d\n" holstein_coupling.phonon_mode
+        @printf io "BOND_ID         = %d\n" holstein_coupling.bond_id
         @printf io "phonon_orbital  = %d\n" bond.orbitals[1]
         @printf io "density_orbital = %d\n" bond.orbitals[2]
         @printf io "displacement    = %s\n" string(bond.displacement)
@@ -393,9 +393,9 @@ function Base.show(io::IO, ::MIME"text/plain", elphm::ElectronPhononModel{T,E,D}
     for (i, ssh_coupling) in enumerate(elphm.ssh_couplings)
         bond::Bond{D} = ssh_coupling.bond
         @printf io "[[ElectronPhononModel.SSHCoupling]]\n\n"
-        @printf io "ID           = %d\n" i
-        @printf io "phonon_ids   = [%d, %d]\n" ssh_coupling.phonon_modes[1] ssh_coupling.phonon_modes[2]
-        @printf io "bond_id      = %d\n" ssh_coupling.bond_id
+        @printf io "SSH_ID       = %d\n" i
+        @printf io "PHONON_IDS   = [%d, %d]\n" ssh_coupling.phonon_modes[1] ssh_coupling.phonon_modes[2]
+        @printf io "BOND_ID      = %d\n" ssh_coupling.bond_id
         @printf io "orbitals     = [%d, %d]\n" bond.orbitals[1] bond.orbitals[2]
         @printf io "displacement = %s\n" string(bond.displacement)
         @printf io "alpha_mean   = %.6f\n" ssh_coupling.α_mean
@@ -410,15 +410,15 @@ function Base.show(io::IO, ::MIME"text/plain", elphm::ElectronPhononModel{T,E,D}
     for (i, dispersion) in enumerate(elphm.phonon_dispersions)
         bond::Bond{D} = dispersion.bond
         @printf io "[[ElectronPhononModel.PhononDispersion]]\n\n"
-        @printf io "ID           = %d\n" i
-        @printf io "phonon_ids   = [%d, %d]\n" dispersion.phonon_modes[1] dispersion.phonon_modes[2]
-        @printf io "bond_id      = %d\n" ssh_coupling.bond_id
-        @printf io "orbitals     = [%d, %d]\n" bond.orbitals[1] bond.orbitals[2]
-        @printf io "displacement = %s\n" string(bond.displacement)
-        @printf io "omega_mean   = %.6f\n" dispersion.Ω_mean
-        @printf io "omega_std    = %.6f\n" dispersion.Ω_std
-        @printf io "omega_4_mean = %.6f\n" dispersion.Ω4_mean
-        @printf io "omega_4_std  = %.6f\n\n" dispersion.Ω4_std
+        @printf io "DISPERSION_ID = %d\n" i
+        @printf io "PHONON_IDS    = [%d, %d]\n" dispersion.phonon_modes[1] dispersion.phonon_modes[2]
+        @printf io "BOND_ID       = %d\n" dispersion.bond_id
+        @printf io "orbitals      = [%d, %d]\n" bond.orbitals[1] bond.orbitals[2]
+        @printf io "displacement  = %s\n" string(bond.displacement)
+        @printf io "omega_mean    = %.6f\n" dispersion.Ω_mean
+        @printf io "omega_std     = %.6f\n" dispersion.Ω_std
+        @printf io "omega_4_mean  = %.6f\n" dispersion.Ω4_mean
+        @printf io "omega_4_std   = %.6f\n\n" dispersion.Ω4_std
     end
 
     return nothing
@@ -430,8 +430,8 @@ function Base.show(io::IO, ::MIME"text/plain", elphm::ElectronPhononModel{T,E,D}
     @printf io "[ElectronPhononModel]\n\n"
     for (i, phonon_mode) in enumerate(elphm.phonon_modes)
         @printf io "[[ElectronPhononModel.PhononMode]]\n\n"
-        @printf io "ID           = %d\n" i
-        @printf io "orbital      = %d\n" phonon_mode.orbital
+        @printf io "PHONON_ID    = %d\n" i
+        @printf io "ORBITAL_ID   = %d\n" phonon_mode.orbital
         if isfinite(phonon_mode.M)
             @printf io "mass         = %.6f\n" phonon_mode.M
         else
@@ -445,9 +445,9 @@ function Base.show(io::IO, ::MIME"text/plain", elphm::ElectronPhononModel{T,E,D}
     for (i, holstein_coupling) in enumerate(elphm.holstein_couplings)
         bond::Bond{D} = holstein_coupling.bond
         @printf io "[[ElectronPhononModel.HolsteinCoupling]]\n\n"
-        @printf io "ID              = %d\n" i
-        @printf io "phonon_id       = %d\n" holstein_coupling.phonon_mode
-        @printf io "bond_id         = %d\n" holstein_coupling.bond_id
+        @printf io "HOLSTEIN_ID     = %d\n" i
+        @printf io "PHONON_ID       = %d\n" holstein_coupling.phonon_mode
+        @printf io "BOND_ID         = %d\n" holstein_coupling.bond_id
         @printf io "phonon_orbital  = %d\n" bond.orbitals[1]
         @printf io "density_orbital = %d\n" bond.orbitals[2]
         @printf io "displacement    = %s\n" string(bond.displacement)
@@ -463,9 +463,9 @@ function Base.show(io::IO, ::MIME"text/plain", elphm::ElectronPhononModel{T,E,D}
     for (i, ssh_coupling) in enumerate(elphm.ssh_couplings)
         bond::Bond{D} = ssh_coupling.bond
         @printf io "[[ElectronPhononModel.SSHCoupling]]\n\n"
-        @printf io "ID               = %d\n" i
-        @printf io "phonon_ids       = [%d, %d]\n" ssh_coupling.phonon_modes[1] ssh_coupling.phonon_modes[2]
-        @printf io "bond_id          = %d\n" ssh_coupling.bond_id
+        @printf io "SSH_ID           = %d\n" i
+        @printf io "PHONON_IDS       = [%d, %d]\n" ssh_coupling.phonon_modes[1] ssh_coupling.phonon_modes[2]
+        @printf io "BOND_ID          = %d\n" ssh_coupling.bond_id
         @printf io "orbitals         = [%d, %d]\n" bond.orbitals[1] bond.orbitals[2]
         @printf io "displacement     = %s\n" string(bond.displacement)
         @printf io "alpha_mean_real  = %.6f\n" real(ssh_coupling.α_mean)
@@ -484,15 +484,15 @@ function Base.show(io::IO, ::MIME"text/plain", elphm::ElectronPhononModel{T,E,D}
     for (i, dispersion) in enumerate(elphm.phonon_dispersions)
         bond::Bond{D} = dispersion.bond
         @printf io "[[ElectronPhononModel.PhononDispersion]]\n\n"
-        @printf io "ID           = %d\n" i
-        @printf io "phonon_ids   = [%d, %d]\n" dispersion.phonon_modes[1] dispersion.phonon_modes[2]
-        @printf io "bond_id      = %d\n" ssh_coupling.bond_id
-        @printf io "orbitals     = [%d, %d]\n" bond.orbitals[1] bond.orbitals[2]
-        @printf io "displacement = %s\n" string(bond.displacement)
-        @printf io "omega_mean   = %.6f\n" dispersion.Ω_mean
-        @printf io "omega_std    = %.6f\n" dispersion.Ω_std
-        @printf io "omega_4_mean = %.6f\n" dispersion.Ω4_mean
-        @printf io "omega_4_std  = %.6f\n\n" dispersion.Ω4_std
+        @printf io "DISPERSION_ID = %d\n" i
+        @printf io "PHONON_ID     = [%d, %d]\n" dispersion.phonon_modes[1] dispersion.phonon_modes[2]
+        @printf io "BOND_ID       = %d\n" dispersion.bond_id
+        @printf io "orbitals      = [%d, %d]\n" bond.orbitals[1] bond.orbitals[2]
+        @printf io "displacement  = %s\n" string(bond.displacement)
+        @printf io "omega_mean    = %.6f\n" dispersion.Ω_mean
+        @printf io "omega_std     = %.6f\n" dispersion.Ω_std
+        @printf io "omega_4_mean  = %.6f\n" dispersion.Ω4_mean
+        @printf io "omega_4_std   = %.6f\n\n" dispersion.Ω4_std
     end
 
     return nothing
@@ -582,7 +582,9 @@ end
 
 
 @doc raw"""
-    add_phonon_dispersion!(elphm::ElectronPhononModel{T,E,D}, pd::PhononDispersion{E,D}, mg::ModelGeometry{D,E}) where {T,E,D}
+    add_phonon_dispersion!(; electron_phonon_model::ElectronPhononModel{T,E,D},
+                           phonon_dispersion::PhononDispersion{E,D},
+                           model_geometry::ModelGeometry{D,E}) where {T,E,D}
 
 Add a [`PhononDispersion`](@ref) to an [`ElectronPhononModel`](@ref).
 """
@@ -592,8 +594,8 @@ function add_phonon_dispersion!(; electron_phonon_model::ElectronPhononModel{T,E
 
     # get initial and final phonon modes that are coupled
     phonon_modes::Vector{PhononMode{E}} = electron_phonon_model.phonon_modes
-    phonon_mode_init = phonon_modes[pd.phonon_modes[1]]
-    phonon_mode_final = phonon_modes[pd.phonon_modes[2]]
+    phonon_mode_init = phonon_modes[phonon_dispersion.phonon_modes[1]]
+    phonon_mode_final = phonon_modes[phonon_dispersion.phonon_modes[2]]
 
     # get the bond defining the phonon dispersion
     dispersion_bond = phonon_dispersion.bond
@@ -606,7 +608,7 @@ function add_phonon_dispersion!(; electron_phonon_model::ElectronPhononModel{T,E
     bond_id = add_bond!(model_geometry, dispersion_bond)
 
     # record the phonon dispersion
-    phonon_dispersions::Vector{HolsteinCoupling{E,D}} = electron_phonon_model.phonon_dispersions
+    phonon_dispersions::Vector{PhononDispersion{E,D}} = electron_phonon_model.phonon_dispersions
     push!(phonon_dispersions, phonon_dispersion)
 
     return length(phonon_dispersions)
