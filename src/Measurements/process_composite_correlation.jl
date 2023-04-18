@@ -46,7 +46,7 @@ function composite_correlation_stats(;
 
     @assert space == "momentum" || space == "position"
     @assert type == "equal-time" || type == "time-displaced" || type == "integrated"
-    @assert correlation in CORRELATION_FUNCTIONS
+    @assert correlation in keys(CORRELATION_FUNCTIONS)
     @assert length(locs) == length(ids)
     if f==identity
         @assert length(locs) == 1 "`f = identity`` only works for single correlation function."
