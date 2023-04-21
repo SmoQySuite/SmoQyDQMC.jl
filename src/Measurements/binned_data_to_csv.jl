@@ -101,8 +101,11 @@ function local_measurement_bins_to_csv(folder::String, measurement::String)
     # open csv file
     open(filename, "w") do fout
 
+        # id type
+        id_type = CORRELATION_FUNCTIONS[measurement]
+
         # write the file header
-        @printf fout "BIN PID ID %s_R %s_I SIGN_R SIGN_I\n" uppercase(measurement) uppercase(measurement)
+        @printf fout "BIN PID %s_ID %s_R %s_I SIGN_R SIGN_I\n" id_type uppercase(measurement) uppercase(measurement)
 
         # iterate over bins
         for bin in 1:N_bin
@@ -225,8 +228,11 @@ function _write_correlation_index_key(folder::String, correlation::String, type:
     # open key file
     open(joinpath(correlation_folder, filename), "w") do fout
 
+        # get id type
+        id_type = CORRELATION_FUNCTIONS[correlation]
+
         # write header to file
-        write(fout, "Index ID_2 ID_1")
+        @printf fout "INDEX %s_ID_2 %s_ID_1" id_type id_type
         if type == "time-displaced"
             write(fout, " Tau")
         end
