@@ -93,7 +93,7 @@ function local_measurement_bins_to_csv(folder::String, measurement::String)
     N_bin = div(N_file, N_process)
 
     # get the number of IDs
-    N_id = length( JLD2.load(joinpath(global_folder, "bin-1_pID-0.jld2"), measurement) )
+    N_id = length( JLD2.load(joinpath(local_folder, "bin-1_pID-0.jld2"), measurement) )
 
     # filename for global data
     filename = joinpath(folder, @sprintf("%s_bins.csv", measurement))
@@ -105,7 +105,7 @@ function local_measurement_bins_to_csv(folder::String, measurement::String)
         id_type = CORRELATION_FUNCTIONS[measurement]
 
         # write the file header
-        @printf fout "BIN PID %s_ID %s_R %s_I SIGN_R SIGN_I\n" id_type uppercase(measurement) uppercase(measurement)
+        @printf fout "BIN PID %s %s_R %s_I SIGN_R SIGN_I\n" id_type uppercase(measurement) uppercase(measurement)
 
         # iterate over bins
         for bin in 1:N_bin
@@ -232,7 +232,7 @@ function _write_correlation_index_key(folder::String, correlation::String, type:
         id_type = CORRELATION_FUNCTIONS[correlation]
 
         # write header to file
-        @printf fout "INDEX %s_ID_2 %s_ID_1" id_type id_type
+        @printf fout "INDEX %s_2 %s_1" id_type id_type
         if type == "time-displaced"
             write(fout, " Tau")
         end

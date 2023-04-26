@@ -33,18 +33,12 @@ function update_stabalization_frequency!(Gup::Matrix{T}, logdetGup::E, sgndetGup
 
     # if numerical instability occured
     if δG > δG_max || (!isfinite(δG)) || (!isfinite(logdetGup)) || (!isfinite(logdetGdn))
-
-        # set updated to true
-        updated = true
         
-        # if n_stab = 1 already
-        if fermion_greens_calculator_up.n_stab == 1
+        # if n_stab can still be reduced
+        if fermion_greens_calculator_up.n_stab > 1
 
-            # throw error as stabilization frequency can no longer be increased
-            @warn "Error: `δG = $(δG)` and `n_stab = 1` already."
-
-        # increase stabilization frequency
-        else
+            # set updated to true
+            updated = true
 
             # decrease the stabilization period by one
             n_stab = n_stab - 1
