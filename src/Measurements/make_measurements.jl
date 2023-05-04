@@ -236,6 +236,7 @@ function make_global_measurements!(global_measurements::Dict{String, Complex{E}}
     # record the spin resolved sign
     global_measurements["sgndetGup"] += sgndetGup
     global_measurements["sgndetGdn"] += sgndetGdn
+    global_measurements["sgndetG"]   += (sgndetGup + sgndetGdn)/2
 
     # measure average density
     global_measurements["density"] += sgn * (measure_n(Gup) + measure_n(Gdn))

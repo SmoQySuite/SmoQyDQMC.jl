@@ -101,6 +101,10 @@ export HubbardGaussianHSParameters
 # evaluate the derivative of the action with respect to continuous HS fields
 include("Hubbard/hubbard_action_derivative.jl")
 
+# implement low pass filter mass matrix
+include("Hubbard/LowPassFilter.jl")
+export LowPassFilter, apply_filter!
+
 # implement HMC update for continuous HS fields
 include("Hubbard/hubbard_hmc_update.jl")
 export hmc_update!, lmc_update!

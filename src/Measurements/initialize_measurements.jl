@@ -180,6 +180,7 @@ function initialize_measurement_container(model_geometry::ModelGeometry{D,T,N}, 
         "Nsqrd" => zero(Complex{T}), # total particle number square ⟨N²⟩
         "sgndetGup" => zero(Complex{T}), # sign(det(Gup))
         "sgndetGdn" => zero(Complex{T}), # sign(det(Gdn))
+        "sgndetG" => zero(Complex{T}), # sign(det(G)) = [sign(det(Gup)) + sign(det(Gdn))]/2
         "sgn" => zero(Complex{T}), # sign(det(Gup))⋅sign(det(Gdn))
     )
 

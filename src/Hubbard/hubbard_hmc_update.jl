@@ -12,7 +12,7 @@ function lmc_update!(
     Bup::Vector{P}, Bdn::Vector{P},
     δG_max::E, δG::E, δθ::E, rng::AbstractRNG,
     initialize_force::Bool = true,
-    δG_reject::E = 1e-2) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
+    δG_reject::E = 1e-2, hs_filter = I) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
 
     (accepted, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = _hmc_update!(
         Gup, logdetGup, sgndetGup, Gdn, logdetGdn, sgndetGdn,
@@ -20,7 +20,7 @@ function lmc_update!(
         fermion_path_integral_up, fermion_path_integral_dn,
         fermion_greens_calculator_up, fermion_greens_calculator_dn,
         fermion_greens_calculator_up_alt, fermion_greens_calculator_dn_alt,
-        Bup, Bdn, δG_max, δG, δθ, rng, initialize_force, δG_reject
+        Bup, Bdn, δG_max, δG, δθ, rng, initialize_force, δG_reject, hs_filter
     )
 
     return (accepted, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ)
@@ -34,12 +34,12 @@ function lmc_update!(
     fermion_greens_calculator::FermionGreensCalculator{T,E},
     fermion_greens_calculator_alt::FermionGreensCalculator{T,E},
     B::Vector{P}, δG_max::E, δG::E, δθ::E, rng::AbstractRNG, initialize_force::Bool = true,
-    δG_reject::E = 1e-2) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
+    δG_reject::E = 1e-2, hs_filter = I) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
 
     (accepted, logdetG, sgndetG, δG, δθ) = _hmc_update!(
         G, logdetG, sgndetG, hubbard_hs_parameters, 1, Δt,
         fermion_path_integral, fermion_greens_calculator, fermion_greens_calculator_alt,
-        B, δG_max, δG, δθ, rng, initialize_force, δG_reject
+        B, δG_max, δG, δθ, rng, initialize_force, δG_reject, hs_filter
     )
 
     return (accepted, logdetG, sgndetG, δG, δθ)
@@ -60,7 +60,7 @@ function hmc_update!(
     Bup::Vector{P}, Bdn::Vector{P},
     δG_max::E, δG::E, δθ::E, rng::AbstractRNG,
     initialize_force::Bool = true,
-    δG_reject::E = 1e-2) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
+    δG_reject::E = 1e-2, hs_filter = I) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
 
     # sample the trajectory length from geometric distribution with mean given by Nt
     # Nt′ = Nt > 1 ? floor(Int, log(rand())/log(1-1/Nt)) + 1 : 1
@@ -72,7 +72,7 @@ function hmc_update!(
         fermion_path_integral_up, fermion_path_integral_dn,
         fermion_greens_calculator_up, fermion_greens_calculator_dn,
         fermion_greens_calculator_up_alt, fermion_greens_calculator_dn_alt,
-        Bup, Bdn, δG_max, δG, δθ, rng, initialize_force, δG_reject
+        Bup, Bdn, δG_max, δG, δθ, rng, initialize_force, δG_reject, hs_filter
     )
 
     return (accepted, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ)
@@ -86,7 +86,7 @@ function hmc_update!(
     fermion_greens_calculator::FermionGreensCalculator{T,E},
     fermion_greens_calculator_alt::FermionGreensCalculator{T,E},
     B::Vector{P}, δG_max::E, δG::E, δθ::E, rng::AbstractRNG, initialize_force::Bool = true,
-    δG_reject::E = 1e-2) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
+    δG_reject::E = 1e-2, hs_filter = I) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
 
     # sample the trajectory length from geometric distribution with mean given by Nt
     # Nt′ = Nt > 1 ? floor(Int, log(rand())/log(1-1/Nt)) + 1 : 1
@@ -95,7 +95,7 @@ function hmc_update!(
     (accepted, logdetG, sgndetG, δG, δθ) = _hmc_update!(
         G, logdetG, sgndetG, hubbard_hs_parameters, Nt′, Δt,
         fermion_path_integral, fermion_greens_calculator, fermion_greens_calculator_alt,
-        B, δG_max, δG, δθ, rng, initialize_force, δG_reject
+        B, δG_max, δG, δθ, rng, initialize_force, δG_reject, hs_filter
     )
 
     return (accepted, logdetG, sgndetG, δG, δθ)
@@ -117,7 +117,7 @@ function _hmc_update!(
     Bup::Vector{P}, Bdn::Vector{P},
     δG_max::E, δG::E, δθ::E, rng::AbstractRNG,
     initialize_force::Bool = true,
-    δG_reject::E = 1e-2) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
+    δG_reject::E = 1e-2, hs_filter = I) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
 
     (; s, s0, v, dSds, dSds0) = hubbard_hs_parameters
 
@@ -155,6 +155,7 @@ function _hmc_update!(
 
     # initialize velocities v ~ N(0,1)
     randn!(v)
+    apply_filter!(v, hs_filter)
 
     # calculate initial kinetic energy K = |v|²/2
     K = dot(v,v)/2
@@ -179,6 +180,7 @@ function _hmc_update!(
 
         # calculate v(t+Δt/2) = v(t) - Δt/2⋅∂S/∂s(t)
         @. v = v - Δt/2 * dSds
+        apply_filter!(v, hs_filter)
 
         # subtract off the effect of the current HS configuration from the fermion path integrals
         update!(fermion_path_integral_up, hubbard_hs_parameters, +1, -1)
@@ -186,6 +188,7 @@ function _hmc_update!(
 
         # update the HS fields
         @. s = s + Δt * v
+        apply_filter!(s, hs_filter)
 
         # update the fermion path integrals to reflect new HS configuration
         update!(fermion_path_integral_up, hubbard_hs_parameters, +1, +1)
@@ -228,6 +231,7 @@ function _hmc_update!(
 
         # calculate v(t+Δt) = v(t+Δt/2) - Δt/2⋅∂S/∂s(t+Δt)
         @. v = v - Δt/2 * dSds
+        apply_filter!(v, hs_filter)
     end
 
     # if numerically stable
@@ -316,7 +320,7 @@ function _hmc_update!(
     fermion_greens_calculator::FermionGreensCalculator{T,E},
     fermion_greens_calculator_alt::FermionGreensCalculator{T,E},
     B::Vector{P}, δG_max::E, δG::E, δθ::E, rng::AbstractRNG, initialize_force::Bool = true,
-    δG_reject::E = 1e-2) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
+    δG_reject::E = 1e-2, hs_filter = I) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
 
     (; s, s0, v, dSds, dSds0) = hubbard_hs_parameters
 
@@ -346,6 +350,7 @@ function _hmc_update!(
 
     # initialize velocities v ~ N(0,1)
     randn!(v)
+    apply_filter!(v, hs_filter)
 
     # calculate initial kinetic energy K = |v|²/2
     K = dot(v,v)/2
@@ -373,12 +378,14 @@ function _hmc_update!(
 
         # calculate v(t+Δt/2) = v(t) - Δt/2⋅∂S/∂s(t)
         @. v = v - Δt/2 * dSds
+        apply_filter!(v, hs_filter)
 
         # subtract off the effect of the current HS configuration from the fermion path integrals
         update!(fermion_path_integral, hubbard_hs_parameters, +1, -1)
 
         # update the HS fields
         @. s = s + Δt * v
+        apply_filter!(s, hs_filter)
 
         # update the fermion path integrals to reflect new HS configuration
         update!(fermion_path_integral, hubbard_hs_parameters, +1, +1)
@@ -418,6 +425,7 @@ function _hmc_update!(
 
         # calculate v(t+Δt) = v(t+Δt/2) - Δt/2⋅∂S/∂s(t+Δt)
         @. v = v - Δt/2 * dSds
+        apply_filter!(v, hs_filter)
     end
 
     # if numerically stable
