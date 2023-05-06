@@ -96,7 +96,7 @@ function update_stabalization_frequency!(G::Matrix{T}, logdetG::E, sgndetG::T;
     if δG > δG_max || (!isfinite(δG)) || (!isfinite(logdetG))
 
         # if n_stab can still be reduced
-        if fermion_greens_calculator_up.n_stab > 1
+        if fermion_greens_calculator.n_stab > 1
 
             # set updated to true
             updated = true
