@@ -90,6 +90,9 @@ function _bosonic_action(hubbard_hs_parameters::HubbardGaussianHSParameters{T}) 
     @inbounds for l in axes(s,2)
         for i in axes(s,1)
             Sb += s[i,l]^2/2
+            if U[i] < 0
+                Sb += eval_a(i, l, hubbard_hs_parameters)
+            end
         end
     end
 
@@ -104,6 +107,9 @@ function _bosonic_action_derivative!(dSds::Matrix{E}, hubbard_hs_parameters::Hub
     @inbounds for l in axes(s, 2)
         for i in axes(s, 1)
             dSds[i,l] += s[i,l]
+            if U[i] < 0
+                dSds[i,l] += Δτ * eval_dads(i, l, hubbard_hs_parameters)
+            end
         end
     end
 
