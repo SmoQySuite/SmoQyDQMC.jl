@@ -43,8 +43,8 @@ function update_chemical_potential!(Gup::Matrix{T}, logdetGup::E, sgndetGup::T,
     tight_binding_parameters.μ = μ
 
     # update fermion path integrals
-    Vup = fermion_path_integral_up.Vup
-    Vdn = fermion_path_integral_dn.Vdn
+    Vup = fermion_path_integral_up.V
+    Vdn = fermion_path_integral_dn.V
     @. Vup += -μ + μ′
     @. Vdn += -μ + μ′
 
@@ -56,20 +56,10 @@ function update_chemical_potential!(Gup::Matrix{T}, logdetGup::E, sgndetGup::T,
     logdetGup, sgndetGup = calculate_equaltime_greens!(Gup, fermion_greens_calculator_up, Bup)
     logdetGdn, sgndetGdn = calculate_equaltime_greens!(Gdn, fermion_greens_calculator_dn, Bdn)
 
-    return (logdetGup, sgndetGup, logdetGup, sgndetGup)
+    return (logdetGup, sgndetGup, logdetGdn, sgndetGdn)
 end
 
 @doc raw"""
-    update_chemical_potential!(Gup::Matrix{T}, logdetGup::E, sgndetGup::T,
-                               Gdn::Matrix{T}, logdetGdn::E, sgndetGdn::T;
-                               chemical_potential_tuner::MuTunerLogger{E,T},
-                               tight_binding_parameters::TightBindingParameters{T,E},
-                               fermion_path_integral_up::FermionPathIntegral{T,E},
-                               fermion_path_integral_dn::FermionPathIntegral{T,E},
-                               fermion_greens_calculator_up::FermionGreensCalculator{T,E},
-                               fermion_greens_calculator_dn::FermionGreensCalculator{T,E},
-                               Bup::Vector{P}, Bdn::Vector{P}) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
-
     update_chemical_potential!(G::Matrix{T}, logdetG::E, sgndetG::T;
                                chemical_potential_tuner::MuTunerLogger{E,T},
                                tight_binding_parameters::TightBindingParameters{T,E},
