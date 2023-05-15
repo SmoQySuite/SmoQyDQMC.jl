@@ -59,9 +59,10 @@ function HubbardContinuousHSParameters(; β::T, Δτ::T, p::T, hubbard_parameter
 
     # initialize random hs field configuration
     s = zeros(T, N, Lτ)
-    @fastmath @inbounds for i in eachindex(s)
+    @fastmath @inbounds for i in axes(s, 1)
         # sample HS field uniformly in the interval (-π,π)
-        s[i] = 2 * π * (rand(rng) - 0.5)
+        s_i = 2 * π * (rand(rng) - 0.5)
+        @views @. s[i,:] = s_i
     end
 
     # array to store initial HS field in HMC update

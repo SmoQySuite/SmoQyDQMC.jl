@@ -45,8 +45,12 @@ function HubbardGaussianHSParameters(; β::T, Δτ::T, hubbard_parameters::Hubba
     # get the number of HS transformations per imaginary time-slice
     N = length(U)
 
-    # initial random gaussian HS fields
-    s = randn(rng, N, Lτ)
+    # initialize random gaussian HS fields
+    s = zeros(T, N, Lτ)
+    for i in axes(s,1)
+        s_i = randn(rng)
+        @views @. s[i,:] = s_i
+    end
 
     # array to store initial HS field in HMC update
     s0 = copy(s)
