@@ -38,7 +38,7 @@ Given a regularization value of `reg`, represented by the symbol ``m_{\rm reg}``
 the fouerier mass matrix in frequency space, where it is diagonal, are given by
 ```math
 \tilde{M}_{\omega,\omega} = 
-    \Delta\tau\frac{(1+m_{{\rm reg}})M\Omega^{2}+\frac{4M}{\Delta\tau^{2}}\sin^{2}\big(\frac{2\pi\omega}{L_{\tau}}\big)}{(1+m_{{\rm reg}})M\Omega^{2}},
+    \Delta\tau\frac{(1+m_{{\rm reg}})M\Omega^{2}+\frac{4M}{\Delta\tau^{2}}\sin^{2}\big(\frac{\pi\omega}{L_{\tau}}\big)}{(1+m_{{\rm reg}})M\Omega^{2}},
 ```
 where ``\omega \in [0, L_\tau)`` corresponds to the frequency after fourier transforming from imaginary time to frequency space,
 and ``L_\tau`` is the length of the imaginary time axis.
@@ -88,7 +88,7 @@ function FourierMassMatrix(electron_phonon_parameters::ElectronPhononParameters{
                 # CHANGE IN FUTURE: if bare on-site phonon frequency is zero, default to 1.0
                 Ω′ = iszero(Ω[n]) ? 1.0 : Ω[n]
                 # set the fourier mass matrix element
-                M̃[n, ω] = Δτ * ((1+reg)*M[n]*Ω′^2 + 4*M[n]/Δτ^2*sin(2*π*(ω-1)/Lτ)^2) / ((1+reg)*M[n]*Ω′^2)
+                M̃[n, ω] = Δτ * ((1+reg)*M[n]*Ω′^2 + 4*M[n]/Δτ^2*sin(π*(ω-1)/Lτ)^2) / ((1+reg)*M[n]*Ω′^2)
             end
         end
     end
