@@ -14,9 +14,12 @@ function lmc_update!(
     initialize_force::Bool = true,
     δG_reject::E = 1e-2, hs_filter = I) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
 
+    # randomly sample step size
+    Δt′ = Δt * randexp(rng)
+
     (accepted, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = _hmc_update!(
         Gup, logdetGup, sgndetGup, Gdn, logdetGdn, sgndetGdn,
-        hubbard_hs_parameters, 1, Δt,
+        hubbard_hs_parameters, 1, Δt′,
         fermion_path_integral_up, fermion_path_integral_dn,
         fermion_greens_calculator_up, fermion_greens_calculator_dn,
         fermion_greens_calculator_up_alt, fermion_greens_calculator_dn_alt,
@@ -36,8 +39,11 @@ function lmc_update!(
     B::Vector{P}, δG_max::E, δG::E, δθ::E, rng::AbstractRNG, initialize_force::Bool = true,
     δG_reject::E = 1e-2, hs_filter = I) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
 
+    # randomly sample step size
+    Δt′ = Δt * randexp(rng)
+
     (accepted, logdetG, sgndetG, δG, δθ) = _hmc_update!(
-        G, logdetG, sgndetG, hubbard_hs_parameters, 1, Δt,
+        G, logdetG, sgndetG, hubbard_hs_parameters, 1, Δt′,
         fermion_path_integral, fermion_greens_calculator, fermion_greens_calculator_alt,
         B, δG_max, δG, δθ, rng, initialize_force, δG_reject, hs_filter
     )
@@ -63,8 +69,7 @@ function hmc_update!(
     δG_reject::E = 1e-2, hs_filter = I) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
 
     # sample the trajectory length from geometric distribution with mean given by Nt
-    # Nt′ = Nt > 1 ? floor(Int, log(rand())/log(1-1/Nt)) + 1 : 1
-    Nt′ = Nt
+    Nt′ = Nt > 1 ? floor(Int, log(rand())/log(1-1/Nt)) + 1 : 1
 
     (accepted, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = _hmc_update!(
         Gup, logdetGup, sgndetGup, Gdn, logdetGdn, sgndetGdn,
@@ -89,8 +94,7 @@ function hmc_update!(
     δG_reject::E = 1e-2, hs_filter = I) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
 
     # sample the trajectory length from geometric distribution with mean given by Nt
-    # Nt′ = Nt > 1 ? floor(Int, log(rand())/log(1-1/Nt)) + 1 : 1
-    Nt′ = Nt
+    Nt′ = Nt > 1 ? floor(Int, log(rand())/log(1-1/Nt)) + 1 : 1
 
     (accepted, logdetG, sgndetG, δG, δθ) = _hmc_update!(
         G, logdetG, sgndetG, hubbard_hs_parameters, Nt′, Δt,
