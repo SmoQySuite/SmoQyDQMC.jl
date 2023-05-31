@@ -216,7 +216,7 @@ function _write_correlation_index_key(folder::String, correlation::String, type:
     # load sample correlation data
     sample_data = JLD2.load(joinpath(space_folder, "bin-1_pID-0.jld2"))
     correlations = sample_data["correlations"]
-    pairs = sample_data["pairs"]
+    pairs = sample_data["id_pairs"]
 
     # get the spatical dimension of the system
     if type == "time-displaced"
@@ -280,7 +280,7 @@ function _write_correlations_to_csv(fout::IO, correlation_folder::String, global
     # read in correlation bin from jld2 file
     filename = @sprintf "bin-%d_pID-%d.jld2" bin pID
     correlation_bin = JLD2.load(joinpath(correlation_folder, filename))
-    pairs = correlation_bin["pairs"]
+    pairs = correlation_bin["id_pairs"]
     correlations = correlation_bin["correlations"]
 
     # initialize index to zero

@@ -408,13 +408,14 @@ function make_equaltime_measurements!(equaltime_correlations::Dict{String, Corre
     for correlation in keys(equaltime_correlations)
         
         correlation_container = equaltime_correlations[correlation]::CorrelationContainer{D,E}
-        pairs = correlation_container.pairs::Vector{NTuple{2,Int}}
+        id_pairs = correlation_container.id_pairs::Vector{NTuple{2,Int}}
+        bond_id_pairs = correlation_container.bond_id_pairs::Vector{NTuple{2,Int}}
         correlations = correlation_container.correlations::Vector{Array{Complex{T}, D}}
 
         if correlation == "greens"
 
-            for i in eachindex(pairs)
-                pair = pairs[i]
+            for i in eachindex(id_pairs)
+                pair = id_pairs[i]
                 correlation = correlations[i]
                 greens!(correlation, pair[2], pair[1], unit_cell, lattice, Gup_τ0, sgn/2)
                 greens!(correlation, pair[2], pair[1], unit_cell, lattice, Gdn_τ0, sgn/2)
@@ -422,24 +423,24 @@ function make_equaltime_measurements!(equaltime_correlations::Dict{String, Corre
 
         elseif correlation == "greens_up"
 
-            for i in eachindex(pairs)
-                pair = pairs[i]
+            for i in eachindex(id_pairs)
+                pair = id_pairs[i]
                 correlation = correlations[i]
                 greens!(correlation, pair[2], pair[1], unit_cell, lattice, Gup_τ0, sgn)
             end
 
         elseif correlation == "greens_dn"
 
-            for i in eachindex(pairs)
-                pair = pairs[i]
+            for i in eachindex(id_pairs)
+                pair = id_pairs[i]
                 correlation = correlations[i]
                 greens!(correlation, pair[2], pair[1], unit_cell, lattice, Gdn_τ0, sgn)
             end
 
         elseif correlation == "greens_tautau"
 
-            for i in eachindex(pairs)
-                pair = pairs[i]
+            for i in eachindex(id_pairs)
+                pair = id_pairs[i]
                 correlation = correlations[i]
                 greens!(correlation, pair[2], pair[1], unit_cell, lattice, Gup_τ0, sgn/2)
                 greens!(correlation, pair[2], pair[1], unit_cell, lattice, Gdn_τ0, sgn/2)
@@ -447,24 +448,24 @@ function make_equaltime_measurements!(equaltime_correlations::Dict{String, Corre
 
         elseif correlation == "greens_tautau_up"
 
-            for i in eachindex(pairs)
-                pair = pairs[i]
+            for i in eachindex(id_pairs)
+                pair = id_pairs[i]
                 correlation = correlations[i]
                 greens!(correlation, pair[2], pair[1], unit_cell, lattice, Gup_τ0, sgn)
             end
 
         elseif correlation == "greens_tautau_dn"
 
-            for i in eachindex(pairs)
-                pair = pairs[i]
+            for i in eachindex(id_pairs)
+                pair = id_pairs[i]
                 correlation = correlations[i]
                 greens!(correlation, pair[2], pair[1], unit_cell, lattice, Gdn_τ0, sgn)
             end    
 
         elseif correlation == "density"
 
-            for i in eachindex(pairs)
-                pair = pairs[i]
+            for i in eachindex(id_pairs)
+                pair = id_pairs[i]
                 correlation = correlations[i]
                 density_correlation!(correlation, pair[2], pair[1], unit_cell, lattice,
                                      Gup_τ0, Gup_0τ, Gup_ττ, Gup, Gdn_τ0, Gdn_0τ, Gdn_ττ, Gdn, sgn)
@@ -472,8 +473,8 @@ function make_equaltime_measurements!(equaltime_correlations::Dict{String, Corre
 
         elseif correlation == "pair"
 
-            for i in eachindex(pairs)
-                pair = pairs[i]
+            for i in eachindex(id_pairs)
+                pair = id_pairs[i]
                 correlation = correlations[i]
                 pair_correlation!(correlation, bonds[pair[2]], bonds[pair[1]], unit_cell, lattice,
                                   Gup_τ0, Gdn_τ0, sgn)
@@ -481,8 +482,8 @@ function make_equaltime_measurements!(equaltime_correlations::Dict{String, Corre
 
         elseif correlation == "spin_x"
 
-            for i in eachindex(pairs)
-                pair = pairs[i]
+            for i in eachindex(id_pairs)
+                pair = id_pairs[i]
                 correlation = correlations[i]
                 spin_x_correlation!(correlation, pair[2], pair[1], unit_cell, lattice,
                                     Gup_τ0, Gup_0τ, Gdn_τ0, Gdn_0τ, sgn)
@@ -490,8 +491,8 @@ function make_equaltime_measurements!(equaltime_correlations::Dict{String, Corre
 
         elseif correlation == "spin_z"
 
-            for i in eachindex(pairs)
-                pair = pairs[i]
+            for i in eachindex(id_pairs)
+                pair = id_pairs[i]
                 correlation = correlations[i]
                 spin_z_correlation!(correlation, pair[2], pair[1], unit_cell, lattice,
                                     Gup_τ0, Gup_0τ, Gup_ττ, Gup, Gdn_τ0, Gdn_0τ, Gdn_ττ, Gdn, sgn)
@@ -499,8 +500,8 @@ function make_equaltime_measurements!(equaltime_correlations::Dict{String, Corre
 
         elseif correlation == "bond"
 
-            for i in eachindex(pairs)
-                pair = pairs[i]
+            for i in eachindex(id_pairs)
+                pair = id_pairs[i]
                 correlation = correlations[i]
                 bond_correlation!(correlation, bonds[pair[2]], bonds[pair[1]], unit_cell, lattice,
                                   Gup_τ0, Gup_0τ, Gup_ττ, Gup, Gdn_τ0, Gdn_0τ, Gdn_ττ, Gdn, sgn)
@@ -511,14 +512,18 @@ function make_equaltime_measurements!(equaltime_correlations::Dict{String, Corre
             (; bond_ids, bond_slices) = tight_binding_parameters
             (; t, Lτ) = fermion_path_integral_up
 
-            for i in eachindex(pairs)
+            for i in eachindex(id_pairs)
                 # get the hopping IDs associated with current operators
-                pair = pairs[1]
-                hopping_id_0 = pair[1]
-                hopping_id_1 = pair[2]
+                id_pair = id_pairs[1]
+                hopping_id_0 = id_pair[1]
+                hopping_id_1 = id_pair[2]
                 # get the bond IDs associated with the hopping IDs
                 bond_id_0 = bond_ids[hopping_id_0]
                 bond_id_1 = bond_ids[hopping_id_1]
+                # record bond id pair for current correlation measurement if not already recorded
+                if (bond_id_pairs[i][1] == 0) && (bond_id_pairs[i][2] == 0)
+                    bond_id_pairs[i] = (bond_id_0, bond_id_1)
+                end
                 # get the bond definitions
                 bond_0 = bonds[bond_id_0]
                 bond_1 = bonds[bond_id_1]
@@ -560,13 +565,14 @@ function make_time_displaced_measurements!(time_displaced_correlations::Dict{Str
     for correlation in keys(time_displaced_correlations)
         
         correlation_container = time_displaced_correlations[correlation]::CorrelationContainer{P,E}
-        pairs = correlation_container.pairs::Vector{NTuple{2,Int}}
+        id_pairs = correlation_container.id_pairs::Vector{NTuple{2,Int}}
+        bond_id_pairs = correlation_container.bond_id_pairs::Vector{NTuple{2,Int}}
         correlations = correlation_container.correlations::Vector{Array{Complex{T}, P}}
 
         if correlation == "greens"
 
-            for i in eachindex(pairs)
-                pair = pairs[i]
+            for i in eachindex(id_pairs)
+                pair = id_pairs[i]
                 correlation = selectdim(correlations[i], D+1, l+1)
                 greens!(correlation, pair[2], pair[1], unit_cell, lattice, Gup_τ0, sgn/2)
                 greens!(correlation, pair[2], pair[1], unit_cell, lattice, Gdn_τ0, sgn/2)
@@ -574,24 +580,24 @@ function make_time_displaced_measurements!(time_displaced_correlations::Dict{Str
 
         elseif correlation == "greens_up"
 
-            for i in eachindex(pairs)
-                pair = pairs[i]
+            for i in eachindex(id_pairs)
+                pair = id_pairs[i]
                 correlation = selectdim(correlations[i], D+1, l+1)
                 greens!(correlation, pair[2], pair[1], unit_cell, lattice, Gup_τ0, sgn)
             end
 
         elseif correlation == "greens_dn"
 
-            for i in eachindex(pairs)
-                pair = pairs[i]
+            for i in eachindex(id_pairs)
+                pair = id_pairs[i]
                 correlation = selectdim(correlations[i], D+1, l+1)
                 greens!(correlation, pair[2], pair[1], unit_cell, lattice, Gdn_τ0, sgn)
             end
 
         elseif correlation == "greens_tautau"
 
-            for i in eachindex(pairs)
-                pair = pairs[i]
+            for i in eachindex(id_pairs)
+                pair = id_pairs[i]
                 correlation = selectdim(correlations[i], D+1, l+1)
                 greens!(correlation, pair[2], pair[1], unit_cell, lattice, Gup_ττ, sgn/2)
                 greens!(correlation, pair[2], pair[1], unit_cell, lattice, Gdn_ττ, sgn/2)
@@ -599,24 +605,24 @@ function make_time_displaced_measurements!(time_displaced_correlations::Dict{Str
 
         elseif correlation == "greens_tautau_up"
 
-            for i in eachindex(pairs)
-                pair = pairs[i]
+            for i in eachindex(id_pairs)
+                pair = id_pairs[i]
                 correlation = selectdim(correlations[i], D+1, l+1)
                 greens!(correlation, pair[2], pair[1], unit_cell, lattice, Gup_ττ, sgn)
             end
 
         elseif correlation == "greens_tautau_dn"
 
-            for i in eachindex(pairs)
-                pair = pairs[i]
+            for i in eachindex(id_pairs)
+                pair = id_pairs[i]
                 correlation = selectdim(correlations[i], D+1, l+1)
                 greens!(correlation, pair[2], pair[1], unit_cell, lattice, Gdn_ττ, sgn)
             end
 
         elseif correlation == "density"
 
-            for i in eachindex(pairs)
-                pair = pairs[i]
+            for i in eachindex(id_pairs)
+                pair = id_pairs[i]
                 correlation = selectdim(correlations[i], D+1, l+1)
                 density_correlation!(correlation, pair[2], pair[1], unit_cell, lattice,
                                      Gup_τ0, Gup_0τ, Gup_ττ, Gup, Gdn_τ0, Gdn_0τ, Gdn_ττ, Gdn, sgn)
@@ -624,8 +630,8 @@ function make_time_displaced_measurements!(time_displaced_correlations::Dict{Str
 
         elseif correlation == "pair"
 
-            for i in eachindex(pairs)
-                pair = pairs[i]
+            for i in eachindex(id_pairs)
+                pair = id_pairs[i]
                 correlation = selectdim(correlations[i], D+1, l+1)
                 pair_correlation!(correlation, bonds[pair[2]], bonds[pair[1]], unit_cell, lattice,
                                   Gup_τ0, Gdn_τ0, sgn)
@@ -633,8 +639,8 @@ function make_time_displaced_measurements!(time_displaced_correlations::Dict{Str
 
         elseif correlation == "spin_x"
 
-            for i in eachindex(pairs)
-                pair = pairs[i]
+            for i in eachindex(id_pairs)
+                pair = id_pairs[i]
                 correlation = selectdim(correlations[i], D+1, l+1)
                 spin_x_correlation!(correlation, pair[2], pair[1], unit_cell, lattice,
                                     Gup_τ0, Gup_0τ, Gdn_τ0, Gdn_0τ, sgn)
@@ -642,8 +648,8 @@ function make_time_displaced_measurements!(time_displaced_correlations::Dict{Str
 
         elseif correlation == "spin_z"
 
-            for i in eachindex(pairs)
-                pair = pairs[i]
+            for i in eachindex(id_pairs)
+                pair = id_pairs[i]
                 correlation = selectdim(correlations[i], D+1, l+1)
                 spin_z_correlation!(correlation, pair[2], pair[1], unit_cell, lattice,
                                     Gup_τ0, Gup_0τ, Gup_ττ, Gup, Gdn_τ0, Gdn_0τ, Gdn_ττ, Gdn, sgn)
@@ -651,8 +657,8 @@ function make_time_displaced_measurements!(time_displaced_correlations::Dict{Str
 
         elseif correlation == "bond"
 
-            for i in eachindex(pairs)
-                pair = pairs[i]
+            for i in eachindex(id_pairs)
+                pair = id_pairs[i]
                 correlation = selectdim(correlations[i], D+1, l+1)
                 bond_correlation!(correlation, bonds[pair[2]], bonds[pair[1]], unit_cell, lattice,
                                   Gup_τ0, Gup_0τ, Gup_ττ, Gup, Gdn_τ0, Gdn_0τ, Gdn_ττ, Gdn, sgn)
@@ -663,14 +669,18 @@ function make_time_displaced_measurements!(time_displaced_correlations::Dict{Str
             (; bond_ids, bond_slices) = tight_binding_parameters
             (; t, Lτ) = fermion_path_integral_up
 
-            for i in eachindex(pairs)
+            for i in eachindex(id_pairs)
                 # get the hopping IDs associated with current operators
-                pair = pairs[i]
-                hopping_id_0 = pair[1]
-                hopping_id_1 = pair[2]
+                id_pair = id_pairs[i]
+                hopping_id_0 = id_pair[1]
+                hopping_id_1 = id_pair[2]
                 # get the bond IDs associated with the hopping IDs
                 bond_id_0 = bond_ids[hopping_id_0]
                 bond_id_1 = bond_ids[hopping_id_1]
+                # record bond id pair for current correlation measurement if not already recorded
+                if (bond_id_pairs[i][1] == 0) && (bond_id_pairs[i][2] == 0)
+                    bond_id_pairs[i] = (bond_id_0, bond_id_1)
+                end
                 # get the bond definitions
                 bond_0 = bonds[bond_id_0]
                 bond_1 = bonds[bond_id_1]
@@ -704,11 +714,13 @@ function measure_eqaultime_phonon_greens!(phonon_greens::CorrelationContainer{D,
                                           Xr::AbstractArray{Complex{E},P},
                                           X0::AbstractArray{Complex{E},P}) where {T<:Number, E<:AbstractFloat, D, P, N}
 
-    pairs = phonon_greens.pairs::Vector{NTuple{2,Int}}
+    id_pairs = phonon_greens.id_pairs::Vector{NTuple{2,Int}}
+    bond_id_pairs = phonon_greens.bond_id_pairs::Vector{NTuple{2,Int}}
     correlations = phonon_greens.correlations::Vector{Array{Complex{E}, D}}
     unit_cell = model_geometry.unit_cell::UnitCell{D,E,N}
     lattice = model_geometry.lattice::Lattice{D}
     bonds = model_geometry.bonds::Vector{Bond{D}}
+    phonon_parameters = electron_phonon_parameters.phonon_parameters::PhononParameters{E}
 
     # get phonon field
     x = electron_phonon_parameters.x::Matrix{E}
@@ -726,13 +738,16 @@ function measure_eqaultime_phonon_greens!(phonon_greens::CorrelationContainer{D,
     # reshape phonon field matrix into multi-dimensional array
     x′ = reshape(x, (L..., nphonon, Lτ))
 
+    # get the site associated with each phonon field
+    phonon_to_site = reshape(phonon_parameters.phonon_to_site, (lattice.N, nphonon))
+
     # iterate over all pairs of phonon modes
-    for i in eachindex(pairs)
+    for i in eachindex(id_pairs)
         # get the phonon fields associated with the appropriate pair of phonon modes in the unit cell
-        pair = pairs[i]
+        id_pair = id_pairs[i]
         correlation = correlations[i]
-        x0 = selectdim(x′, D+1, pair[1])
-        xr = selectdim(x′, D+1, pair[2])
+        x0 = selectdim(x′, D+1, id_pair[1])
+        xr = selectdim(x′, D+1, id_pair[2])
         copyto!(X0, x0)
         copyto!(Xr, xr)
         # calculate phonon greens function
@@ -740,6 +755,17 @@ function measure_eqaultime_phonon_greens!(phonon_greens::CorrelationContainer{D,
         # record the equal-time phonon green's function
         XrX0_0 = selectdim(XrX0, D+1, 1)
         @. correlation += sgn * XrX0_0
+        # record the bond id pair if not already recorded
+        if (bond_id_pairs[i][1] == 0) && (bond_id_pairs[i][2] == 0)
+            # get the site ID each phonon mode lives on
+            site_1 = phonon_to_site[1, id_pair[1]]
+            site_2 = phonon_to_site[1, id_pair[2]]
+            # get orbital id associated with site
+            orbital_1 = site_to_orbital(site_1, unit_cell)
+            orbital_2 = site_to_orbital(site_2, unit_cell)
+            # record orbital/bond id pair
+            bond_id_pairs[i] = (orbital_1, orbital_2)
+        end
     end
 
     return nothing
@@ -754,11 +780,13 @@ function measure_time_displaced_phonon_greens!(phonon_greens::CorrelationContain
                                                Xr::AbstractArray{Complex{E},P},
                                                X0::AbstractArray{Complex{E},P}) where {T<:Number, E<:AbstractFloat, D, P, N}
 
-    pairs = phonon_greens.pairs::Vector{NTuple{2,Int}}
+    id_pairs = phonon_greens.id_pairs::Vector{NTuple{2,Int}}
+    bond_id_pairs = phonon_greens.bond_id_pairs::Vector{NTuple{2,Int}}
     correlations = phonon_greens.correlations::Vector{Array{Complex{E}, P}}
     unit_cell = model_geometry.unit_cell::UnitCell{D,E,N}
     lattice = model_geometry.lattice::Lattice{D}
     bonds = model_geometry.bonds::Vector{Bond{D}}
+    phonon_parameters = electron_phonon_parameters.phonon_parameters::PhononParameters{E}
 
     # get phonon field
     x = electron_phonon_parameters.x::Matrix{E}
@@ -776,13 +804,16 @@ function measure_time_displaced_phonon_greens!(phonon_greens::CorrelationContain
     # reshape phonon field matrix into multi-dimensional array
     x′ = reshape(x, (L..., nphonon, Lτ))
 
+    # get the site associated with each phonon field
+    phonon_to_site = reshape(phonon_parameters.phonon_to_site, (lattice.N, nphonon))
+
     # iterate over all pairs of phonon modes
-    for i in eachindex(pairs)
+    for i in eachindex(id_pairs)
         # get the phonon fields associated with the appropriate pair of phonon modes in the unit cell
-        pair = pairs[i]
+        id_pair = id_pairs[i]
         correlation = correlations[i]
-        x0 = selectdim(x′, D+1, pair[1])
-        xr = selectdim(x′, D+1, pair[2])
+        x0 = selectdim(x′, D+1, id_pair[1])
+        xr = selectdim(x′, D+1, id_pair[2])
         copyto!(X0, x0)
         copyto!(Xr, xr)
         # calculate phonon greens function
@@ -792,6 +823,17 @@ function measure_time_displaced_phonon_greens!(phonon_greens::CorrelationContain
         correlation_0  = selectdim(correlation, D+1, 1)
         correlation_Lτ = selectdim(correlation, D+1, Lτ+1)
         copyto!(correlation_Lτ, correlation_0)
+        # record the bond id pair if not already recorded
+        if (bond_id_pairs[i][1] == 0) && (bond_id_pairs[i][2] == 0)
+            # get the site ID each phonon mode lives on
+            site_1 = phonon_to_site[1, id_pair[1]]
+            site_2 = phonon_to_site[1, id_pair[2]]
+            # get orbital id associated with site
+            orbital_1 = site_to_orbital(site_1, unit_cell)
+            orbital_2 = site_to_orbital(site_2, unit_cell)
+            # record orbital/bond id pair
+            bond_id_pairs[i] = (orbital_1, orbital_2)
+        end
     end
 
     return nothing

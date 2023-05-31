@@ -104,7 +104,7 @@ function _load_composite_correlation_bin(dir::String, files::Vector{String}, typ
 
     # get the index associated with each pair ID
     pairs = @MVector zeros(Int, P)
-    id_pairs = JLD2.load(joinpath(dir,files[1]), "pairs")
+    id_pairs = JLD2.load(joinpath(dir,files[1]), "id_pairs")
     for p in eachindex(ids)
         indx = findfirst(i -> i == ids[p], id_pairs)
         @assert !isnothing(indx) "The ID pair $(ids[p]) is invalid."

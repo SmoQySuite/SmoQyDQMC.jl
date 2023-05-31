@@ -57,7 +57,7 @@ function write_measurements!(; measurement_container::NamedTuple,
 
         # get the correlation container
         correlation_container = equaltime_correlations[correlation]
-        pairs = correlation_container.pairs::Vector{NTuple{2,Int}}
+        pairs = correlation_container.bond_id_pairs::Vector{NTuple{2,Int}}
         correlations = correlation_container.correlations::Vector{Array{Complex{E}, D}}
 
         # write position space equal-time correlation to file
@@ -87,7 +87,7 @@ function write_measurements!(; measurement_container::NamedTuple,
 
         # get the correlation container
         correlation_container = time_displaced_correlations[correlation]
-        pairs = correlation_container.pairs::Vector{NTuple{2,Int}}
+        pairs = correlation_container.bond_id_pairs::Vector{NTuple{2,Int}}
         correlations = correlation_container.correlations::Vector{Array{Complex{E}, D+1}}
 
         # write position space time-displaced correlation to file
@@ -191,7 +191,7 @@ function normalize_correlation_measurements!(correlation_measurements::Dict{Stri
 
     for measurement in keys(correlation_measurements)
         correlation_container = correlation_measurements[measurement]
-        pairs = correlation_container.pairs::Vector{NTuple{2,Int}}
+        pairs = correlation_container.id_pairs::Vector{NTuple{2,Int}}
         correlations = correlation_container.correlations::Vector{Array{Complex{T}, D}}
         for i in eachindex(pairs)
             @. correlations[i] /= bin_size
