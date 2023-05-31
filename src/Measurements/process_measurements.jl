@@ -508,7 +508,7 @@ function _process_equaltime_correlation(correlation::String, folder::String, spa
     space_folder = joinpath(correlation_folder, space)
 
     # get correlation ID pairs
-    pairs = JLD2.load(joinpath(space_folder, bin_to_filenames[1][1]), "pairs")
+    pairs = JLD2.load(joinpath(space_folder, bin_to_filenames[1][1]), "id_pairs")
 
     # get number of pairs
     N_pair = length(pairs)
@@ -659,7 +659,7 @@ function _process_displaced_correlation(correlation::String, folder::String, spa
     space_folder = joinpath(correlation_folder, space)
 
     # get correlation ID pairs
-    pairs = JLD2.load(joinpath(space_folder, bin_to_filenames[1][1]), "pairs")
+    pairs = JLD2.load(joinpath(space_folder, bin_to_filenames[1][1]), "id_pairs")
 
     # get number of pairs
     N_pair = length(pairs)

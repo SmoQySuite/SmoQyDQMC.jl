@@ -10,12 +10,12 @@
         "greens_tautau"    => "ORBITAL_ID",
         "greens_tautau_up" => "ORBITAL_ID",
         "greens_tautau_dn" => "ORBITAL_ID",
-        "phonon_greens"    => "ORBITAL_ID",
         "density"          => "ORBITAL_ID",
         "spin_x"           => "ORBITAL_ID",
         "spin_z"           => "ORBITAL_ID",
         "pair"             => "BOND_ID",
         "bond"             => "BOND_ID",
+        "phonon_greens"    => "PHONON_ID",
         "current"          => "HOPPING_ID"
     )
 
@@ -30,12 +30,12 @@ const CORRELATION_FUNCTIONS = Dict(
     "greens_tautau"    => "ORBITAL_ID",
     "greens_tautau_up" => "ORBITAL_ID",
     "greens_tautau_dn" => "ORBITAL_ID",
-    "phonon_greens"    => "ORBITAL_ID",
     "density"          => "ORBITAL_ID",
     "spin_x"           => "ORBITAL_ID",
     "spin_z"           => "ORBITAL_ID",
     "pair"             => "BOND_ID",
     "bond"             => "BOND_ID",
+    "phonon_greens"    => "PHONON_ID",
     "current"          => "HOPPING_ID"
 )
 
@@ -88,14 +88,18 @@ Container to hold correlation function data.
 
 # Fields
 
-- `pairs::Vector{NTuple{2,Int}}`: Pairs of bond/orbital IDs to measure.
+- `id_pairs::Vector{NTuple{2,Int}}`: ID pairs corresponding to relevant ID type for correlation measurement.
+- `bond_id_pairs::Vector{NTuple{2,Int}}`: Bond ID pair corresponding to correlation measurement.
 - `correlations::Vector{Array{Complex{T}, D}}`: Vector of arrays, where each array contains the correlation measurements for a bond/orbital ID pair.
 - `time_displaced::Bool`: Whether or not the correlation measurement is time-displaced and will also be written to file.
 """
 struct CorrelationContainer{D, T<:AbstractFloat}
 
-    # bond/orbital ID pairs to measure correlation function for
-    pairs::Vector{NTuple{2,Int}}
+    # ID pairs to measure correlation function for
+    id_pairs::Vector{NTuple{2,Int}}
+
+    # corresponding bond ID pairs
+    bond_id_pairs::Vector{NTuple{2,Int}}
 
     # correlation data for each pair of bond/orbital IDs getting measured
     correlations::Vector{Array{Complex{T}, D}}
@@ -112,7 +116,7 @@ in a `D` dimensional array.
 """
 function CorrelationContainer(D::Int, T::DataType, time_displaced::Bool)
 
-    correlation_container = CorrelationContainer(NTuple{2,Int}[], Array{Complex{T},D}[], time_displaced)
+    correlation_container = CorrelationContainer(NTuple{2,Int}[], NTuple{2,Int}[], Array{Complex{T},D}[], time_displaced)
 
     return correlation_container
 end
@@ -125,7 +129,9 @@ Write `correlation_container` to a file with the name `fn` using the [`JLD2.jl`]
 """
 function save(fn::String, correlation_container::CorrelationContainer{D,T}) where {D, T<:AbstractFloat}
 
-    jldsave(fn; pairs = correlation_container.pairs,
+    jldsave(fn;
+            id_pairs = correlation_container.id_pairs,
+            bond_id_pairs = correlation_container.bond_id_pairs,
             correlations = correlation_container.correlations,
             time_displaced = correlation_container.time_displaced)
 
@@ -450,11 +456,21 @@ function initialize_correlation_measurement!(; measurement_container::NamedTuple
         end
 
         # add time-dispalced correlation measurement
-        push!(time_displaced_correlations[correlation].pairs, pair)
+        push!(time_displaced_correlations[correlation].id_pairs, pair)
+        if (CORRELATION_FUNCTIONS[correlation] == "BOND_ID") || (CORRELATION_FUNCTIONS[correlation] == "ORBITAL_ID")
+            push!(time_displaced_correlations[correlation].bond_id_pairs, pair) # record bond ID pair as same as correlation ID pair
+        else
+            push!(time_displaced_correlations[correlation].bond_id_pairs, (0,0)) # record null bond ID pair to be filled in later
+        end
         push!(time_displaced_correlations[correlation].correlations, zeros(Complex{T}, L..., Lτ+1))
 
         # add integrated correlation measurement
-        push!(integrated_correlations[correlation].pairs, pair)
+        push!(integrated_correlations[correlation].id_pairs, pair)
+        if (CORRELATION_FUNCTIONS[correlation] == "BOND_ID") || (CORRELATION_FUNCTIONS[correlation] == "ORBITAL_ID")
+            push!(integrated_correlations[correlation].bond_id_pairs, pair) # record bond ID pair as same as correlation ID pair
+        else
+            push!(integrated_correlations[correlation].bond_id_pairs, (0,0)) # record null bond ID pair to be filled in later
+        end
         push!(integrated_correlations[correlation].correlations, zeros(Complex{T}, L...))
     end
 
@@ -467,7 +483,12 @@ function initialize_correlation_measurement!(; measurement_container::NamedTuple
         end
 
         # add equal-time correlation measurement
-        push!(equaltime_correlations[correlation].pairs, pair)
+        push!(equaltime_correlations[correlation].id_pairs, pair)
+        if (CORRELATION_FUNCTIONS[correlation] == "BOND_ID") || (CORRELATION_FUNCTIONS[correlation] == "ORBITAL_ID")
+            push!(equaltime_correlations[correlation].bond_id_pairs, pair) # record bond ID pair as same as correlation ID pair
+        else
+            push!(equaltime_correlations[correlation].bond_id_pairs, (0,0)) # record null bond ID pair to be filled in later
+        end
         push!(equaltime_correlations[correlation].correlations, zeros(Complex{T}, L...))
     end
 
