@@ -84,7 +84,7 @@ export HubbardModel, HubbardParameters, initialize!
 
 # Implement Ising Hubbard-Statonovich (HS) decoupling of Hubbard interaction, and various methods for update the IS HS fields
 include("Hubbard/HubbardIsingHS.jl")
-export HubbardIsingHSParameters, local_updates!, reflection_update!, swap_update!
+export HubbardIsingHSParameters, local_updates!
 
 ###########################
 ## ELECTRON-PHONON MODEL ##
@@ -127,6 +127,7 @@ export LMCUpdater, lmc_update!
 # impelment reflection and swap updates for phonon fields
 include("ElectronPhonon/reflection_update.jl")
 include("ElectronPhonon/swap_update.jl")
+export reflection_update!, swap_update!
 
 ##########################################
 ## MEASUREMENTS, DATA ANALYSIS & OUTPUT ##
