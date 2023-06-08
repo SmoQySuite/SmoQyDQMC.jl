@@ -1,7 +1,7 @@
 name = "SmoQyDQMC"
 uuid = "00e12d65-277b-447e-9c1d-a17422dd36f5"
 authors = ["Benjamin Cohen-Stead <benwcs@gmail.com>"]
-version = "0.2.10"
+version = "0.2.11"
 
 [deps]
 BinningAnalysis = "b7192094-8e58-5052-a244-180a858778ee"

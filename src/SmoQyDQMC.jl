@@ -158,6 +158,7 @@ export LMCUpdater
 # impelment reflection and swap updates for phonon fields
 include("ElectronPhonon/reflection_update.jl")
 include("ElectronPhonon/swap_update.jl")
+export reflection_update!, swap_update!
 
 ##########################################
 ## MEASUREMENTS, DATA ANALYSIS & OUTPUT ##
