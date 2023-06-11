@@ -7,7 +7,6 @@ test/Manifest.toml
 docs/build/
 docs/src/examples/
 examples/*/
-scripts/*.jl
 scripts/*/
 *.jld2
 *.DS_Store
