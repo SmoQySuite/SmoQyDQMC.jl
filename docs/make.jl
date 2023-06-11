@@ -6,7 +6,7 @@ using JDQMCFramework
 
 example_names = ["hubbard_chain"]
 example_literate_sources = [joinpath(@__DIR__, "..", "examples", name*".jl") for name in example_names]
-example_script_destinations = [joinpath(@__DIR__, "..", "scripts", name*".jl") for name in example_names]
+example_script_destinations = [joinpath(@__DIR__, "..", "scripts") for name in example_names]
 example_documentation_destination = joinpath(@__DIR__, "src", "examples")
 example_documentation_paths = ["examples/$name.md" for name in example_names]
 
