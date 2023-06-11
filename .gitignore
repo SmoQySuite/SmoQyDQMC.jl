@@ -6,7 +6,6 @@
 /test/Manifest.toml
 /docs/build/
 /examples/*/
-/scripts/*/
 *.jld2
 *.DS_Store
 .DS_Store
