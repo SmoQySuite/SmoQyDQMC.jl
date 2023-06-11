@@ -8,6 +8,7 @@ docs/build/
 docs/src/examples/
 examples/*/
 scripts/*/
+scripts/*.jl
 *.jld2
 *.DS_Store
 .DS_Store
