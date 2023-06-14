@@ -203,7 +203,7 @@ function run_hubbard_chain_simulation(sID, U, μ, β, L, N_burnin, N_updates, N_
 #md     ## Therefore, we need to initialize the parameters for the model on the lattice
 #md     ## size we actually want to simulate.
 
-    ## Initialize tight-bidning parameters.
+    ## Initialize tight-binding parameters.
     tight_binding_parameters = TightBindingParameters(
         tight_binding_model = tight_binding_model,
         model_geometry = model_geometry,
@@ -449,10 +449,10 @@ function run_hubbard_chain_simulation(sID, U, μ, β, L, N_burnin, N_updates, N_
 end
 
 
-## only excute if script is run directly from the command line
+## Only excute if the script is run directly from the command line.
 if abspath(PROGRAM_FILE) == @__FILE__
 
-    ## read in command line arguments
+    ## Read in the command line arguments.
     sID = parse(Int, ARGS[1]) # simulation ID
     U = parse(Float64, ARGS[2])
     μ = parse(Float64, ARGS[3])
@@ -462,6 +462,6 @@ if abspath(PROGRAM_FILE) == @__FILE__
     N_updates = parse(Int, ARGS[7])
     N_bins = parse(Int, ARGS[8])
 
-    ## run the simulation
+    ## Run the simulation.
     run_hubbard_chain_simulation(sID, U, μ, β, L, N_burnin, N_updates, N_bins)
 end

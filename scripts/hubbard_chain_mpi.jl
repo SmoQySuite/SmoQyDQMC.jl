@@ -1,27 +1,41 @@
 using LinearAlgebra
 using Random
 using Printf
+using MPI
 
 using SmoQyDQMC
 import SmoQyDQMC.LatticeUtilities  as lu
 import SmoQyDQMC.JDQMCFramework    as dqmcf
 import SmoQyDQMC.JDQMCMeasurements as dqmcm
 
+# initialize MPI
+MPI.Init()
+
 # Define top-level function for running DQMC simulation
 function run_hubbard_chain_simulation(sID, U, μ, β, L, N_burnin, N_updates, N_bins; filepath = ".")
 
+    # Initialize the MPI communicator.
+    comm = MPI.COMM_WORLD
+
     # Construct the foldername the data will be written to.
     datafolder_prefix = @sprintf "hubbard_chain_U%.2f_mu%.2f_L%d_b%.2f" U μ L β
+
+    # Get the MPI comm rank, which fixes the process ID (pID).
+    pID = MPI.Comm_rank(comm)
 
     # Initialize an instance of the SimulationInfo type.
     simulation_info = SimulationInfo(
         filepath = filepath,
         datafolder_prefix = datafolder_prefix,
-        sID = sID
+        sID = sID,
+        pID = pID
     )
 
     # Initialize the directory the data will be written to.
     initialize_datafolder(simulation_info)
+
+    # Synchronize all the MPI processes.
+    MPI.Barrier(comm)
 
     # Initialize a random number generator that will be used throughout the simulation.
     seed = abs(rand(Int))
@@ -205,6 +219,8 @@ function run_hubbard_chain_simulation(sID, U, μ, β, L, N_burnin, N_updates, N_
         measurement_container = measurement_container
     )
 
+    # Synchronize all the MPI processes.
+    MPI.Barrier(comm)
 
     #############################
     ### SET-UP DQMC SIMULATION ##
@@ -343,16 +359,23 @@ function run_hubbard_chain_simulation(sID, U, μ, β, L, N_burnin, N_updates, N_
     ### PROCESS SIMULATION RESULTS ##
     #################################
 
+    # Synchronize all the MPI processes.
+    MPI.Barrier(comm)
 
-    # Process the simulation results, calculating final error bars for all measurements,
+    # Have the primary MPI process calculate the final error bars for all measurements,
     # writing final statisitics to CSV files.
-    process_measurements(simulation_info.datafolder, N_bins)
+    if iszero(simulation_info.pID)
+        process_measurements(simulation_info.datafolder, N_bins)
+    end
+
+    # Finalize MPI (not strictly required).
+    MPI.Finalize()
 
     return nothing
 end
 
 
-# Only excute if the script is run directly from the command line.
+# Only excute if script is run directly from the command line.
 if abspath(PROGRAM_FILE) == @__FILE__
 
     # Read in the command line arguments.
