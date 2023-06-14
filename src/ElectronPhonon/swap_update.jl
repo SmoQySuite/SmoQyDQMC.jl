@@ -142,10 +142,10 @@ function swap_update!(Gup::Matrix{T}, logdetGup::E, sgndetGup::T,
     end
 
     # accept/reject outcome
-    accept = rand(rng) < P_i
+    accepted = rand(rng) < P_i
 
     # accept or reject the update
-    if accept
+    if accepted
         logdetGup = logdetGup′
         logdetGdn = logdetGdn′
         sgndetGup = sgndetGup′
