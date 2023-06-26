@@ -1,4 +1,4 @@
-# # Example 1: Hubbard Chain
+# # Example 1(a): Hubbard Chain
 #
 # In this first example we will work through simulating the repulsive Hubbard model
 # on a 1D chain at half-filling.
@@ -34,10 +34,11 @@
 
 # However, it should be stressed that this structure for the simulation is *not* enforced by the [`SmoQyDQMC`](@ref) package itself,
 # but rather is simply a function of how
-# the [`scripts/hubbard_chain.jl`](https://github.com/SmoQySuite/SmoQyDQMC.jl/blob/main/scripts/hubbard_chain.jl) script is structured.
+# the [`example_scripts/hubbard_chain.jl`](https://github.com/SmoQySuite/SmoQyDQMC.jl/blob/main/example_scripts/hubbard_chain.jl)
+# script is structured.
 #
 # Below you will find a more heavily commented version
-# of the [`scripts/hubbard_chain.jl`](https://github.com/SmoQySuite/SmoQyDQMC.jl/blob/main/scripts/hubbard_chain.jl)
+# of the [`example_scripts/hubbard_chain.jl`](https://github.com/SmoQySuite/SmoQyDQMC.jl/blob/main/example_scripts/hubbard_chain.jl)
 # script that includes additional exposition on what each part of the code is doing.
 
 #md ## First we import the required packages, including all of the required SmoQyDQMC submodules.
@@ -122,7 +123,6 @@ function run_hubbard_chain_simulation(sID, U, μ, β, L, N_burnin, N_updates, N_
         "N_bins" => N_bins,
         "bin_size" => bin_size,
         "local_acceptance_rate" => 0.0,
-        "reflection_acceptance_rate" => 0.0,
         "n_stab_init" => n_stab,
         "symmetric" => symmetric,
         "checkerboard" => checkerboard,
@@ -203,7 +203,7 @@ function run_hubbard_chain_simulation(sID, U, μ, β, L, N_burnin, N_updates, N_
 #md     ## Therefore, we need to initialize the parameters for the model on the lattice
 #md     ## size we actually want to simulate.
 
-    ## Initialize tight-bidning parameters.
+    ## Initialize tight-binding parameters.
     tight_binding_parameters = TightBindingParameters(
         tight_binding_model = tight_binding_model,
         model_geometry = model_geometry,
@@ -449,10 +449,10 @@ function run_hubbard_chain_simulation(sID, U, μ, β, L, N_burnin, N_updates, N_
 end
 
 
-## only excute if script is run directly from the command line
+## Only excute if the script is run directly from the command line.
 if abspath(PROGRAM_FILE) == @__FILE__
 
-    ## read in command line arguments
+    ## Read in the command line arguments.
     sID = parse(Int, ARGS[1]) # simulation ID
     U = parse(Float64, ARGS[2])
     μ = parse(Float64, ARGS[3])
@@ -462,6 +462,6 @@ if abspath(PROGRAM_FILE) == @__FILE__
     N_updates = parse(Int, ARGS[7])
     N_bins = parse(Int, ARGS[8])
 
-    ## run the simulation
+    ## Run the simulation.
     run_hubbard_chain_simulation(sID, U, μ, β, L, N_burnin, N_updates, N_bins)
 end

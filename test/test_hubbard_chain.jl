@@ -1,7 +1,7 @@
 # integration test that runs a DQMC simulation of a Hubbard Chain at half-filling
 @testitem "Hubbard Chain" begin
     
-    include("../examples/hubbard_chain.jl")
+    include("../literate_scripts/hubbard_chain.jl")
     sID = 1
     U = 6.0
     μ = 0.0
