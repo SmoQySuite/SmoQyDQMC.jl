@@ -320,7 +320,7 @@ end
 function make_local_measurements!(local_measurements::Dict{String, Vector{Complex{E}}},
                                   Gup::AbstractMatrix{T}, Gdn::AbstractMatrix{T}, sgn::T,
                                   model_geometry::ModelGeometry{D,E,N},
-                                  hubbard_parameters::HubbardParameters{T},
+                                  hubbard_parameters::HubbardParameters{E},
                                   tight_binding_parameters::TightBindingParameters{T,E}) where {T<:Number, E<:AbstractFloat, D, N}
 
     # measure hubbard energy for each orbital in unit cell
@@ -411,7 +411,7 @@ function make_equaltime_measurements!(equaltime_correlations::Dict{String, Corre
         correlation_container = equaltime_correlations[correlation]::CorrelationContainer{D,E}
         id_pairs = correlation_container.id_pairs::Vector{NTuple{2,Int}}
         bond_id_pairs = correlation_container.bond_id_pairs::Vector{NTuple{2,Int}}
-        correlations = correlation_container.correlations::Vector{Array{Complex{T}, D}}
+        correlations = correlation_container.correlations::Vector{Array{Complex{E}, D}}
 
         if correlation == "greens"
 
@@ -550,7 +550,7 @@ end
 ###########################################################
 
 # make purely electronic time-displaced correlation measurements
-function make_time_displaced_measurements!(time_displaced_correlations::Dict{String, CorrelationContainer{P,T}}, l::Int, sgn::T,
+function make_time_displaced_measurements!(time_displaced_correlations::Dict{String, CorrelationContainer{P,E}}, l::Int, sgn::T,
                                            Gup::AbstractMatrix{T}, Gup_ττ::AbstractMatrix{T}, Gup_τ0::AbstractMatrix{T}, Gup_0τ::AbstractMatrix{T},
                                            Gdn::AbstractMatrix{T}, Gdn_ττ::AbstractMatrix{T}, Gdn_τ0::AbstractMatrix{T}, Gdn_0τ::AbstractMatrix{T},
                                            model_geometry::ModelGeometry{D,E,N},
@@ -568,7 +568,7 @@ function make_time_displaced_measurements!(time_displaced_correlations::Dict{Str
         correlation_container = time_displaced_correlations[correlation]::CorrelationContainer{P,E}
         id_pairs = correlation_container.id_pairs::Vector{NTuple{2,Int}}
         bond_id_pairs = correlation_container.bond_id_pairs::Vector{NTuple{2,Int}}
-        correlations = correlation_container.correlations::Vector{Array{Complex{T}, P}}
+        correlations = correlation_container.correlations::Vector{Array{Complex{E}, P}}
 
         if correlation == "greens"
 

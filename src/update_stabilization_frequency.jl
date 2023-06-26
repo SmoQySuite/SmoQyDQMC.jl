@@ -3,7 +3,7 @@
                                     Gdn::Matrix{T}, logdetGdn::E, sgndetGdn::T;
                                     fermion_greens_calculator_up::FermionGreensCalculator{T,E},
                                     fermion_greens_calculator_dn::FermionGreensCalculator{T,E},
-                                    Bup::Vector{P}, Bdn::Vector{P}, δG::E, δθ::T, n_stab::Int,
+                                    Bup::Vector{P}, Bdn::Vector{P}, δG::E, δθ::E, n_stab::Int,
                                     δG_max::E) where {E<:AbstractFloat, T<:Number, P<:AbstractPropagator{T,E}}
 
 If the corrected error in the Green's funciton matrix is too large, `δG > δG_max`, then increase the frequency of
@@ -20,7 +20,7 @@ function update_stabalization_frequency!(Gup::Matrix{T}, logdetGup::E, sgndetGup
                                          Gdn::Matrix{T}, logdetGdn::E, sgndetGdn::T;
                                          fermion_greens_calculator_up::FermionGreensCalculator{T,E},
                                          fermion_greens_calculator_dn::FermionGreensCalculator{T,E},
-                                         Bup::Vector{P}, Bdn::Vector{P}, δG::E, δθ::T,
+                                         Bup::Vector{P}, Bdn::Vector{P}, δG::E, δθ::E,
                                          δG_max::E) where {E<:AbstractFloat, T<:Number, P<:AbstractPropagator{T,E}}
 
     # make sure all fermoin greens calculators are using the same stabilizaiton period
@@ -58,7 +58,7 @@ function update_stabalization_frequency!(Gup::Matrix{T}, logdetGup::E, sgndetGup
 
             # intialize errors associated with numerical instability to zero
             δG = zero(E)
-            δθ = zero(T)
+            δθ = zero(E)
         end
     end
 
@@ -68,7 +68,7 @@ end
 @doc raw"""
     update_stabalization_frequency!(G::Matrix{T}, logdetG::E, sgndetG::T;
                                     fermion_greens_calculator::FermionGreensCalculator{T,E},
-                                    B::Vector{P}, δG::E, δθ::T, n_stab::Int,
+                                    B::Vector{P}, δG::E, δθ::E, n_stab::Int,
                                     δG_max::E) where {E<:AbstractFloat, T<:Number, P<:AbstractPropagator{T,E}}
 
 If the corrected error in the Green's funciton matrix is too large, `δG > δG_max`, then increase the frequency of
@@ -83,7 +83,7 @@ where `updated = true` if `n_stab` was decremented.
 """
 function update_stabalization_frequency!(G::Matrix{T}, logdetG::E, sgndetG::T;
                                          fermion_greens_calculator::FermionGreensCalculator{T,E},
-                                         B::Vector{P}, δG::E, δθ::T,
+                                         B::Vector{P}, δG::E, δθ::E,
                                          δG_max::E) where {E<:AbstractFloat, T<:Number, P<:AbstractPropagator{T,E}}
 
     # make sure all fermoin greens calculators are using the same stabilizaiton period
@@ -116,7 +116,7 @@ function update_stabalization_frequency!(G::Matrix{T}, logdetG::E, sgndetG::T;
 
             # intialize errors associated with numerical instability to zero
             δG = zero(E)
-            δθ = zero(T)
+            δθ = zero(E)
         end
     end
 
