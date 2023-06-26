@@ -6,8 +6,8 @@ docs/Manifest.toml
 test/Manifest.toml
 docs/build/
 docs/src/examples/
-examples/*/
-scripts/*/
+literate_scripts/*/
+example_scripts/*/
 *.jld2
 *.DS_Store
 .DS_Store
