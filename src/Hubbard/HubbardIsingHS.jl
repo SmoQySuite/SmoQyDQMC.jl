@@ -146,7 +146,8 @@ end
                    fermion_path_integral_dn::FermionPathIntegral{T,E},
                    fermion_greens_calculator_up::FermionGreensCalculator{T,E},
                    fermion_greens_calculator_dn::FermionGreensCalculator{T,E},
-                   Bup::Vector{P}, Bdn::Vector{P}, rng::AbstractRNG,
+                   Bup::Vector{P}, Bdn::Vector{P},
+                   δG_max::E, δG::E, δθ::E,  rng::AbstractRNG,
                    update_stabilization_frequency::Bool=true) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
 
 Sweep through every imaginary time slice and orbital in the lattice, peforming local updates to every

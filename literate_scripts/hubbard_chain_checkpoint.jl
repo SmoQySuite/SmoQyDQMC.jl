@@ -1,10 +1,10 @@
-# # Example 3: Hubbard Chain with Checkpointing
+# # Example 1(c): Hubbard Chain with Checkpointing
 #
 # In this script we take the script from the previous example and introduce
-# checkpointing, so that if the simulation is killed at some point it can pick
-# and continue from the previous checkpoint. It is important to note that how checkpointing
+# checkpointing, so that if the simulation is killed at some point it can resumed
+# from the previous checkpoint. It is important to note that how checkpointing
 # is introduced in this script is not unique, and other checkpointing schemes could be implemented
-# at the script level. For instance, in this script the checkpointing is implemented such that the
+# in a script. For instance, in this script the checkpointing is implemented such that the
 # number of checkpoints written to file during the simulation is a fixed number at the start of the simulation.
 # It is possible, though slightly more involved, to implement a checkpointing scheme that instead writes checkpoints
 # to file based on the wall clock and the amount of time that has passed since the previous checkpoint was written to file.
@@ -16,11 +16,16 @@
 # whenever measurements are written to file, so a total of `N_bins` checkpoints are written following the
 # initial thermalization/burnin period of the simulation. During the thermalization/burnin updates, checkpoints
 # are written with the same frequency as they are going to be once measurements start getting made.
+#
+# Below you can find the contents of the script
+# [`example_scripts/hubbard_chain_checkpoint.jl`](https://github.com/SmoQySuite/SmoQyDQMC.jl/blob/main/example_scripts/hubbard_chain_checkpoint.jl)
+# with some expanded discussion of how checkpoints were added to the script.
 
 using LinearAlgebra
 using Random
 using Printf
 using MPI
+
 #md ## Import JLD2 package for write checkpoints during the simulation
 #md ## to file as a binary file.
 using JLD2
@@ -54,26 +59,49 @@ function run_hubbard_chain_simulation(sID, U, μ, β, L, N_burnin, N_updates, N_
     )
 
     ## Define checkpoint filename.
-    #md     ## We implement three checkpoint files, an old, current and new one,
-    #md     ## that get cycled through to ensure a checkpoint file always exists in the off
-    #md     ## chance that the simulation is killed while a checkpoint is getting written to file.
-    #md     ## Additionally, each simulation that is running in parallel with MPI will have their own
-    #md     ## checkpoints written to file.
+#md     ## We implement three checkpoint files, an old, current and new one,
+#md     ## that get cycled through to ensure a checkpoint file always exists in the off
+#md     ## chance that the simulation is killed while a checkpoint is getting written to file.
+#md     ## Additionally, each simulation that is running in parallel with MPI will have their own
+#md     ## checkpoints written to file.
     datafolder = simulation_info.datafolder
     sID        = simulation_info.sID
     pID        = simulation_info.pID
     checkpoint_name_old          = @sprintf "checkpoint_sID%d_pID%d_old.jld2" sID pID
     checkpoint_filename_old      = joinpath(datafolder, checkpoint_name_old)
-    checkpoint_name_current      = @sprintf "checkpoint_sID%d_pID%d.jld2" sID pID
+    checkpoint_name_current      = @sprintf "checkpoint_sID%d_pID%d_current.jld2" sID pID
     checkpoint_filename_current  = joinpath(datafolder, checkpoint_name_current)
     checkpoint_name_new          = @sprintf "checkpoint_sID%d_pID%d_new.jld2" sID pID
     checkpoint_filename_new      = joinpath(datafolder, checkpoint_name_new)
 
-    ## Initialize the directory the data will be written to.
-    initialize_datafolder(simulation_info)
+    ######################################################
+    ### DEFINE SOME RELEVANT DQMC SIMULATION PARAMETERS ##
+    ######################################################
 
-    ## Synchronize all the MPI processes.
-    MPI.Barrier(comm)
+    ## Set the discretization in imaginary time for the DQMC simulation.
+    Δτ = 0.10
+
+    ## This flag indicates whether or not to use the checkboard approximation to
+    ## represent the exponentiated hopping matrix exp(-Δτ⋅K)
+    checkerboard = false
+
+    ## Whether the propagator matrices should be represented using the
+    ## symmetric form B = exp(-Δτ⋅K/2)⋅exp(-Δτ⋅V)⋅exp(-Δτ⋅K/2)
+    ## or the asymetric form B = exp(-Δτ⋅V)⋅exp(-Δτ⋅K)
+    symmetric = false
+
+    ## Set the initial period in imaginary time slices with which the Green's function matrices
+    ## will be recomputed using a numerically stable procedure.
+    n_stab = 10
+
+    ## Specify the maximum allowed error in any element of the Green's function matrix that is
+    ## corrected by performing numerical stabiliziation.
+    δG_max = 1e-6
+
+    ## Initialize variables to keep track of the largest numerical error in the
+    ## Green's function matrices corrected by numerical stabalization.
+    δG = 0.0
+    δθ = 0.0
 
     #######################
     ### DEFINE THE MODEL ##
@@ -122,8 +150,18 @@ function run_hubbard_chain_simulation(sID, U, μ, β, L, N_burnin, N_updates, N_
     ### SIMULAIOTN OR RESUMING PREVIOUS SIMULATION.      ##
     #######################################################
 
+    ## Synchronize all the MPI processes.
+    MPI.Barrier(comm)
+
     ## If starting a new simulation.
     if !simulation_info.resuming
+
+        ## Initialize a random number generator that will be used throughout the simulation.
+        seed = abs(rand(Int))
+        rng = Xoshiro(seed)
+
+        ## Initialize the directory the data will be written to.
+        initialize_datafolder(simulation_info)
 
         ## Write the model summary to file.
         model_summary(
@@ -133,38 +171,6 @@ function run_hubbard_chain_simulation(sID, U, μ, β, L, N_burnin, N_updates, N_
             tight_binding_model = tight_binding_model,
             interactions = (hubbard_model,)
         )
-
-        ## Initialize a random number generator that will be used throughout the simulation.
-        seed = abs(rand(Int))
-        rng = Xoshiro(seed)
-
-        ## Set the discretization in imaginary time for the DQMC simulation.
-        Δτ = 0.10
-
-        ## Calculate the length of the imaginary time axis, Lτ = β/Δτ.
-        Lτ = dqmcf.eval_length_imaginary_axis(β, Δτ)
-
-        ## This flag indicates whether or not to use the checkboard approximation to
-        ## represent the exponentiated hopping matrix exp(-Δτ⋅K)
-        checkerboard = false
-
-        ## Whether the propagator matrices should be represented using the
-        ## symmetric form B = exp(-Δτ⋅K/2)⋅exp(-Δτ⋅V)⋅exp(-Δτ⋅K/2)
-        ## or the asymetric form B = exp(-Δτ⋅V)⋅exp(-Δτ⋅K)
-        symmetric = false
-
-        ## Set the initial period in imaginary time slices with which the Green's function matrices
-        ## will be recomputed using a numerically stable procedure.
-        n_stab = 10
-
-        ## Specify the maximum allowed error in any element of the Green's function matrix that is
-        ## corrected by performing numerical stabiliziation.
-        δG_max = 1e-6
-
-        ## Initialize variables to keep track of the largest numerical error in the
-        ## Green's function matrices corrected by numerical stabalization.
-        δG = zero(typeof(logdetGup))
-        δθ = zero(typeof(sgndetGup))
 
         ## Calculate the bins size.
         bin_size = div(N_updates, N_bins)
@@ -289,7 +295,7 @@ function run_hubbard_chain_simulation(sID, U, μ, β, L, N_burnin, N_updates, N_
 
         ## Write an initial checkpoint to file.
         JLD2.jldsave(
-            checkpoint_filename;
+            checkpoint_filename_current;
             rng, additional_info,
             N_burnin, N_updates, N_bins,
             bin_size, N_bins_burnin, n_bin_burnin, n_bin,
@@ -317,10 +323,10 @@ function run_hubbard_chain_simulation(sID, U, μ, β, L, N_burnin, N_updates, N_
         end
 
         ## Try loading in the current checkpoint.
-        if isfile(checkpoint_filename) && isnothing(checkpoint)
+        if isfile(checkpoint_filename_current) && isnothing(checkpoint)
             try
                 ## Load the current checkpoint.
-                checkpoint = JLD2.load(checkpoint_filename)
+                checkpoint = JLD2.load(checkpoint_filename_current)
             catch
                 nothing
             end
@@ -355,6 +361,7 @@ function run_hubbard_chain_simulation(sID, U, μ, β, L, N_burnin, N_updates, N_
         measurement_container    = checkpoint["measurement_container"]
         tight_binding_parameters = checkpoint["tight_binding_parameters"]
         hubbard_parameters       = checkpoint["hubbard_parameters"]
+        hubbard_ising_parameters = checkpoint["hubbard_ising_parameters"]
         δG                       = checkpoint["dG"]
         δθ                       = checkpoint["dtheta"]
         n_stab                   = checkpoint["n_stab"]
@@ -426,9 +433,9 @@ function run_hubbard_chain_simulation(sID, U, μ, β, L, N_burnin, N_updates, N_
             additional_info["local_acceptance_rate"] += acceptance_rate
         end
 
-        ## Write a checkpoint to file.
+        ## Write the new checkpoint to file.
         JLD2.jldsave(
-            checkpoint_filename;
+            checkpoint_filename_new;
             rng, additional_info,
             N_burnin, N_updates, N_bins,
             bin_size, N_bins_burnin,
@@ -438,12 +445,13 @@ function run_hubbard_chain_simulation(sID, U, μ, β, L, N_burnin, N_updates, N_
             model_geometry,
             tight_binding_parameters,
             hubbard_parameters,
+            hubbard_ising_parameters,
             dG = δG, dtheta = δθ, n_stab = n_stab
         )
         ## Make the current checkpoint the old checkpoint.
-        mv(checkpoint_filename, checkpoint_filename_old, force = true)
+        mv(checkpoint_filename_current, checkpoint_filename_old, force = true)
         ## Make the new checkpoint the current checkpoint.
-        mv(checkpoint_filename_new, checkpoint_filename, force = true)
+        mv(checkpoint_filename_new, checkpoint_filename_current, force = true)
     end
 
     ################################
@@ -451,7 +459,7 @@ function run_hubbard_chain_simulation(sID, U, μ, β, L, N_burnin, N_updates, N_
     ################################
 
     ## Iterate over the number of bin, i.e. the number of time measurements will be dumped to file.
-    for bin in 1:N_bins
+    for bin in n_bin:N_bins
 
         ## Iterate over the number of updates and measurements performed in the current bin.
         for n in 1:bin_size
@@ -494,6 +502,26 @@ function run_hubbard_chain_simulation(sID, U, μ, β, L, N_burnin, N_updates, N_
             bin_size = bin_size,
             Δτ = Δτ
         )
+
+        ## Write the new checkpoint to file.
+        JLD2.jldsave(
+            checkpoint_filename_new;
+            rng, additional_info,
+            N_burnin, N_updates, N_bins,
+            bin_size, N_bins_burnin,
+            n_bin_burnin = N_bins_burnin+1,
+            n_bin = bin + 1,
+            measurement_container,
+            model_geometry,
+            tight_binding_parameters,
+            hubbard_parameters,
+            hubbard_ising_parameters,
+            dG = δG, dtheta = δθ, n_stab = n_stab
+        )
+        ## Make the current checkpoint the old checkpoint.
+        mv(checkpoint_filename_current, checkpoint_filename_old, force = true)
+        ## Make the new checkpoint the current checkpoint.
+        mv(checkpoint_filename_new, checkpoint_filename_current, force = true)
     end
 
     ## Calculate acceptance rate for local updates.
@@ -521,9 +549,6 @@ function run_hubbard_chain_simulation(sID, U, μ, β, L, N_burnin, N_updates, N_
         process_measurements(simulation_info.datafolder, N_bins)
     end
 
-    ## Finalize MPI (not strictly required).
-    MPI.Finalize()
-
     return nothing
 end
 
@@ -543,5 +568,8 @@ if abspath(PROGRAM_FILE) == @__FILE__
 
     ## Run the simulation.
     run_hubbard_chain_simulation(sID, U, μ, β, L, N_burnin, N_updates, N_bins)
+
+    ## Finalize MPI (not strictly required).
+    MPI.Finalize()
 end
 

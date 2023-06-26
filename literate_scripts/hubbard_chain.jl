@@ -1,66 +1,82 @@
-# # Example 2: Hubbard Chain with MPI
+# # Example 1(a): Hubbard Chain
 #
-# In this example we simulate the same system as in example 1, the half-filled Hubbard chain.
-# However, in this example we use MPI, via the [`MPI.jl`](https://github.com/JuliaParallel/MPI.jl.git),
-# to perform multiple simulations in parallel, with the results getting automatically averaged over
-# at the end of the simulation. The command to run the script
-# [`scripts/hubbard_chain_mpi.jl`](https://github.com/SmoQySuite/SmoQyDQMC.jl/blob/main/scripts/hubbard_chain_mpi.jl)
-# is very similar to the previous example, only modified slightly:
+# In this first example we will work through simulating the repulsive Hubbard model
+# on a 1D chain at half-filling.
+# The Hubbard Hamiltonian for a 1D chain is given by
+# ```math
+# \hat{H} = -t \sum_{\sigma,i} (\hat{c}^{\dagger}_{\sigma,i+1}, \hat{c}^{\phantom \dagger}_{\sigma,i} + {\rm h.c.})
+# + U \sum_i (\hat{n}_{\uparrow,i}-\tfrac{1}{2})(\hat{n}_{\downarrow,i}-\tfrac{1}{2})
+# - \mu \sum_{\sigma,i} \hat{n}_{\sigma,i},
 # ```
-# > mpiexecjl -n 8 julia hubbard_chain.jl 1 6.0 0.0 8.0 16 2000 10000 50
-# ```
-# This would result in `8` identical simulations being run in parallel.
-# It possible that this command may need to be modified slightly depending on how MPI is set up on your system.
-# For more information I recommend you refer to the
-# [`MPI.jl documenation`](https://juliaparallel.org/MPI.jl/stable/).
+# where ``\hat{c}^\dagger_{\sigma,i} \ (\hat{c}^{\phantom \dagger}_{\sigma,i})`` creates (annihilates) a spin ``\sigma``
+# electron on site ``i`` in the lattice, and ``\hat{n}_{\sigma,i} = \hat{c}^\dagger_{\sigma,i} \hat{c}^{\phantom \dagger}_{\sigma,i}``
+# is the spin-``\sigma`` electron number operator for site ``i``. In the above Hamiltonian ``t`` is the nearest neighbor hopping integral
+# and ``U > 0`` controls the strength of the on-site Hubbard repulsion.
+# Lastly, we consider the case that the system is half-filled and particle-hole symmetric,
+# which occurs when when the chemical potential is zero, ``\mu = 0.0``.
 #
-# Below you can find the contents of the script
-# [`scripts/hubbard_chain_mpi.jl`](https://github.com/SmoQySuite/SmoQyDQMC.jl/blob/main/scripts/hubbard_chain_mpi.jl)
-# with some expanded discussion explaining how MPI is incorporated into the script in the
-# for of additional and longer comments.
+# The script [`scripts/hubbard_chain.jl`](https://github.com/SmoQySuite/SmoQyDQMC.jl/blob/main/scripts/hubbard_chain.jl)
+# found in the repository simulates this Hamiltonian.
+# Suppose we want to simulate a half-filled Hubbard chain ``(\mu = 0.0)`` of length ``L=16`` with ``U=8.0``
+# at an inverse temperature of ``\beta = 8.0``.
+# This is accomplished with the following command,
+# ```
+# > julia hubbard_chain.jl 1 6.0 0.0 8.0 16 2000 10000 50
+# ```
+# with the resulting data being written to a local directory `hubbard_chain_U6.00_mu0.00_L16_b8.00-1` that will be created.
+# The first command line argument is the simulation ID `(sID = 1)`, and reuslts in the directory name ending in `-1`.
+# The second, third, fourth and fifth command line arguments correspond to ``U``, ``\mu``, ``\beta`` and ``L`` respectively.
+# The sixth command line argument specifies the number thermalization/burnin sweeps `(N_burnin = 2000)` that are performed,
+# where an update to each Hubbard-Stratonovich field is attempted.
+# The seventh command line argument specifies the subsequent number of sweeps through the lattice `(N_udpates = 10000)`,
+# after each of which measurements are performed.
+# Finally, the eighth command line argument specifies the number of times during the simulation data is written to file `(N_bins = 50)`.
+
+# However, it should be stressed that this structure for the simulation is *not* enforced by the [`SmoQyDQMC`](@ref) package itself,
+# but rather is simply a function of how
+# the [`example_scripts/hubbard_chain.jl`](https://github.com/SmoQySuite/SmoQyDQMC.jl/blob/main/example_scripts/hubbard_chain.jl)
+# script is structured.
+#
+# Below you will find a more heavily commented version
+# of the [`example_scripts/hubbard_chain.jl`](https://github.com/SmoQySuite/SmoQyDQMC.jl/blob/main/example_scripts/hubbard_chain.jl)
+# script that includes additional exposition on what each part of the code is doing.
+
+#md ## First we import the required packages, including all of the required SmoQyDQMC submodules.
 
 using LinearAlgebra
 using Random
 using Printf
-using MPI
 
 using SmoQyDQMC
 import SmoQyDQMC.LatticeUtilities  as lu
 import SmoQyDQMC.JDQMCFramework    as dqmcf
 import SmoQyDQMC.JDQMCMeasurements as dqmcm
 
-## initialize MPI
-MPI.Init()
-
-## Define top-level function for running DQMC simulation
+#md ## To start, we define a top-level function for running the DQMC simulation.
+#md ## Note that the arguments to this function correspond to the command line arguments
+#md ## used to run this script.
+#jl ## Define top-level function for running DQMC simulation
 function run_hubbard_chain_simulation(sID, U, μ, β, L, N_burnin, N_updates, N_bins; filepath = ".")
 
-    ## Initialize the MPI communicator.
-    comm = MPI.COMM_WORLD
-
     ## Construct the foldername the data will be written to.
+#md     ## Note that the simulation ID `sID`` will be appended to this foldername as `*-sID`
     datafolder_prefix = @sprintf "hubbard_chain_U%.2f_mu%.2f_L%d_b%.2f" U μ L β
 
-    ## Get the MPI comm rank, which fixes the process ID (pID).
-    pID = MPI.Comm_rank(comm)
-
     ## Initialize an instance of the SimulationInfo type.
+#md     ## This type helps keep track of where data will be written to, and also what versions of
+#md     ## SmoQyDQMC and Julia were used to run the script.
     simulation_info = SimulationInfo(
-        filepath = filepath,
+        filepath = filepath,                     
         datafolder_prefix = datafolder_prefix,
-        sID = sID,
-        pID = pID
+        sID = sID
     )
 
     ## Initialize the directory the data will be written to.
     initialize_datafolder(simulation_info)
 
-    ## Synchronize all the MPI processes.
-#md     ## Here we need to make sure the data folder is initialized before letting
-#md     ## all the various processes move beyond this point.
-    MPI.Barrier(comm)
-
     ## Initialize a random number generator that will be used throughout the simulation.
+#md     ## For convenience, we seed this function with a randomly sampled number for the
+#md     ## global random number generator.
     seed = abs(rand(Int))
     rng = Xoshiro(seed)
 
@@ -68,6 +84,8 @@ function run_hubbard_chain_simulation(sID, U, μ, β, L, N_burnin, N_updates, N_
     Δτ = 0.10
 
     ## Calculate the length of the imaginary time axis, Lτ = β/Δτ.
+#md     ## The function  dqmcf.eval_length_imaginary_axis() simply ensures
+#md     ## that Lτ can be appropriately defined as an integer.
     Lτ = dqmcf.eval_length_imaginary_axis(β, Δτ)
 
     ## This flag indicates whether or not to use the checkboard approximation to
@@ -88,9 +106,16 @@ function run_hubbard_chain_simulation(sID, U, μ, β, L, N_burnin, N_updates, N_
     δG_max = 1e-6
 
     ## Calculate the bins size.
+#md     ## The bin size is the number of measurements that are averaged over each time data is written
+#md     ## to file during the simulation.
     bin_size = div(N_updates, N_bins)
 
     ## Initialize a dictionary to store additional information about the simulation.
+#md     ## Thinks of this as a simulation notebook where you can store any parameters you would like to record
+#md     ## about how the DQMC simulation was run. For instance, it may be good to record the seed
+#md     ## used to initialize the random number generator for reproducibility reasons. This dictionary
+#md     ## will be appended as a table to the simulation information TOML file generated at the end of
+#md     ## the simulation.
     additional_info = Dict(
         "dG_max" => δG_max,
         "N_burnin" => N_burnin,
@@ -98,7 +123,6 @@ function run_hubbard_chain_simulation(sID, U, μ, β, L, N_burnin, N_updates, N_
         "N_bins" => N_bins,
         "bin_size" => bin_size,
         "local_acceptance_rate" => 0.0,
-        "reflection_acceptance_rate" => 0.0,
         "n_stab_init" => n_stab,
         "symmetric" => symmetric,
         "checkerboard" => checkerboard,
@@ -110,16 +134,23 @@ function run_hubbard_chain_simulation(sID, U, μ, β, L, N_burnin, N_updates, N_
     #######################
 
     ## Initialize an instance of the type UnitCell.
+#md     ## This struct defines the UnitCell.
     unit_cell = lu.UnitCell(lattice_vecs = [[1.0]],
                             basis_vecs   = [[0.0]])
 
     ## Initialize an instance of the type Lattice.
+#md     ## The struct describes the size of the finite periodic lattice to be simulated.
+#md     ## Note that curretly periodic boundary condition must be used.
     lattice = lu.Lattice(
         L = [L],
         periodic = [true]
     )
 
     ## Initialize an instance of the ModelGeometry type.
+#md     ## This type helps keep track of all the relevant features of the lattice
+#md     ## geometry being simulated, including the defintion of the unit cell,
+#md     ## the size of the finite periodic lattice, and all the relevant
+#md     ## bond defintions that may arise in the model.
     model_geometry = ModelGeometry(unit_cell, lattice)
 
     ## Define the nearest-neighbor bond for a 1D chain.
@@ -148,6 +179,11 @@ function run_hubbard_chain_simulation(sID, U, μ, β, L, N_burnin, N_updates, N_
     )
 
     ## Write the model summary to file.
+#md     ## The model summary file, "model_summary.toml", is a very important file.
+#md     ## It fully describes the model and system being simulated. It also defines all the
+#md     ## various tID definitions (ORBITAL_ID, BOND_ID, HOPPING_ID, PHONON_ID)
+#md     ## that measurements are reported in terms of. Therefore, this file is useful
+#md     ## for understanding out the interpret and process the output data files.
     model_summary(
         simulation_info = simulation_info,
         β = β, Δτ = Δτ,
@@ -160,6 +196,12 @@ function run_hubbard_chain_simulation(sID, U, μ, β, L, N_burnin, N_updates, N_
     ### INITIALIZE FINITE MODEL PARAMETERS ##
     #########################################
 
+#md     ## Above we defined the both the model and lattice size. Next, we initialize
+#md     ## the actual system parameters. This is different because in general any
+#md     ## parameter appearing in the model can support disorder. For instance, you
+#md     ## can in simulate a system with random disorder in the on-site energy.
+#md     ## Therefore, we need to initialize the parameters for the model on the lattice
+#md     ## size we actually want to simulate.
 
     ## Initialize tight-binding parameters.
     tight_binding_parameters = TightBindingParameters(
@@ -187,6 +229,7 @@ function run_hubbard_chain_simulation(sID, U, μ, β, L, N_burnin, N_updates, N_
     ### INITIALIZE MEASUREMENTS ##
     ##############################
 
+#md     ## Here we initialize/define all the measurements we plan on making during the simulation.
 
     ## Initialize the container that measurements will be accumulated into.
     measurement_container = initialize_measurement_container(model_geometry, β, Δτ)
@@ -198,6 +241,7 @@ function run_hubbard_chain_simulation(sID, U, μ, β, L, N_burnin, N_updates, N_
     initialize_measurements!(measurement_container, hubbard_model)
 
     ## Initialize the single-particle electron Green's function measurement.
+#md     ## Because `time_displaced = true`, the time-displaced Greens function will be measured.
     initialize_correlation_measurements!(
         measurement_container = measurement_container,
         model_geometry = model_geometry,
@@ -207,6 +251,11 @@ function run_hubbard_chain_simulation(sID, U, μ, β, L, N_burnin, N_updates, N_
     )
 
     ## Initialize density correlation function measurement.
+#md     ## Because `time_displaced = false` and `integrated = true` the equal-time
+#md     ## density correlation function, and the charge susceptibility will
+#md     ## be measured. Note that the charge susceptibilty can be understood as the
+#md     ## integral of the time-displaced density correlation function over
+#md     ## the imaginary-time axis from τ=0 to τ=β.
     initialize_correlation_measurements!(
         measurement_container = measurement_container,
         model_geometry = model_geometry,
@@ -217,6 +266,8 @@ function run_hubbard_chain_simulation(sID, U, μ, β, L, N_burnin, N_updates, N_
     )
 
     ## Initialize the pair correlation function measurement.
+#md     ## Measure the local s-wave equal-time pair correlation function (`time-displaced = false`),
+#md     ## and the corresponding pair susceptibility (`integrated = true`).
     initialize_correlation_measurements!(
         measurement_container = measurement_container,
         model_geometry = model_geometry,
@@ -242,15 +293,14 @@ function run_hubbard_chain_simulation(sID, U, μ, β, L, N_burnin, N_updates, N_
         measurement_container = measurement_container
     )
 
-    ## Synchronize all the MPI processes.
-#md     ## We need to ensure the sub-directories the measurements will be written are created
-#md     ## prior to letting any of the processes move beyond this point.
-    MPI.Barrier(comm)
 
     #############################
     ### SET-UP DQMC SIMULATION ##
     #############################
 
+#md     ## The code appearing in this section of the code is relatively boiler plate.
+#md     ## While it may change in some small ways from system to system, the overall
+#md     ## structure should remain relatively static.
 
     ## Allocate FermionPathIntegral type for both the spin-up and spin-down electrons.
     fermion_path_integral_up = FermionPathIntegral(tight_binding_parameters = tight_binding_parameters, β = β, Δτ = Δτ)
@@ -378,32 +428,28 @@ function run_hubbard_chain_simulation(sID, U, μ, β, L, N_burnin, N_updates, N_
     additional_info["dG"] = δG
 
     ## Write simulation summary TOML file.
+#md     ## This simulation summary file records the version number of SmoQyDQMC and Julia
+#md     ## used to perform the simulation. The dictionary `additional_info` is appended
+#md     ## as a table to the end of the simulation summary TOML file.
     save_simulation_info(simulation_info, additional_info)
 
     #################################
     ### PROCESS SIMULATION RESULTS ##
     #################################
 
-    ## Synchronize all the MPI processes.
-#md     ## Before we prcoess the binned data to get the final averages and error bars
-#md     ## we need to make sure all the simulations running in parallel have run to
-#md     ## completion.
-    MPI.Barrier(comm)
+#md    ## Note that everyting appearing in this section of the code is considered post-processing,
+#md    ## and can be re-run so long as the data folder generated by the DQMC simulation persists
+#md    ## and none of the binned data has been deleted from it.
 
-    ## Have the primary MPI process calculate the final error bars for all measurements,
+    ## Process the simulation results, calculating final error bars for all measurements,
     ## writing final statisitics to CSV files.
-    if iszero(simulation_info.pID)
-        process_measurements(simulation_info.datafolder, N_bins)
-    end
-
-    ## Finalize MPI (not strictly required).
-    MPI.Finalize()
+    process_measurements(simulation_info.datafolder, N_bins)
 
     return nothing
 end
 
 
-## Only excute if script is run directly from the command line.
+## Only excute if the script is run directly from the command line.
 if abspath(PROGRAM_FILE) == @__FILE__
 
     ## Read in the command line arguments.
@@ -419,4 +465,3 @@ if abspath(PROGRAM_FILE) == @__FILE__
     ## Run the simulation.
     run_hubbard_chain_simulation(sID, U, μ, β, L, N_burnin, N_updates, N_bins)
 end
-
