@@ -8,10 +8,10 @@ import SmoQyDQMC.JDQMCFramework    as dqmcf
 import SmoQyDQMC.JDQMCMeasurements as dqmcm
 
 # Define top-level function for running the DQMC simulation.
-function run_ossh_chain_simulation(sID, Ω, α, μ, β, L, N_burnin, N_updates, N_bins; filepath = ".")
+function run_bssh_chain_simulation(sID, Ω, α, μ, β, L, N_burnin, N_updates, N_bins; filepath = ".")
 
     # Construct the foldername the data will be written to.
-    datafolder_prefix = @sprintf "ossh_chain_w%.2f_a%.2f_mu%.2f_L%d_b%.2f" Ω α μ L β
+    datafolder_prefix = @sprintf "bssh_chain_w%.2f_a%.2f_mu%.2f_L%d_b%.2f" Ω α μ L β
 
     # Initialize an instance of the SimulationInfo type.
     simulation_info = SimulationInfo(
@@ -122,8 +122,9 @@ function run_ossh_chain_simulation(sID, Ω, α, μ, β, L, N_burnin, N_updates, 
         tight_binding_model = tight_binding_model
     )
 
+
     # Define a dispersionless electron-phonon mode to live on each site in the lattice.
-    phonon = PhononMode(orbital = 1, Ω_mean = Ω)
+    phonon = PhononMode(orbital = 1, Ω_mean = Ω, M = 1.0)
 
     # Add optical ssh phonon to electron-phonon model.
     phonon_id = add_phonon_mode!(
@@ -131,19 +132,28 @@ function run_ossh_chain_simulation(sID, Ω, α, μ, β, L, N_burnin, N_updates, 
         phonon_mode = phonon
     )
 
-    # Define optical SSH coupling.
-    ossh_coupling = SSHCoupling(
+    # Define a frozen phonon mode.
+    frozen_phonon = PhononMode(orbital = 1, Ω_mean = Ω, M = Inf)
+
+    # Add frozen phonon mode to electron-phonon model.
+    frozen_phonon_id = add_phonon_mode!(
+        electron_phonon_model = electron_phonon_model,
+        phonon_mode = frozen_phonon
+    )
+
+    # Define bond SSH coupling.
+    bssh_coupling = SSHCoupling(
         model_geometry = model_geometry,
         tight_binding_model = tight_binding_model,
-        phonon_modes = (phonon_id, phonon_id),
+        phonon_modes = (frozen_phonon_id, phonon_id),
         bond = bond,
         α_mean = α
     )
 
-    # Add optical SSH coupling to the electron-phonon model.
-    ossh_coupling_id = add_ssh_coupling!(
+    # Add bond SSH coupling to the electron-phonon model.
+    bssh_coupling_id = add_ssh_coupling!(
         electron_phonon_model = electron_phonon_model,
-        ssh_coupling = ossh_coupling,
+        ssh_coupling = bssh_coupling,
         tight_binding_model = tight_binding_model
     )
 
@@ -439,7 +449,7 @@ if abspath(PROGRAM_FILE) == @__FILE__
     N_bins = parse(Int, ARGS[9])
 
     # Run the simulation.
-    run_ossh_chain_simulation(sID, Ω, α, μ, β, L, N_burnin, N_updates, N_bins)
+    run_bssh_chain_simulation(sID, Ω, α, μ, β, L, N_burnin, N_updates, N_bins)
 end
 
 # This file was generated using Literate.jl, https://github.com/fredrikekre/Literate.jl

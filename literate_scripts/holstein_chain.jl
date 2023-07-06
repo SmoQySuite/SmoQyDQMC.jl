@@ -25,9 +25,20 @@
 # ```
 # where the strength of the interaction is controlled by the parameter ``\alpha``.
 #
-# In this example we additionally simulate the Holstein model with an algorithm recently recently introduced in
+# The example script [`example_scripts/holstein_chain.jl`](https://github.com/SmoQySuite/SmoQyDQMC.jl/blob/main/example_scripts/holstein_chain.jl)
+# additionally simulate the Holstein model with an algorithm recently recently introduced in
 # [`Phys. Rev. E 105, 045311`](https://journals.aps.org/pre/abstract/10.1103/PhysRevE.105.045311)
 # that dynamically tunes the chemical potential during the simulation to achieve a target electron density.
+#
+# To run a short test simulation using this script that only takes a few minutes on most personal computers, run the following command:
+# ```
+# > julia holstein_chain.jl 0 0.1 0.1 0.5 0.0 4.0 16 2000 10000 20
+# ```
+# Here a Holstein chain of length ``L=16`` is simulate with ``\Omega = 0.1``, ``\alpha = 0.1`` and inverse temperature ``\beta = 4.0``.
+# The chemical potential is initialized to ``\mu = 0.0``, and then tuned to achieve are target electron density of ``\langle n \rangle = 0.5``.
+# In this example `N_burnin = 2000` thermalizatoin HMC and refleciton updates are performed, followed by an additional `N_updates = 10000`
+# such updates, during which time an equivalent number of measurements are made. Bin averaged measurements are written to
+# file `N_bins = 20` during the simulation.
 #
 # Below you can find the contents of the script
 # [`example_scripts/holstein_chain.jl`](https://github.com/SmoQySuite/SmoQyDQMC.jl/blob/main/example_scripts/holstein_chain.jl)
@@ -465,6 +476,9 @@ function run_holstein_chain_simulation(sID, Ω, α, n, μ, β, L, N_burnin, N_up
 
     ## Record the maximum numerical error corrected by numerical stablization.
     additional_info["dG"] = δG
+
+    ## Save the density tuning profile.
+    save_density_tuning_profile(simulation_info, chemical_potential_tuner)
 
     ## Write simulation summary TOML file.
     save_simulation_info(simulation_info, additional_info)

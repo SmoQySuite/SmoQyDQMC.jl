@@ -418,6 +418,9 @@ function run_holstein_chain_simulation(sID, Ω, α, n, μ, β, L, N_burnin, N_up
     # Record the maximum numerical error corrected by numerical stablization.
     additional_info["dG"] = δG
 
+    # Save the density tuning profile.
+    save_density_tuning_profile(simulation_info, chemical_potential_tuner)
+
     # Write simulation summary TOML file.
     save_simulation_info(simulation_info, additional_info)
 

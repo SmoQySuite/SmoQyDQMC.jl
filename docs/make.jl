@@ -5,7 +5,8 @@ using LatticeUtilities
 using JDQMCFramework
 
 example_names = ["hubbard_chain", "hubbard_chain_mpi", "hubbard_chain_checkpoint", "holstein_chain",
-                 "ossh_chain", "hubbard_holstein_square"]
+                 "ossh_chain", "bssh_chain", "hubbard_holstein_square", "hubbard_threeband",
+                 "holstein_kagome", "hubbard_honeycomb"]
 example_literate_sources = [joinpath(@__DIR__, "..", "literate_scripts", name*".jl") for name in example_names]
 example_script_destinations = [joinpath(@__DIR__, "..", "example_scripts") for name in example_names]
 example_documentation_destination = joinpath(@__DIR__, "src", "examples")
