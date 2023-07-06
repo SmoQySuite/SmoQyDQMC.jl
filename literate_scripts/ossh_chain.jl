@@ -17,6 +17,17 @@
 # is given by ``\hat{X}_i \ (\hat{P}_i)``, where ``\Omega`` and ``M`` are the phonon frequency and associated ion mass respectively.
 # Lastly, the strength of the electron-phonon coupling is controlled by the parameter ``\alpha``.
 #
+# The example script to simulate this sytem is
+# [`scripts/ossh_chain.jl`](https://github.com/SmoQySuite/SmoQyDQMC.jl/blob/main/scripts/ossh_chain.jl).
+# A short test simulation using this script that only takes a few minutes on most personal computers is
+# ```
+# > julia ossh_chain.jl 0 1.0 0.5 0.0 4.0 16 1000 5000 20
+# ```
+# which simulates an ``L=16`` chain with ``\Omega = 1.0``, ``\alpha = 0.5`` at half-filling ``(\mu = 0.0)`` and
+# an inverse temperature of ``\beta = 4.0``. In this example `N_burnin = 1000` HMC thermalization updates are performed,
+# followed an additional `N_updates = 5000` HMC updates, after each of which measurements are made.
+# Bin averaged measurements are then written to file `N_bins = 20` during the simulation.
+#
 # Below you will find the source code in the script
 # [`scripts/ossh_chain.jl`](https://github.com/SmoQySuite/SmoQyDQMC.jl/blob/main/scripts/ossh_chain.jl),
 # with additional comments giving more detailed explanations for what certain parts of the code are doing.
@@ -464,12 +475,12 @@ if abspath(PROGRAM_FILE) == @__FILE__
     sID = parse(Int, ARGS[1]) # simulation ID
     Ω = parse(Float64, ARGS[2])
     α = parse(Float64, ARGS[3])
-    μ = parse(Float64, ARGS[5])
-    β = parse(Float64, ARGS[6])
-    L = parse(Int, ARGS[7])
-    N_burnin = parse(Int, ARGS[8])
-    N_updates = parse(Int, ARGS[9])
-    N_bins = parse(Int, ARGS[10])
+    μ = parse(Float64, ARGS[4])
+    β = parse(Float64, ARGS[5])
+    L = parse(Int, ARGS[6])
+    N_burnin = parse(Int, ARGS[7])
+    N_updates = parse(Int, ARGS[8])
+    N_bins = parse(Int, ARGS[9])
 
     ## Run the simulation.
     run_ossh_chain_simulation(sID, Ω, α, μ, β, L, N_burnin, N_updates, N_bins)
