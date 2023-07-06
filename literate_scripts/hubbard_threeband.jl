@@ -1,48 +1,49 @@
-# # Example 1(a): Hubbard Chain
+# # Example 6: 3-band Hubbard Model
 #
-# In this first example we will work through simulating the repulsive Hubbard model
-# on a 1D chain at half-filling.
-# The Hubbard Hamiltonian for a 1D chain is given by
+# In this example we simulate an effective two-dimensional 3-band Hubbard model 
+# meant to represent a copper-oxide plane in the superconducting cuprates, with a Hamiltonian
+# written in hole language given by
 # ```math
-# \hat{H} = -t \sum_{\sigma,i} (\hat{c}^{\dagger}_{\sigma,i+1}, \hat{c}^{\phantom \dagger}_{\sigma,i} + {\rm h.c.})
-# + U \sum_i (\hat{n}_{\uparrow,i}-\tfrac{1}{2})(\hat{n}_{\downarrow,i}-\tfrac{1}{2})
-# - \mu \sum_{\sigma,i} \hat{n}_{\sigma,i},
+# \begin{align*}
+# \hat{H}= & \sum_{\sigma,\langle i,j,\alpha\rangle}t_{pd}^{i,j,\alpha}(\hat{d}_{\sigma,i}^{\dagger}\hat{p}_{\sigma,j,\alpha}^{\phantom{\dagger}}+{\rm h.c.})
+#            + \sum_{\sigma,\langle i,\alpha,j,\alpha'\rangle}t_{pp}^{i,\alpha',j,\alpha}(\hat{p}_{\sigma,i,\alpha'}^{\dagger}\hat{p}_{\sigma,j,\alpha}^{\phantom{\dagger}}+{\rm h.c.})\\
+#          & +(\epsilon_{d}-\mu)\sum_{\sigma,i}\hat{n}_{\uparrow,i}^{d}+(\epsilon_{p}-\mu)\sum_{\sigma,j}\hat{n}_{\sigma,j,\alpha}^{p}\\
+#          & +U_{d}\sum_{i}\hat{n}_{\uparrow,i}^{d}\hat{n}_{\downarrow,i}^{d}+U_{p}\sum_{j,\alpha}\hat{n}_{\uparrow,j,\alpha}^{p}\hat{n}_{\downarrow,j,\alpha}^{p}.
+# \end{align*}
 # ```
-# where ``\hat{c}^\dagger_{\sigma,i} \ (\hat{c}^{\phantom \dagger}_{\sigma,i})`` creates (annihilates) a spin ``\sigma``
-# electron on site ``i`` in the lattice, and ``\hat{n}_{\sigma,i} = \hat{c}^\dagger_{\sigma,i} \hat{c}^{\phantom \dagger}_{\sigma,i}``
-# is the spin-``\sigma`` electron number operator for site ``i``. In the above Hamiltonian ``t`` is the nearest neighbor hopping integral
-# and ``U > 0`` controls the strength of the on-site Hubbard repulsion.
-# Lastly, we consider the case that the system is half-filled and particle-hole symmetric,
-# which occurs when when the chemical potential is zero, ``\mu = 0.0``.
+# The operator ``\hat{d}^{\dagger}_{\sigma, i} \ (\hat{d}^{\phantom \dagger}_{\sigma, i})`` creates (annihilates) a spin-``\sigma`` hole on a Cu-``3d_{x^2-y^2}``
+# orbital in unit ``i`` in the lattice.
+# The ``\hat{p}^{\dagger}_{\sigma,i,\alpha} \ (\hat{p}^{\phantom \dagger}_{\sigma,i,\alpha})`` operator creates (annihilates) a spin-``\sigma`` hole on a
+# O-``2p_\alpha`` orbital in unit cell ``i``, where ``\alpha = x \ {\rm or} \ y.`` The corresponding spin-``\sigma`` hole number operators for the
+# Cu-``3d_{x^2-y^2}`` and O-``2p_\alpha`` orbitals in unit cell ``i`` are ``\hat{n}^d_{\sigma,i}`` and ``\hat{n}^p_{\sigma,i,\alpha}``.
+# The hopping integrals between the Cu-``3d_{x^2-y^2}`` orbitals and nearest-neighbor O-``2p_\alpha`` are parameterized as
+# ``t_{pd}^{i,j,\alpha} = P_{pd}^{i,j,\alpha} t_{pd}`` where `` P_{pd}^{i,j,\alpha} = \pm 1`` is a overall phase factor.
+# Similarly, the hopping integral between nearest-neighbor O-``2p_x`` and O-``2p_y`` orbitals is parameterized as
+# ``t_{pp}^{i,\alpha',j,\alpha} = P_{pp}^{i,\alpha',j,\alpha} t_{pp}``, where again ``P_{pp}^{i,\alpha',j,\alpha} t_{pp} = \pm 1`` is an overall phase factor.
+# Refer to Fig. 1 in [`PhysRevB.103.144514`](https://journals.aps.org/prb/abstract/10.1103/PhysRevB.103.144514) to see a figure detailing these phase factor conventions.
+# The on-site energies ``\epsilon_d`` and ``\epsilon_p`` are for the Cu-``3d_{x^2-y^2}`` and O-``2p_\alpha`` orbitals respectively,
+# and ``\mu`` is the global chemical potential. Finally, ``U_d`` and ``U_p`` are the on-site Hubbard interactions for the
+# Cu-``3d_{x^2-y^2}`` and O-``2p_\alpha`` orbitals respectively.
 #
-# The script [`scripts/hubbard_chain.jl`](https://github.com/SmoQySuite/SmoQyDQMC.jl/blob/main/scripts/hubbard_chain.jl)
-# found in the repository simulates this Hamiltonian.
-# Suppose we want to simulate a half-filled Hubbard chain ``(\mu = 0.0)`` of length ``L=16`` with ``U=8.0``
-# at an inverse temperature of ``\beta = 8.0``.
-# This is accomplished with the command
+# The example script to simulate this sytem is
+# [`scripts/hubbard_threeband.jl`](https://github.com/SmoQySuite/SmoQyDQMC.jl/blob/main/scripts/hubbard_threeband.jl).
+# A short test simulation using this script that only takes a few minutes on most personal computers is
 # ```
-# > julia hubbard_chain.jl 1 6.0 0.0 8.0 16 2000 10000 50
+# > julia hubbard_threeband.jl 0 8.5 4.1 1.13 0.49 0.0 3.24 0.0 4.0 8 2 2000 10000 50
 # ```
-# with the resulting data being written to a local directory `hubbard_chain_U6.00_mu0.00_L16_b8.00-1` that will be created.
-# The first command line argument is the simulation ID `(sID = 1)`, and reuslts in the directory name ending in `-1`.
-# The second, third, fourth and fifth command line arguments correspond to ``U``, ``\mu``, ``\beta`` and ``L`` respectively.
-# The sixth command line argument specifies the number thermalization/burnin sweeps `(N_burnin = 2000)` that are performed,
-# where an update to each Hubbard-Stratonovich field is attempted.
-# The seventh command line argument specifies the subsequent number of sweeps through the lattice `(N_udpates = 10000)`,
-# after each of which measurements are performed.
-# Finally, the eighth command line argument specifies the number of times during the simulation data is written to file `(N_bins = 50)`.
-# Note that this example only runs for a few minutes on most systems and can be easily run on most personal computers.
-
-# However, it should be stressed that this structure for the simulation is *not* enforced by the [`SmoQyDQMC`](@ref) package itself,
-# but rather is simply a function of how
-# the [`example_scripts/hubbard_chain.jl`](https://github.com/SmoQySuite/SmoQyDQMC.jl/blob/main/example_scripts/hubbard_chain.jl)
-# script is structured.
+# In this example we are simulating the three-band Hubbard model on a ``8 \times 2`` unit cell finite lattice at inverse temperature ``\beta = 4.0``.
+# The on-site Hubbard interaction on the Cu-``3d_{x^2-y^2}`` and O-``2p_\alpha`` is ``U_d = 8.5`` and ``U_p = 4.1`` respectively.
+# The nearest-neighbor hopping integral amplitude between the Cu-``3d_{x^2-y^2}`` and O-``2p_\alpha`` orbitals is ``t_{pd} = 1.13``,
+# while it is ``t_{pp} = 0.49`` between the nearest-neighbor O-``2p_x`` and O-``2p_y`` orbitals.
+# The on-site energy for the Cu-``3d_{x^2-y^2}`` and O-``2p_\alpha`` orbitals ``\epsilon_d = 0.0`` and ``\epsilon_p = 3.25``.
+# Lastly, the global chemical potential is set to ``\mu = 0.0``.
+# In this simulation `N_burnin = 2000` sweeps through the lattice updating the Hubbard-Stratonovich fields are performed to thermalize the system,
+# followed by `N_udpates = 10000` sweeps, after each of which measurements are made. Bin averaged measurements are written to file
+# `N_bins = 50` times during the simulation.
 #
 # Below you will find a more heavily commented version
-# of the [`example_scripts/hubbard_chain.jl`](https://github.com/SmoQySuite/SmoQyDQMC.jl/blob/main/example_scripts/hubbard_chain.jl)
+# of the [`example_scripts/hubbard_threeband.jl`](https://github.com/SmoQySuite/SmoQyDQMC.jl/blob/main/example_scripts/hubbard_threeband.jl)
 # script that includes additional exposition on what each part of the code is doing.
-
-#md ## First we import the required packages, including all of the required SmoQyDQMC submodules.
 
 using LinearAlgebra
 using Random
@@ -53,19 +54,13 @@ import SmoQyDQMC.LatticeUtilities  as lu
 import SmoQyDQMC.JDQMCFramework    as dqmcf
 import SmoQyDQMC.JDQMCMeasurements as dqmcm
 
-#md ## To start, we define a top-level function for running the DQMC simulation.
-#md ## Note that the arguments to this function correspond to the command line arguments
-#md ## used to run this script.
-#jl ## Define top-level function for running DQMC simulation
-function run_hubbard_chain_simulation(sID, U, μ, β, L, N_burnin, N_updates, N_bins; filepath = ".")
+## Define top-level function for running DQMC simulation
+function run_hubbard_threeband_simulation(sID, Ud, Up, tpd, tpp, ϵd, ϵp, μ, β, Lx, Ly, N_burnin, N_updates, N_bins; filepath = ".")
 
     ## Construct the foldername the data will be written to.
-#md     ## Note that the simulation ID `sID`` will be appended to this foldername as `*-sID`
-    datafolder_prefix = @sprintf "hubbard_chain_U%.2f_mu%.2f_L%d_b%.2f" U μ L β
+    datafolder_prefix = @sprintf "hubbard_threeband_Ud%.2f_Up%.2f_tpd%.2f_tpp%.2f_ed%.2f_ep%.2f_mu%.2f_b%.2f_Lx%d_Ly%d" Ud Up tpd tpp ϵd ϵp μ β Lx Ly
 
     ## Initialize an instance of the SimulationInfo type.
-#md     ## This type helps keep track of where data will be written to, and also what versions of
-#md     ## SmoQyDQMC and Julia were used to run the script.
     simulation_info = SimulationInfo(
         filepath = filepath,                     
         datafolder_prefix = datafolder_prefix,
@@ -76,8 +71,6 @@ function run_hubbard_chain_simulation(sID, U, μ, β, L, N_burnin, N_updates, N_
     initialize_datafolder(simulation_info)
 
     ## Initialize a random number generator that will be used throughout the simulation.
-#md     ## For convenience, we seed this function with a randomly sampled number for the
-#md     ## global random number generator.
     seed = abs(rand(Int))
     rng = Xoshiro(seed)
 
@@ -85,8 +78,6 @@ function run_hubbard_chain_simulation(sID, U, μ, β, L, N_burnin, N_updates, N_
     Δτ = 0.10
 
     ## Calculate the length of the imaginary time axis, Lτ = β/Δτ.
-#md     ## The function  dqmcf.eval_length_imaginary_axis() simply ensures
-#md     ## that Lτ can be appropriately defined as an integer.
     Lτ = dqmcf.eval_length_imaginary_axis(β, Δτ)
 
     ## This flag indicates whether or not to use the checkboard approximation to
@@ -107,16 +98,9 @@ function run_hubbard_chain_simulation(sID, U, μ, β, L, N_burnin, N_updates, N_
     δG_max = 1e-6
 
     ## Calculate the bins size.
-#md     ## The bin size is the number of measurements that are averaged over each time data is written
-#md     ## to file during the simulation.
     bin_size = div(N_updates, N_bins)
 
     ## Initialize a dictionary to store additional information about the simulation.
-#md     ## Thinks of this as a simulation notebook where you can store any parameters you would like to record
-#md     ## about how the DQMC simulation was run. For instance, it may be good to record the seed
-#md     ## used to initialize the random number generator for reproducibility reasons. This dictionary
-#md     ## will be appended as a table to the simulation information TOML file generated at the end of
-#md     ## the simulation.
     additional_info = Dict(
         "dG_max" => δG_max,
         "N_burnin" => N_burnin,
@@ -135,56 +119,103 @@ function run_hubbard_chain_simulation(sID, U, μ, β, L, N_burnin, N_updates, N_
     #######################
 
     ## Initialize an instance of the type UnitCell.
-#md     ## This struct defines the UnitCell.
-    unit_cell = lu.UnitCell(lattice_vecs = [[1.0]],
-                            basis_vecs   = [[0.0]])
+    unit_cell = lu.UnitCell(
+        lattice_vecs = [[1.0, 0.0], [0.0, 1.0]],
+        basis_vecs   = [[0.0, 0.0], # Orbital ID = 1 <==> Cu-3d
+                        [0.5, 0.0], # Orbital ID = 2 <==> O-2px
+                        [0.0, 0.5]] # Orbital ID = 3 <==> O-2py
+    )
+
+    ## Initialize variables to map orbitals to orbital ID.
+    (Cu_3d, O_2px, O_2py) = (1, 2, 3)
 
     ## Initialize an instance of the type Lattice.
-#md     ## The struct describes the size of the finite periodic lattice to be simulated.
-#md     ## Note that curretly periodic boundary condition must be used.
     lattice = lu.Lattice(
-        L = [L],
-        periodic = [true]
+        L = [Lx, Ly],
+        periodic = [true, true]
     )
 
     ## Initialize an instance of the ModelGeometry type.
-#md     ## This type helps keep track of all the relevant features of the lattice
-#md     ## geometry being simulated, including the defintion of the unit cell,
-#md     ## the size of the finite periodic lattice, and all the relevant
-#md     ## bond defintions that may arise in the model.
     model_geometry = ModelGeometry(unit_cell, lattice)
 
-    ## Define the nearest-neighbor bond for a 1D chain.
-    bond = lu.Bond(orbitals = (1,1), displacement = [1])
+    ## Define bond going from Cu-3d to O-2px in +x direction.
+    bond_3d_2px_px = lu.Bond(orbitals = (Cu_3d, O_2px), displacement = [0,0])
+    bond_3d_2px_px_id = add_bond!(model_geometry, bond_3d_2px_px)
 
-    ## Add this bond to the model, by adding it to the ModelGeometry type.
-    bond_id = add_bond!(model_geometry, bond)
+    ## Define bond going from Cu-3d to O-2py in +y direction.
+    bond_3d_2py_py = lu.Bond(orbitals = (Cu_3d, O_2py), displacement = [0,0])
+    bond_3d_2py_py_id = add_bond!(model_geometry, bond_3d_2py_py)
 
-    ## Define nearest-neighbor hopping amplitude, setting the energy scale for the system.
-    t = 1.0
+    ## Define bond going from Cu-3d to O-2px in -x direction.
+    bond_2px_3d_nx = lu.Bond(orbitals = (Cu_3d, O_2px), displacement = [-1,0])
+    bond_2px_3d_nx_id = add_bond!(model_geometry, bond_2px_3d_nx)
 
-    ## Define the tight-binding model
+    ## Define bond going from Cu-3d to O-2py in -y direction.
+    bond_2py_3d_ny = lu.Bond(orbitals = (Cu_3d, O_2py), displacement = [0,-1])
+    bond_2py_3d_ny_id = add_bond!(model_geometry, bond_2py_3d_ny)
+
+    ## Define bond going from O-2px to O-2py in the (-x+y)/√2 direction.
+    bond_2px_2py_nxpy = lu.Bond(orbitals = (O_2px, O_2py), displacement = [0,0])
+    bond_2px_2py_nxpy_id = add_bond!(model_geometry, bond_2px_2py_nxpy)
+
+    ## Define bond going to O-2px to O-2py in the (-x-y)/√2 direction.
+    bond_2px_2py_nxny = lu.Bond(orbitals = (O_2px, O_2py), displacement = [0,-1])
+    bond_2px_2py_nxny_id = add_bond!(model_geometry, bond_2px_2py_nxny)
+
+    ## Define bond going from O-2px to O-2py in the (+x+y)/√2 direction.
+    bond_2px_2py_pxpy = lu.Bond(orbitals = (O_2px, O_2py), displacement = [1,0])
+    bond_2px_2py_pxpy_id = add_bond!(model_geometry, bond_2px_2py_pxpy)
+
+    ## Define bond going from O-2px to O-2py in the (+x-y)/√2 direction.
+    bond_2px_2py_pxny = lu.Bond(orbitals = (O_2px, O_2py), displacement = [1,-1])
+    bond_2px_2py_pxny_id = add_bond!(model_geometry, bond_2px_2py_pxny)
+
+#md     ## These nexts bonds are needed to measuring a pairing channel needed to
+#md     ## reconstruct the d-wave pair susceptibility.
+
+    ## Define bond going from Cu-3d to Cu-3d in +x direction.
+    bond_3d_3d_px = lu.Bond(orbitals = (Cu_3d, Cu_3d), displacement = [1, 0])
+    bond_3d_3d_px_id = add_bond!(model_geometry, bond_3d_3d_px)
+
+    ## Define bond going from Cu-3d to Cu-3d in -x direction.
+    bond_3d_3d_nx = lu.Bond(orbitals = (Cu_3d, Cu_3d), displacement = [-1, 0])
+    bond_3d_3d_nx_id = add_bond!(model_geometry, bond_3d_3d_nx)
+
+    ## Define bond going from Cu-3d to Cu-3d in +y direction.
+    bond_3d_3d_py = lu.Bond(orbitals = (Cu_3d, Cu_3d), displacement = [0, 1])
+    bond_3d_3d_py_id = add_bond!(model_geometry, bond_3d_3d_py)
+
+    ## Define bond going from Cu-3d to Cu-3d in -y direction.
+    bond_3d_3d_ny = lu.Bond(orbitals = (Cu_3d, Cu_3d), displacement = [0, -1])
+    bond_3d_3d_ny_id = add_bond!(model_geometry, bond_3d_3d_ny)
+
+    ## Define tight binding model
     tight_binding_model = TightBindingModel(
         model_geometry = model_geometry,
-        t_bonds = [bond], # defines hopping
-        t_mean = [t],     # defines corresponding hopping amplitude
-        μ = μ,            # set chemical potential
-        ϵ_mean = [0.]     # set the (mean) on-site energy
+        μ = μ,
+        ϵ_mean  = [ϵd, ϵp, ϵp],
+        t_bonds = [bond_3d_2px_px, bond_3d_2py_py, bond_2px_3d_nx, bond_2py_3d_ny,
+                   bond_2px_2py_nxpy, bond_2px_2py_nxny, bond_2px_2py_pxpy, bond_2px_2py_pxny],
+        t_mean  = [tpd, -tpd, -tpd, tpd, -tpp, tpp, tpp, -tpp]
     )
 
-    ## Initialize the Hubbard interaction in the model.
-    hubbard_model = HubbardModel(
-        shifted = false, # If true, Hubbard interaction instead parameterized as U⋅nup⋅ndn
-        U_orbital = [1],
-        U_mean = [U],
-    )
+    ## Initialize a finite Hubbard interaction just on copper orbitals.
+    if iszero(Up)
+        hubbard_model = HubbardModel(
+            shifted   = true, # If true, Hubbard interaction instead parameterized as U⋅nup⋅ndn
+            U_orbital = [1, 2, 3],
+            U_mean    = [Ud, Up, Up],
+        )
+    ## Initialize the Hubbard interaction on copper and oxygen orbitals.
+    else
+        hubbard_model = HubbardModel(
+            shifted   = true, # If true, Hubbard interaction instead parameterized as U⋅nup⋅ndn
+            U_orbital = [1],
+            U_mean    = [Ud],
+        )
+    end
 
     ## Write the model summary to file.
-#md     ## The model summary file, "model_summary.toml", is a very important file.
-#md     ## It fully describes the model and system being simulated. It also defines all the
-#md     ## various tID definitions (ORBITAL_ID, BOND_ID, HOPPING_ID, PHONON_ID)
-#md     ## that measurements are reported in terms of. Therefore, this file is useful
-#md     ## for understanding out the interpret and process the output data files.
     model_summary(
         simulation_info = simulation_info,
         β = β, Δτ = Δτ,
@@ -196,13 +227,6 @@ function run_hubbard_chain_simulation(sID, U, μ, β, L, N_burnin, N_updates, N_
     #########################################
     ### INITIALIZE FINITE MODEL PARAMETERS ##
     #########################################
-
-#md     ## Above we defined the both the model and lattice size. Next, we initialize
-#md     ## the actual system parameters. This is different because in general any
-#md     ## parameter appearing in the model can support disorder. For instance, you
-#md     ## can in simulate a system with random disorder in the on-site energy.
-#md     ## Therefore, we need to initialize the parameters for the model on the lattice
-#md     ## size we actually want to simulate.
 
     ## Initialize tight-binding parameters.
     tight_binding_parameters = TightBindingParameters(
@@ -230,8 +254,6 @@ function run_hubbard_chain_simulation(sID, U, μ, β, L, N_burnin, N_updates, N_
     ### INITIALIZE MEASUREMENTS ##
     ##############################
 
-#md     ## Here we initialize/define all the measurements we plan on making during the simulation.
-
     ## Initialize the container that measurements will be accumulated into.
     measurement_container = initialize_measurement_container(model_geometry, β, Δτ)
 
@@ -242,40 +264,35 @@ function run_hubbard_chain_simulation(sID, U, μ, β, L, N_burnin, N_updates, N_
     initialize_measurements!(measurement_container, hubbard_model)
 
     ## Initialize the single-particle electron Green's function measurement.
-#md     ## Because `time_displaced = true`, the time-displaced Greens function will be measured.
     initialize_correlation_measurements!(
         measurement_container = measurement_container,
         model_geometry = model_geometry,
         correlation = "greens",
         time_displaced = true,
-        pairs = [(1, 1)]
+        pairs = [(Cu_3d, Cu_3d), (O_2px, O_2px), (O_2py, O_2py),
+                 (Cu_3d, O_2px), (Cu_3d, O_2py), (O_2px, O_2py)]
     )
 
     ## Initialize density correlation function measurement.
-#md     ## Because `time_displaced = false` and `integrated = true` the equal-time
-#md     ## density correlation function, and the charge susceptibility will
-#md     ## be measured. Note that the charge susceptibilty can be understood as the
-#md     ## integral of the time-displaced density correlation function over
-#md     ## the imaginary-time axis from τ=0 to τ=β.
     initialize_correlation_measurements!(
         measurement_container = measurement_container,
         model_geometry = model_geometry,
         correlation = "density",
         time_displaced = false,
         integrated = true,
-        pairs = [(1, 1)]
+        pairs = [(Cu_3d, Cu_3d), (O_2px, O_2px), (O_2py, O_2py),
+                 (Cu_3d, O_2px), (Cu_3d, O_2py), (O_2px, O_2py)]
     )
 
     ## Initialize the pair correlation function measurement.
-#md     ## Measure the local s-wave equal-time pair correlation function (`time-displaced = false`),
-#md     ## and the corresponding pair susceptibility (`integrated = true`).
     initialize_correlation_measurements!(
         measurement_container = measurement_container,
         model_geometry = model_geometry,
         correlation = "pair",
         time_displaced = false,
         integrated = true,
-        pairs = [(1, 1)]
+        pairs = [(Cu_3d, Cu_3d), (O_2px, O_2px), (O_2py, O_2py),
+                 (Cu_3d, O_2px), (Cu_3d, O_2py), (O_2px, O_2py)]
     )
 
     ## Initialize the spin-z correlation function measurement.
@@ -285,7 +302,30 @@ function run_hubbard_chain_simulation(sID, U, μ, β, L, N_burnin, N_updates, N_
         correlation = "spin_z",
         time_displaced = false,
         integrated = true,
-        pairs = [(1, 1)]
+        pairs = [(Cu_3d, Cu_3d), (O_2px, O_2px), (O_2py, O_2py),
+                 (Cu_3d, O_2px), (Cu_3d, O_2py), (O_2px, O_2py)]
+    )
+
+#md     ## Measure all possible combinations of bond pairing channels
+#md     ## for the bonds we have defined. We will need each of these
+#md     ## pairs channels measured in order to reconstruct the extended
+#md     ## s-wave and d-wave pair susceptibilities.
+    ## Initialize the pair correlation function measurement.
+    initialize_correlation_measurements!(
+        measurement_container = measurement_container,
+        model_geometry = model_geometry,
+        correlation = "pair",
+        time_displaced = false,
+        integrated = true,
+        pairs = [(Cu_3d, Cu_3d), (O_2px, O_2px), (O_2py, O_2py),
+                 (bond_3d_3d_px_id, bond_3d_3d_px_id), (bond_3d_3d_px_id, bond_3d_3d_nx_id),
+                 (bond_3d_3d_nx_id, bond_3d_3d_px_id), (bond_3d_3d_nx_id, bond_3d_3d_nx_id),
+                 (bond_3d_3d_py_id, bond_3d_3d_py_id), (bond_3d_3d_py_id, bond_3d_3d_ny_id),
+                 (bond_3d_3d_ny_id, bond_3d_3d_py_id), (bond_3d_3d_ny_id, bond_3d_3d_ny_id),
+                 (bond_3d_3d_px_id, bond_3d_3d_py_id), (bond_3d_3d_px_id, bond_3d_3d_ny_id),
+                 (bond_3d_3d_nx_id, bond_3d_3d_py_id), (bond_3d_3d_nx_id, bond_3d_3d_ny_id),
+                 (bond_3d_3d_py_id, bond_3d_3d_px_id), (bond_3d_3d_py_id, bond_3d_3d_nx_id),
+                 (bond_3d_3d_ny_id, bond_3d_3d_px_id), (bond_3d_3d_ny_id, bond_3d_3d_nx_id)]
     )
 
     ## Initialize the sub-directories to which the various measurements will be written.
@@ -298,10 +338,6 @@ function run_hubbard_chain_simulation(sID, U, μ, β, L, N_burnin, N_updates, N_
     #############################
     ### SET-UP DQMC SIMULATION ##
     #############################
-
-#md     ## The code appearing in this section of the code is relatively boiler plate.
-#md     ## While it may change in some small ways from system to system, the overall
-#md     ## structure should remain relatively static.
 
     ## Allocate FermionPathIntegral type for both the spin-up and spin-down electrons.
     fermion_path_integral_up = FermionPathIntegral(tight_binding_parameters = tight_binding_parameters, β = β, Δτ = Δτ)
@@ -429,22 +465,62 @@ function run_hubbard_chain_simulation(sID, U, μ, β, L, N_burnin, N_updates, N_
     additional_info["dG"] = δG
 
     ## Write simulation summary TOML file.
-#md     ## This simulation summary file records the version number of SmoQyDQMC and Julia
-#md     ## used to perform the simulation. The dictionary `additional_info` is appended
-#md     ## as a table to the end of the simulation summary TOML file.
     save_simulation_info(simulation_info, additional_info)
 
     #################################
     ### PROCESS SIMULATION RESULTS ##
     #################################
 
-#md    ## Note that everyting appearing in this section of the code is considered post-processing,
-#md    ## and can be re-run so long as the data folder generated by the DQMC simulation persists
-#md    ## and none of the binned data has been deleted from it.
-
     ## Process the simulation results, calculating final error bars for all measurements,
     ## writing final statisitics to CSV files.
     process_measurements(simulation_info.datafolder, N_bins)
+
+    ## Measure the d-wave pair suspcetibility.
+    P_d, ΔP_d = composite_correlation_stats(
+        folder = simulation_info.datafolder,
+        correlation = "pair",
+        space = "momentum",
+        type = "integrated",
+        ids = [(bond_3d_3d_px_id, bond_3d_3d_px_id), (bond_3d_3d_px_id, bond_3d_3d_nx_id),
+               (bond_3d_3d_nx_id, bond_3d_3d_px_id), (bond_3d_3d_nx_id, bond_3d_3d_nx_id),
+               (bond_3d_3d_py_id, bond_3d_3d_py_id), (bond_3d_3d_py_id, bond_3d_3d_ny_id),
+               (bond_3d_3d_ny_id, bond_3d_3d_py_id), (bond_3d_3d_ny_id, bond_3d_3d_ny_id),
+               (bond_3d_3d_px_id, bond_3d_3d_py_id), (bond_3d_3d_px_id, bond_3d_3d_ny_id),
+               (bond_3d_3d_nx_id, bond_3d_3d_py_id), (bond_3d_3d_nx_id, bond_3d_3d_ny_id),
+               (bond_3d_3d_py_id, bond_3d_3d_px_id), (bond_3d_3d_py_id, bond_3d_3d_nx_id),
+               (bond_3d_3d_ny_id, bond_3d_3d_px_id), (bond_3d_3d_ny_id, bond_3d_3d_nx_id)],
+        locs = [(0,0), (0,0),
+                (0,0), (0,0),
+                (0,0), (0,0),
+                (0,0), (0,0),
+                (0,0), (0,0),
+                (0,0), (0,0),
+                (0,0), (0,0),
+                (0,0), (0,0)],
+        num_bins = N_bins,
+        f = (P_px_px, P_px_nx,
+             P_nx_px, P_nx_nx,
+             P_py_py, P_py_ny,
+             P_ny_py, P_ny_ny,
+             P_px_py, P_px_ny,
+             P_nx_py, P_nx_ny,
+             P_py_px, P_py_nx,
+             P_ny_px, P_ny_nx) -> (P_px_px + P_px_nx +
+                                   P_nx_px + P_nx_nx +
+                                   P_py_py + P_py_ny +
+                                   P_ny_py + P_ny_ny -
+                                   P_px_py - P_px_ny -
+                                   P_nx_py - P_nx_ny -
+                                   P_py_px - P_py_nx -
+                                   P_ny_px - P_ny_nx)/4
+    )
+
+    ## Record the d-wave pair suspcetibility.
+    additional_info["P_d_mean"] = real(P_d)
+    additional_info["P_d_std"]  = ΔP_d
+
+    ## Write simulation summary TOML file.
+    save_simulation_info(simulation_info, additional_info)
 
     return nothing
 end
@@ -455,14 +531,20 @@ if abspath(PROGRAM_FILE) == @__FILE__
 
     ## Read in the command line arguments.
     sID = parse(Int, ARGS[1]) # simulation ID
-    U = parse(Float64, ARGS[2])
-    μ = parse(Float64, ARGS[3])
-    β = parse(Float64, ARGS[4])
-    L = parse(Int, ARGS[5])
-    N_burnin = parse(Int, ARGS[6])
-    N_updates = parse(Int, ARGS[7])
-    N_bins = parse(Int, ARGS[8])
+    Ud = parse(Float64, ARGS[2])
+    Up = parse(Float64, ARGS[3])
+    tpd = parse(Float64, ARGS[4])
+    tpp = parse(Float64, ARGS[5])
+    ϵd = parse(Float64, ARGS[6])
+    ϵp = parse(Float64, ARGS[7])
+    μ = parse(Float64, ARGS[8])
+    β = parse(Float64, ARGS[9])
+    Lx = parse(Int, ARGS[10])
+    Ly = parse(Int, ARGS[11])
+    N_burnin = parse(Int, ARGS[12])
+    N_updates = parse(Int, ARGS[13])
+    N_bins = parse(Int, ARGS[14])
 
     ## Run the simulation.
-    run_hubbard_chain_simulation(sID, U, μ, β, L, N_burnin, N_updates, N_bins)
+    run_hubbard_threeband_simulation(sID, Ud, Up, tpd, tpp, ϵd, ϵp, μ, β, Lx, Ly, N_burnin, N_updates, N_bins)
 end
