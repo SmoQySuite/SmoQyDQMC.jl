@@ -18,76 +18,118 @@ under Award Number DE-SC0022311.
 
 ## Installation
 
-**NOTE**: This package is in the experimental phase of development and is not yet published to the Julia [`General`](https://github.com/JuliaRegistries/General.git) registry.
-The instruction for installation below will be updated once that package is registered.
-
-### Method 1
-
-First clone the [`SmoQyDQMC.jl`](https://github.com/SmoQySuite/SmoQyDQMC.jl) repository onto your machine:
+To install the [SmoQyDQMC.jl](https://github.com/SmoQySuite/SmoQyDQMC.jl),
+simply open the Julia REPL and run the following command:
 ```
-git clone https://github.com/SmoQySuite/SmoQyDQMC.jl
+julia> ] add SmoQyDQMC
 ```
-Then navigate into the [`SmoQyDQMC.jl`](https://github.com/SmoQySuite/SmoQyDQMC.jl) repository directory and open a Julia REPL environment and run the following command:
-```julia
-] dev .
-```
-
-### Method 2
-
-Open a Julia REPL environment and run the following command:
-```julia
-] dev https://github.com/SmoQySuite/SmoQyDQMC.jl
-```
-This command clones the [`SmoQyDQMC.jl`](https://github.com/SmoQySuite/SmoQyDQMC.jl) repository to the hidden direcotry `.julia/dev` that exists in the same directory where Julia is installed.
 
 ## Supported Hamiltonians
 
-The [`SmoQyDQMC.jl`](https://github.com/SmoQySuite/SmoQyDQMC.jl) currently support Hamitonians of the form
+This section describes the class of Hamiltonians [`SmoQyDQMC.jl`](https://github.com/SmoQySuite/SmoQyDQMC.jl) currently supports,
+and how the various terms appearing in the Hamiltonian are parameterized within the code.
+We start by partitioning the full Hamiltonian as 
+```math
+\begin{align*}
+    \hat{H} = \hat{U} + \hat{K} + \hat{V},
+\end{align*}
+```
+where ``\hat{U}`` is the bare lattice energy, ``\hat{K}`` the total electron kinetic energy, and ``\hat{V}`` the total electron potential energy. In the discussion that follows we apply the normalization ``\hbar = 1`` throughout.
 
+The bare lattice term is further decomposed into
 ```math
-\hat{H} = \hat{H}_{0}+\hat{H}_{\textrm{hub.}}+\hat{H}_{e\textrm{-ph}}
+\begin{align*}
+    \hat{U} = \hat{U}_{\rm ph} + \hat{U}_{\rm disp},
+\end{align*}
 ```
-for arbitrary lattice geometries. The term ``\hat{H}_{0}`` corresponds to the non-interacting tight-binding model given by
+where
 ```math
-\hat{H}_{0} = \sum_{\langle(\mathbf{i},\nu),(\mathbf{j},\kappa)\rangle,\sigma}\big(-t_{(\mathbf{i},\nu),(\mathbf{j},\kappa)}\hat{c}_{\sigma,\mathbf{i},\nu}^{\dagger}\hat{c}_{\sigma,\mathbf{j},\kappa}+\textrm{h.c.}\big)+\sum_{\mathbf{i},\nu,\sigma}\big(\epsilon_{\mathbf{i},\nu}-\mu\big)\hat{n}_{\sigma,\mathbf{i},\nu},
+\begin{align*}
+    \hat{U}_{\rm ph} =& \sum_{\mathbf{i},\nu}\sum_{n_{\mathbf{i},\nu}}
+        \left[
+            \frac{1}{2M_{n_{\mathbf{i},\nu}}}\hat{P}_{n_{\mathbf{i},\nu}}
+            + \frac{1}{2}M_{n_{\mathbf{i},\nu}}\Omega_{0,n_{\mathbf{i},\nu}}^2\hat{X}_{n_{\mathbf{i},\nu}}^2
+            + \frac{1}{24}M_{n_{\mathbf{i},\nu}}\Omega_{a,n_{\mathbf{i},\nu}}^2\hat{X}_{n_{\mathbf{i},\nu}}^4
+        \right]
+\end{align*}
 ```
-where ``\sigma`` is the electron spin, ``\mathbf{i}`` and ``\mathbf{j}`` specify the unit cell, and ``\kappa`` and ``\nu`` specify the orbital species in the unit cell.
+describes the placement of local dispersionless phonon (LDP) modes in the lattice, i.e. an Einstein solid, and
+```math
+\begin{align*}
+    \hat{U}_{\rm disp} =& \sum_{\substack{\mathbf{i},\nu \\ \mathbf{j},\gamma}}\sum_{\substack{n_{\mathbf{i},\nu} \\ n_{\mathbf{j},\gamma}}}
+        \frac{M_{n_{\mathbf{i},\alpha}}M_{n_{\mathbf{j},\gamma}}}{M_{n_{\mathbf{i},\alpha}}+M_{n_{\mathbf{j},\gamma}}}\left[
+            \tilde{\Omega}^2_{0,n_{\mathbf{i},\alpha},n_{\mathbf{j},\gamma}}(\hat{X}_{n_{\mathbf{i},\nu}}-\hat{X}_{n_{\mathbf{j},\gamma}})^2
+            + \frac{1}{12}\tilde{\Omega}^2_{a,n_{\mathbf{i},\alpha},n_{\mathbf{j},\gamma}}(\hat{X}_{n_{\mathbf{i},\nu}}-\hat{X}_{n_{\mathbf{j},\gamma}})^4
+        \right]
+\end{align*}
+```
+introduces dispersion between the LDP modes. The sums over ``\mathbf{i} \ (\mathbf{j})`` and ``\nu \ (\gamma)`` run over unit cells in the lattice and orbitals within each unit cell respectively. A sum over ``n_{\mathbf{i},\nu} \ (n_{\mathbf{j},\gamma})`` then runs over the LDP modes placed on a given orbital in the lattice.
 
-The ``\hat{H}_{\textrm{hub.}}`` term corresponds to the Hubbard interaction, which may be represented in either the form
-```math
-\hat{H}_{\textrm{hub.}} = \sum_{\mathbf{i},\nu}U_{\mathbf{i},\nu}\hat{n}_{\uparrow,\mathbf{i},\nu}\hat{n}_{\downarrow,\mathbf{i},\nu}
-```
-or
-```math
-\hat{H}_{\textrm{hub.}} = \sum_{\mathbf{i},\nu}U_{\mathbf{i},\nu}\big(\hat{n}_{\uparrow,\mathbf{i},\nu}-\tfrac{1}{2}\big)\big(\hat{n}_{\downarrow,\mathbf{i},\nu}-\tfrac{1}{2}\big).
-```
-The code supports both repulsive ``(U>0)`` and attractive ``(U<0)`` Hubbard interaction.
+The position and momentum operators for each LPD mode are given by ``\hat{X}_{n_{\mathbf{i},\nu}}`` and ``\hat{P}_{n_{\mathbf{i},\nu}}`` respectively, with corresponding phonon mass ``M_{n_{\mathbf{i},\nu}}``. The spring constant is ``K_{n_{\mathbf{i},\nu}} = M_{n_{\mathbf{i},\nu}} \Omega_{0,n_{n_{\mathbf{i},\nu}}}^2``, with ``\Omega_{0,n_{n_{\mathbf{i},\nu}}}`` specifying the phonon frequency. The ``U_{\rm ph}`` also supports an anharmonic ``\hat{X}_{n_{\mathbf{i},\nu}}^4`` contribution to the LDP potential energy that is controlled by the parameter ``\Omega_{a,n_{n_{\mathbf{i},\nu}}}``. Similary, ``\tilde{\Omega}_{0,n_{\mathbf{i},\alpha},n_{\mathbf{j},\gamma}} \ (\tilde{\Omega}_{a,n_{\mathbf{i},\alpha},n_{\mathbf{j},\gamma}})`` is the coefficient controlling harmonic (anhmaronic) dispersion between LDP modes.
 
-The term
-```math
-\hat{H}_{e\textrm{-ph}} = \hat{H}_{\textrm{ph.}}+\hat{H}_{\textrm{hol.}}+\hat{H}_{\textrm{ssh}}+\hat{H}_{\textrm{disp.}}
-```
-represents the electron-phonon interaction component of the Hamiltonian.
-Here ``\hat{H}_{\textrm{ph.}}`` defines a population of non-interacting local phonon modes given by
-```math
-\hat{H}_{\textrm{ph.}} = \sum_{\mathbf{i},\nu}\bigg(\frac{1}{2M_{\mathbf{i},\nu}}\hat{P}_{\mathbf{i},\nu}^{2}+\frac{1}{2}M_{\mathbf{i},\nu}\Omega_{\mathbf{i},\nu}^{2}\hat{X}_{\mathbf{i},\nu}^{2}+\frac{1}{24}M_{\mathbf{i},\nu}\Omega_{4,\mathbf{i},\nu}^{2}\hat{X}_{\mathbf{i},\nu}^{4}\bigg),
-```
-where the index ``\nu`` runs over all phonon modes in each unit-cell. Note that any number independent of phonon modes can be placed on each orbital in the unit cell.
+Next we trace out the phonon degrees of freedom 
 
-Next, the ``\hat{H}_{\textrm{hol.}}`` term describes the Holstein ``e``-ph couplings in the model, that may be either local or long-ranged, given by
+The electron kinetic energy is decomposed as
 ```math
-\hat{H}_{\textrm{hol.}} = \sum_{\mathbf{i},\sigma}\left[\sum_{n=1}^{4}\alpha_{n,\mathbf{i},(\kappa,\nu,\mathbf{r})}\hat{X}_{\mathbf{i},\kappa}^{n}\right]\big(\hat{n}_{\sigma,\mathbf{i}+\mathbf{r},\nu}-\tfrac{1}{2}\big),
+\begin{align*}
+    \hat{K} = \hat{K}_0 + \hat{K}_{\rm ssh},
+\end{align*}
 ```
-with non-linear coupling out to fourth order supported.
-Similarly, the ``\hat{H}_{\textrm{ssh}}`` term describes the Su–Schrieffer–Heeger (SSH) ``e``-ph couplings in the model, and is given by
+where
 ```math
-\hat{H}_{\textrm{ssh}} = \sum_{\mathbf{i},\sigma}\left[\sum_{n=1}^{4}\alpha_{n,\mathbf{i},(\kappa,\nu,\mathbf{r})}\Big(\hat{X}_{\mathbf{i}+\mathbf{r},\nu}-\hat{X}_{\mathbf{k},\kappa}\Big)^{n}\right]\big(\hat{c}_{\sigma,\mathbf{i}+\mathbf{r},\nu}^{\dagger}\hat{c}_{\sigma,\mathbf{i},\kappa}+\textrm{h.c.}\big),
+\begin{align*}
+    \hat{K}_0 =& -\sum_\sigma\sum_{\substack{\mathbf{i},\nu \\ \mathbf{j},\gamma}}
+        \left[
+            t_{(\mathbf{i},\nu),(\mathbf{j},\gamma)} \hat{c}^\dagger_{\sigma,\mathbf{i},\nu}\hat{c}_{\sigma,\mathbf{j},\gamma} + {\rm h.c.}
+        \right]
+\end{align*}
 ```
-where again non-linear coupling out to fourth order are supported.
-Lastly, the ``\hat{H}_{\textrm{disp.}}`` term describes dispersive coupling between phonon modes, and is given by
+is the non-interacting electron kinetic energy, and
 ```math
-\hat{H}_{\textrm{disp.}} = \sum_{\mathbf{i}}\bigg(\frac{M_{\mathbf{i},\kappa}M_{\mathbf{i}+\mathbf{r},\nu}}{M_{\mathbf{i},\kappa}+M_{\mathbf{i}+\mathbf{r},\nu}}\bigg)\left[\Omega_{\mathbf{i},(\kappa,\nu,\mathbf{r})}^{2}\Big(\hat{X}_{\mathbf{i}+\mathbf{r},\nu}-\hat{X}_{\mathbf{k},\kappa}\Big)^{2}+\frac{1}{12}\Omega_{4,\mathbf{i},(\kappa,\nu,\mathbf{r})}^{2}\Big(\hat{X}_{\mathbf{i}+\mathbf{r},\nu}-\hat{X}_{\mathbf{k},\kappa}\Big)^{4}\right].
+\begin{align*}
+    \hat{K}_{\rm ssh} =& \sum_\sigma\sum_{\substack{\mathbf{i},\nu \\ \mathbf{j},\gamma}}\sum_{\substack{n_{\mathbf{i},\nu} \\ n_{\mathbf{j},\gamma}}}\sum_{m=1}^4
+        (\hat{X}_{n_{\mathbf{i},\nu}}-\hat{X}_{n_{\mathbf{j},\gamma}})^m\left[
+            \alpha_{m,n_{\mathbf{i},\nu},n_{\mathbf{j},\gamma}} \hat{c}^\dagger_{\sigma,\mathbf{i},\nu}\hat{c}_{\sigma,\mathbf{j},\gamma} + {\rm h.c.}
+        \right]
+\end{align*}
 ```
+is describes the interaction between the lattice degrees of freedom and the electron kinetic energy via a Su-Schrieffer-Heeger (SSH)-like coupling mechanism. The hopping integral between from orbital ``\gamma`` in unit cell ``\mathbf{j}`` to orbital ``\nu`` in unit cell ``\mathbf{i}`` is given by ``t_{(\mathbf{i},\nu),(\mathbf{j},\gamma)}``, and may in general be complex. The modulations to this hopping integral are controlled by the parameters ``\alpha_{m,(\mathbf{i},\nu),(\mathbf{j},\gamma)}``, where ``m\in [1,4]`` specifies the order of the difference in the phonon positions that modulates the hopping integral.
+
+Lastly, the electron potential energy is broken down into the three terms
+```math
+\begin{align*}
+    \hat{V} = \hat{V}_0 + \hat{V}_{\rm hol} + \hat{V}_{\rm hub},
+\end{align*}
+```
+where
+```math
+\begin{align*}
+    \hat{V}_0 =& \sum_\sigma\sum_{\mathbf{i},\nu}
+        \left[
+            (\epsilon_{\mathbf{i},\nu} - \mu) \hat{n}_{\sigma,\mathbf{i},\nu}
+        \right]
+\end{align*}
+```
+is the non-interacting electron potential energy,
+```math
+\begin{align*}
+    \hat{V}_{\rm hol} =& \sum_\sigma\sum_{\substack{\mathbf{i},\nu \\ \mathbf{j},\gamma}}\sum_{n_{\mathbf{i},\nu}}\sum_{m=1}^4
+        \hat{X}^m_{n_{\mathbf{i},\nu}} \left[
+            \tilde{\alpha}_{m,n_{\mathbf{i},\nu},(\mathbf{j},\gamma)} (\hat{n}_{\sigma,\mathbf{j},\gamma}-\tfrac{1}{2})
+        \right]
+\end{align*}
+```
+is the contribution to the electron potential energy that results from a Holstein-like coupling to the lattice degrees of freedom, and
+```math
+\begin{align*}
+    \hat{V}_{{\rm hub}}=&
+    \begin{cases}
+        \sum_{\mathbf{i},\nu}U_{\mathbf{i},\nu}\big(\hat{n}_{\uparrow,\mathbf{i},\nu}-\tfrac{1}{2}\big)\big(\hat{n}_{\downarrow,\mathbf{i},\nu}-\tfrac{1}{2}\big)\\
+        \sum_{\mathbf{i},\nu}U_{\mathbf{i},\nu}\hat{n}_{\uparrow,\mathbf{i},\nu}\hat{n}_{\downarrow,\mathbf{i},\nu}
+    \end{cases}
+\end{align*}
+```
+is the on-site Hubbard interaction contribution to the electron potential energy. In ``\hat{V}_0`` the chemical potential is given by ``\mu``, and ``\epsilon_{\mathbf{i},\nu}`` is the on-site energy, the parameter ``\tilde{\alpha}_{m,n_{\mathbf{i},\nu},(\mathbf{j},\gamma)}`` controls the strength of the Holstein-like coupling in ``\hat{V}_{\rm ph}``, and ``U_{\mathbf{i},\nu}`` is the on-site Hubbard interaction strength in ``\hat{V}_{\rm hub}``. Note that either functional form for ``V_{\rm hub}`` can used in the code.
 
 ## Notable Package Dependencies
 

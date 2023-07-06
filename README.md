@@ -1,6 +1,6 @@
 # SmoQyDQMC
 
-<!-- [![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://SmoQySuite.github.io/SmoQyDQMC.jl/stable/) -->
+[![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://SmoQySuite.github.io/SmoQyDQMC.jl/stable/)
 [![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://SmoQySuite.github.io/SmoQyDQMC.jl/dev/)
 [![Build Status](https://github.com/SmoQySuite/SmoQyDQMC.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/SmoQySuite/SmoQyDQMC.jl/actions/workflows/CI.yml?query=branch%3Amain)
 [![Coverage](https://codecov.io/gh/SmoQySuite/SmoQyDQMC.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/SmoQySuite/SmoQyDQMC.jl)
@@ -10,15 +10,22 @@ This package implements the determinant quantum Monte Carlo (DQMC) method for Hu
 and electron-phonon interactions, including both Holstein and Su-Schrieffer-Heeger (SSH) style
 electron-phonon coupling.
 
-This package is currently in the experimental phase of development.
-
 ## Funding
 
 The development of this code was supported by the U.S. Department of Energy, Office of Science, Basic Energy Sciences,
 under Award Number DE-SC0022311.
 
+## Installation
+
+To install the [SmoQyDQMC.jl](https://github.com/SmoQySuite/SmoQyDQMC.jl),
+simply open the Julia REPL and run the following command:
+```
+julia> ] add SmoQyDQMC
+```
+
 ## Documentation
 
+- [`STABLE`](https://SmoQySuite.github.io/SmoQyDQMC.jl/stable/): Documentation for the latest version of the code published to the Julia [`General`](https://github.com/JuliaRegistries/General.git) registry.
 - [`DEV`](https://SmoQySuite.github.io/SmoQyDQMC.jl/dev/): Documentation associated with most recent commit to the main branch.
 
 ## Notable Package Dependencies
