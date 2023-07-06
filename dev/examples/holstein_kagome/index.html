@@ -1,6 +1,9 @@
 <!DOCTYPE html>
-<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Example 2: Holstein Chain with Density Tuning · SmoQyDQMC.jl</title><script data-outdated-warner src="../../assets/warner.js"></script><link rel="canonical" href="https://SmoQySuite.github.io/SmoQyDQMC.jl/examples/holstein_chain/"/><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.045/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.24/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../../">SmoQyDQMC.jl</a></span></div><form class="docs-search" action="../../search/"><input class="docs-search-query" id="documenter-search-query" name="q" type="text" placeholder="Search docs"/></form><ul class="docs-menu"><li><a class="tocitem" href="../../">Home</a></li><li><span class="tocitem">Examples</span><ul><li><a class="tocitem" href="../hubbard_chain/">Example 1(a): Hubbard Chain</a></li><li><a class="tocitem" href="../hubbard_chain_mpi/">Example 1(b): Hubbard Chain with MPI</a></li><li><a class="tocitem" href="../hubbard_chain_checkpoint/">Example 1(c): Hubbard Chain with Checkpointing</a></li><li class="is-active"><a class="tocitem" href>Example 2: Holstein Chain with Density Tuning</a></li><li><a class="tocitem" href="../ossh_chain/">Example 3: Optical Su-Schrieffer-Heeger Chain</a></li><li><a class="tocitem" href="../bssh_chain/">Example 4: Bond Su-Schrieffer-Heeger Chain</a></li><li><a class="tocitem" href="../hubbard_holstein_square/">Example 5: Hubbard-Holstein Square Lattice Model</a></li><li><a class="tocitem" href="../hubbard_threeband/">Example 6: 3-band Hubbard Model</a></li><li><a class="tocitem" href="../holstein_kagome/">Example 7: Kagome Holstein Model with Density Tuning</a></li><li><a class="tocitem" href="../hubbard_honeycomb/">Example 7: Honeycomb Hubbard model</a></li></ul></li><li><a class="tocitem" href="../../api/">API</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Examples</a></li><li class="is-active"><a href>Example 2: Holstein Chain with Density Tuning</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Example 2: Holstein Chain with Density Tuning</a></li></ul></nav><div class="docs-right"><a class="docs-edit-link" href="https://github.com/SmoQySuite/SmoQyDQMC.jl/blob/main/literate_scripts/holstein_chain.jl" title="Edit on GitHub"><span class="docs-icon fab"></span><span class="docs-label is-hidden-touch">Edit on GitHub</span></a><a class="docs-settings-button fas fa-cog" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-sidebar-button fa fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a></div></header><article class="content" id="documenter-page"><h1 id="Example-2:-Holstein-Chain-with-Density-Tuning"><a class="docs-heading-anchor" href="#Example-2:-Holstein-Chain-with-Density-Tuning">Example 2: Holstein Chain with Density Tuning</a><a id="Example-2:-Holstein-Chain-with-Density-Tuning-1"></a><a class="docs-heading-anchor-permalink" href="#Example-2:-Holstein-Chain-with-Density-Tuning" title="Permalink"></a></h1><p>In this example we simulate the Holstein model for electron-phonon models on a 1D chain given by</p><p class="math-container">\[\hat{H} = \hat{H}_e + \hat{H}_{\rm ph} + \hat{H}_{e\textrm{-ph}}.\]</p><p>The first term describes bare tight-binding Hamiltonian</p><p class="math-container">\[\hat{H}_e = -t \sum_{\sigma,i} (\hat{c}^{\dagger}_{\sigma,i+1}, \hat{c}^{\phantom \dagger}_{\sigma,i} + {\rm h.c.})
-            -\mu \sum_{\sigma,i} \hat{n}_{\sigma,i},\]</p><p>where <span>$\hat{c}^\dagger_{\sigma,i} \ (\hat{c}^{\phantom \dagger}_{\sigma,i})$</span> creates (annihilates) a spin <span>$\sigma$</span> electron on site <span>$i$</span> in the lattice, and <span>$\hat{n}_{\sigma,i} = \hat{c}^\dagger_{\sigma,i} \hat{c}^{\phantom \dagger}_{\sigma,i}$</span> is the spin-<span>$\sigma$</span> electron number operator for site <span>$i$</span>. The second terms is the bare phonon Hamiltonian</p><p class="math-container">\[\hat{H}_{\rm ph} = \sum_i \left( \frac{1}{2M}\hat{P}_i^2 + \frac{1}{2}M\Omega^2\hat{X}_i^2 \right)\]</p><p>which describes a dispersionless phonon modes on each site in the lattice, where <span>$\hat{X}_i \ (\hat{P}_i)$</span> is the position (momentum) operator for the phonon mode on site <span>$i$</span> in the lattice. The phonon frequency is given by <span>$\Omega$</span>, and <span>$M$</span> is the corresponding ion mass associated with the phonon mode. Lastly, the third term introduces the Holstein electron-phonon interaction</p><p class="math-container">\[\hat{H}_{e\textrm{-ph}} = \alpha \sum_{\sigma,i} \hat{X}_i \left( \hat{n}_{\sigma,i} - \frac{1}{2} \right),\]</p><p>where the strength of the interaction is controlled by the parameter <span>$\alpha$</span>.</p><p>The example script <a href="https://github.com/SmoQySuite/SmoQyDQMC.jl/blob/main/example_scripts/holstein_chain.jl"><code>example_scripts/holstein_chain.jl</code></a> additionally simulate the Holstein model with an algorithm recently recently introduced in <a href="https://journals.aps.org/pre/abstract/10.1103/PhysRevE.105.045311"><code>Phys. Rev. E 105, 045311</code></a> that dynamically tunes the chemical potential during the simulation to achieve a target electron density.</p><p>To run a short test simulation using this script that only takes a few minutes on most personal computers, run the following command:</p><pre><code class="nohighlight hljs">&gt; julia holstein_chain.jl 0 0.1 0.1 0.5 0.0 4.0 16 2000 10000 20</code></pre><p>Here a Holstein chain of length <span>$L=16$</span> is simulate with <span>$\Omega = 0.1$</span>, <span>$\alpha = 0.1$</span> and inverse temperature <span>$\beta = 4.0$</span>. The chemical potential is initialized to <span>$\mu = 0.0$</span>, and then tuned to achieve are target electron density of <span>$\langle n \rangle = 0.5$</span>. In this example <code>N_burnin = 2000</code> thermalizatoin HMC and refleciton updates are performed, followed by an additional <code>N_updates = 10000</code> such updates, during which time an equivalent number of measurements are made. Bin averaged measurements are written to file <code>N_bins = 20</code> during the simulation.</p><p>Below you can find the contents of the script <a href="https://github.com/SmoQySuite/SmoQyDQMC.jl/blob/main/example_scripts/holstein_chain.jl"><code>example_scripts/holstein_chain.jl</code></a> with additional comments that discuss in more detail what certain parts of the code are doing.</p><pre><code class="language-julia hljs">using LinearAlgebra
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Example 7: Kagome Holstein Model with Density Tuning · SmoQyDQMC.jl</title><script data-outdated-warner src="../../assets/warner.js"></script><link rel="canonical" href="https://SmoQySuite.github.io/SmoQyDQMC.jl/examples/holstein_kagome/"/><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.045/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.24/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../../">SmoQyDQMC.jl</a></span></div><form class="docs-search" action="../../search/"><input class="docs-search-query" id="documenter-search-query" name="q" type="text" placeholder="Search docs"/></form><ul class="docs-menu"><li><a class="tocitem" href="../../">Home</a></li><li><span class="tocitem">Examples</span><ul><li><a class="tocitem" href="../hubbard_chain/">Example 1(a): Hubbard Chain</a></li><li><a class="tocitem" href="../hubbard_chain_mpi/">Example 1(b): Hubbard Chain with MPI</a></li><li><a class="tocitem" href="../hubbard_chain_checkpoint/">Example 1(c): Hubbard Chain with Checkpointing</a></li><li><a class="tocitem" href="../holstein_chain/">Example 2: Holstein Chain with Density Tuning</a></li><li><a class="tocitem" href="../ossh_chain/">Example 3: Optical Su-Schrieffer-Heeger Chain</a></li><li><a class="tocitem" href="../bssh_chain/">Example 4: Bond Su-Schrieffer-Heeger Chain</a></li><li><a class="tocitem" href="../hubbard_holstein_square/">Example 5: Hubbard-Holstein Square Lattice Model</a></li><li><a class="tocitem" href="../hubbard_threeband/">Example 6: 3-band Hubbard Model</a></li><li class="is-active"><a class="tocitem" href>Example 7: Kagome Holstein Model with Density Tuning</a></li><li><a class="tocitem" href="../hubbard_honeycomb/">Example 7: Honeycomb Hubbard model</a></li></ul></li><li><a class="tocitem" href="../../api/">API</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Examples</a></li><li class="is-active"><a href>Example 7: Kagome Holstein Model with Density Tuning</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Example 7: Kagome Holstein Model with Density Tuning</a></li></ul></nav><div class="docs-right"><a class="docs-edit-link" href="https://github.com/SmoQySuite/SmoQyDQMC.jl/blob/main/literate_scripts/holstein_kagome.jl" title="Edit on GitHub"><span class="docs-icon fab"></span><span class="docs-label is-hidden-touch">Edit on GitHub</span></a><a class="docs-settings-button fas fa-cog" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-sidebar-button fa fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a></div></header><article class="content" id="documenter-page"><h1 id="Example-7:-Kagome-Holstein-Model-with-Density-Tuning"><a class="docs-heading-anchor" href="#Example-7:-Kagome-Holstein-Model-with-Density-Tuning">Example 7: Kagome Holstein Model with Density Tuning</a><a id="Example-7:-Kagome-Holstein-Model-with-Density-Tuning-1"></a><a class="docs-heading-anchor-permalink" href="#Example-7:-Kagome-Holstein-Model-with-Density-Tuning" title="Permalink"></a></h1><p>In this script we simulate the Holstein model on the Kagome lattice, with a Hamiltonian given by</p><p class="math-container">\[\begin{align*}
+\hat{H} = &amp; -t \sum_{\sigma,\langle i, j \rangle} (\hat{c}^{\dagger}_{\sigma,i}, \hat{c}^{\phantom \dagger}_{\sigma,j} + {\rm h.c.})
+            -\mu \sum_{\sigma,i}\hat{n}_{\sigma,i} + \alpha \sum_{\sigma,i} \hat{X}_i (\hat{n}_{\sigma,i} - \tfrac{1}{2})\\
+          &amp; + \sum_i \left( \frac{1}{2M}\hat{P}_i^2 + \frac{1}{2}M\Omega^2\hat{X}_i^2 \right)
+\end{align*}\]</p><p>where <span>$\hat{c}^\dagger_{\sigma,i} \ (\hat{c}^{\phantom \dagger}_{\sigma,i})$</span> creates (annihilates) a spin <span>$\sigma$</span> electron on site <span>$i$</span> in the lattice, and <span>$\hat{n}_{\sigma,i} = \hat{c}^\dagger_{\sigma,i} \hat{c}^{\phantom \dagger}_{\sigma,i}$</span> is the spin-<span>$\sigma$</span> electron number operator for site <span>$i$</span>. The nearest-neighbor hopping amplitude is <span>$t$</span> and <span>$\mu$</span> is the chemical potential. The phonon position (momentum) operators <span>$\hat{X}_i \ (\hat{P}_i)$</span> describe a dispersionless mode placed on site <span>$i$</span> with phonon frequency <span>$\Omega$</span> and corresponding ion mass <span>$M$</span>. The stength of the Holstein electron-phonon is controlled by the parameter <span>$\alpha$</span>.</p><p>The example script to simulate this sytem is <a href="https://github.com/SmoQySuite/SmoQyDQMC.jl/blob/main/scripts/holstein_kagome.jl"><code>scripts/holstein_kagome.jl</code></a>. To run a short test simulation using this script that only takes a few minutes on most personal computers, run the following command:</p><pre><code class="nohighlight hljs">&gt; julia holstein_chain.jl 0 0.1 0.1 0.667 0.0 4.0 3 2000 10000 50</code></pre><p>Here the Holstein model on a <span>$3 \times 3$</span> unit cell Kagome lattice is simulated with <span>$\Omega = 0.1$</span>, <span>$\alpha = 0.1$</span> and inverse temperature <span>$\beta = 4.0$</span>. The chemical potential is initialized to <span>$\mu = 0.0$</span>, and then tuned to achieve are target electron density of <span>$\langle n \rangle = 0.667$</span>. In this example <code>N_burnin = 2000</code> thermalizatoin HMC and refleciton updates are performed, followed by an additional <code>N_updates = 10000</code> such updates, during which time an equivalent number of measurements are made. Bin averaged measurements are written to file <code>N_bins = 50</code> during the simulation.</p><p>Below you can find the contents of the script <a href="https://github.com/SmoQySuite/SmoQyDQMC.jl/blob/main/example_scripts/holstein_kagome.jl"><code>example_scripts/holstein_kagome.jl</code></a> with additional comments that discuss in more detail what certain parts of the code are doing.</p><pre><code class="language-julia hljs">using LinearAlgebra
 using Random
 using Printf
 
@@ -15,7 +18,7 @@ import SmoQyDQMC.MuTuner           as mt
 function run_holstein_chain_simulation(sID, Ω, α, n, μ, β, L, N_burnin, N_updates, N_bins; filepath = &quot;.&quot;)
 
     # Construct the foldername the data will be written to.
-    datafolder_prefix = @sprintf &quot;holstein_chain_w%.2f_a%.2f_n%.2f_L%d_b%.2f&quot; Ω α n L β
+    datafolder_prefix = @sprintf &quot;holstein_kagome_w%.2f_a%.2f_n%.2f_L%d_b%.2f&quot; Ω α n L β
 
     # Initialize an instance of the SimulationInfo type.
     simulation_info = SimulationInfo(
@@ -94,13 +97,18 @@ function run_holstein_chain_simulation(sID, Ω, α, n, μ, β, L, N_burnin, N_up
     #######################
 
     # Initialize an instance of the type UnitCell.
-    unit_cell = lu.UnitCell(lattice_vecs = [[1.0]],
-                            basis_vecs   = [[0.0]])
+    unit_cell = lu.UnitCell(
+        lattice_vecs = [[1.0,0.0],
+                        [1/2,√3/2]],
+        basis_vecs   = [[0.0,0.0],
+                        [1/2,0.0],
+                        [1/4,√3/4]]
+    )
 
     # Initialize an instance of the type Lattice.
     lattice = lu.Lattice(
-        L = [L],
-        periodic = [true]
+        L = [L, L],
+        periodic = [true, true]
     )
 
     # Get the number of sites in the lattice.
@@ -109,11 +117,41 @@ function run_holstein_chain_simulation(sID, Ω, α, n, μ, β, L, N_burnin, N_up
     # Initialize an instance of the ModelGeometry type.
     model_geometry = ModelGeometry(unit_cell, lattice)
 
-    # Define the nearest-neighbor bond for a 1D chain.
-    bond = lu.Bond(orbitals = (1,1), displacement = [1])
+    # Define the nearest-neighbor bond.
+    bond_1 = lu.Bond(orbitals = (1,2), displacement = [0,0])
 
-    # Add this bond to the model, by adding it to the ModelGeometry type.
-    bond_id = add_bond!(model_geometry, bond)
+    # Add nearest neighbor bond to the model.
+    bond_1_id = add_bond!(model_geometry, bond_1)
+
+    # Define the nearest-neighbor bond.
+    bond_2 = lu.Bond(orbitals = (1,3), displacement = [0,0])
+
+    # Add nearest neighbor bond to the model.
+    bond_2_id = add_bond!(model_geometry, bond_2)
+
+    # Define the nearest-neighbor bond.
+    bond_3 = lu.Bond(orbitals = (2,3), displacement = [0,0])
+
+    # Add nearest neighbor bond to the model.
+    bond_3_id = add_bond!(model_geometry, bond_3)
+
+    # Define the nearest-neighbor bond.
+    bond_4 = lu.Bond(orbitals = (2,1), displacement = [1,0])
+
+    # Add nearest neighbor bond to the model.
+    bond_4_id = add_bond!(model_geometry, bond_4)
+
+    # Define the nearest-neighbor bond.
+    bond_5 = lu.Bond(orbitals = (3,1), displacement = [0,1])
+
+    # Add nearest neighbor bond to the model.
+    bond_5_id = add_bond!(model_geometry, bond_5)
+
+    # Define the nearest-neighbor bond.
+    bond_6 = lu.Bond(orbitals = (3,2), displacement = [-1,1])
+
+    # Add nearest neighbor bond to the model.
+    bond_6_id = add_bond!(model_geometry, bond_6)
 
     # Define nearest-neighbor hopping amplitude, setting the energy scale for the system.
     t = 1.0
@@ -121,10 +159,10 @@ function run_holstein_chain_simulation(sID, Ω, α, n, μ, β, L, N_burnin, N_up
     # Define the tight-binding model
     tight_binding_model = TightBindingModel(
         model_geometry = model_geometry,
-        t_bonds = [bond], # defines hopping
-        t_mean = [t],     # defines corresponding hopping amplitude
-        μ = μ,            # set chemical potential
-        ϵ_mean = [0.]     # set the (mean) on-site energy
+        t_bonds = [bond_1, bond_2, bond_3, bond_4, bond_5, bond_6], # defines hopping
+        t_mean  = [t, t, t, t, t, t],     # defines corresponding hopping amplitude
+        μ       = μ,            # set chemical potential
+        ϵ_mean  = [0.0, 0.0, 0.0]     # set the (mean) on-site energy
     )
 
     # Initialize a null electron-phonon model.
@@ -133,27 +171,75 @@ function run_holstein_chain_simulation(sID, Ω, α, n, μ, β, L, N_burnin, N_up
         tight_binding_model = tight_binding_model
     )
 
-    # Define a dispersionless electron-phonon mode to live on each site in the lattice.
-    phonon = PhononMode(orbital = 1, Ω_mean = Ω)
+    # Define a dispersionless electron-phonon mode to live the first sub-lattice.
+    phonon_1 = PhononMode(orbital = 1, Ω_mean = Ω)
 
     # Add the phonon mode definition to the electron-phonon model.
-    phonon_id = add_phonon_mode!(
+    phonon_1_id = add_phonon_mode!(
         electron_phonon_model = electron_phonon_model,
-        phonon_mode = phonon
+        phonon_mode = phonon_1
     )
 
-    # Define a on-site Holstein coupling between the electron and the local dispersionless phonon mode.
-    holstein_coupling = HolsteinCoupling(
+    # Define a dispersionless electron-phonon mode to live the second sub-lattice.
+    phonon_2 = PhononMode(orbital = 2, Ω_mean = Ω)
+
+    # Add the phonon mode definition to the electron-phonon model.
+    phonon_2_id = add_phonon_mode!(
+        electron_phonon_model = electron_phonon_model,
+        phonon_mode = phonon_2
+    )
+
+    # Define a dispersionless electron-phonon mode to live the third sub-lattice.
+    phonon_3 = PhononMode(orbital = 3, Ω_mean = Ω)
+
+    # Add the phonon mode definition to the electron-phonon model.
+    phonon_3_id = add_phonon_mode!(
+        electron_phonon_model = electron_phonon_model,
+        phonon_mode = phonon_3
+    )
+
+    # Define a on-site Holstein coupling for first sub-lattice.
+    holstein_coupling_1 = HolsteinCoupling(
     	model_geometry = model_geometry,
-    	phonon_mode = phonon_id,
-    	bond = lu.Bond(orbitals = (1,1), displacement = [0]),
+    	phonon_mode = phonon_1_id,
+    	bond = lu.Bond(orbitals = (1,1), displacement = [0,0]),
     	α_mean = α
     )
 
-    # Add the Holstein coupling definition to the model.
-    holstein_coupling_id = add_holstein_coupling!(
+    # Add the Holstein coupling definition to the model for first sub-lattice.
+    holstein_coupling_1_id = add_holstein_coupling!(
     	electron_phonon_model = electron_phonon_model,
-    	holstein_coupling = holstein_coupling,
+    	holstein_coupling = holstein_coupling_1,
+    	model_geometry = model_geometry
+    )
+
+    # Define a on-site Holstein coupling for second sub-lattice.
+    holstein_coupling_2 = HolsteinCoupling(
+    	model_geometry = model_geometry,
+    	phonon_mode = phonon_2_id,
+    	bond = lu.Bond(orbitals = (2,2), displacement = [0,0]),
+    	α_mean = α
+    )
+
+    # Add the Holstein coupling definition to the model for first sub-lattice.
+    holstein_coupling_2_id = add_holstein_coupling!(
+    	electron_phonon_model = electron_phonon_model,
+    	holstein_coupling = holstein_coupling_2,
+    	model_geometry = model_geometry
+    )
+
+    # Define a on-site Holstein coupling for first sub-lattice.
+    holstein_coupling_3 = HolsteinCoupling(
+    	model_geometry = model_geometry,
+    	phonon_mode = phonon_3_id,
+    	bond = lu.Bond(orbitals = (3,3), displacement = [0,0]),
+    	α_mean = α
+    )
+
+    # Add the Holstein coupling definition to the model for first sub-lattice.
+    holstein_coupling_3_id = add_holstein_coupling!(
+    	electron_phonon_model = electron_phonon_model,
+    	holstein_coupling = holstein_coupling_3,
     	model_geometry = model_geometry
     )
 
@@ -205,7 +291,8 @@ function run_holstein_chain_simulation(sID, Ω, α, n, μ, β, L, N_burnin, N_up
         model_geometry = model_geometry,
         correlation = &quot;greens&quot;,
         time_displaced = true,
-        pairs = [(1, 1)]
+        pairs = [(1, 1), (2, 2), (3, 3),
+                 (1, 2), (1, 3), (2, 3)]
     )
 
     # Initialize time-displaced phonon Green&#39;s function measurement.
@@ -214,7 +301,8 @@ function run_holstein_chain_simulation(sID, Ω, α, n, μ, β, L, N_burnin, N_up
         model_geometry = model_geometry,
         correlation = &quot;phonon_greens&quot;,
         time_displaced = true,
-        pairs = [(phonon_id, phonon_id)]
+        pairs = [(1, 1), (2, 2), (3, 3),
+                 (1, 2), (1, 3), (2, 3)]
     )
 
     # Initialize density correlation function measurement.
@@ -224,7 +312,8 @@ function run_holstein_chain_simulation(sID, Ω, α, n, μ, β, L, N_burnin, N_up
         correlation = &quot;density&quot;,
         time_displaced = false,
         integrated = true,
-        pairs = [(1, 1)]
+        pairs = [(1, 1), (2, 2), (3, 3),
+                 (1, 2), (1, 3), (2, 3)]
     )
 
     # Initialize the pair correlation function measurement.
@@ -234,7 +323,7 @@ function run_holstein_chain_simulation(sID, Ω, α, n, μ, β, L, N_burnin, N_up
         correlation = &quot;pair&quot;,
         time_displaced = false,
         integrated = true,
-        pairs = [(1, 1)]
+        pairs = [(1, 1), (2, 2), (3, 3)]
     )
 
     # Initialize the spin-z correlation function measurement.
@@ -244,7 +333,8 @@ function run_holstein_chain_simulation(sID, Ω, α, n, μ, β, L, N_burnin, N_up
         correlation = &quot;spin_z&quot;,
         time_displaced = false,
         integrated = true,
-        pairs = [(1, 1)]
+        pairs = [(1, 1), (2, 2), (3, 3),
+                 (1, 2), (1, 3), (2, 3)]
     )
 
     # Initialize the sub-directories to which the various measurements will be written.
@@ -320,7 +410,7 @@ function run_holstein_chain_simulation(sID, Ω, α, n, μ, β, L, N_burnin, N_up
             fermion_path_integral = fermion_path_integral,
             fermion_greens_calculator = fermion_greens_calculator,
             fermion_greens_calculator_alt = fermion_greens_calculator_alt,
-            B = B, rng = rng, phonon_types = (phonon_id,)
+            B = B, rng = rng, phonon_types = (phonon_1_id, phonon_2_id, phonon_3_id)
         )
 
         # Record whether the reflection update was accepted or rejected.
@@ -370,7 +460,7 @@ function run_holstein_chain_simulation(sID, Ω, α, n, μ, β, L, N_burnin, N_up
                 fermion_path_integral = fermion_path_integral,
                 fermion_greens_calculator = fermion_greens_calculator,
                 fermion_greens_calculator_alt = fermion_greens_calculator_alt,
-                B = B, rng = rng, phonon_types = (phonon_id,)
+                B = B, rng = rng, phonon_types = (phonon_1_id, phonon_2_id, phonon_3_id)
             )
 
             # Record whether the reflection update was accepted or rejected.
@@ -467,4 +557,4 @@ if abspath(PROGRAM_FILE) == @__FILE__
 
     # Run the simulation.
     run_holstein_chain_simulation(sID, Ω, α, n, μ, β, L, N_burnin, N_updates, N_bins)
-end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../hubbard_chain_checkpoint/">« Example 1(c): Hubbard Chain with Checkpointing</a><a class="docs-footer-nextpage" href="../ossh_chain/">Example 3: Optical Su-Schrieffer-Heeger Chain »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.25 on <span class="colophon-date" title="Thursday 6 July 2023 14:29">Thursday 6 July 2023</span>. Using Julia version 1.9.2.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../hubbard_threeband/">« Example 6: 3-band Hubbard Model</a><a class="docs-footer-nextpage" href="../hubbard_honeycomb/">Example 7: Honeycomb Hubbard model »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.25 on <span class="colophon-date" title="Thursday 6 July 2023 14:29">Thursday 6 July 2023</span>. Using Julia version 1.9.2.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
