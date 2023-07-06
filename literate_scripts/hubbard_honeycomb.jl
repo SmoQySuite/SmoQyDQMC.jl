@@ -1,4 +1,4 @@
-# # Example 7: Honeycomb Hubbard model
+# # Example 8: Honeycomb Hubbard model
 #
 # In this script we simulate the Hubbard model on a Honeycomb lattice, with a Hamiltonian given by
 # ```math
