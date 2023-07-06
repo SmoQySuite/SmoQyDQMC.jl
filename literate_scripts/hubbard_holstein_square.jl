@@ -4,7 +4,7 @@
 # ```math
 # \begin{align*}
 # \hat{H} = & -t \sum_{\sigma,\langle i, j \rangle} (\hat{c}^{\dagger}_{\sigma,i}, \hat{c}^{\phantom \dagger}_{\sigma,j} + {\rm h.c.})
-#             -\mu \sum_{\sigma,i}(\hat{n}_{\sigma,i}-\tfrac{1}{2}) \\
+#             -\mu \sum_{\sigma,i}\hat{n}_{\sigma,i}\\
 #           & + U \sum_{i} (\hat{n}_{\uparrow,i}-\tfrac{1}{2})(\hat{n}_{\downarrow,i}-\tfrac{1}{2})
 #             + \alpha \sum_{\sigma,i} \hat{X}_i (\hat{n}_{\sigma,i} - \tfrac{1}{2}) \\
 #           & + \sum_i \left( \frac{1}{2M}\hat{P}_i^2 + \frac{1}{2}M\Omega^2\hat{X}_i^2 \right),
@@ -16,6 +16,17 @@
 # chemical potential. The strength of the repulsive Hubbard interaction is controlled by ``U>0``. ``\hat{X}_i \ (\hat{P}_i)``
 # is the phonon position (momentum) operator for a dispersionless mode placed on site ``i`` with phonon frequency ``\Omega`` and
 # corresponding ion mass ``M``. The stength of the Holstein electron-phonon is controlled by the parameter ``\alpha``.
+#
+# The example script to simulate this sytem is
+# [`scripts/hubbard_holstein_square.jl`](https://github.com/SmoQySuite/SmoQyDQMC.jl/blob/main/scripts/hubbard_holstein_square.jl).
+# A short test simulation using this script that only takes a few minutes on most personal computers is
+# ```
+# > julia hubbard_holstein_square.jl 0 6.0 0.1 0.1 0.0 4.0 4 1000 5000 50
+# ```
+# which simulates the Hubbard-Holstein model on a ``L = 4`` square lattice, with ``U = 6.0``, ``\Omega = 0.1``, ``\alpha = 0.1``
+# and ``\mu = 0.0`` at an inverse temperature of ``\beta = 4.0``. In this simulation the Hubbard-Stranonovich and phonon fields
+# are thermalized with `N_burnin = 1000` rounds of updates, followed by `N_udpates = 5000` rounds of updates with measurements
+# being made. Bin averaged measurements are written to file `N_bins = 50` during the simulation.
 #
 # Below you will find a more heavily commented version
 # of the [`example_scripts/hubbard_holstein_square.jl`](https://github.com/SmoQySuite/SmoQyDQMC.jl/blob/main/example_scripts/hubbard_holstein_square.jl)
