@@ -1,11 +1,13 @@
 # # Example 7: Honeycomb Hubbard model
 #
 # In this script we simulate the Hubbard model on a Honeycomb lattice, with a Hamiltonian given by
+# ```math
 # \begin{align*}
 # \hat{H} = & -t \sum_{\sigma,\langle i, j \rangle} (\hat{c}^{\dagger}_{\sigma,i}, \hat{c}^{\phantom \dagger}_{\sigma,j} + {\rm h.c.})
 #             -\mu \sum_{\sigma,i}\hat{n}_{\sigma,i}\\
 #           & + U \sum_{i} (\hat{n}_{\uparrow,i}-\tfrac{1}{2})(\hat{n}_{\downarrow,i}-\tfrac{1}{2}),
 # \end{align*}
+# ```
 # where ``\hat{c}^\dagger_{\sigma,i} \ (\hat{c}^{\phantom \dagger}_{\sigma,i})`` creates (annihilates) a spin ``\sigma``
 # electron on site ``i`` in the lattice, and ``\hat{n}_{\sigma,i} = \hat{c}^\dagger_{\sigma,i} \hat{c}^{\phantom \dagger}_{\sigma,i}``
 # is the spin-``\sigma`` electron number operator for site ``i``. The nearest-neighbor hopping amplitude is ``t`` and ``\mu`` is the
