@@ -67,7 +67,7 @@ function Base.show(io::IO, ::MIME"text/plain", model_geo::ModelGeometry{D,T}) wh
         r = unit_cell.basis_vecs[i]
         @printf io "[[geometry.unit_cell.basis_vector]]\n\n"
         @printf io "ORBITAL_ID = %d\n" i
-        @printf io "r          = %s\n" string(round.(r, digits=6))
+        @printf io "r          = %s\n\n" string(round.(r, digits=6))
     end
     @printf io "\n"
     @printf io "[geometry.lattice]\n\n"
