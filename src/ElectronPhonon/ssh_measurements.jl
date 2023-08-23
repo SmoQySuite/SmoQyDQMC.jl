@@ -16,8 +16,8 @@ Calculate the return the SSH interaction energy
 for coupling definition specified by `ssh_id`.
 """
 function measure_ssh_energy(electron_phonon_parameters::ElectronPhononParameters{T,E},
-                         Gup::Matrix{T}, Gdn::Matrix{T},
-                         ssh_id::Int) where {T<:Number, E<:AbstractFloat}
+                            Gup::Matrix{T}, Gdn::Matrix{T},
+                            ssh_id::Int) where {T<:Number, E<:AbstractFloat}
 
     x = electron_phonon_parameters.x::Matrix{E}
     ssh_parameters = electron_phonon_parameters.ssh_parameters::SSHParameters{T}
@@ -27,8 +27,8 @@ function measure_ssh_energy(electron_phonon_parameters::ElectronPhononParameters
 end
 
 function measure_ssh_energy(ssh_parameters::SSHParameters{T},
-                         Gup::Matrix{T}, Gdn::Matrix{T},
-                         x::Matrix{E}, ssh_id::Int) where {T<:Number, E<:AbstractFloat}
+                            Gup::Matrix{T}, Gdn::Matrix{T},
+                            x::Matrix{E}, ssh_id::Int) where {T<:Number, E<:AbstractFloat}
 
     (; nssh, Nssh, α, α2, α3, α4, neighbor_table, coupling_to_phonon) = ssh_parameters
 
@@ -50,26 +50,23 @@ function measure_ssh_energy(ssh_parameters::SSHParameters{T},
     nt  = @view neighbor_table[:,slice]
     ctp = @view coupling_to_phonon[:,slice]
 
-    # iterate over imaginary time slice
-    @fastmath @inbounds for l in axes(x, 2)
-        # iterate over unit cells
-        for u in axes(ctp, 2)
-            p  = ctp[1,u]
-            p′ = ctp[2,u]
-            Δx = x[p′,l] - x[p,l]
-            i  = nt[1,u]
-            j  = nt[2,u]
-            hup = -Gup[i,j]
-            hdn = -Gdn[i,j]
-            ϵ_ssh += (α′[u]*Δx + α2′[u]*Δx^2 + α3′[u]*Δx^3 + α4′[u]*Δx^4) * (hup + hdn)
-            hup = -Gup[j,i]
-            hdn = -Gdn[j,i]
-            ϵ_ssh += conj(α′[u]*Δx + α2′[u]*Δx^2 + α3′[u]*Δx^3 + α4′[u]*Δx^4) * (hup + hdn)
-        end
+    # iterate over unit cells
+    for u in axes(ctp, 2)
+        p  = ctp[1,u]
+        p′ = ctp[2,u]
+        Δx = x[p′,Lτ] - x[p,Lτ]
+        i  = nt[1,u]
+        j  = nt[2,u]
+        hup = -Gup[i,j]
+        hdn = -Gdn[i,j]
+        ϵ_ssh += (α′[u]*Δx + α2′[u]*Δx^2 + α3′[u]*Δx^3 + α4′[u]*Δx^4) * (hup + hdn)
+        hup = -Gup[j,i]
+        hdn = -Gdn[j,i]
+        ϵ_ssh += conj(α′[u]*Δx + α2′[u]*Δx^2 + α3′[u]*Δx^3 + α4′[u]*Δx^4) * (hup + hdn)
     end
 
     # normalize measurement
-    ϵ_ssh /= (Nunitcell * Lτ)
+    ϵ_ssh /= (Nunitcell)
 
     return ϵ_ssh
 end
@@ -88,8 +85,8 @@ Calculate the fraction of the time the sign of the hopping is changed as a resul
 SSH coupling associated with `ssh_id`.
 """
 function measure_ssh_sgn_switch(electron_phonon_parameters::ElectronPhononParameters{T,E},
-                             tight_binding_parameters::TightBindingParameters{T,E},
-                             ssh_id::Int) where {T<:Number, E<:AbstractFloat}
+                                tight_binding_parameters::TightBindingParameters{T,E},
+                                ssh_id::Int) where {T<:Number, E<:AbstractFloat}
 
     x = electron_phonon_parameters.x::Matrix{E}
     ssh_parameters = electron_phonon_parameters.ssh_parameters::SSHParameters{T}
@@ -99,8 +96,8 @@ function measure_ssh_sgn_switch(electron_phonon_parameters::ElectronPhononParame
 end
 
 function measure_ssh_sgn_switch(ssh_parameters::SSHParameters{T},
-                             tight_binding_parameters::TightBindingParameters{T,E},
-                             x::Matrix{E}, ssh_id::Int) where {T<:Number, E<:AbstractFloat}
+                                tight_binding_parameters::TightBindingParameters{T,E},
+                                x::Matrix{E}, ssh_id::Int) where {T<:Number, E<:AbstractFloat}
 
     (; t) = tight_binding_parameters
     (; nssh, Nssh, α, α2, α3, α4, coupling_to_phonon, coupling_to_hopping) = ssh_parameters

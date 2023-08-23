@@ -288,7 +288,7 @@ function _process_global_measurements(folder::String, bin_to_filenames::Vector{V
         n = binned_global_measurements["density"]
         N² = binned_global_measurements["Nsqrd"]
         S = binned_sgn
-        κ, Δκ = jackknife((n̄, N̄², S̄) -> (β/N_site)*(N̄²/S̄ - (N_site*n̄)^2/S̄), n, N², S)
+        κ, Δκ = jackknife((n̄, N̄², S̄) -> (β/N_site)*(N̄²/S̄ - ((N_site*n̄)/S̄))^2, n, N², S)
         @printf(fout, "compressibility %.8f %.8f %.8f\n", real(κ), imag(κ), Δκ)
     end
 
