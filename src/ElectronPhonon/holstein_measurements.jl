@@ -27,8 +27,8 @@ function measure_holstein_energy(electron_phonon_parameters::ElectronPhononParam
 end
 
 function measure_holstein_energy(holstein_parameters::HolsteinParameters{E},
-                              Gup::Matrix{T}, Gdn::Matrix{T},
-                              x::Matrix{E}, holstein_id::Int) where {T<:Number, E<:AbstractFloat}
+                                 Gup::Matrix{T}, Gdn::Matrix{T},
+                                 x::Matrix{E}, holstein_id::Int) where {T<:Number, E<:AbstractFloat}
 
     (; nholstein, Nholstein, α, α2, α3, α4, neighbor_table, coupling_to_phonon) = holstein_parameters
 
@@ -50,21 +50,18 @@ function measure_holstein_energy(holstein_parameters::HolsteinParameters{E},
     nt  = @view neighbor_table[:,slice]
     ctp = @view coupling_to_phonon[slice]
 
-    # iterate over imaginaryt ime slice
-    for l in axes(x,2)
-        # iterate over unit cells
-        for u in eachindex(ctp)
-            x_ul = x[ctp[u],l]
-            i_ul = nt[2,1]
-            nup_ul = 1 - real(Gup[i_ul, i_ul])
-            ndn_ul = 1 - real(Gdn[i_ul, i_ul])
-            # [α⋅x + α₂⋅x² + α₃⋅x³ + α₄⋅x⁴]⋅(n₊ + n₋ - 1)
-            ϵ_hol += (α′[u]*x_ul + α2′[u]*x_ul^2 + α3′[u]*x_ul^3 + α4′[u]*x_ul^4) * (nup_ul + ndn_ul - 1)
-        end
+    # iterate over unit cells
+    for u in eachindex(ctp)
+        x_ul = x[ctp[u],Lτ]
+        i_ul = nt[2,1]
+        nup_ul = 1 - real(Gup[i_ul, i_ul])
+        ndn_ul = 1 - real(Gdn[i_ul, i_ul])
+        # [α⋅x + α₂⋅x² + α₃⋅x³ + α₄⋅x⁴]⋅(n₊ + n₋ - 1)
+        ϵ_hol += (α′[u]*x_ul + α2′[u]*x_ul^2 + α3′[u]*x_ul^3 + α4′[u]*x_ul^4) * (nup_ul + ndn_ul - 1)
     end
 
     # normalize measurement
-    ϵ_hol /= (Lτ * Nunitcell)
+    ϵ_hol /= (Nunitcell)
 
     return ϵ_hol
 end
