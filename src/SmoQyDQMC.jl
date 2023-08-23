@@ -181,6 +181,10 @@ include("Measurements/write_measurements.jl")
 export write_measurements!
 
 # process measurements at end of the simulation to get final averages and error bars for all measurements
+include("Measurements/process_measurements_utils.jl")
+include("Measurements/process_global_measurements.jl")
+include("Measurements/process_local_measurements.jl")
+include("Measurements/process_correlation_measurements.jl")
 include("Measurements/process_measurements.jl")
 export process_measurements, process_correlation_measurement
 
