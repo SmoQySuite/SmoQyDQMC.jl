@@ -284,6 +284,9 @@ write_measurements!
 ### Process Measurements
 ```@docs
 process_measurements
+process_global_measurements
+process_local_measurements
+process_correlation_measurements
 process_correlation_measurement
 composite_correlation_stats
 global_measurement_bins_to_csv

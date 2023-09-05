@@ -2,10 +2,24 @@
 ## PROCESS LOCAL MEASUREMENTS ##
 ################################
 
-function process_local_measurements(folder::String, N_bins::Int, pIDs::Vector{Int} = Int[])
+@doc raw"""
+    process_local_measurements(folder::String, N_bin::Int, pIDs::Union{Vector{Int},Int} = Int[])
+
+Process local measurents for the specified process IDs, calculating the average and error for all local measurements
+and writing the result to CSV file.
+If `pIDs` is not specified, then the statistics are calculated using all MPI walker results.
+"""
+function process_local_measurements(folder::String, N_bin::Int, pIDs::Union{Vector{Int},Int} = Int[])
+
+    _process_local_measurements(folder, N_bin, pIDs)
+    return nothing
+end
+
+# process local measurements average across multiple MPI walkers
+function _process_local_measurements(folder::String, N_bin::Int, pIDs::Vector{Int})
 
     # set the walkers to iterate over
-    if length(pIDs)
+    if length(pIDs) == 0
 
         # get the number of MPI walkers
         N_walkers = get_num_walkers(folder)
@@ -15,7 +29,7 @@ function process_local_measurements(folder::String, N_bins::Int, pIDs::Vector{In
     end
 
     # calculate bin intervals
-    bin_intervals = get_bin_intervals(folder, N_bins, pIDs[1])
+    bin_intervals = get_bin_intervals(folder, N_bin, pIDs[1])
 
     # get binned sign
     binned_sign = get_average_sign(folder, bin_intervals, pIDs[1])
@@ -45,7 +59,7 @@ function process_local_measurements(folder::String, N_bins::Int, pIDs::Vector{In
         walker_local_measurements_avg, walker_local_measurements_std = analyze_local_measurements(binned_local_measurements, binned_sign)
 
         # iterate over measurements
-        for key in local_measurements_avg
+        for key in keys(local_measurements_avg)
 
             # record measurement average
             @. local_measurements_avg[key] += walker_local_measurements_avg[key]
@@ -57,8 +71,9 @@ function process_local_measurements(folder::String, N_bins::Int, pIDs::Vector{In
 
     # calculate average for each measurement across all walkers and final standard deviation with errors properly propagated
     for key in keys(local_measurements_avg)
-        @. local_measurements_avg[key] /= length(pIDs)
-        @. local_measurements_std[key]  = sqrt(local_measurements_var[key]) / length(pIDs)
+        N_id = length(pIDs)
+        @. local_measurements_avg[key] /= N_id
+        @. local_measurements_std[key]  = sqrt(local_measurements_var[key]) / N_id
     end
 
     # write the final local measurement stat to file
@@ -67,22 +82,23 @@ function process_local_measurements(folder::String, N_bins::Int, pIDs::Vector{In
     return nothing
 end
 
-function process_local_measurements(folder::String, N_bins::Int, pID::Int)
+# process local measurements for a single MPI walker
+function _process_local_measurements(folder::String, N_bin::Int, pID::Int)
 
     # calculate bin intervals
-    bin_intervals = get_bin_intervals(folder, N_bins, pID)
+    bin_intervals = get_bin_intervals(folder, N_bin, pID)
 
-    # get the binned sign
+    # get binned sign
     binned_sign = get_average_sign(folder, bin_intervals, pID)
 
-    # read in binned local measurements for specified pID
+    # read in binned local measurements for first pID
     binned_local_measurements = read_local_measurements(folder, pID, bin_intervals)
 
     # calculate local measurements stats
     local_measurements_avg, local_measurements_std = analyze_local_measurements(binned_local_measurements, binned_sign)
 
     # write the final local measurement stat to file
-    write_local_measurements(folder, local_measurements_avg, local_measurements_std)
+    write_local_measurements(folder, pID, local_measurements_avg, local_measurements_std)
 
     return nothing
 end
@@ -92,7 +108,7 @@ end
 function read_local_measurements(folder::String, pID::Int, bin_intervals::Vector{UnitRange{Int}})
     
     # number of bins
-    N_bins = length(bin_intervals)
+    N_bin = length(bin_intervals)
 
     # bin size
     N_binsize = length(bin_intervals[1])
@@ -113,11 +129,11 @@ function read_local_measurements(folder::String, pID::Int, bin_intervals::Vector
     binned_local_measurements = Dict{String, Matrix{T}}()
     for key in keys(local_measurements)
         n = length(local_measurements[key])
-        binned_local_measurements[key] = zeros(T, N_bins, n)
+        binned_local_measurements[key] = zeros(T, N_bin, n)
     end
 
     # iterate over bins
-    for bin in 1:N_bins
+    for bin in 1:N_bin
 
         # iterate over bin elements
         for i in bin_intervals[bin]
@@ -150,12 +166,17 @@ function analyze_local_measurements(
 
     # iterate over measurements
     for key in keys(binned_local_measurements)
+        # number of IDs
+        N_id = size(binned_local_measurements[key],2)
+        # initialize vector for measurement
+        local_measurements_avg[key] = zeros(Complex{T}, N_id)
+        local_measurements_std[key] = zeros(T, N_id)
         # iterate over each type of a given local measurement (orbital id as an example)
-        for n in 1:size(binned_local_measurements,2)
+        for n in 1:N_id
             # get the binned values
             binned_vals = @view binned_local_measurements[key][:,n]
             # calculate stats
-            avg, err = jackkife(/, binned_vals, binned_sign)
+            avg, err = jackknife(/, binned_vals, binned_sign)
             # record the statistics
             local_measurements_avg[key][n] = avg
             local_measurements_std[key][n] = err
@@ -171,7 +192,7 @@ function write_local_measurements(
     folder::String,
     local_measurements_avg::Dict{String, Vector{Complex{T}}},
     local_measurements_std::Dict{String, Vector{T}}
-)
+) where {T<:AbstractFloat}
 
     open(joinpath(folder,"local_stats.csv"), "w") do fout
         _write_local_measurements(fout, local_measurements_avg, local_measurements_std)
@@ -183,10 +204,10 @@ end
 # write the local measurements
 function write_local_measurements(
     folder::String,
+    pID::Int,
     local_measurements_avg::Dict{String, Vector{Complex{T}}},
     local_measurements_std::Dict{String, Vector{T}},
-    pID:Int
-)
+) where {T<:AbstractFloat}
 
     open(joinpath(folder,"local_stats_pID-$(pID).csv"), "w") do fout
         _write_local_measurements(fout, local_measurements_avg, local_measurements_std)
@@ -200,7 +221,7 @@ function _write_local_measurements(
     fout::IO,
     local_measurements_avg::Dict{String, Vector{Complex{T}}},
     local_measurements_std::Dict{String, Vector{T}}
-)
+) where {T<:AbstractFloat}
 
     # write header
     write(fout, "MEASUREMENT ID_TYPE ID MEAN_R MEAN_I STD\n")

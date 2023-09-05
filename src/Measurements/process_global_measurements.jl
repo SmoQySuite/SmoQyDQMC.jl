@@ -3,14 +3,25 @@
 #################################
 
 @doc raw"""
-    process_global_measurements(folder::String, N_bins::Int, pIDs::Vector{Int} = Int[])
+    process_global_measurements(folder::String, N_bin::Int, pIDs::Union{Vector{Int},Int} = Int[])
 
-Calculate the mean and error for all global measurements averaged across all MPI walkers, writing the result to CSV file.
+Process global measurents for the specified process IDs, calculating the average and error for all global measurements
+and writing the result to CSV file.
+If `pIDs` is not specified, then results for all MPI walkers are averaged over.
 """
-function process_global_measurements(folder::String, N_bins::Int, pIDs::Vector{Int} = Int[])
+function process_global_measurements(folder::String, N_bin::Int, pIDs::Union{Vector{Int},Int} = Int[])
+
+    β, Δτ, Lτ, model_geometry = load_model_summary(folder)
+    N_site = nsites(model_geometry.unit_cell, model_geometry.lattice)
+    _process_global_measurements(folder, N_bin, pIDs, β, N_site)
+    return nothing
+end
+
+# process global measurements averaging over multiple MPI walkers
+function _process_global_measurements(folder::String, N_bin::Int, pIDs::Vector{Int}, β::T, N_site::Int) where {T<:AbstractFloat}
 
     # set the walkers to iterate over
-    if length(pIDs)
+    if length(pIDs) == 0
 
         # get the number of MPI walkers
         N_walkers = get_num_walkers(folder)
@@ -20,13 +31,13 @@ function process_global_measurements(folder::String, N_bins::Int, pIDs::Vector{I
     end
 
     # calculate bin intervals
-    bin_intervals = get_bin_intervals(folder, N_bins, pIDs[1])
+    bin_intervals = get_bin_intervals(folder, N_bin, pIDs[1])
 
     # read in binned global measurements for first pID
     binned_gloabl_measurements = read_global_measurements(folder, pIDs[1], bin_intervals)
 
     # calculate global measurements stats
-    global_measurements_avg, global_measurements_std = analyze_global_measurements(binned_gloabl_measurements)
+    global_measurements_avg, global_measurements_std = analyze_global_measurements(binned_gloabl_measurements, β, N_site)
 
     # convert standard deviations to variance
     global_measurements_var = global_measurements_std
@@ -41,7 +52,7 @@ function process_global_measurements(folder::String, N_bins::Int, pIDs::Vector{I
         binned_gloabl_measurements = read_global_measurements(folder, pID, bin_intervals)
 
         # calculate global measurements stats
-        walker_global_measurements_avg, walker_global_measurements_std = analyze_global_measurements(binned_gloabl_measurements)
+        walker_global_measurements_avg, walker_global_measurements_std = analyze_global_measurements(binned_gloabl_measurements, β, N_site)
 
         # iterate over measurements
         for key in keys(global_measurements_avg)
@@ -66,24 +77,20 @@ function process_global_measurements(folder::String, N_bins::Int, pIDs::Vector{I
     return nothing
 end
 
-@doc raw"""
-    process_global_measurements(folder::String, N_bins::Int, pID::Int)
-
-Calculate the mean and error for all global measurements for a single MPI walker specified by `pID`, writing the result to CSV file.
-"""
-function process_global_measurements(folder::String, N_bins::Int, pID::Int)
+# process global measurements for single MPI walker
+function _process_global_measurements(folder::String, N_bin::Int, pID::Int, β::T, N_site::Int) where {T<:AbstractFloat}
 
     # calculate bin intervals
-    bin_intervals = get_bin_intervals(folder, N_bins, pID)
+    bin_intervals = get_bin_intervals(folder, N_bin, pID)
 
-    # read in binned global measurements for specified pID
+    # read in binned global measurements for first pID
     binned_gloabl_measurements = read_global_measurements(folder, pID, bin_intervals)
 
     # calculate global measurements stats
-    global_measurements_avg, global_measurements_std = analyze_global_measurements(binned_gloabl_measurements)
+    global_measurements_avg, global_measurements_std = analyze_global_measurements(binned_gloabl_measurements, β, N_site)
 
     # write the final global measurement stat to file
-    write_global_measurements(folder, global_measurements_avg, global_measurements_std)
+    write_global_measurements(folder, pID, global_measurements_avg, global_measurements_std)
 
     return nothing
 end
@@ -108,29 +115,29 @@ function read_global_measurements(
     # get data type of global measurements
     T = typeof(global_measurements["sgn"])
 
-    # initiailize contained for binned global measuremenets
-    binned_gloabl_measurements = Dict(key => zeros(T, N_bin) for key in keys(global_measurements))
-
     # number of bins
-    N_bins = length(bin_intervals)
+    N_bin = length(bin_intervals)
 
     # size of each bin
     N_binsize = length(bin_intervals[1])
 
+    # initiailize contained for binned global measuremenets
+    binned_global_measurements = Dict(key => zeros(T, N_bin) for key in keys(global_measurements))
+
     # iterate over bins
-    for bin in 1:N_bins
+    for bin in 1:N_bin
 
         # iterate over each bin element
         for i in bin_intervals[bin]
 
             # load global measurement
-            global_measurements = JLD2.load(@sprintf("%s/bin-%d_pID%d", global_folder, i, pID))
+            global_measurements = JLD2.load(@sprintf("%s/bin-%d_pID-%d.jld2", global_folder, i, pID))
 
             # iterate over global measurements
-            for key in keys(global_measurement)
+            for key in keys(global_measurements)
 
                 # record measurement
-                binned_gloabl_measurements[key] += global_measurements[key] / N_binsize
+                binned_global_measurements[key][bin] += global_measurements[key] / N_binsize
             end
         end
     end
@@ -141,7 +148,8 @@ end
 
 # analyze binned global measurement data for a single MPI walker
 function analyze_global_measurements(
-    binned_global_measurements::Dict{String, Vector{Complex{T}}}
+    binned_global_measurements::Dict{String, Vector{Complex{T}}},
+    β::T, N_site::Int
 ) where {T<:AbstractFloat}
 
     # initialize dictionaries to contain global measurements stats
@@ -154,7 +162,7 @@ function analyze_global_measurements(
     # iterate over measurements
     for key in keys(binned_global_measurements)
 
-        if startswith(measurement, "sgn") || measurement == "chemical_potential"
+        if startswith(key, "sgn") || key == "chemical_potential"
 
             # calculate mean and error of measurement
             global_measurements_avg[key] = mean(binned_global_measurements[key])

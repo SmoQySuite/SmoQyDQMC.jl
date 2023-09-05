@@ -14,6 +14,7 @@ using BinningAnalysis
 using Reexport
 using PkgVersion
 using TOML
+using Glob
 
 # import "our" packages
 using MuTuner
@@ -183,10 +184,13 @@ export write_measurements!
 # process measurements at end of the simulation to get final averages and error bars for all measurements
 include("Measurements/process_measurements_utils.jl")
 include("Measurements/process_global_measurements.jl")
+export process_global_measurements
 include("Measurements/process_local_measurements.jl")
+export process_local_measurements
 include("Measurements/process_correlation_measurements.jl")
+export process_correlation_measurement, process_correlation_measurements
 include("Measurements/process_measurements.jl")
-export process_measurements, process_correlation_measurement
+export process_measurements
 
 # process composite correlation measurements i.e. calculate functions of correlation functions
 include("Measurements/process_composite_correlation.jl")

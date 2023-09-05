@@ -7,7 +7,7 @@
 # [`scripts/hubbard_chain_mpi.jl`](https://github.com/SmoQySuite/SmoQyDQMC.jl/blob/main/scripts/hubbard_chain_mpi.jl)
 # is very similar to the previous example, only modified slightly:
 # ```
-# > mpiexecjl -n 8 julia hubbard_chain.jl 1 6.0 0.0 8.0 16 2000 10000 50
+# > mpiexecjl -n 8 julia hubbard_chain_mpi.jl 1 6.0 0.0 8.0 16 2000 10000 50
 # ```
 # This would result in `8` identical simulations being run in parallel.
 # It possible that this command may need to be modified slightly depending on how MPI is set up on your system.
