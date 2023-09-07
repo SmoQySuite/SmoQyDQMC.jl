@@ -39,7 +39,7 @@ function _process_correlation_measurements(
 ) where {D, T<:AbstractFloat, N}
 
     # set the walkers to iterate over
-    if length(pIDs) == 0
+    if isempty(pIDs)
 
         # get the number of MPI walkers
         N_walkers = get_num_walkers(folder)

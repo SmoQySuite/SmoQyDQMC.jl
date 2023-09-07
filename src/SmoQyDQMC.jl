@@ -162,9 +162,18 @@ export measure_ssh_energy, measure_ssh_sgn_switch
 include("ElectronPhonon/dispersion_measurements.jl")
 export measure_dispersion_energy
 
+# defines dictionaries as global variables that contain the names of all
+# local measurements and correlation measurements that can be made, and the
+# type ID type they are reported in terms of
+include("Measurements/global_measurement_name_dicts.jl")
+export LOCAL_MEASUREMENTS
+export CORRELATION_FUNCTIONS
+
+# Define CorrelationContainer struct to store correlation measurements in.
+include("Measurements/CorrelationContainer.jl")
+
 # initialize measurement container
 include("Measurements/initialize_measurements.jl")
-export CORRELATION_FUNCTIONS
 export initialize_measurement_container
 export initialize_measurements!
 export initialize_correlation_measurement!, initialize_correlation_measurements!
@@ -194,7 +203,7 @@ export process_measurements
 
 # process composite correlation measurements i.e. calculate functions of correlation functions
 include("Measurements/process_composite_correlation.jl")
-export composite_correlation_stats
+export composite_correlation_stat
 
 # tools for converted binned data, that is saved as *.jld2 binary files, to single csv file
 include("Measurements/binned_data_to_csv.jl")

@@ -21,7 +21,7 @@ end
 function _process_global_measurements(folder::String, N_bin::Int, pIDs::Vector{Int}, β::T, N_site::Int) where {T<:AbstractFloat}
 
     # set the walkers to iterate over
-    if length(pIDs) == 0
+    if isempty(pIDs)
 
         # get the number of MPI walkers
         N_walkers = get_num_walkers(folder)

@@ -73,7 +73,7 @@ function get_num_walkers(folder::String)
         pID = parse(Int, atoms[4])
 
         # record the max process id
-        N_process = max(N_process, pID)
+        N_process = max(N_process, pID + 1)
     end
 
     return N_process
