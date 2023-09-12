@@ -44,11 +44,11 @@ function composite_correlation_stat(;
     C, ΔC = _composite_correlation_stat(folder, correlations, spaces, types, ids, locs, Δls, num_bins, pIDs[1], f)
 
     # if there is more than one MPI walker
-    if length[pIDs] > 1
+    if length(pIDs) > 1
         # calculate the variance of the composite correlation
         VarC = ΔC^2
         # itereate over remaining pIDs
-        for pID in pID[2:end]
+        for pID in pIDs[2:end]
             # calculate composite correlation stat for current MPI walker
             C′, ΔC′ = _composite_correlation_stat(folder, correlations, spaces, types, ids, locs, Δls, num_bins, pID, f)
             # update composite correlation stat
@@ -93,17 +93,15 @@ function _composite_correlation_stat(
     binned_sign = get_average_sign(folder, bin_intervals, pID)
 
     # allocate arrays to store binned data
-    binned_correlations = zeros(eltype(binned_sign), num_bins, length(correlations))
+    binned_correlations = collect(zeros(eltype(binned_sign), num_bins) for i in eachindex(correlations))
 
     # iterate over correlation
-    for i in eachindex(correlation)
-        # get view to hold current binned correlation values
-        binned_correlation = @view binned_correlations[:,i]
+    for i in eachindex(correlations)
         # load binned correlation
         if types[i] == "time-displaced"
-            _load_binned_correlation!(binned_correlation, bin_intervals, dirs[i], ids[i], locs[i], Δls[i], pID)
+            _load_binned_correlation!(binned_correlations[i], bin_intervals, dirs[i], ids[i], locs[i], Δls[i], pID)
         else
-            _load_binned_correlation!(binned_correlation, bin_intervals, dirs[i], ids[i], locs[i], -1, pID)
+            _load_binned_correlation!(binned_correlations[i], bin_intervals, dirs[i], ids[i], locs[i], -1, pID)
         end
     end
 
@@ -145,7 +143,7 @@ function _load_binned_correlation!(
         # iterate over bin elements
         for i in bin_intervals[bin]
             # construct filename
-            file = joinpath(dir, @sprintf("bin-%d_pID-%d", i, pID))
+            file = joinpath(dir, @sprintf("bin-%d_pID-%d.jld2", i, pID))
             # load correlation data
             corr = OffsetArrays.Origin(0)(JLD2.load(file, "correlations")[pair])
             # record the relevant correlations

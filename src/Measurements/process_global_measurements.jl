@@ -217,8 +217,12 @@ function _write_global_measurements(
     # write header to file
     write(fout, "MEASUREMENT MEAN_R MEAN_I STD\n")
 
+    # get all measurements and then sort
+    measurements = collect(keys(global_measurements_avg))
+    sort!(measurements)
+
     # iterate over measurement
-    for key in keys(global_measurements_avg)
+    for key in measurements
 
         # write measurement to file
         avg = global_measurements_avg[key]
