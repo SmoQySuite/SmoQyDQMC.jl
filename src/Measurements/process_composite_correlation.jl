@@ -15,7 +15,18 @@
 Calaculate the mean and error for a composite correlation measurement based on the function `f`.
 Note that `D` indicates the spatial dimension of the system.
 
+# Keywords
 
+- `folder::String`: The directory all the simulation results were written to.
+- `correlations::Vector{String}`: Vector specifying the correlation types.
+- `spaces::Vector{String}:` Space of each correlation measurement `"position"` or `"momentum"`.
+- `types::Vector{String}`: The type of each correlation measurement `"equal-time"`, `"time-displaced"` or `"integrated"`.
+- `ids::Vector{NTuple{2,Int}}`: Vector of ID pairs to read for each correlation.
+- `locs::Vector{NTuple{D,Int}}`: Species displacement vector for position space, or k-point for momentum space.
+- `Δls::Vector{Int} = Int[]`: Displacement in imaginary time for time-displaced correlation measurements. Igonored otherwise.
+- `num_bins::Int = 0`: Number of bins used to calcuate error for each MPI walker, defaults to the number of JLD2 binary data files.
+- `pIDs::Vector{Int} = Int[]`: MPI walkers to average over when calculating states, defaults to using all MPI walkers if not specified.
+- `f::Function = identity`: Function evaluated to calculate the composite correlation that is measured.
 """
 function composite_correlation_stat(;
     folder::String,
