@@ -190,7 +190,7 @@ function eval_tr_dΛdx_invΛ_A!(dSdx::AbstractVector{E}, x::AbstractVector{E},
 end
 
 
-# evaluate ∂S/∂x += sgn(det(G))⋅Tr[(∂Γ/∂x)⋅Γ⁻¹⋅A]
+# evaluate ∂S/∂x += Tr[(∂Γ/∂x)⋅Γ⁻¹⋅A]
 function eval_tr_dΓdx_invΓ_A!(dSdx::AbstractVector{E}, x::AbstractVector{E},
                               Δτ::E, sgndetG::E, A::Matrix{T}, ssh_parameters::SSHParameters{T},
                               Γ::AbstractMatrix{T}, M::Vector{E}, A′::Matrix{T}) where {T,E}
@@ -232,7 +232,7 @@ function eval_tr_dΓdx_invΓ_A!(dSdx::AbstractVector{E}, x::AbstractVector{E},
 end
 
 
-# evaluate ∂S/∂x += sgn(det(G))⋅Tr[(∂Γ/∂x)⋅Γ⁻¹⋅A]
+# evaluate ∂S/∂x += Tr[(∂Γ/∂x)⋅Γ⁻¹⋅A]
 function eval_tr_dΓdx_invΓ_A!(dSdx::AbstractVector{E}, x::AbstractVector{E},
                               Δτ::E, sgndetG::E, A::Matrix{T},
                               ssh_parameters::SSHParameters{T},
@@ -271,15 +271,15 @@ function eval_tr_dΓdx_invΓ_A!(dSdx::AbstractVector{E}, x::AbstractVector{E},
                     if isfinite(M[p])
                         # get off-diagonal matrix element of -Δτ⋅∂K/∂x
                         nΔτdKdx_ji = -Δτ * (-α[c] - 2*α2[c]*Δx - 3*α3[c]*Δx^2 - 4*α4[c]*Δx^3)
-                        # evaluate Tr[(∂Γ/∂x)⋅A] = sgn(det(G))⋅Tr[-Δτ⋅∂K/∂x⋅Γ⋅A]
-                        dSdx[p] += (nΔτdKdx_ji * A[i,j] + conj(nΔτdKdx_ji) * A[j,i])
+                        # evaluate Tr[(∂Γ/∂x)⋅A] = Tr[-Δτ⋅∂K/∂x⋅A′]
+                        dSdx[p] += (nΔτdKdx_ji * A′[i,j] + conj(nΔτdKdx_ji) * A′[j,i])
                     end
                     # if mass of final phonon is finite
                     if isfinite(M[p′])
                         # get off-diagonal matrix element of -Δτ⋅∂K/∂x
                         nΔτdKdx_ji = -Δτ * (α[c] + 2*α2[c]*Δx + 3*α3[c]*Δx^2 + 4*α4[c]*Δx^3)
-                        # evaluate Tr[(∂Γ/∂x)⋅A] = sgn(det(G))⋅Tr[-Δτ⋅∂K/∂x⋅Γ⋅A]
-                        dSdx[p′] += (nΔτdKdx_ji * A[i,j] + conj(nΔτdKdx_ji) * A[j,i])
+                        # evaluate Tr[(∂Γ/∂x)⋅A] = Tr[-Δτ⋅∂K/∂x⋅A′]
+                        dSdx[p′] += (nΔτdKdx_ji * A′[i,j] + conj(nΔτdKdx_ji) * A′[j,i])
                     end
                 end
             end
