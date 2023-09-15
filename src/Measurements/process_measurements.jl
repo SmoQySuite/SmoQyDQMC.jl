@@ -13,11 +13,6 @@
         time_displaced::Bool = false,
     )
 
-    process_measurements(
-        comm::MPI.Comm, folder::String, N_bin::Int, pIDs::Union{Vector{Int},Int} = Int[];
-        time_displaced::Bool = false,
-    )
-
 Process the measurements recorded in the simulation directory `folder`, where `N_bin` is the number of bins the data is grouped into for calculating error bars.
 Note that this method will over-write an existing correlation stats file if there already is one.
 The boolean flag `time_displaced` determines whether or not to calculate error bars for time-displaced correlation measurements,
@@ -155,5 +150,4 @@ function process_measurements(comm::MPI.Comm, folder::String, N_bin::Int, pIDs::
     end
 
     return nothing
->>>>>>> Stashed changes
 end
