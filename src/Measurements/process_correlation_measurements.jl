@@ -435,21 +435,72 @@ function read_correlation_measurement(
     @assert type in ("equal-time", "integrated")
     @assert space in ("position", "momentum")
 
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
     # construct directory name where binary data lives
     correlation_folder = joinpath(folder, type, correlation, space)
 
+=======
+>>>>>>> Stashed changes
+=======
+>>>>>>> Stashed changes
     # get lattice size
     lattice = model_geometry.lattice::Lattice{D}
     L = lattice.L
 
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+=======
+>>>>>>> Stashed changes
+    # container for binned correlation data
+    binned_correlation = zeros(Complex{T}, N_bin, L...)
+
+    # read in binned correlation
+    read_correlation_measurement!(binned_correlation, folder, correlation, type, space, n_paire, pID, bin_intervals)
+
+    return binned_correlation
+end
+
+function read_correlation_measurement!(
+    binned_correlation::AbstractArray{Complex{T}},
+    folder::String,
+    correlation::String,
+    type::String,
+    space::String,
+    n_pair::Int,
+    pID::Int,
+    bin_intervals::Vector{UnitRange{Int}},
+) where {D, T<:AbstractFloat, N}
+
+    @assert type in ("equal-time", "integrated")
+    @assert space in ("position", "momentum")
+
+    # construct directory name where binary data lives
+    correlation_folder = joinpath(folder, type, correlation, space)
+
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
+>>>>>>> Stashed changes
     # number of bins
     N_bin = length(bin_intervals)
 
     # bin size
     N_binsize = length(bin_intervals[1])
 
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
     # container for binned correlation data
     binned_correlation = zeros(Complex{T}, N_bin, L...)
+=======
+    # initialize binned correlation to zero
+    fill!(binned_correlation, 0)
+>>>>>>> Stashed changes
+=======
+    # initialize binned correlation to zero
+    fill!(binned_correlation, 0)
+>>>>>>> Stashed changes
 
     # iterate over bins
     for bin in 1:N_bin
@@ -468,9 +519,22 @@ function read_correlation_measurement(
         end
     end
 
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
     return binned_correlation
 end
 
+=======
+=======
+>>>>>>> Stashed changes
+    return nothing
+end
+
+
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
+>>>>>>> Stashed changes
 # read in time-displaced correlation function
 function read_correlation_measurement(
     folder::String,
@@ -483,26 +547,79 @@ function read_correlation_measurement(
     bin_intervals::Vector{UnitRange{Int}},
 ) where {D, T<:AbstractFloat, N}
 
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
     @assert space in ("position", "momentum")
 
     # construct directory name where binary data lives
     correlation_folder = joinpath(folder, "time-displaced", correlation, space)
 
+=======
+>>>>>>> Stashed changes
+=======
+>>>>>>> Stashed changes
     # get lattice size
     lattice = model_geometry.lattice::Lattice{D}
     L = lattice.L
 
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
     # number of bins
     N_bin = length(bin_intervals)
+=======
+=======
+>>>>>>> Stashed changes
+    # container for binned correlation data
+    binned_correlation = zeros(Complex{T}, N_bin, L...)
+
+    # read in binned correlation
+    read_correlation_measurement!(binned_correlation, folder, correlation, l, space, n_pair, pID, bin_intervals)
+
+    return binned_correlation
+end
+
+function read_correlation_measurement!(
+    binned_correlation::AbstractArray{Complex{T}},
+    folder::String,
+    correlation::String,
+    l::Int,
+    space::String,
+    n_pair::Int,
+    pID::Int,
+    bin_intervals::Vector{UnitRange{Int}},
+) where {D, T<:AbstractFloat, N}
+
+    @assert space in ("position", "momentum")
+
+    # construct directory name where binary data lives
+    correlation_folder = joinpath(folder, "time-displaced", correlation, space)
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
+>>>>>>> Stashed changes
 
     # bin size
     N_binsize = length(bin_intervals[1])
 
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
     # container for binned correlation data
     binned_correlation = zeros(Complex{T}, N_bin, L...)
 
     # iterate over bins
     for bin in 1:N_bin
+=======
+=======
+>>>>>>> Stashed changes
+    # initialize binned correlation to zero
+    fill!(binned_correlation, 0)
+
+    # iterate over bins
+    for bin in eachindex(bin_intervals)
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
+>>>>>>> Stashed changes
 
         # get a specific correlation bin
         correlation_bin = selectdim(binned_correlation, 1, bin)
@@ -521,7 +638,15 @@ function read_correlation_measurement(
         end
     end
 
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
     return binned_correlation
+=======
+    return nothing
+>>>>>>> Stashed changes
+=======
+    return nothing
+>>>>>>> Stashed changes
 end
 
 
@@ -535,6 +660,27 @@ function analyze_correlations(
     correlations_avg = zeros(Complex{T}, shape[2:end]...)
     correlations_std = zeros(T, shape[2:end]...)
 
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+=======
+>>>>>>> Stashed changes
+    analyze_correlations!(correlations_avg, correlations_std, binned_correlations, binned_sign)
+
+    return correlations_avg, correlations_std
+end
+
+function analyze_correlations!(
+    correlations_avg::AbstractArray{Complex{T}},
+    correlations_std::AbstractArray{Complex{T}},
+    binned_correlations::AbstractArray{Complex{T}},
+    binned_sign::Vector{Complex{T}}
+) where {T<:AbstractFloat}
+
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
+>>>>>>> Stashed changes
     # iterate over correlations
     for c in CartesianIndices(correlations_avg)
 
@@ -547,7 +693,15 @@ function analyze_correlations(
         correlations_std[c] = ΔC
     end
 
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
     return correlations_avg, correlations_std
+=======
+    return nothing
+>>>>>>> Stashed changes
+=======
+    return nothing
+>>>>>>> Stashed changes
 end
 
 
