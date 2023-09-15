@@ -46,8 +46,6 @@ function process_measurements(folder::String, N_bin::Int, pIDs::Union{Vector{Int
     end
 
     return nothing
-<<<<<<< Updated upstream
-=======
 end
 
 # write time-displaced correlation stat to file for D=1 dimensional system
@@ -100,9 +98,6 @@ function process_measurements(comm::MPI.Comm, folder::String, N_bin::Int, pIDs::
     end
 
     return nothing
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
 end
 
 # write time-displaced correlation stat to file for D=1 dimensional system
