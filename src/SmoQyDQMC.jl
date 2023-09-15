@@ -15,6 +15,7 @@ using Reexport
 using PkgVersion
 using TOML
 using Glob
+using MPI
 
 # import "our" packages
 using MuTuner
