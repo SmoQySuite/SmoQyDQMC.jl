@@ -4,149 +4,114 @@
 
 @doc raw"""
     process_measurements(
-        folder::String, N_bin::Int, pIDs::Union{Vector{Int},Int} = Int[];
+        folder::String, N_bins::Int, pIDs::Union{Vector{Int},Int} = Int[];
         time_displaced::Bool = false,
     )
 
     process_measurements(
-        comm::MPI.Comm, folder::String, N_bin::Int, pIDs::Union{Vector{Int},Int} = Int[];
+        comm::MPI.Comm, folder::String, N_bins::Int, pIDs::Union{Vector{Int},Int} = Int[];
         time_displaced::Bool = false,
     )
 
     process_measurements(
-        comm::MPI.Comm, folder::String, N_bin::Int, pIDs::Union{Vector{Int},Int} = Int[];
+        comm::MPI.Comm, folder::String, N_bins::Int, pIDs::Union{Vector{Int},Int} = Int[];
         time_displaced::Bool = false,
     )
 
-Process the measurements recorded in the simulation directory `folder`, where `N_bin` is the number of bins the data is grouped into for calculating error bars.
+Process the measurements recorded in the simulation directory `folder`, where `N_bins` is the number of bins the data is grouped into for calculating error bars.
 Note that this method will over-write an existing correlation stats file if there already is one.
 The boolean flag `time_displaced` determines whether or not to calculate error bars for time-displaced correlation measurements,
 as this can take a non-negligible amount of time for large system, especially when many simulations were run in parallel.
 Note that using `pIDs` argument you can filter which MPI walker to use when calculting the statistics.
 """
-function process_measurements(folder::String, N_bin::Int, pIDs::Union{Vector{Int},Int} = Int[]; time_displaced::Bool = false)
+function process_measurements(folder::String, N_bins::Int, pIDs::Union{Vector{Int},Int} = Int[]; time_displaced::Bool = false)
+
+    # set the walkers to iterate over
+    if isempty(pIDs)
+
+        # get the number of MPI walkers
+        N_walkers = get_num_walkers(folder)
+
+        # get the pIDs
+        pIDs = collect(0:(N_walkers-1))
+    end
 
     # load model summary parameters
     β, Δτ, Lτ, model_geometry = load_model_summary(folder)
 
     # number of sites in lattice
-    N_site = nsites(model_geometry.unit_cell, model_geometry.lattice)
+    N_sites = nsites(model_geometry.unit_cell, model_geometry.lattice)
 
     # process global measurements
-    _process_global_measurements(folder, N_bin, pIDs, β, N_site)
+    _process_global_measurements(folder, N_bins, pIDs, β, N_sites)
 
     # process local measurement
-    _process_local_measurements(folder, N_bin, pIDs)
+    _process_local_measurements(folder, N_bins, pIDs)
 
     # process correlation measurement
     if time_displaced
-        _process_correlation_measurements(folder, N_bin, pIDs, ["equal-time", "time-displaced", "integrated"], ["position", "momentum"], Lτ, model_geometry)
+        _process_correlation_measurements(folder, N_bins, pIDs, ["equal-time", "time-displaced", "integrated"], ["position", "momentum"], Lτ, model_geometry)
     else
-        _process_correlation_measurements(folder, N_bin, pIDs, ["equal-time", "integrated"], ["position", "momentum"], Lτ, model_geometry)
+        _process_correlation_measurements(folder, N_bins, pIDs, ["equal-time", "integrated"], ["position", "momentum"], Lτ, model_geometry)
     end
 
     return nothing
 end
 
-# write time-displaced correlation stat to file for D=1 dimensional system
-function _write_displaced_correlation_stat(fout::IO, index::Int, pair::NTuple{2,Int}, l::Int, n::NTuple{1,Int},
-                                           C::Complex{T}, ΔC::T) where {T<:AbstractFloat}
-
-    @printf(fout, "%d %d %d %d %d %.8f %.8f %.8f\n", index, pair[2], pair[1], l-1, n[1]-1, real(C), imag(C), ΔC)
-
-    return nothing
-end
-
-# write time-displaced correlation stat to file for D=2 dimensional system
-function _write_displaced_correlation_stat(fout::IO, index::Int, pair::NTuple{2,Int}, l::Int, n::NTuple{2,Int},
-                                           C::Complex{T}, ΔC::T) where {T<:AbstractFloat}
-
-    @printf(fout, "%d %d %d %d %d %d %.8f %.8f %.8f\n", index, pair[2], pair[1], l-1, n[2]-1, n[1]-1, real(C), imag(C), ΔC)
-
-    return nothing
-end
-
-# write time-displaced correlation stat to file for D=3 dimensional system
-function _write_displaced_correlation_stat(fout::IO, index::Int, pair::NTuple{2,Int}, l::Int, n::NTuple{3,Int},
-                                           C::Complex{T}, ΔC::T) where {T<:AbstractFloat}
-
-    @printf(fout, "%d %d %d %d %d %d %d %.8f %.8f %.8f\n", index, pair[2], pair[1], l-1, n[3]-1, n[2]-1, n[1]-1, real(C), imag(C), ΔC)
-
-    return nothing
-end
-
 # same as above, but parallelizes data processing with MPI
-function process_measurements(comm::MPI.Comm, folder::String, N_bin::Int, pIDs::Union{Vector{Int},Int} = Int[]; time_displaced::Bool = false)
+function process_measurements(comm::MPI.Comm, folder::String, N_bins::Int, pIDs::Union{Vector{Int},Int} = Int[]; time_displaced::Bool = false)
 
-    # load model summary parameters
-    β, Δτ, Lτ, model_geometry = load_model_summary(folder)
+    # set the walkers to iterate over
+    if isempty(pIDs)
 
-    # number of sites in lattice
-    N_site = nsites(model_geometry.unit_cell, model_geometry.lattice)
+        # get the number of MPI walkers
+        N_walkers = get_num_walkers(folder)
 
-    # process global measurements
-    _process_global_measurements(folder, N_bin, pIDs, β, N_site)
-
-    # process local measurement
-    _process_local_measurements(folder, N_bin, pIDs)
-
-    # process correlation measurement
-    if time_displaced
-        _process_correlation_measurements(comm, folder, N_bin, pIDs, ["equal-time", "time-displaced", "integrated"], ["position", "momentum"], Lτ, model_geometry)
-    else
-        _process_correlation_measurements(comm, folder, N_bin, pIDs, ["equal-time", "integrated"], ["position", "momentum"], Lτ, model_geometry)
+        # get the pIDs
+        pIDs = collect(0:(N_walkers-1))
     end
 
-    return nothing
-end
+    # get number of MPI processes
+    N_mpi = MPI.Comm_size(comm)
+    @assert N_mpi == length(pIDs)
 
-# write time-displaced correlation stat to file for D=1 dimensional system
-function _write_displaced_correlation_stat(fout::IO, index::Int, pair::NTuple{2,Int}, l::Int, n::NTuple{1,Int},
-                                           C::Complex{T}, ΔC::T) where {T<:AbstractFloat}
+    # get mpi ID
+    mpiID = MPI.Comm_rank(comm)
 
-    @printf(fout, "%d %d %d %d %d %.8f %.8f %.8f\n", index, pair[2], pair[1], l-1, n[1]-1, real(C), imag(C), ΔC)
-
-    return nothing
-end
-
-# write time-displaced correlation stat to file for D=2 dimensional system
-function _write_displaced_correlation_stat(fout::IO, index::Int, pair::NTuple{2,Int}, l::Int, n::NTuple{2,Int},
-                                           C::Complex{T}, ΔC::T) where {T<:AbstractFloat}
-
-    @printf(fout, "%d %d %d %d %d %d %.8f %.8f %.8f\n", index, pair[2], pair[1], l-1, n[2]-1, n[1]-1, real(C), imag(C), ΔC)
-
-    return nothing
-end
-
-# write time-displaced correlation stat to file for D=3 dimensional system
-function _write_displaced_correlation_stat(fout::IO, index::Int, pair::NTuple{2,Int}, l::Int, n::NTuple{3,Int},
-                                           C::Complex{T}, ΔC::T) where {T<:AbstractFloat}
-
-    @printf(fout, "%d %d %d %d %d %d %d %.8f %.8f %.8f\n", index, pair[2], pair[1], l-1, n[3]-1, n[2]-1, n[1]-1, real(C), imag(C), ΔC)
-
-    return nothing
-end
-
-# same as above, but parallelizes data processing with MPI
-function process_measurements(comm::MPI.Comm, folder::String, N_bin::Int, pIDs::Union{Vector{Int},Int} = Int[]; time_displaced::Bool = false)
+    # get corresponding pID
+    pID = pIDs[mpiID+1]
 
     # load model summary parameters
     β, Δτ, Lτ, model_geometry = load_model_summary(folder)
 
     # number of sites in lattice
-    N_site = nsites(model_geometry.unit_cell, model_geometry.lattice)
+    N_sites = nsites(model_geometry.unit_cell, model_geometry.lattice)
+
+    # calculate bin intervals
+    bin_intervals = get_bin_intervals(folder, N_bins, pID)
+
+    # get binned sign
+    binned_sign = get_average_sign(folder, bin_intervals, pID)
 
     # process global measurements
-    _process_global_measurements(folder, N_bin, pIDs, β, N_site)
+    _process_global_measurements(comm, folder, bin_intervals, pID, β, N_sites)
 
     # process local measurement
-    _process_local_measurements(folder, N_bin, pIDs)
+    _process_local_measurements(comm, folder, bin_intervals, binned_sign, pID)
 
     # process correlation measurement
     if time_displaced
-        _process_correlation_measurements(comm, folder, N_bin, pIDs, ["equal-time", "time-displaced", "integrated"], ["position", "momentum"], Lτ, model_geometry)
+        _process_correlation_measurements(
+            comm, folder, pID,
+            ["equal-time", "time-displaced", "integrated"], ["position", "momentum"],
+            Lτ, model_geometry, bin_intervals, binned_sign
+        )
     else
-        _process_correlation_measurements(comm, folder, N_bin, pIDs, ["equal-time", "integrated"], ["position", "momentum"], Lτ, model_geometry)
+        _process_correlation_measurements(
+            comm, folder, pID,
+            ["equal-time", "integrated"], ["position", "momentum"],
+            Lτ, model_geometry, bin_intervals, binned_sign
+        )
     end
 
     return nothing

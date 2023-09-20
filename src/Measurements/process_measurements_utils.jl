@@ -81,7 +81,7 @@ end
 
 
 # calculate the file intervals for each bin
-function get_bin_intervals(folder::String, N_bin::Int, pID::Int = 0)
+function get_bin_intervals(folder::String, N_bins::Int, pID::Int = 0)
 
     # read in binnary data files for specified pID
     ending = @sprintf("*_pID-%d.jld2", pID)
@@ -92,12 +92,12 @@ function get_bin_intervals(folder::String, N_bin::Int, pID::Int = 0)
     N_files = length(files)
 
     # calculate the size of each bin
-    N_binsize = div(N_files, N_bin)
-    @assert N_files == (N_bin * N_binsize) "[N_files = $N_files] = ([N_bin = $N_bin] * [N_binsize = $N_binsize])"
+    N_binsize = div(N_files, N_bins)
+    @assert N_files == (N_bins * N_binsize) "[N_files = $N_files] = ([N_bins = $N_bins] * [N_binsize = $N_binsize])"
 
     # calculate the file interval associated with each bin
     bin_intervals = UnitRange{Int}[]
-    for n_bin in 1:N_bin
+    for n_bin in 1:N_bins
         bin_interval = (n_bin-1)*N_binsize+1 : n_bin*N_binsize
         push!(bin_intervals, bin_interval)
     end
@@ -128,10 +128,10 @@ function get_average_sign(folder::String, bin_intervals::Vector{UnitRange{Int}},
     N_binsize = length(bin_intervals[1])
 
     # get number of bins
-    N_bin = length(bin_intervals)
+    N_bins = length(bin_intervals)
 
     # iterate over bins
-    for bin in 1:N_bin
+    for bin in 1:N_bins
 
         # iterate overs files in bin
         for i in bin_intervals[bin]

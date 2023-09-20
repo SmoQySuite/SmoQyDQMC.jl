@@ -12,6 +12,21 @@
         f::Function = identity
     ) where {D}
 
+    function composite_correlation_stat(
+        comm::MPI.COMM;
+        # Keyword Arguments Below
+        folder::String,
+        correlations::Vector{String},
+        spaces::Vector{String},
+        types::Vector{String},
+        ids::Vector{NTuple{2,Int}},
+        locs::Vector{NTuple{D,Int}},
+        Δls::Vector{Int} = Int[],
+        num_bins::Int = 0,
+        pIDs::Vector{Int} = Int[],
+        f::Function = identity
+    ) where {D}
+
 Calaculate the mean and error for a composite correlation measurement based on the function `f`.
 Note that `D` indicates the spatial dimension of the system.
 
@@ -70,6 +85,53 @@ function composite_correlation_stat(;
         C /= length(pIDs)
         ΔC = sqrt(VarC) / length(pIDs)
     end
+
+    return C, ΔC
+end
+
+function composite_correlation_stat(
+    comm::MPI.Comm;
+    folder::String,
+    correlations::Vector{String},
+    spaces::Vector{String},
+    types::Vector{String},
+    ids::Vector{NTuple{2,Int}},
+    locs::Vector{NTuple{D,Int}},
+    Δls::Vector{Int} = Int[],
+    num_bins::Int = 0,
+    pIDs::Vector{Int} = Int[],
+    f::Function = identity
+) where {D}
+
+    # set the walkers to iterate over
+    if isempty(pIDs)
+
+        # get the number of MPI walkers
+        N_walkers = get_num_walkers(folder)
+
+        # get the pIDs
+        pIDs = collect(0:(N_walkers-1))
+    end
+
+    # get the MPI rank
+    mpiID = MPI.Comm_rank(comm)
+
+    # get the number of MPI ranks
+    N_mpi = MPI.Comm_size(comm)
+    @assert length(pIDs) == N_mpi
+
+    # get the pID corresponding to mpiID
+    pID = pIDs[mpiID+1]
+
+    # calculate composite correlation for first MPI walker
+    C, ΔC = _composite_correlation_stat(folder, correlations, spaces, types, ids, locs, Δls, num_bins, pID, f)
+    varC = ΔC^2
+
+    # perform an all-reduce to get the average statics calculate on all MPI processes
+    C    = MPI.Allreduce(C, +, comm)
+    varC = MPI.Allreduce(varC, +, comm)
+    C    = C / N_mpi
+    ΔC   = sqrt(ΔC) / N_mpi
 
     return C, ΔC
 end

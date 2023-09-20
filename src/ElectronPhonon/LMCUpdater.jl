@@ -1,7 +1,7 @@
 """
     LMCUpdater{T<:Number, E<:AbstractFloat, PFFT, PIFFT}
 
-Defines a langevin monte carlo (HMC) update for the phonon degrees of freedom.
+Defines a langevin monte carlo (LMC) update for the phonon degrees of freedom.
 
 # Fields
 
@@ -102,6 +102,7 @@ end
                 fermion_greens_calculator_dn_alt::FermionGreensCalculator{T,E},
                 Bup::Vector{P}, Bdn::Vector{P},
                 δG_max::E, δG::E, δθ::E, rng::AbstractRNG,
+                update_stabalization_frequency::Bool = true,
                 initialize_force::Bool = true,
                 δG_reject::E = sqrt(δG_max)) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
 
@@ -121,6 +122,7 @@ function lmc_update!(Gup::Matrix{T}, logdetGup::E, sgndetGup::T,
                      fermion_greens_calculator_dn_alt::FermionGreensCalculator{T,E},
                      Bup::Vector{P}, Bdn::Vector{P},
                      δG_max::E, δG::E, δθ::E, rng::AbstractRNG,
+                     update_stabalization_frequency::Bool = true,
                      initialize_force::Bool = true,
                      δG_reject::E = sqrt(δG_max),
                      recenter!::Function = identity) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
@@ -139,7 +141,7 @@ function lmc_update!(Gup::Matrix{T}, logdetGup::E, sgndetGup::T,
         fermion_greens_calculator_up, fermion_greens_calculator_dn,
         fermion_greens_calculator_up_alt, fermion_greens_calculator_dn_alt,
         Bup, Bdn, dSdx, dSfdx0, v, x′, x0, M, 1, nt, Δt′, initialize_force, first_update, δG_max, δG, δθ, rng,
-        δG_reject, recenter!
+        δG_reject, recenter!, update_stabalization_frequency
     )
 
     # set first update to false as an update was just performed
@@ -156,6 +158,7 @@ end
                 fermion_greens_calculator::FermionGreensCalculator{T,E},
                 fermion_greens_calculator_alt::FermionGreensCalculator{T,E},
                 B::Vector{P}, δG_max::E, δG::E, δθ::E, rng::AbstractRNG,
+                update_stabalization_frequency::Bool = true,
                 initialize_force::Bool = true,
                 δG_reject::E = sqrt(δG_max)) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
 
@@ -170,6 +173,7 @@ function lmc_update!(G::Matrix{T}, logdetG::E, sgndetG::T,
                      fermion_greens_calculator::FermionGreensCalculator{T,E},
                      fermion_greens_calculator_alt::FermionGreensCalculator{T,E},
                      B::Vector{P}, δG_max::E, δG::E, δθ::E, rng::AbstractRNG,
+                     update_stabalization_frequency::Bool = true,
                      initialize_force::Bool = true,
                      δG_reject::E = sqrt(δG_max),
                      recenter!::Function = identity) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
@@ -184,7 +188,7 @@ function lmc_update!(G::Matrix{T}, logdetG::E, sgndetG::T,
         G, logdetG, sgndetG, Gup′, electron_phonon_parameters,
         fermion_path_integral, fermion_greens_calculator, fermion_greens_calculator_alt,
         B, dSdx, dSfdx0, v, x′, x0, M, 1, nt, Δt′, initialize_force, first_update, δG_max, δG, δθ, rng,
-        δG_reject, recenter!
+        δG_reject, recenter!, update_stabalization_frequency
     )
 
     # set first update to false as an update was just performed

@@ -3,20 +3,28 @@
 ################################
 
 @doc raw"""
-    process_local_measurements(folder::String, N_bin::Int, pIDs::Union{Vector{Int},Int} = Int[])
+    process_local_measurements(
+        folder::String,
+        N_bins::Int,
+        pIDs::Union{Vector{Int},Int} = Int[]
+    )
+
+    process_local_measurements(
+        comm::MPI.Comm,
+        folder::String,
+        N_bins::Int,
+        pIDs::Vector{Int} = Int[]
+    )
 
 Process local measurents for the specified process IDs, calculating the average and error for all local measurements
 and writing the result to CSV file.
 If `pIDs` is not specified, then the statistics are calculated using all MPI walker results.
 """
-function process_local_measurements(folder::String, N_bin::Int, pIDs::Union{Vector{Int},Int} = Int[])
-
-    _process_local_measurements(folder, N_bin, pIDs)
-    return nothing
-end
-
-# process local measurements average across multiple MPI walkers
-function _process_local_measurements(folder::String, N_bin::Int, pIDs::Vector{Int})
+function process_local_measurements(
+    folder::String,
+    N_bins::Int,
+    pIDs::Union{Vector{Int},Int} = Int[]
+)
 
     # set the walkers to iterate over
     if length(pIDs) == 0
@@ -28,8 +36,54 @@ function _process_local_measurements(folder::String, N_bin::Int, pIDs::Vector{In
         pIDs = collect(0:(N_walkers-1))
     end
 
+    # process local measurements
+    _process_local_measurements(folder, N_bins, pIDs)
+    
+    return nothing
+end
+
+function process_local_measurements(
+    comm::MPI.Comm,
+    folder::String,
+    N_bins::Int,
+    pIDs::Vector{Int} = Int[]
+)
+
+    # set the walkers to iterate over
+    if isempty(pIDs)
+
+        # get the number of MPI walkers
+        N_walkers = get_num_walkers(folder)
+
+        # get the pIDs
+        pIDs = collect(0:(N_walkers-1))
+    end
+
+    # get number of MPI processes
+    N_mpi = MPI.Comm_size(comm)
+    @assert N_mpi = length(pIDs)
+
+    # get mpi ID
+    mpiID = MPI.Comm_rank(comm)
+
+    # get corresponding pID
+    pID = pIDs[mpiID+1]
+
     # calculate bin intervals
-    bin_intervals = get_bin_intervals(folder, N_bin, pIDs[1])
+    bin_intervals = get_bin_intervals(folder, N_bins, pID)
+
+    # process local measurements
+    _process_local_measurements(comm, folder, bin_intervals, binned_sign, pID)
+
+    return nothing
+end
+
+
+# process local measurements averaged across multiple walkers
+function _process_local_measurements(folder::String, N_bins::Int, pIDs::Vector{Int})
+
+    # calculate bin intervals
+    bin_intervals = get_bin_intervals(folder, N_bins, pIDs[1])
 
     # get binned sign
     binned_sign = get_average_sign(folder, bin_intervals, pIDs[1])
@@ -38,13 +92,7 @@ function _process_local_measurements(folder::String, N_bin::Int, pIDs::Vector{In
     binned_local_measurements = read_local_measurements(folder, pIDs[1], bin_intervals)
 
     # calculate local measurements stats
-    local_measurements_avg, local_measurements_std = analyze_local_measurements(binned_local_measurements, binned_sign)
-
-    # convert standard deviations to variance
-    local_measurements_var = local_measurements_std
-    for key in keys(local_measurements_avg)
-        @. local_measurements_var[key] = abs2(local_measurements_std[key])
-    end
+    local_measurements_avg, local_measurements_var = analyze_local_measurements(binned_local_measurements, binned_sign)
 
     # iterate over remaining mpi walkers
     for pID in pIDs[2:end]
@@ -56,7 +104,7 @@ function _process_local_measurements(folder::String, N_bin::Int, pIDs::Vector{In
         binned_sign = get_average_sign(folder, bin_intervals, pID)
 
         # calculate local measurements stats
-        walker_local_measurements_avg, walker_local_measurements_std = analyze_local_measurements(binned_local_measurements, binned_sign)
+        walker_local_measurements_avg, walker_local_measurements_var = analyze_local_measurements(binned_local_measurements, binned_sign)
 
         # iterate over measurements
         for key in keys(local_measurements_avg)
@@ -65,11 +113,12 @@ function _process_local_measurements(folder::String, N_bin::Int, pIDs::Vector{In
             @. local_measurements_avg[key] += walker_local_measurements_avg[key]
 
             # record measurement variance
-            @. local_measurements_var[key] += abs2(walker_local_measurements_std[key])
+            @. local_measurements_var[key] += walker_local_measurements_var[key]
         end
     end
 
     # calculate average for each measurement across all walkers and final standard deviation with errors properly propagated
+    local_measurements_std = local_measurements_var
     for key in keys(local_measurements_avg)
         N_id = length(pIDs)
         @. local_measurements_avg[key] /= N_id
@@ -82,11 +131,55 @@ function _process_local_measurements(folder::String, N_bin::Int, pIDs::Vector{In
     return nothing
 end
 
+# process local measurements using MPI
+function _process_local_measurements(
+    comm::MPI.Comm,
+    folder::String,
+    bin_intervals::Vector{UnitRange{Int}},
+    binned_sign::Vector{Complex{T}},
+    pID::Int
+) where {T<:AbstractFloat}
+
+    # read in binned local measurements for current pID
+    binned_local_measurements = read_local_measurements(folder, pID, bin_intervals)
+
+    # calculate local measurements stats
+    local_measurements_avg, local_measurements_var = analyze_local_measurements(binned_local_measurements, binned_sign)
+
+    # get MPI rank
+    mpiID = MPI.Comm_rank(comm)
+
+    # reduce local measurements
+    for key in sort(collect(keys(local_measurements_avg)))
+        MPI.Reduce!(local_measurements_avg[key], +, comm)
+        MPI.Reduce!(local_measurements_var[key], +, comm)
+    end
+
+    # if root process
+    if iszero(mpiID)
+
+        # number of MPI ranks
+        N_mpi = MPI.Comm_size(comm)
+
+        # normalize stats, convert variance to standard deviation as well
+        local_measurements_std = local_measurements_var
+        for key in keys(local_measurements_avg)
+            @. local_measurements_avg[key] = local_measurements_avg[key] / N_mpi
+            @. local_measurements_std[key] = sqrt(local_measurements_var[key]) / N_mpi
+        end
+
+        # write the final local measurement stat to file
+        write_local_measurements(folder, local_measurements_avg, local_measurements_std)
+    end
+
+    return nothing
+end
+
 # process local measurements for a single MPI walker
-function _process_local_measurements(folder::String, N_bin::Int, pID::Int)
+function _process_local_measurements(folder::String, N_bins::Int, pID::Int)
 
     # calculate bin intervals
-    bin_intervals = get_bin_intervals(folder, N_bin, pID)
+    bin_intervals = get_bin_intervals(folder, N_bins, pID)
 
     # get binned sign
     binned_sign = get_average_sign(folder, bin_intervals, pID)
@@ -95,7 +188,13 @@ function _process_local_measurements(folder::String, N_bin::Int, pID::Int)
     binned_local_measurements = read_local_measurements(folder, pID, bin_intervals)
 
     # calculate local measurements stats
-    local_measurements_avg, local_measurements_std = analyze_local_measurements(binned_local_measurements, binned_sign)
+    local_measurements_avg, local_measurements_var = analyze_local_measurements(binned_local_measurements, binned_sign)
+
+    # convert variance to standard deivation
+    local_measurements_std = local_measurements_var
+    for key in keys(local_measurements_var)
+        @. local_measurements_std[key] = sqrt(local_measurements_var[key])
+    end
 
     # write the final local measurement stat to file
     write_local_measurements(folder, pID, local_measurements_avg, local_measurements_std)
@@ -108,7 +207,7 @@ end
 function read_local_measurements(folder::String, pID::Int, bin_intervals::Vector{UnitRange{Int}})
     
     # number of bins
-    N_bin = length(bin_intervals)
+    N_bins = length(bin_intervals)
 
     # bin size
     N_binsize = length(bin_intervals[1])
@@ -129,11 +228,11 @@ function read_local_measurements(folder::String, pID::Int, bin_intervals::Vector
     binned_local_measurements = Dict{String, Matrix{T}}()
     for key in keys(local_measurements)
         n = length(local_measurements[key])
-        binned_local_measurements[key] = zeros(T, N_bin, n)
+        binned_local_measurements[key] = zeros(T, N_bins, n)
     end
 
     # iterate over bins
-    for bin in 1:N_bin
+    for bin in 1:N_bins
 
         # iterate over bin elements
         for i in bin_intervals[bin]
@@ -162,7 +261,7 @@ function analyze_local_measurements(
 
     # initialize dictionaries to contain local measurement stats
     local_measurements_avg = Dict{String, Vector{Complex{T}}}()
-    local_measurements_std = Dict{String, Vector{T}}()
+    local_measurements_var = Dict{String, Vector{T}}()
 
     # iterate over measurements
     for key in keys(binned_local_measurements)
@@ -170,7 +269,7 @@ function analyze_local_measurements(
         N_id = size(binned_local_measurements[key],2)
         # initialize vector for measurement
         local_measurements_avg[key] = zeros(Complex{T}, N_id)
-        local_measurements_std[key] = zeros(T, N_id)
+        local_measurements_var[key] = zeros(T, N_id)
         # iterate over each type of a given local measurement (orbital id as an example)
         for n in 1:N_id
             # get the binned values
@@ -179,11 +278,11 @@ function analyze_local_measurements(
             avg, err = jackknife(/, binned_vals, binned_sign)
             # record the statistics
             local_measurements_avg[key][n] = avg
-            local_measurements_std[key][n] = err
+            local_measurements_var[key][n] = abs2(err)
         end
     end
 
-    return local_measurements_avg, local_measurements_std
+    return local_measurements_avg, local_measurements_var
 end
 
 

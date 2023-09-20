@@ -198,6 +198,7 @@ export process_global_measurements
 include("Measurements/process_local_measurements.jl")
 export process_local_measurements
 include("Measurements/process_correlation_measurements.jl")
+include("Measurements/process_correlation_measurements_mpi.jl")
 export process_correlation_measurement, process_correlation_measurements
 include("Measurements/process_measurements.jl")
 export process_measurements

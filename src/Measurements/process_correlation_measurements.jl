@@ -5,8 +5,16 @@
 @doc raw"""
     process_correlation_measurements(
         folder::String,
-        N_bin::Int,
+        N_bins::Int,
         pIDs::Union{Vector{Int},Int} = Int[],
+        types::Vector{String} = ["equal-time", "time-displaced", "integrated"],
+        spaces::Vector{String} = ["position", "momentum"]
+    )
+
+    function process_correlation_measurements(
+        comm::MPI.Comm,
+        N_bins::Int,
+        pIDs::Vector{Int} = Int[],
         types::Vector{String} = ["equal-time", "time-displaced", "integrated"],
         spaces::Vector{String} = ["position", "momentum"]
     )
@@ -15,29 +23,12 @@ Process correlation measurements, calculating the average and errors and writing
 """
 function process_correlation_measurements(
     folder::String,
-    N_bin::Int,
+    N_bins::Int,
     pIDs::Union{Vector{Int},Int} = Int[],
     types::Vector{String} = ["equal-time", "time-displaced", "integrated"],
     spaces::Vector{String} = ["position", "momentum"]
 )
     
-    β, Δτ, Lτ, model_geometry = load_model_summary(folder)
-    _process_correlation_measurements(folder, N_bin, pIDs, types, spaces, Lτ, model_geometry)
-
-    return nothing
-end
-
-# prcoess correlations measurements averaging over all MPI walkers
-function _process_correlation_measurements(
-    folder::String,
-    N_bin::Int,
-    pIDs::Vector{Int},
-    types::Vector{String},
-    spaces::Vector{String},
-    Lτ::Int,
-    model_geometry::ModelGeometry{D,T,N}
-) where {D, T<:AbstractFloat, N}
-
     # set the walkers to iterate over
     if isempty(pIDs)
 
@@ -48,8 +39,28 @@ function _process_correlation_measurements(
         pIDs = collect(0:(N_walkers-1))
     end
 
+    # load model geometry
+    β, Δτ, Lτ, model_geometry = load_model_summary(folder)
+
+    # process correlation measurements
+    _process_correlation_measurements(folder, N_bins, pIDs, types, spaces, Lτ, model_geometry)
+
+    return nothing
+end
+
+# prcoess correlations measurements averaging over all MPI walkers
+function _process_correlation_measurements(
+    folder::String,
+    N_bins::Int,
+    pIDs::Vector{Int},
+    types::Vector{String},
+    spaces::Vector{String},
+    Lτ::Int,
+    model_geometry::ModelGeometry{D,T,N}
+) where {D, T<:AbstractFloat, N}
+
     # calculate bin intervals
-    bin_intervals = get_bin_intervals(folder, N_bin, pIDs[1])
+    bin_intervals = get_bin_intervals(folder, N_bins, pIDs[1])
 
     # get binned sign for each pID
     binned_sign = get_average_sign(folder, bin_intervals, pIDs[1])
@@ -89,7 +100,7 @@ end
 # process correlation measurements using single MPI walker
 function _process_correlation_measurements(
     folder::String,
-    N_bin::Int,
+    N_bins::Int,
     pID::Int,
     types::Vector{String},
     spaces::Vector{String},
@@ -98,7 +109,7 @@ function _process_correlation_measurements(
 ) where {D, T<:AbstractFloat, N}
 
     # calculate bin intervals
-    bin_intervals = get_bin_intervals(folder, N_bin, pID)
+    bin_intervals = get_bin_intervals(folder, N_bins, pID)
 
     # get binned sign for each pID
     binned_sign = get_average_sign(folder, bin_intervals, pID)
@@ -138,7 +149,7 @@ end
         correlation::String,
         type::String,
         space::String,
-        N_bin::Int,
+        N_bins::Int,
         pIDs::Union{Vector{Int}, Int} = Int[]
     ) 
 
@@ -151,12 +162,12 @@ function process_correlation_measurement(
     correlation::String,
     type::String,
     space::String,
-    N_bin::Int,
+    N_bins::Int,
     pIDs::Union{Vector{Int}, Int} = Int[]
 )
 
     β, Δτ, Lτ, model_geometry = load_model_summary(folder)
-    _process_correlation_measurement(folder, correlation, type, space, N_bin, pIDs, Lτ, model_geometry)
+    _process_correlation_measurement(folder, correlation, type, space, N_bins, pIDs, Lτ, model_geometry)
 
     return nothing
 end
@@ -167,7 +178,7 @@ function _process_correlation_measurement(
     correlation::String,
     type::String,
     space::String,
-    N_bin::Int,
+    N_bins::Int,
     pIDs::Vector{Int},
     Lτ::Int,
     model_geometry::ModelGeometry{D,T,N}
@@ -184,7 +195,7 @@ function _process_correlation_measurement(
     end
 
     # calculate bin intervals
-    bin_intervals = get_bin_intervals(folder, N_bin, pIDs[1])
+    bin_intervals = get_bin_intervals(folder, N_bins, pIDs[1])
 
     # get binned sign for each pID
     binned_sign = get_average_sign(folder, bin_intervals, pIDs[1])
@@ -209,14 +220,14 @@ function _process_correlation_measurement(
     correlation::String,
     type::String,
     space::String,
-    N_bin::Int,
+    N_bins::Int,
     pID::Int,
     Lτ::Int,
     model_geometry::ModelGeometry{D,T,N}
 ) where {D, T<:AbstractFloat, N}
 
     # calculate bin intervals
-    bin_intervals = get_bin_intervals(folder, N_bin, pID)
+    bin_intervals = get_bin_intervals(folder, N_bins, pID)
 
     # get binned sign for each pID
     binned_sign = get_average_sign(folder, bin_intervals, pID)
@@ -256,7 +267,11 @@ function _process_correlation_measurement(
     lattice = model_geometry.lattice::Lattice{D}
     L = lattice.L
 
+    # get number of bins
+    N_bins = length(bin_intervals)
+
     # correlation container for stats
+    binned_correlation = zeros(Complex{T}, N_bins, L...)
     correlation_avg = zeros(Complex{T}, L...)
     correlation_std = zeros(T, L...)
     correlation_var = correlation_std
@@ -304,14 +319,10 @@ function _process_correlation_measurement(
                     pID = pIDs[i]
 
                     # read in binned correlation data
-                    binned_correlations = read_correlation_measurement(folder, correlation, l, space, n, model_geometry, pID, bin_intervals)
+                    read_correlation_measurement!(binned_correlation, folder, correlation, l, space, n, pID, bin_intervals)
 
                     # calculate average and error for current pID
-                    avg, err = analyze_correlations(binned_correlations, binned_signs[i])
-
-                    # add to final stats, propagating errors appropiately
-                    @. correlation_avg += avg
-                    @. correlation_var += abs2(err)
+                    analyze_correlations!(correlation_avg, correlation_var, binned_correlation, binned_signs[i])
                 end
 
                 # normalize stats
@@ -351,7 +362,11 @@ function _process_correlation_measurement(
     lattice = model_geometry.lattice::Lattice{D}
     L = lattice.L
 
+    # number of bins
+    N_bins = length(bin_intervals)
+
     # correlation container for stats
+    binned_correlation = zeros(Complex{T}, N_bins, L...)
     correlation_avg = zeros(Complex{T}, L...)
     correlation_std = zeros(T, L...)
     correlation_var = correlation_std
@@ -396,14 +411,10 @@ function _process_correlation_measurement(
                 pID = pIDs[i]
 
                 # read in binned correlation data
-                binned_correlations = read_correlation_measurement(folder, correlation, type, space, n, model_geometry, pID, bin_intervals)
+                read_correlation_measurement!(binned_correlation, folder, correlation, type, space, n, pID, bin_intervals)
 
                 # calculate average and error for current pID
-                avg, err = analyze_correlations(binned_correlations, binned_signs[i])
-
-                # add to final stats, propagating errors appropiately
-                @. correlation_avg += avg
-                @. correlation_var += abs2(err)
+                analyze_correlations!(correlation_avg, correlation_var, binned_correlation, binned_signs[i])
             end
 
             # normalize stats
@@ -440,10 +451,10 @@ function read_correlation_measurement(
     L = lattice.L
 
     # container for binned correlation data
-    binned_correlation = zeros(Complex{T}, N_bin, L...)
+    binned_correlation = zeros(Complex{T}, N_bins, L...)
 
     # read in binned correlation
-    read_correlation_measurement!(binned_correlation, folder, correlation, type, space, n_paire, pID, bin_intervals)
+    read_correlation_measurement!(binned_correlation, folder, correlation, type, space, n_pair, pID, bin_intervals)
 
     return binned_correlation
 end
@@ -457,7 +468,7 @@ function read_correlation_measurement!(
     n_pair::Int,
     pID::Int,
     bin_intervals::Vector{UnitRange{Int}},
-) where {D, T<:AbstractFloat, N}
+) where {T<:AbstractFloat}
 
     @assert type in ("equal-time", "integrated")
     @assert space in ("position", "momentum")
@@ -466,7 +477,7 @@ function read_correlation_measurement!(
     correlation_folder = joinpath(folder, type, correlation, space)
 
     # number of bins
-    N_bin = length(bin_intervals)
+    N_bins = length(bin_intervals)
 
     # bin size
     N_binsize = length(bin_intervals[1])
@@ -475,7 +486,7 @@ function read_correlation_measurement!(
     fill!(binned_correlation, 0)
 
     # iterate over bins
-    for bin in 1:N_bin
+    for bin in 1:N_bins
 
         # get a specific correlation bin
         correlation_bin = selectdim(binned_correlation, 1, bin)
@@ -512,7 +523,7 @@ function read_correlation_measurement(
     L = lattice.L
 
     # container for binned correlation data
-    binned_correlation = zeros(Complex{T}, N_bin, L...)
+    binned_correlation = zeros(Complex{T}, N_bins, L...)
 
     # read in binned correlation
     read_correlation_measurement!(binned_correlation, folder, correlation, l, space, n_pair, pID, bin_intervals)
@@ -529,7 +540,7 @@ function read_correlation_measurement!(
     n_pair::Int,
     pID::Int,
     bin_intervals::Vector{UnitRange{Int}},
-) where {D, T<:AbstractFloat, N}
+) where {T<:AbstractFloat}
 
     @assert space in ("position", "momentum")
 
@@ -565,25 +576,9 @@ function read_correlation_measurement!(
     return nothing
 end
 
-
-# calculate the mean and error for binned correlations for single MPI walker
-function analyze_correlations(
-    binned_correlations::AbstractArray{Complex{T}},
-    binned_sign::Vector{Complex{T}}
-) where {T<:AbstractFloat}
-
-    shape = size(binned_correlations)
-    correlations_avg = zeros(Complex{T}, shape[2:end]...)
-    correlations_std = zeros(T, shape[2:end]...)
-
-    analyze_correlations!(correlations_avg, correlations_std, binned_correlations, binned_sign)
-
-    return correlations_avg, correlations_std
-end
-
 function analyze_correlations!(
     correlations_avg::AbstractArray{Complex{T}},
-    correlations_std::AbstractArray{Complex{T}},
+    correlations_var::AbstractArray{T},
     binned_correlations::AbstractArray{Complex{T}},
     binned_sign::Vector{Complex{T}}
 ) where {T<:AbstractFloat}
@@ -596,8 +591,8 @@ function analyze_correlations!(
 
         # calculate correlation stats
         C, ΔC = jackknife(/, binned_vals, binned_sign)
-        correlations_avg[c] = C
-        correlations_std[c] = ΔC
+        correlations_avg[c] += C
+        correlations_var[c] += ΔC^2
     end
 
     return nothing
@@ -691,7 +686,7 @@ end
 
 # write time-displaced correlation stat to file for D=2 dimensional system
 function _write_correlation(fout::IO, index::Int, pair::NTuple{2,Int}, l::Int, n::NTuple{2,Int},
-                                      C::Complex{T}, ΔC::T) where {T<:AbstractFloat}
+                            C::Complex{T}, ΔC::T) where {T<:AbstractFloat}
 
     @printf(fout, "%d %d %d %d %d %d %.8f %.8f %.8f\n", index, pair[2], pair[1], l, n[2]-1, n[1]-1, real(C), imag(C), ΔC)
 
