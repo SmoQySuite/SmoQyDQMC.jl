@@ -198,7 +198,7 @@ function make_measurements!(measurement_container::NamedTuple,
         indx = findfirst(i -> typeof(i) <: ElectronPhononParameters, coupling_parameters)
 
         # measure phonon green's function
-        measure_eqaultime_phonon_greens!(equaltime_correlations["phonon_greens"], coupling_parameters[indx], model_geometry, sgn, a, a′, a″)
+        measure_equaltime_phonon_greens!(equaltime_correlations["phonon_greens"], coupling_parameters[indx], model_geometry, sgn, a, a′, a″)
     end
 
     # measure time-displaced phonon greens function
@@ -706,7 +706,7 @@ end
 ####################################
 
 # measure equal-time phonon greens function
-function measure_eqaultime_phonon_greens!(phonon_greens::CorrelationContainer{D,E},
+function measure_equaltime_phonon_greens!(phonon_greens::CorrelationContainer{D,E},
                                           electron_phonon_parameters::ElectronPhononParameters{T,E},
                                           model_geometry::ModelGeometry{D,E,N},
                                           sgn::T,
