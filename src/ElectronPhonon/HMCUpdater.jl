@@ -150,7 +150,7 @@ function hmc_update!(Gup::Matrix{T}, logdetGup::E, sgndetGup::T,
         fermion_path_integral_up, fermion_path_integral_dn,
         fermion_greens_calculator_up, fermion_greens_calculator_dn,
         fermion_greens_calculator_up_alt, fermion_greens_calculator_dn_alt,
-        Bup, Bdn, dSdx, dSfdx0, v, x′, x0, M, Nt′, nt, Δt, initialize_force, first_update, δG_max, δG, δθ, rng,
+        Bup, Bdn, dSdx, dSfdx0, v, x′, x0, M, Nt, nt, Δt, initialize_force, first_update, δG_max, δG, δθ, rng,
         δG_reject, recenter!, update_stabalization_frequency
     )
 
