@@ -1,7 +1,7 @@
 """
     LMCUpdater{T<:Number, E<:AbstractFloat, PFFT, PIFFT}
 
-Defines a langevin monte carlo (HMC) update for the phonon degrees of freedom.
+Defines a langevin monte carlo (LMC) update for the phonon degrees of freedom.
 
 # Fields
 
@@ -102,8 +102,12 @@ end
                 fermion_greens_calculator_dn_alt::FermionGreensCalculator{T,E},
                 Bup::Vector{P}, Bdn::Vector{P},
                 δG_max::E, δG::E, δθ::E, rng::AbstractRNG,
+                update_stabalization_frequency::Bool = true,
                 initialize_force::Bool = true,
-                δG_reject::E = sqrt(δG_max)) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
+                δG_reject::E = sqrt(δG_max),
+                recenter!::Function = identity,
+                Δt::E = lmc_updater.Δt,
+                nt::Int = lmc_updater.nt) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
 
 Perform LMC update to the phonon degrees of freedom.
 This method returns `(accepted, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ)`, where `accepted`
@@ -121,14 +125,14 @@ function lmc_update!(Gup::Matrix{T}, logdetGup::E, sgndetGup::T,
                      fermion_greens_calculator_dn_alt::FermionGreensCalculator{T,E},
                      Bup::Vector{P}, Bdn::Vector{P},
                      δG_max::E, δG::E, δθ::E, rng::AbstractRNG,
+                     update_stabalization_frequency::Bool = true,
                      initialize_force::Bool = true,
                      δG_reject::E = sqrt(δG_max),
-                     recenter!::Function = identity) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
+                     recenter!::Function = identity,
+                     Δt::E = lmc_updater.Δt,
+                     nt::Int = lmc_updater.nt) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
 
-    (; nt, Δt, M, dSdx, dSfdx0, x′, x0, v, Gup′, Gdn′, first_update) = lmc_updater
-    
-    # sample fermionc time-step size
-    Δt′ = Δt * randexp(rng)
+    (; M, dSdx, dSfdx0, x′, x0, v, Gup′, Gdn′, first_update) = lmc_updater
 
     # perform LMC update
     (accepted, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = _hmc_update!(
@@ -138,8 +142,8 @@ function lmc_update!(Gup::Matrix{T}, logdetGup::E, sgndetGup::T,
         fermion_path_integral_up, fermion_path_integral_dn,
         fermion_greens_calculator_up, fermion_greens_calculator_dn,
         fermion_greens_calculator_up_alt, fermion_greens_calculator_dn_alt,
-        Bup, Bdn, dSdx, dSfdx0, v, x′, x0, M, 1, nt, Δt′, initialize_force, first_update, δG_max, δG, δθ, rng,
-        δG_reject, recenter!
+        Bup, Bdn, dSdx, dSfdx0, v, x′, x0, M, 1, nt, Δt, initialize_force, first_update, δG_max, δG, δθ, rng,
+        δG_reject, recenter!, update_stabalization_frequency
     )
 
     # set first update to false as an update was just performed
@@ -156,8 +160,12 @@ end
                 fermion_greens_calculator::FermionGreensCalculator{T,E},
                 fermion_greens_calculator_alt::FermionGreensCalculator{T,E},
                 B::Vector{P}, δG_max::E, δG::E, δθ::E, rng::AbstractRNG,
+                update_stabalization_frequency::Bool = true,
                 initialize_force::Bool = true,
-                δG_reject::E = sqrt(δG_max)) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
+                δG_reject::E = sqrt(δG_max),
+                recenter!::Function = identity,
+                Δt::E = lmc_updater.Δt,
+                nt::Int = lmc_updater.nt) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
 
 Perform LMC update to the phonon degrees of freedom assuming the spin-up and spin-down sectors are equivalent.
 This method returns `(accepted, logdetG, sgndetG, δG, δθ)`, where `accepted`
@@ -170,21 +178,21 @@ function lmc_update!(G::Matrix{T}, logdetG::E, sgndetG::T,
                      fermion_greens_calculator::FermionGreensCalculator{T,E},
                      fermion_greens_calculator_alt::FermionGreensCalculator{T,E},
                      B::Vector{P}, δG_max::E, δG::E, δθ::E, rng::AbstractRNG,
+                     update_stabalization_frequency::Bool = true,
                      initialize_force::Bool = true,
                      δG_reject::E = sqrt(δG_max),
-                     recenter!::Function = identity) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
+                     recenter!::Function = identity,
+                     Δt::E = lmc_updater.Δt,
+                     nt::Int = lmc_updater.nt) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
 
-    (; nt, Δt, M, dSdx, dSfdx0, x′, x0, v, Gup′, first_update) = lmc_updater
-    
-    # sample fermionc time-step size
-    Δt′ = Δt * randexp(rng)
-
+    (; M, dSdx, dSfdx0, x′, x0, v, Gup′, first_update) = lmc_updater
     # perform LMC update
+
     (accepted, logdetG, sgndetG, δG, δθ) = _hmc_update!(
         G, logdetG, sgndetG, Gup′, electron_phonon_parameters,
         fermion_path_integral, fermion_greens_calculator, fermion_greens_calculator_alt,
-        B, dSdx, dSfdx0, v, x′, x0, M, 1, nt, Δt′, initialize_force, first_update, δG_max, δG, δθ, rng,
-        δG_reject, recenter!
+        B, dSdx, dSfdx0, v, x′, x0, M, 1, nt, Δt, initialize_force, first_update, δG_max, δG, δθ, rng,
+        δG_reject, recenter!, update_stabalization_frequency
     )
 
     # set first update to false as an update was just performed
