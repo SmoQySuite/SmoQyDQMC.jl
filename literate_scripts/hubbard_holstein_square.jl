@@ -585,7 +585,7 @@ function run_hubbard_holstein_square_simulation(sID, U, Ω, α, μ, β, L, N_bur
 #md     ## method to calculate the error bars by calculating both susceptibilities for
 #md     ## each bin of data that was written to file.
 
-    # Measure the extended s-wave pair susceptibility.
+    ## Measure the extended s-wave pair susceptibility.
     Pes, ΔPes = composite_correlation_stat(
         folder = simulation_info.datafolder,
         correlations = ["pair", "pair", "pair", "pair",
@@ -620,7 +620,7 @@ function run_hubbard_holstein_square_simulation(sID, U, Ω, α, μ, β, L, N_bur
     additional_info["P_ext-s_avg"] = Pes
     additional_info["P_ext-s_err"] = ΔPes
 
-    # Measure the d-wave pair susceptibility.
+    ## Measure the d-wave pair susceptibility.
     Pd, ΔPd = composite_correlation_stat(
         folder = simulation_info.datafolder,
         correlations = ["pair", "pair", "pair", "pair",
@@ -655,8 +655,8 @@ function run_hubbard_holstein_square_simulation(sID, U, Ω, α, μ, β, L, N_bur
     additional_info["P_d_avg"] = Pd
     additional_info["P_d_err"] = ΔPd
 
-    # Calculate the charge susceptibility for zero momentum transfer (q=0)
-    # with the net charge background signal subtracted off.
+    ## Calculate the charge susceptibility for zero momentum transfer (q=0)
+    ## with the net charge background signal subtracted off.
     C0, ΔC0 = composite_correlation_stat(
         folder = simulation_info.datafolder,
         correlations = ["density", "greens"],

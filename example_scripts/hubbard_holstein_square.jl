@@ -103,17 +103,20 @@ function run_hubbard_holstein_square_simulation(sID, U, Ω, α, μ, β, L, N_bur
     # Initialize an instance of the ModelGeometry type.
     model_geometry = ModelGeometry(unit_cell, lattice)
 
+    # Get the number of orbitals in the lattice.
+    N = lu.nsites(unit_cell, lattice)
+
     # Define the nearest-neighbor bond in the +x direction.
-    bond_x = lu.Bond(orbitals = (1,1), displacement = [1,0])
+    bond_px = lu.Bond(orbitals = (1,1), displacement = [1,0])
 
     # Add nearest-neighbor bond in the +x direction.
-    bond_x_id = add_bond!(model_geometry, bond_x)
+    bond_px_id = add_bond!(model_geometry, bond_px)
 
     # Define the nearest-neighbor bond in the +y direction.
-    bond_y = lu.Bond(orbitals = (1,1), displacement = [0,1])
+    bond_py = lu.Bond(orbitals = (1,1), displacement = [0,1])
 
     # Add the nearest-neighbor bond in the +y direction.
-    bond_y_id = add_bond!(model_geometry, bond_y)
+    bond_py_id = add_bond!(model_geometry, bond_py)
 
 
     # Define the nearest-neighbor bond in the +x direction.
@@ -134,7 +137,7 @@ function run_hubbard_holstein_square_simulation(sID, U, Ω, α, μ, β, L, N_bur
     # Define the tight-binding model
     tight_binding_model = TightBindingModel(
         model_geometry = model_geometry,
-        t_bonds = [bond_x, bond_y], # defines hopping
+        t_bonds = [bond_px, bond_py], # defines hopping
         t_mean = [t, t],            # defines corresponding hopping amplitude
         μ = μ,                      # set chemical potential
         ϵ_mean = [0.]               # set the (mean) on-site energy
@@ -283,14 +286,14 @@ function run_hubbard_holstein_square_simulation(sID, U, Ω, α, μ, β, L, N_bur
         time_displaced = false,
         integrated = true,
         pairs = [(1, 1),
-                 (bond_x_id, bond_x_id),  (bond_x_id, bond_nx_id),
-                 (bond_nx_id, bond_x_id), (bond_nx_id, bond_nx_id),
-                 (bond_y_id, bond_y_id),  (bond_y_id, bond_ny_id),
-                 (bond_ny_id, bond_y_id), (bond_ny_id, bond_ny_id),
-                 (bond_x_id, bond_y_id),  (bond_x_id, bond_ny_id),
-                 (bond_nx_id, bond_y_id), (bond_nx_id, bond_ny_id),
-                 (bond_y_id, bond_x_id),  (bond_y_id, bond_nx_id),
-                 (bond_ny_id, bond_x_id), (bond_ny_id, bond_nx_id)]
+                 (bond_px_id, bond_px_id),  (bond_px_id, bond_nx_id),
+                 (bond_nx_id, bond_px_id), (bond_nx_id, bond_nx_id),
+                 (bond_py_id, bond_py_id),  (bond_py_id, bond_ny_id),
+                 (bond_ny_id, bond_py_id), (bond_ny_id, bond_ny_id),
+                 (bond_px_id, bond_py_id),  (bond_px_id, bond_ny_id),
+                 (bond_nx_id, bond_py_id), (bond_nx_id, bond_ny_id),
+                 (bond_py_id, bond_px_id),  (bond_py_id, bond_nx_id),
+                 (bond_ny_id, bond_px_id), (bond_ny_id, bond_nx_id)]
     )
 
     # Initialize the current correlation function measurement
@@ -534,61 +537,91 @@ function run_hubbard_holstein_square_simulation(sID, U, Ω, α, μ, β, L, N_bur
     process_measurements(simulation_info.datafolder, N_bins)
 
 
-    # Measure the extended s-wave pair suspcetibility.
-    P_ext_s, ΔP_ext_s = composite_correlation_stats(
+    # Measure the extended s-wave pair susceptibility.
+    Pes, ΔPes = composite_correlation_stat(
         folder = simulation_info.datafolder,
-        correlation = "pair",
-        space = "momentum",
-        type = "integrated",
-        ids = [(bond_x_id, bond_x_id), (bond_nx_id, bond_nx_id), (bond_x_id, bond_nx_id), (bond_nx_id, bond_x_id),
-               (bond_y_id, bond_y_id), (bond_ny_id, bond_ny_id), (bond_y_id, bond_ny_id), (bond_ny_id, bond_y_id),
-               (bond_x_id, bond_y_id), (bond_nx_id, bond_ny_id), (bond_x_id, bond_ny_id), (bond_nx_id, bond_y_id),
-               (bond_y_id, bond_x_id), (bond_ny_id, bond_nx_id), (bond_y_id, bond_nx_id), (bond_ny_id, bond_x_id)],
+        correlations = ["pair", "pair", "pair", "pair",
+                        "pair", "pair", "pair", "pair",
+                        "pair", "pair", "pair", "pair",
+                        "pair", "pair", "pair", "pair"],
+        spaces = ["momentum", "momentum", "momentum", "momentum",
+                  "momentum", "momentum", "momentum", "momentum",
+                  "momentum", "momentum", "momentum", "momentum",
+                  "momentum", "momentum", "momentum", "momentum"],
+        types = ["integrated", "integrated", "integrated", "integrated",
+                 "integrated", "integrated", "integrated", "integrated",
+                 "integrated", "integrated", "integrated", "integrated",
+                 "integrated", "integrated", "integrated", "integrated"],
+        ids = [(bond_px_id, bond_px_id), (bond_nx_id, bond_nx_id), (bond_px_id, bond_nx_id), (bond_nx_id, bond_px_id),
+               (bond_py_id, bond_py_id), (bond_ny_id, bond_ny_id), (bond_py_id, bond_ny_id), (bond_ny_id, bond_py_id),
+               (bond_px_id, bond_py_id), (bond_nx_id, bond_ny_id), (bond_px_id, bond_ny_id), (bond_nx_id, bond_py_id),
+               (bond_py_id, bond_px_id), (bond_ny_id, bond_nx_id), (bond_py_id, bond_nx_id), (bond_ny_id, bond_px_id)],
         locs = [(0,0), (0,0), (0,0), (0,0),
                 (0,0), (0,0), (0,0), (0,0),
                 (0,0), (0,0), (0,0), (0,0),
                 (0,0), (0,0), (0,0), (0,0)],
         num_bins = N_bins,
-        f = (P_x_x, P_nx_nx, P_x_nx, P_nx_x,
-             P_y_y, P_ny_ny, P_y_ny, P_ny_y,
-             P_x_y, P_nx_ny, P_x_ny, P_nx_y,
-             P_y_x, P_ny_nx, P_y_nx, P_ny_x) -> (P_x_x + P_nx_nx + P_x_nx + P_nx_x +
-                                                 P_y_y + P_ny_ny + P_y_ny + P_ny_y +
-                                                 P_x_y + P_nx_ny + P_x_ny + P_nx_y +
-                                                 P_y_x + P_ny_nx + P_y_nx + P_ny_x)/4
+        f = (P_px_px, P_nx_nx, P_px_nx, P_nx_px,
+             P_py_py, P_ny_ny, P_py_ny, P_ny_py,
+             P_px_py, P_nx_ny, P_px_ny, P_nx_py,
+             P_py_px, P_ny_nx, P_py_nx, P_ny_px) -> (P_px_px + P_nx_nx + P_px_nx + P_nx_px +
+                                                     P_py_py + P_ny_ny + P_py_ny + P_ny_py +
+                                                     P_px_py + P_nx_ny + P_px_ny + P_nx_py +
+                                                     P_py_px + P_ny_nx + P_py_nx + P_ny_px)/4
     )
+    additional_info["P_ext-s_avg"] = Pes
+    additional_info["P_ext-s_err"] = ΔPes
 
-    # Record the extended s-wave pair suspcetibility.
-    additional_info["P_ext_s_mean"] = real(P_ext_s)
-    additional_info["P_ext_s_std"]  = ΔP_ext_s
-
-    # Measure the d-wave pair suspcetibility.
-    P_d, ΔP_d = composite_correlation_stats(
+    # Measure the d-wave pair susceptibility.
+    Pd, ΔPd = composite_correlation_stat(
         folder = simulation_info.datafolder,
-        correlation = "pair",
-        space = "momentum",
-        type = "integrated",
-        ids = [(bond_x_id, bond_x_id), (bond_nx_id, bond_nx_id), (bond_x_id, bond_nx_id), (bond_nx_id, bond_x_id),
-               (bond_y_id, bond_y_id), (bond_ny_id, bond_ny_id), (bond_y_id, bond_ny_id), (bond_ny_id, bond_y_id),
-               (bond_x_id, bond_y_id), (bond_nx_id, bond_ny_id), (bond_x_id, bond_ny_id), (bond_nx_id, bond_y_id),
-               (bond_y_id, bond_x_id), (bond_ny_id, bond_nx_id), (bond_y_id, bond_nx_id), (bond_ny_id, bond_x_id)],
+        correlations = ["pair", "pair", "pair", "pair",
+                        "pair", "pair", "pair", "pair",
+                        "pair", "pair", "pair", "pair",
+                        "pair", "pair", "pair", "pair"],
+        spaces = ["momentum", "momentum", "momentum", "momentum",
+                  "momentum", "momentum", "momentum", "momentum",
+                  "momentum", "momentum", "momentum", "momentum",
+                  "momentum", "momentum", "momentum", "momentum"],
+        types = ["integrated", "integrated", "integrated", "integrated",
+                 "integrated", "integrated", "integrated", "integrated",
+                 "integrated", "integrated", "integrated", "integrated",
+                 "integrated", "integrated", "integrated", "integrated"],
+        ids = [(bond_px_id, bond_px_id), (bond_nx_id, bond_nx_id), (bond_px_id, bond_nx_id), (bond_nx_id, bond_px_id),
+               (bond_py_id, bond_py_id), (bond_ny_id, bond_ny_id), (bond_py_id, bond_ny_id), (bond_ny_id, bond_py_id),
+               (bond_px_id, bond_py_id), (bond_nx_id, bond_ny_id), (bond_px_id, bond_ny_id), (bond_nx_id, bond_py_id),
+               (bond_py_id, bond_px_id), (bond_ny_id, bond_nx_id), (bond_py_id, bond_nx_id), (bond_ny_id, bond_px_id)],
         locs = [(0,0), (0,0), (0,0), (0,0),
                 (0,0), (0,0), (0,0), (0,0),
                 (0,0), (0,0), (0,0), (0,0),
                 (0,0), (0,0), (0,0), (0,0)],
         num_bins = N_bins,
-        f = (P_x_x, P_nx_nx, P_x_nx, P_nx_x,
-             P_y_y, P_ny_ny, P_y_ny, P_ny_y,
-             P_x_y, P_nx_ny, P_x_ny, P_nx_y,
-             P_y_x, P_ny_nx, P_y_nx, P_ny_x) -> (P_x_x + P_nx_nx + P_x_nx + P_nx_x +
-                                                 P_y_y + P_ny_ny + P_y_ny + P_ny_y -
-                                                 P_x_y - P_nx_ny - P_x_ny - P_nx_y -
-                                                 P_y_x - P_ny_nx - P_y_nx - P_ny_x)/4
+        f = (P_px_px, P_nx_nx, P_px_nx, P_nx_px,
+             P_py_py, P_ny_ny, P_py_ny, P_ny_py,
+             P_px_py, P_nx_ny, P_px_ny, P_nx_py,
+             P_py_px, P_ny_nx, P_py_nx, P_ny_px) -> (P_px_px + P_nx_nx + P_px_nx + P_nx_px +
+                                                     P_py_py + P_ny_ny + P_py_ny + P_ny_py -
+                                                     P_px_py - P_nx_ny - P_px_ny - P_nx_py -
+                                                     P_py_px - P_ny_nx - P_py_nx - P_ny_px)/4
     )
+    additional_info["P_d_avg"] = Pd
+    additional_info["P_d_err"] = ΔPd
 
-    # Record the d-wave pair suspcetibility.
-    additional_info["P_d_mean"] = real(P_d)
-    additional_info["P_d_std"]  = ΔP_d
+    # Calculate the charge susceptibility for zero momentum transfer (q=0)
+    # with the net charge background signal subtracted off.
+    C0, ΔC0 = composite_correlation_stat(
+        folder = simulation_info.datafolder,
+        correlations = ["density", "greens"],
+        spaces = ["momentum", "position"],
+        types = ["integrated", "time-displaced"],
+        ids = [(1,1), (1,1)],
+        locs = [(0,0), (0,0)],
+        Δls = [0, 0],
+        num_bins = N_bins,
+        f = (x, y) -> (x - β*N*(2*(1-y))^2)
+    )
+    additional_info["Chi_C_q0_avg"] = C0
+    additional_info["Chi_C_q0_err"] = ΔC0
 
     # Write simulation summary TOML file.
     save_simulation_info(simulation_info, additional_info)
@@ -617,4 +650,3 @@ if abspath(PROGRAM_FILE) == @__FILE__
 end
 
 # This file was generated using Literate.jl, https://github.com/fredrikekre/Literate.jl
-
