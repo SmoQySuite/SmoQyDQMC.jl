@@ -34,8 +34,8 @@ makedocs(;
     ),
     pages=[
         "Home" => "index.md",
-        "Examples" => example_documentation_paths,
         "API" => "api.md",
+        "Examples" => example_documentation_paths,
     ],
     draft = false
 )
