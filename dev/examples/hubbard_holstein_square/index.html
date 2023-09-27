@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Example 5: Hubbard-Holstein Square Lattice Model · SmoQyDQMC.jl</title><script data-outdated-warner src="../../assets/warner.js"></script><link rel="canonical" href="https://SmoQySuite.github.io/SmoQyDQMC.jl/examples/hubbard_holstein_square/"/><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.045/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.24/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../../">SmoQyDQMC.jl</a></span></div><form class="docs-search" action="../../search/"><input class="docs-search-query" id="documenter-search-query" name="q" type="text" placeholder="Search docs"/></form><ul class="docs-menu"><li><a class="tocitem" href="../../">Home</a></li><li><span class="tocitem">Examples</span><ul><li><a class="tocitem" href="../hubbard_chain/">Example 1(a): Hubbard Chain</a></li><li><a class="tocitem" href="../hubbard_chain_mpi/">Example 1(b): Hubbard Chain with MPI</a></li><li><a class="tocitem" href="../hubbard_chain_checkpoint/">Example 1(c): Hubbard Chain with Checkpointing</a></li><li><a class="tocitem" href="../holstein_chain/">Example 2: Holstein Chain with Density Tuning</a></li><li><a class="tocitem" href="../ossh_chain/">Example 3: Optical Su-Schrieffer-Heeger Chain</a></li><li><a class="tocitem" href="../bssh_chain/">Example 4: Bond Su-Schrieffer-Heeger Chain</a></li><li class="is-active"><a class="tocitem" href>Example 5: Hubbard-Holstein Square Lattice Model</a></li><li><a class="tocitem" href="../hubbard_threeband/">Example 6: 3-band Hubbard Model</a></li><li><a class="tocitem" href="../holstein_kagome/">Example 7: Kagome Holstein Model with Density Tuning</a></li><li><a class="tocitem" href="../hubbard_honeycomb/">Example 8: Honeycomb Hubbard model</a></li></ul></li><li><a class="tocitem" href="../../api/">API</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Examples</a></li><li class="is-active"><a href>Example 5: Hubbard-Holstein Square Lattice Model</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Example 5: Hubbard-Holstein Square Lattice Model</a></li></ul></nav><div class="docs-right"><a class="docs-edit-link" href="https://github.com/SmoQySuite/SmoQyDQMC.jl/blob/main/literate_scripts/hubbard_holstein_square.jl#" title="Edit on GitHub"><span class="docs-icon fab"></span><span class="docs-label is-hidden-touch">Edit on GitHub</span></a><a class="docs-settings-button fas fa-cog" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-sidebar-button fa fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a></div></header><article class="content" id="documenter-page"><h1 id="Example-5:-Hubbard-Holstein-Square-Lattice-Model"><a class="docs-heading-anchor" href="#Example-5:-Hubbard-Holstein-Square-Lattice-Model">Example 5: Hubbard-Holstein Square Lattice Model</a><a id="Example-5:-Hubbard-Holstein-Square-Lattice-Model-1"></a><a class="docs-heading-anchor-permalink" href="#Example-5:-Hubbard-Holstein-Square-Lattice-Model" title="Permalink"></a></h1><p>In this example we write a script to simulate the Hubbard-Holstein model on a square lattice, with a Hamiltonian given by</p><p class="math-container">\[\begin{align*}
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Example 5: Hubbard-Holstein Square Lattice Model · SmoQyDQMC.jl</title><script data-outdated-warner src="../../assets/warner.js"></script><link rel="canonical" href="https://SmoQySuite.github.io/SmoQyDQMC.jl/examples/hubbard_holstein_square/"/><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.045/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.24/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../../">SmoQyDQMC.jl</a></span></div><form class="docs-search" action="../../search/"><input class="docs-search-query" id="documenter-search-query" name="q" type="text" placeholder="Search docs"/></form><ul class="docs-menu"><li><a class="tocitem" href="../../">Home</a></li><li><a class="tocitem" href="../../api/">API</a></li><li><span class="tocitem">Examples</span><ul><li><a class="tocitem" href="../hubbard_chain/">Example 1(a): Hubbard Chain</a></li><li><a class="tocitem" href="../hubbard_chain_mpi/">Example 1(b): Hubbard Chain with MPI</a></li><li><a class="tocitem" href="../hubbard_chain_checkpoint/">Example 1(c): Hubbard Chain with Checkpointing</a></li><li><a class="tocitem" href="../holstein_chain/">Example 2: Holstein Chain with Density Tuning</a></li><li><a class="tocitem" href="../ossh_chain/">Example 3: Optical Su-Schrieffer-Heeger Chain</a></li><li><a class="tocitem" href="../bssh_chain/">Example 4: Bond Su-Schrieffer-Heeger Chain</a></li><li class="is-active"><a class="tocitem" href>Example 5: Hubbard-Holstein Square Lattice Model</a></li><li><a class="tocitem" href="../hubbard_threeband/">Example 6: 3-band Hubbard Model</a></li><li><a class="tocitem" href="../holstein_kagome/">Example 7: Kagome Holstein Model with Density Tuning</a></li><li><a class="tocitem" href="../hubbard_honeycomb/">Example 8: Honeycomb Hubbard model</a></li></ul></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Examples</a></li><li class="is-active"><a href>Example 5: Hubbard-Holstein Square Lattice Model</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Example 5: Hubbard-Holstein Square Lattice Model</a></li></ul></nav><div class="docs-right"><a class="docs-edit-link" href="https://github.com/SmoQySuite/SmoQyDQMC.jl/blob/main/literate_scripts/hubbard_holstein_square.jl#" title="Edit on GitHub"><span class="docs-icon fab"></span><span class="docs-label is-hidden-touch">Edit on GitHub</span></a><a class="docs-settings-button fas fa-cog" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-sidebar-button fa fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a></div></header><article class="content" id="documenter-page"><h1 id="Example-5:-Hubbard-Holstein-Square-Lattice-Model"><a class="docs-heading-anchor" href="#Example-5:-Hubbard-Holstein-Square-Lattice-Model">Example 5: Hubbard-Holstein Square Lattice Model</a><a id="Example-5:-Hubbard-Holstein-Square-Lattice-Model-1"></a><a class="docs-heading-anchor-permalink" href="#Example-5:-Hubbard-Holstein-Square-Lattice-Model" title="Permalink"></a></h1><p>In this example we write a script to simulate the Hubbard-Holstein model on a square lattice, with a Hamiltonian given by</p><p class="math-container">\[\begin{align*}
 \hat{H} = &amp; -t \sum_{\sigma,\langle i, j \rangle} (\hat{c}^{\dagger}_{\sigma,i}, \hat{c}^{\phantom \dagger}_{\sigma,j} + {\rm h.c.})
             -\mu \sum_{\sigma,i}\hat{n}_{\sigma,i}\\
           &amp; + U \sum_{i} (\hat{n}_{\uparrow,i}-\tfrac{1}{2})(\hat{n}_{\downarrow,i}-\tfrac{1}{2})
@@ -110,17 +110,20 @@ function run_hubbard_holstein_square_simulation(sID, U, Ω, α, μ, β, L, N_bur
     # Initialize an instance of the ModelGeometry type.
     model_geometry = ModelGeometry(unit_cell, lattice)
 
+    # Get the number of orbitals in the lattice.
+    N = lu.nsites(unit_cell, lattice)
+
     # Define the nearest-neighbor bond in the +x direction.
-    bond_x = lu.Bond(orbitals = (1,1), displacement = [1,0])
+    bond_px = lu.Bond(orbitals = (1,1), displacement = [1,0])
 
     # Add nearest-neighbor bond in the +x direction.
-    bond_x_id = add_bond!(model_geometry, bond_x)
+    bond_px_id = add_bond!(model_geometry, bond_px)
 
     # Define the nearest-neighbor bond in the +y direction.
-    bond_y = lu.Bond(orbitals = (1,1), displacement = [0,1])
+    bond_py = lu.Bond(orbitals = (1,1), displacement = [0,1])
 
     # Add the nearest-neighbor bond in the +y direction.
-    bond_y_id = add_bond!(model_geometry, bond_y)
+    bond_py_id = add_bond!(model_geometry, bond_py)
 
     # Here we define bonds to points in the negative x and y directions respectively.
     # We do this in order to be able to measure all the pairing channels we need
@@ -144,7 +147,7 @@ function run_hubbard_holstein_square_simulation(sID, U, Ω, α, μ, β, L, N_bur
     # Define the tight-binding model
     tight_binding_model = TightBindingModel(
         model_geometry = model_geometry,
-        t_bonds = [bond_x, bond_y], # defines hopping
+        t_bonds = [bond_px, bond_py], # defines hopping
         t_mean = [t, t],            # defines corresponding hopping amplitude
         μ = μ,                      # set chemical potential
         ϵ_mean = [0.]               # set the (mean) on-site energy
@@ -297,14 +300,14 @@ function run_hubbard_holstein_square_simulation(sID, U, Ω, α, μ, β, L, N_bur
         time_displaced = false,
         integrated = true,
         pairs = [(1, 1),
-                 (bond_x_id, bond_x_id),  (bond_x_id, bond_nx_id),
-                 (bond_nx_id, bond_x_id), (bond_nx_id, bond_nx_id),
-                 (bond_y_id, bond_y_id),  (bond_y_id, bond_ny_id),
-                 (bond_ny_id, bond_y_id), (bond_ny_id, bond_ny_id),
-                 (bond_x_id, bond_y_id),  (bond_x_id, bond_ny_id),
-                 (bond_nx_id, bond_y_id), (bond_nx_id, bond_ny_id),
-                 (bond_y_id, bond_x_id),  (bond_y_id, bond_nx_id),
-                 (bond_ny_id, bond_x_id), (bond_ny_id, bond_nx_id)]
+                 (bond_px_id, bond_px_id),  (bond_px_id, bond_nx_id),
+                 (bond_nx_id, bond_px_id), (bond_nx_id, bond_nx_id),
+                 (bond_py_id, bond_py_id),  (bond_py_id, bond_ny_id),
+                 (bond_ny_id, bond_py_id), (bond_ny_id, bond_ny_id),
+                 (bond_px_id, bond_py_id),  (bond_px_id, bond_ny_id),
+                 (bond_nx_id, bond_py_id), (bond_nx_id, bond_ny_id),
+                 (bond_py_id, bond_px_id),  (bond_py_id, bond_nx_id),
+                 (bond_ny_id, bond_px_id), (bond_ny_id, bond_nx_id)]
     )
 
     # Initialize the current correlation function measurement
@@ -548,65 +551,97 @@ function run_hubbard_holstein_square_simulation(sID, U, Ω, α, μ, β, L, N_bur
     process_measurements(simulation_info.datafolder, N_bins)
 
     # Here we use the `composite_correlation_stats` to reconstruct the extended
-    # s-wave and d-wave pair susceptibilities. Behind the scenes, uses the binning
+    # s-wave and d-wave pair susceptibilities. We also subract off the background
+    # signal associated with the zero-momentum transfer charge susceptibility.
+    # Behind the scenes, uses the binning
     # method to calculate the error bars by calculating both susceptibilities for
     # each bin of data that was written to file.
 
-    # Measure the extended s-wave pair suspcetibility.
-    P_ext_s, ΔP_ext_s = composite_correlation_stats(
+    # Measure the extended s-wave pair susceptibility.
+    Pes, ΔPes = composite_correlation_stat(
         folder = simulation_info.datafolder,
-        correlation = &quot;pair&quot;,
-        space = &quot;momentum&quot;,
-        type = &quot;integrated&quot;,
-        ids = [(bond_x_id, bond_x_id), (bond_nx_id, bond_nx_id), (bond_x_id, bond_nx_id), (bond_nx_id, bond_x_id),
-               (bond_y_id, bond_y_id), (bond_ny_id, bond_ny_id), (bond_y_id, bond_ny_id), (bond_ny_id, bond_y_id),
-               (bond_x_id, bond_y_id), (bond_nx_id, bond_ny_id), (bond_x_id, bond_ny_id), (bond_nx_id, bond_y_id),
-               (bond_y_id, bond_x_id), (bond_ny_id, bond_nx_id), (bond_y_id, bond_nx_id), (bond_ny_id, bond_x_id)],
+        correlations = [&quot;pair&quot;, &quot;pair&quot;, &quot;pair&quot;, &quot;pair&quot;,
+                        &quot;pair&quot;, &quot;pair&quot;, &quot;pair&quot;, &quot;pair&quot;,
+                        &quot;pair&quot;, &quot;pair&quot;, &quot;pair&quot;, &quot;pair&quot;,
+                        &quot;pair&quot;, &quot;pair&quot;, &quot;pair&quot;, &quot;pair&quot;],
+        spaces = [&quot;momentum&quot;, &quot;momentum&quot;, &quot;momentum&quot;, &quot;momentum&quot;,
+                  &quot;momentum&quot;, &quot;momentum&quot;, &quot;momentum&quot;, &quot;momentum&quot;,
+                  &quot;momentum&quot;, &quot;momentum&quot;, &quot;momentum&quot;, &quot;momentum&quot;,
+                  &quot;momentum&quot;, &quot;momentum&quot;, &quot;momentum&quot;, &quot;momentum&quot;],
+        types = [&quot;integrated&quot;, &quot;integrated&quot;, &quot;integrated&quot;, &quot;integrated&quot;,
+                 &quot;integrated&quot;, &quot;integrated&quot;, &quot;integrated&quot;, &quot;integrated&quot;,
+                 &quot;integrated&quot;, &quot;integrated&quot;, &quot;integrated&quot;, &quot;integrated&quot;,
+                 &quot;integrated&quot;, &quot;integrated&quot;, &quot;integrated&quot;, &quot;integrated&quot;],
+        ids = [(bond_px_id, bond_px_id), (bond_nx_id, bond_nx_id), (bond_px_id, bond_nx_id), (bond_nx_id, bond_px_id),
+               (bond_py_id, bond_py_id), (bond_ny_id, bond_ny_id), (bond_py_id, bond_ny_id), (bond_ny_id, bond_py_id),
+               (bond_px_id, bond_py_id), (bond_nx_id, bond_ny_id), (bond_px_id, bond_ny_id), (bond_nx_id, bond_py_id),
+               (bond_py_id, bond_px_id), (bond_ny_id, bond_nx_id), (bond_py_id, bond_nx_id), (bond_ny_id, bond_px_id)],
         locs = [(0,0), (0,0), (0,0), (0,0),
                 (0,0), (0,0), (0,0), (0,0),
                 (0,0), (0,0), (0,0), (0,0),
                 (0,0), (0,0), (0,0), (0,0)],
         num_bins = N_bins,
-        f = (P_x_x, P_nx_nx, P_x_nx, P_nx_x,
-             P_y_y, P_ny_ny, P_y_ny, P_ny_y,
-             P_x_y, P_nx_ny, P_x_ny, P_nx_y,
-             P_y_x, P_ny_nx, P_y_nx, P_ny_x) -&gt; (P_x_x + P_nx_nx + P_x_nx + P_nx_x +
-                                                 P_y_y + P_ny_ny + P_y_ny + P_ny_y +
-                                                 P_x_y + P_nx_ny + P_x_ny + P_nx_y +
-                                                 P_y_x + P_ny_nx + P_y_nx + P_ny_x)/4
+        f = (P_px_px, P_nx_nx, P_px_nx, P_nx_px,
+             P_py_py, P_ny_ny, P_py_ny, P_ny_py,
+             P_px_py, P_nx_ny, P_px_ny, P_nx_py,
+             P_py_px, P_ny_nx, P_py_nx, P_ny_px) -&gt; (P_px_px + P_nx_nx + P_px_nx + P_nx_px +
+                                                     P_py_py + P_ny_ny + P_py_ny + P_ny_py +
+                                                     P_px_py + P_nx_ny + P_px_ny + P_nx_py +
+                                                     P_py_px + P_ny_nx + P_py_nx + P_ny_px)/4
     )
+    additional_info[&quot;P_ext-s_avg&quot;] = Pes
+    additional_info[&quot;P_ext-s_err&quot;] = ΔPes
 
-    # Record the extended s-wave pair suspcetibility.
-    additional_info[&quot;P_ext_s_mean&quot;] = real(P_ext_s)
-    additional_info[&quot;P_ext_s_std&quot;]  = ΔP_ext_s
-
-    # Measure the d-wave pair suspcetibility.
-    P_d, ΔP_d = composite_correlation_stats(
+    # Measure the d-wave pair susceptibility.
+    Pd, ΔPd = composite_correlation_stat(
         folder = simulation_info.datafolder,
-        correlation = &quot;pair&quot;,
-        space = &quot;momentum&quot;,
-        type = &quot;integrated&quot;,
-        ids = [(bond_x_id, bond_x_id), (bond_nx_id, bond_nx_id), (bond_x_id, bond_nx_id), (bond_nx_id, bond_x_id),
-               (bond_y_id, bond_y_id), (bond_ny_id, bond_ny_id), (bond_y_id, bond_ny_id), (bond_ny_id, bond_y_id),
-               (bond_x_id, bond_y_id), (bond_nx_id, bond_ny_id), (bond_x_id, bond_ny_id), (bond_nx_id, bond_y_id),
-               (bond_y_id, bond_x_id), (bond_ny_id, bond_nx_id), (bond_y_id, bond_nx_id), (bond_ny_id, bond_x_id)],
+        correlations = [&quot;pair&quot;, &quot;pair&quot;, &quot;pair&quot;, &quot;pair&quot;,
+                        &quot;pair&quot;, &quot;pair&quot;, &quot;pair&quot;, &quot;pair&quot;,
+                        &quot;pair&quot;, &quot;pair&quot;, &quot;pair&quot;, &quot;pair&quot;,
+                        &quot;pair&quot;, &quot;pair&quot;, &quot;pair&quot;, &quot;pair&quot;],
+        spaces = [&quot;momentum&quot;, &quot;momentum&quot;, &quot;momentum&quot;, &quot;momentum&quot;,
+                  &quot;momentum&quot;, &quot;momentum&quot;, &quot;momentum&quot;, &quot;momentum&quot;,
+                  &quot;momentum&quot;, &quot;momentum&quot;, &quot;momentum&quot;, &quot;momentum&quot;,
+                  &quot;momentum&quot;, &quot;momentum&quot;, &quot;momentum&quot;, &quot;momentum&quot;],
+        types = [&quot;integrated&quot;, &quot;integrated&quot;, &quot;integrated&quot;, &quot;integrated&quot;,
+                 &quot;integrated&quot;, &quot;integrated&quot;, &quot;integrated&quot;, &quot;integrated&quot;,
+                 &quot;integrated&quot;, &quot;integrated&quot;, &quot;integrated&quot;, &quot;integrated&quot;,
+                 &quot;integrated&quot;, &quot;integrated&quot;, &quot;integrated&quot;, &quot;integrated&quot;],
+        ids = [(bond_px_id, bond_px_id), (bond_nx_id, bond_nx_id), (bond_px_id, bond_nx_id), (bond_nx_id, bond_px_id),
+               (bond_py_id, bond_py_id), (bond_ny_id, bond_ny_id), (bond_py_id, bond_ny_id), (bond_ny_id, bond_py_id),
+               (bond_px_id, bond_py_id), (bond_nx_id, bond_ny_id), (bond_px_id, bond_ny_id), (bond_nx_id, bond_py_id),
+               (bond_py_id, bond_px_id), (bond_ny_id, bond_nx_id), (bond_py_id, bond_nx_id), (bond_ny_id, bond_px_id)],
         locs = [(0,0), (0,0), (0,0), (0,0),
                 (0,0), (0,0), (0,0), (0,0),
                 (0,0), (0,0), (0,0), (0,0),
                 (0,0), (0,0), (0,0), (0,0)],
         num_bins = N_bins,
-        f = (P_x_x, P_nx_nx, P_x_nx, P_nx_x,
-             P_y_y, P_ny_ny, P_y_ny, P_ny_y,
-             P_x_y, P_nx_ny, P_x_ny, P_nx_y,
-             P_y_x, P_ny_nx, P_y_nx, P_ny_x) -&gt; (P_x_x + P_nx_nx + P_x_nx + P_nx_x +
-                                                 P_y_y + P_ny_ny + P_y_ny + P_ny_y -
-                                                 P_x_y - P_nx_ny - P_x_ny - P_nx_y -
-                                                 P_y_x - P_ny_nx - P_y_nx - P_ny_x)/4
+        f = (P_px_px, P_nx_nx, P_px_nx, P_nx_px,
+             P_py_py, P_ny_ny, P_py_ny, P_ny_py,
+             P_px_py, P_nx_ny, P_px_ny, P_nx_py,
+             P_py_px, P_ny_nx, P_py_nx, P_ny_px) -&gt; (P_px_px + P_nx_nx + P_px_nx + P_nx_px +
+                                                     P_py_py + P_ny_ny + P_py_ny + P_ny_py -
+                                                     P_px_py - P_nx_ny - P_px_ny - P_nx_py -
+                                                     P_py_px - P_ny_nx - P_py_nx - P_ny_px)/4
     )
+    additional_info[&quot;P_d_avg&quot;] = Pd
+    additional_info[&quot;P_d_err&quot;] = ΔPd
 
-    # Record the d-wave pair suspcetibility.
-    additional_info[&quot;P_d_mean&quot;] = real(P_d)
-    additional_info[&quot;P_d_std&quot;]  = ΔP_d
+    # Calculate the charge susceptibility for zero momentum transfer (q=0)
+    # with the net charge background signal subtracted off.
+    C0, ΔC0 = composite_correlation_stat(
+        folder = simulation_info.datafolder,
+        correlations = [&quot;density&quot;, &quot;greens&quot;],
+        spaces = [&quot;momentum&quot;, &quot;position&quot;],
+        types = [&quot;integrated&quot;, &quot;time-displaced&quot;],
+        ids = [(1,1), (1,1)],
+        locs = [(0,0), (0,0)],
+        Δls = [0, 0],
+        num_bins = N_bins,
+        f = (x, y) -&gt; (x - β*N*(2*(1-y))^2)
+    )
+    additional_info[&quot;Chi_C_q0_avg&quot;] = C0
+    additional_info[&quot;Chi_C_q0_err&quot;] = ΔC0
 
     # Write simulation summary TOML file.
     save_simulation_info(simulation_info, additional_info)
@@ -632,4 +667,4 @@ if abspath(PROGRAM_FILE) == @__FILE__
 
     # Run the simulation.
     run_hubbard_holstein_square_simulation(sID, U, Ω, α, μ, β, L, N_burnin, N_updates, N_bins)
-end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../bssh_chain/">« Example 4: Bond Su-Schrieffer-Heeger Chain</a><a class="docs-footer-nextpage" href="../hubbard_threeband/">Example 6: 3-band Hubbard Model »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.25 on <span class="colophon-date" title="Thursday 21 September 2023 15:45">Thursday 21 September 2023</span>. Using Julia version 1.9.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../bssh_chain/">« Example 4: Bond Su-Schrieffer-Heeger Chain</a><a class="docs-footer-nextpage" href="../hubbard_threeband/">Example 6: 3-band Hubbard Model »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.25 on <span class="colophon-date" title="Wednesday 27 September 2023 16:10">Wednesday 27 September 2023</span>. Using Julia version 1.9.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
