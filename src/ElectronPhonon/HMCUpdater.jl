@@ -109,8 +109,12 @@ end
                 fermion_greens_calculator_dn_alt::FermionGreensCalculator{T,E},
                 Bup::Vector{P}, Bdn::Vector{P},
                 δG_max::E, δG::E, δθ::E, rng::AbstractRNG,
+                update_stabalization_frequency::Bool = true,
                 initialize_force::Bool = true,
-                δG_reject::E = 1e-2) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
+                δG_reject::E = 1e-2,
+                Nt::Int = hmc_updater.Nt,
+                nt::Int = hmc_updater.nt,
+                Δt::E = hmc_updater.Δt) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
 
 Perform HMC update to the phonon degrees of freedom.
 This method returns `(accepted, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ)`, where `accepted`
@@ -128,14 +132,15 @@ function hmc_update!(Gup::Matrix{T}, logdetGup::E, sgndetGup::T,
                      fermion_greens_calculator_dn_alt::FermionGreensCalculator{T,E},
                      Bup::Vector{P}, Bdn::Vector{P},
                      δG_max::E, δG::E, δθ::E, rng::AbstractRNG,
+                     update_stabalization_frequency::Bool = true,
                      initialize_force::Bool = true,
                      δG_reject::E = 1e-2,
-                     recenter!::Function = identity) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
+                     recenter!::Function = identity,
+                     Nt::Int = hmc_updater.Nt,
+                     nt::Int = hmc_updater.nt,
+                     Δt::E = hmc_updater.Δt) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
 
-    (; nt, Δt, M, dSdx, dSfdx0, x′, x0, v, Gup′, Gdn′, Nt, first_update) = hmc_updater
-    
-    # sample the trajectory length from geometric distribution with mean given by Nt
-    Nt′ = Nt > 1 ? floor(Int, log(rand())/log(1-1/Nt)) + 1 : 1
+    (; M, dSdx, dSfdx0, x′, x0, v, Gup′, Gdn′, first_update) = hmc_updater
 
     # perform HMC update
     (accepted, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = _hmc_update!(
@@ -145,8 +150,8 @@ function hmc_update!(Gup::Matrix{T}, logdetGup::E, sgndetGup::T,
         fermion_path_integral_up, fermion_path_integral_dn,
         fermion_greens_calculator_up, fermion_greens_calculator_dn,
         fermion_greens_calculator_up_alt, fermion_greens_calculator_dn_alt,
-        Bup, Bdn, dSdx, dSfdx0, v, x′, x0, M, Nt′, nt, Δt, initialize_force, first_update, δG_max, δG, δθ, rng,
-        δG_reject, recenter!
+        Bup, Bdn, dSdx, dSfdx0, v, x′, x0, M, Nt, nt, Δt, initialize_force, first_update, δG_max, δG, δθ, rng,
+        δG_reject, recenter!, update_stabalization_frequency
     )
 
     # set first update to false as an update was just performed
@@ -163,8 +168,12 @@ end
                 fermion_greens_calculator::FermionGreensCalculator{T,E},
                 fermion_greens_calculator_alt::FermionGreensCalculator{T,E},
                 B::Vector{P}, δG_max::E, δG::E, δθ::E, rng::AbstractRNG,
+                update_stabalization_frequency::Bool = true,
                 initialize_force::Bool = true,
-                δG_reject::E = 1e-2) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
+                δG_reject::E = 1e-2,
+                Nt::Int = hmc_updater.Nt,
+                nt::Int = hmc_updater.nt,
+                Δt::E = hmc_updater.Δt) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
 
 Perform HMC update to the phonon degrees of freedom assuming the spin-up and spin-down sectors are equivalent.
 This method returns `(accepted, logdetG, sgndetG, δG, δθ)`, where `accepted`
@@ -177,21 +186,22 @@ function hmc_update!(G::Matrix{T}, logdetG::E, sgndetG::T,
                      fermion_greens_calculator::FermionGreensCalculator{T,E},
                      fermion_greens_calculator_alt::FermionGreensCalculator{T,E},
                      B::Vector{P}, δG_max::E, δG::E, δθ::E, rng::AbstractRNG,
+                     update_stabalization_frequency::Bool = true,
                      initialize_force::Bool = true,
                      δG_reject::E = 1e-2,
-                     recenter!::Function = identity) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
+                     recenter!::Function = identity,
+                     Nt::Int = hmc_updater.Nt,
+                     nt::Int = hmc_updater.nt,
+                     Δt::E = hmc_updater.Δt) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
 
-    (; nt, Δt, M, dSdx, dSfdx0, x′, x0, v, Gup′, Nt, first_update) = hmc_updater
-    
-    # sample the trajectory length from geometric distribution with mean given by Nt
-    Nt′ = Nt > 1 ? max(1, floor(Int, log(rand(rng))/log(1-1/Nt))) : 1
+    (; M, dSdx, dSfdx0, x′, x0, v, Gup′, first_update) = hmc_updater
 
     # perform HMC update
     (accepted, logdetG, sgndetG, δG, δθ) = _hmc_update!(
         G, logdetG, sgndetG, Gup′, electron_phonon_parameters,
         fermion_path_integral, fermion_greens_calculator, fermion_greens_calculator_alt,
-        B, dSdx, dSfdx0, v, x′, x0, M, Nt′, nt, Δt, initialize_force, first_update, δG_max, δG, δθ, rng,
-        δG_reject, recenter!
+        B, dSdx, dSfdx0, v, x′, x0, M, Nt, nt, Δt, initialize_force, first_update, δG_max, δG, δθ, rng,
+        δG_reject, recenter!, update_stabalization_frequency
     )
 
     # set first update to false as an update was just performed

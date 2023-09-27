@@ -12,7 +12,7 @@ function global_measurement_bins_to_csv(folder::String)
     N_files = length(readdir(joinpath(folder,"global")))
 
     # get the number of measurements per process
-    N_bin = div(N_files, N_process)
+    N_bins = div(N_files, N_process)
 
     # directory where binned global data is
     global_folder = joinpath(folder, "global")
@@ -37,7 +37,7 @@ function global_measurement_bins_to_csv(folder::String)
         write(fout, "\n")
 
         # iterate over measurements
-        for bin in 1:N_bin
+        for bin in 1:N_bins
 
             # iterate over processes
             for pID in 0:N_process-1
@@ -90,7 +90,7 @@ function local_measurement_bins_to_csv(folder::String, measurement::String)
     N_file = length(readdir(global_folder))
 
     # get the number of measurements per process
-    N_bin = div(N_file, N_process)
+    N_bins = div(N_file, N_process)
 
     # get the number of IDs
     N_id = length( JLD2.load(joinpath(local_folder, "bin-1_pID-0.jld2"), measurement) )
@@ -108,7 +108,7 @@ function local_measurement_bins_to_csv(folder::String, measurement::String)
         @printf fout "BIN PID %s %s_R %s_I SIGN_R SIGN_I\n" id_type uppercase(measurement) uppercase(measurement)
 
         # iterate over bins
-        for bin in 1:N_bin
+        for bin in 1:N_bins
 
             # iterate over processes
             for pID in 0:N_process-1
@@ -178,7 +178,7 @@ function correlation_bins_to_csv(; folder::String, correlation::String, type::St
     N_files = length(readdir(joinpath(folder,"global")))
 
     # get the number of bins
-    N_bin = div(N_files, N_process)
+    N_bins = div(N_files, N_process)
 
     # open csv file
     open(joinpath(correlation_folder, filename), "w") do fout
@@ -187,7 +187,7 @@ function correlation_bins_to_csv(; folder::String, correlation::String, type::St
         @printf fout "BIN PID INDEX %s_R %s_I SIGN_R SIGN_I\n" uppercase(correlation) uppercase(correlation)
 
         # iterate over bins
-        for bin in 1:N_bin
+        for bin in 1:N_bins
 
             # iterate over processes
             for pID in 0:N_process-1

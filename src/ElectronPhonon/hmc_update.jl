@@ -15,7 +15,8 @@ function _hmc_update!(Gup::Matrix{T}, logdetGup::E, sgndetGup::E, Gup′::Matrix
                       Nt::Int, nt::Int, Δt::E, initialize_force::Bool, first_update::Bool,
                       δG_max::E, δG::E, δθ::E, rng::AbstractRNG,
                       δG_reject::E = sqrt(δG_max),
-                      recenter!::Function = identity) where {T, E, P<:AbstractPropagator{T,E}}
+                      recenter!::Function = identity,
+                      update_stabilization_frequency::Bool = true) where {T, E, P<:AbstractPropagator{T,E}}
 
     holstein_parameters = electron_phonon_parameters.holstein_parameters::HolsteinParameters{E}
     ssh_parameters = electron_phonon_parameters.ssh_parameters::SSHParameters{T}
@@ -241,13 +242,15 @@ function _hmc_update!(Gup::Matrix{T}, logdetGup::E, sgndetGup::E, Gup′::Matrix
         # record numerical error associated up hmc update
         δG = δG′
         # update stabilization frequency if required
-        (updated, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = update_stabalization_frequency!(
-            Gup, logdetGup, sgndetGup,
-            Gdn, logdetGdn, sgndetGdn,
-            fermion_greens_calculator_up = fermion_greens_calculator_up,
-            fermion_greens_calculator_dn = fermion_greens_calculator_dn,
-            Bup = Bup, Bdn = Bdn, δG = δG, δθ = δθ, δG_max = δG_max
-        )
+        if update_stabilization_frequency
+            (updated, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = update_stabalization_frequency!(
+                Gup, logdetGup, sgndetGup,
+                Gdn, logdetGdn, sgndetGdn,
+                fermion_greens_calculator_up = fermion_greens_calculator_up,
+                fermion_greens_calculator_dn = fermion_greens_calculator_dn,
+                Bup = Bup, Bdn = Bdn, δG = δG, δθ = δθ, δG_max = δG_max
+            )
+        end
     # otherwise reject proposed update and revert to oringial phonon configuration
     else
         # update fermion path integrals to reflect initial phonon configuration
@@ -281,7 +284,8 @@ function  _hmc_update!(G::Matrix{T}, logdetG::E, sgndetG::E, G′::Matrix{T},
                        Nt::Int, nt::Int, Δt::E, initialize_force::Bool, first_update::Bool,
                        δG_max::E, δG::E, δθ::E, rng::AbstractRNG,
                        δG_reject::E = sqrt(δG_max),
-                       recenter!::Function = identity) where {T, E, P<:AbstractPropagator{T,E}}
+                       recenter!::Function = identity,
+                       update_stabilization_frequency::Bool = true) where {T, E, P<:AbstractPropagator{T,E}}
 
     holstein_parameters = electron_phonon_parameters.holstein_parameters::HolsteinParameters{E}
     ssh_parameters = electron_phonon_parameters.ssh_parameters::SSHParameters{T}
@@ -491,11 +495,13 @@ function  _hmc_update!(G::Matrix{T}, logdetG::E, sgndetG::E, G′::Matrix{T},
         # record numerical error associated up hmc update
         δG = δG′
         # update stabilization frequency if required
-        (updated, logdetG, sgndetG, δG, δθ) = update_stabalization_frequency!(
-            G, logdetG, sgndetG,
-            fermion_greens_calculator = fermion_greens_calculator,
-            B = B, δG = δG, δθ = δθ, δG_max = δG_max
-        )
+        if update_stabilization_frequency
+            (updated, logdetG, sgndetG, δG, δθ) = update_stabalization_frequency!(
+                G, logdetG, sgndetG,
+                fermion_greens_calculator = fermion_greens_calculator,
+                B = B, δG = δG, δθ = δθ, δG_max = δG_max
+            )
+        end
     # otherwise reject proposed update and revert to oringial phonon configuration
     else
         # update fermion path integrals to reflect initial phonon configuration

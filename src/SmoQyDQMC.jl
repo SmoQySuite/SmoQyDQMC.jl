@@ -14,6 +14,8 @@ using BinningAnalysis
 using Reexport
 using PkgVersion
 using TOML
+using Glob
+using MPI
 
 # packages for numerically solving for c in
 # the continuous hubbard-stratonovich transformation
@@ -192,9 +194,18 @@ export measure_ssh_energy, measure_ssh_sgn_switch
 include("ElectronPhonon/dispersion_measurements.jl")
 export measure_dispersion_energy
 
+# defines dictionaries as global variables that contain the names of all
+# local measurements and correlation measurements that can be made, and the
+# type ID type they are reported in terms of
+include("Measurements/global_measurement_name_dicts.jl")
+export LOCAL_MEASUREMENTS
+export CORRELATION_FUNCTIONS
+
+# Define CorrelationContainer struct to store correlation measurements in.
+include("Measurements/CorrelationContainer.jl")
+
 # initialize measurement container
 include("Measurements/initialize_measurements.jl")
-export CORRELATION_FUNCTIONS
 export initialize_measurement_container
 export initialize_measurements!
 export initialize_correlation_measurement!, initialize_correlation_measurements!
@@ -212,12 +223,20 @@ include("Measurements/write_measurements.jl")
 export write_measurements!
 
 # process measurements at end of the simulation to get final averages and error bars for all measurements
+include("Measurements/process_measurements_utils.jl")
+include("Measurements/process_global_measurements.jl")
+export process_global_measurements
+include("Measurements/process_local_measurements.jl")
+export process_local_measurements
+include("Measurements/process_correlation_measurements.jl")
+include("Measurements/process_correlation_measurements_mpi.jl")
+export process_correlation_measurement, process_correlation_measurements
 include("Measurements/process_measurements.jl")
-export process_measurements, process_correlation_measurement
+export process_measurements
 
 # process composite correlation measurements i.e. calculate functions of correlation functions
 include("Measurements/process_composite_correlation.jl")
-export composite_correlation_stats
+export composite_correlation_stat
 
 # tools for converted binned data, that is saved as *.jld2 binary files, to single csv file
 include("Measurements/binned_data_to_csv.jl")

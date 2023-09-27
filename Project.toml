@@ -1,18 +1,20 @@
 name = "SmoQyDQMC"
 uuid = "00e12d65-277b-447e-9c1d-a17422dd36f5"
 authors = ["Benjamin Cohen-Stead <benwcs@gmail.com>"]
-version = "0.1.4"
+version = "0.2.0"
 
 [deps]
 BinningAnalysis = "b7192094-8e58-5052-a244-180a858778ee"
 Checkerboard = "b297549e-c8cb-44e5-9c33-b7e2667db6fc"
 FFTW = "7a1cc6ca-52ef-59f5-83cd-3a7055c09341"
 FastLapackInterface = "29a986be-02c6-4525-aec4-84b980013641"
+Glob = "c27321d9-0574-5035-807b-f59d2c89b15c"
 JDQMCFramework = "72315111-4c7c-4639-8a62-af4b2dda42e0"
 JDQMCMeasurements = "387dbc25-93e3-4e71-ad28-7b91e77c6da4"
 JLD2 = "033835bb-8acc-5ee8-8aae-3f567f8a3819"
 LatticeUtilities = "33fcf0eb-3ae3-43db-bfbc-1d92a3639bd1"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+MPI = "da04e1cc-30fd-572f-bb4f-1f8673147195"
 MuTuner = "206a444d-62d4-4bef-89ca-f2a4a27f2209"
 OffsetArrays = "6fe1bfb0-de20-5000-8ca7-80f57d26f881"
 PkgVersion = "eebad327-c553-4316-9ea0-9fa01ccd7688"
