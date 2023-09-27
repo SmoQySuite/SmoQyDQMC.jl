@@ -171,7 +171,7 @@ end
                 update_stabalization_frequency::Bool = true,
                 initialize_force::Bool = true,
                 δG_reject::E = 1e-2,
-                Nt::Int = hmc_updates.Nt,
+                Nt::Int = hmc_updater.Nt,
                 nt::Int = hmc_updater.nt,
                 Δt::E = hmc_updater.Δt) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
 
@@ -190,7 +190,7 @@ function hmc_update!(G::Matrix{T}, logdetG::E, sgndetG::T,
                      initialize_force::Bool = true,
                      δG_reject::E = 1e-2,
                      recenter!::Function = identity,
-                     Nt::Int = hmc_updates.Nt,
+                     Nt::Int = hmc_updater.Nt,
                      nt::Int = hmc_updater.nt,
                      Δt::E = hmc_updater.Δt) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
 

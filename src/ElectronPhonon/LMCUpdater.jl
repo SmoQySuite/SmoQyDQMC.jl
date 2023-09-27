@@ -106,8 +106,8 @@ end
                 initialize_force::Bool = true,
                 δG_reject::E = sqrt(δG_max),
                 recenter!::Function = identity,
-                Δt::E = lmc_update.Δt,
-                nt::Int = lmc_update.nt) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
+                Δt::E = lmc_updater.Δt,
+                nt::Int = lmc_updater.nt) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
 
 Perform LMC update to the phonon degrees of freedom.
 This method returns `(accepted, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ)`, where `accepted`
@@ -129,8 +129,8 @@ function lmc_update!(Gup::Matrix{T}, logdetGup::E, sgndetGup::T,
                      initialize_force::Bool = true,
                      δG_reject::E = sqrt(δG_max),
                      recenter!::Function = identity,
-                     Δt::E = lmc_update.Δt,
-                     nt::Int = lmc_update.nt) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
+                     Δt::E = lmc_updater.Δt,
+                     nt::Int = lmc_updater.nt) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
 
     (; M, dSdx, dSfdx0, x′, x0, v, Gup′, Gdn′, first_update) = lmc_updater
 
@@ -164,8 +164,8 @@ end
                 initialize_force::Bool = true,
                 δG_reject::E = sqrt(δG_max),
                 recenter!::Function = identity,
-                Δt::E = lmc_update.Δt,
-                nt::Int = lmc_update.nt) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
+                Δt::E = lmc_updater.Δt,
+                nt::Int = lmc_updater.nt) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
 
 Perform LMC update to the phonon degrees of freedom assuming the spin-up and spin-down sectors are equivalent.
 This method returns `(accepted, logdetG, sgndetG, δG, δθ)`, where `accepted`
@@ -182,8 +182,8 @@ function lmc_update!(G::Matrix{T}, logdetG::E, sgndetG::T,
                      initialize_force::Bool = true,
                      δG_reject::E = sqrt(δG_max),
                      recenter!::Function = identity,
-                     Δt::E = lmc_update.Δt,
-                     nt::Int = lmc_update.nt) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
+                     Δt::E = lmc_updater.Δt,
+                     nt::Int = lmc_updater.nt) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
 
     (; M, dSdx, dSfdx0, x′, x0, v, Gup′, first_update) = lmc_updater
     # perform LMC update
