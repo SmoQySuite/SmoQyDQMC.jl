@@ -371,7 +371,7 @@ function run_bssh_chain_simulation(sID, Ω, α, μ, β, L, N_burnin, N_updates, 
     for n in 1:N_burnin
 
         ## Perform a swap update.
-#md         ## In a swap update, to phonon modes are randomly selected in the lattice
+#md         ## In a swap update, two phonon modes are randomly selected in the lattice
 #md         ## and their phonon fields are exchanged for all imaginary time slices.
         (accepted, logdetG, sgndetG) = swap_update!(
             G, logdetG, sgndetG, electron_phonon_parameters,
