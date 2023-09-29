@@ -19,8 +19,13 @@ under Award Number DE-SC0022311.
 
 To install the [SmoQyDQMC.jl](https://github.com/SmoQySuite/SmoQyDQMC.jl),
 simply open the Julia REPL and run the following command:
+```julia
+julia> ]
+pkg> add SmoQyDQMC
 ```
-julia> ] add SmoQyDQMC
+or equivalently via `Pkg` do
+```julia
+julia> using Pkg; Pkg.add("SmoQyDQMC")
 ```
 
 ## Documentation
