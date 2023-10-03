@@ -34,6 +34,8 @@ makedocs(;
     ),
     pages=[
         "Home" => "index.md",
+        "Hamiltonians" => "hamiltonian.md",
+        "Measurements" => "measurements.md",
         "API" => "api.md",
         "Examples" => example_documentation_paths,
     ],
