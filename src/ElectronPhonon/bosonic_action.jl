@@ -110,7 +110,7 @@ end
 Evaluate the derivative of the bosonic action ``\frac{\partial S_{\rm b}}{\parital x_{i,l}}`` with respect to each
 phonon field ``x_{i,l},`` adding the result to the array `dSdx`.
 """
-function bosonic_action_derivative!(dSdx::Matrix{T}, electron_phonon_parameters::ElectronPhononParameters{T,E}) where {T,E}
+function bosonic_action_derivative!(dSdx::Matrix{E}, electron_phonon_parameters::ElectronPhononParameters{T,E}) where {T,E}
 
     (; x, Δτ, phonon_parameters, dispersion_parameters, holstein_parameters) = electron_phonon_parameters
 

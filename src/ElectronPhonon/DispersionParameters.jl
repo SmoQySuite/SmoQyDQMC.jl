@@ -145,5 +145,5 @@ Initialize and return null (empty) instance of [`DispersionParameters`](@ref).
 """
 function DispersionParameters(electron_phonon_model::ElectronPhononModel{T,E,D}) where {T,E,D}
 
-    return DispersionParameters(0, 0, T[], T[], Matrix{Int}(undef,2,0), Vector{Int}[], Vector{Int}[])
+    return DispersionParameters(0, 0, E[], E[], Matrix{Int}(undef,2,0), Vector{Int}[], Vector{Int}[])
 end

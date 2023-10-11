@@ -1,6 +1,6 @@
 # performs a hybrid/hamiltonian monte carlo update to the phonon configuration
-function _hmc_update!(Gup::Matrix{T}, logdetGup::E, sgndetGup::E, Gup′::Matrix{T},
-                      Gdn::Matrix{T}, logdetGdn::E, sgndetGdn::E, Gdn′::Matrix{T},
+function _hmc_update!(Gup::Matrix{T}, logdetGup::E, sgndetGup::T, Gup′::Matrix{T},
+                      Gdn::Matrix{T}, logdetGdn::E, sgndetGdn::T, Gdn′::Matrix{T},
                       electron_phonon_parameters::ElectronPhononParameters{T,E},
                       fermion_path_integral_up::FermionPathIntegral{T,E},
                       fermion_path_integral_dn::FermionPathIntegral{T,E},
@@ -273,7 +273,7 @@ end
 
 # performs a hybrid/hamiltonian monte carlo update to the phonon configuration assuming
 # the spin up and spin down sectors are equivalent
-function  _hmc_update!(G::Matrix{T}, logdetG::E, sgndetG::E, G′::Matrix{T},
+function  _hmc_update!(G::Matrix{T}, logdetG::E, sgndetG::T, G′::Matrix{T},
                        electron_phonon_parameters::ElectronPhononParameters{T,E},
                        fermion_path_integral::FermionPathIntegral{T,E},
                        fermion_greens_calculator::FermionGreensCalculator{T,E},

@@ -34,8 +34,8 @@ makedocs(;
     ),
     pages=[
         "Home" => "index.md",
-        "Hamiltonians" => "hamiltonian.md",
-        "Measurements" => "measurements.md",
+        "Supported Hamiltonians" => "hamiltonian.md",
+        "Simulation Output Overview" => "simulation_output.md",
         "API" => "api.md",
         "Examples" => example_documentation_paths,
     ],

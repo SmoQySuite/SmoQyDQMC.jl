@@ -1,4 +1,4 @@
-# # Example 1(a): Hubbard Chain
+# # Hubbard Chain
 #
 # In this first example we will work through simulating the repulsive Hubbard model
 # on a 1D chain at half-filling.
