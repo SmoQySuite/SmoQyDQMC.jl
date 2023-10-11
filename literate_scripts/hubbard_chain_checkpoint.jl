@@ -1,4 +1,4 @@
-# # Example 1(c): Hubbard Chain with Checkpointing
+# # Hubbard Chain with Checkpointing
 #
 # In this script we take the script from the previous example and introduce
 # checkpointing, so that if the simulation is killed at some point it can resumed

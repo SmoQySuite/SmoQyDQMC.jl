@@ -1,4 +1,4 @@
-# # Example 6: 3-band Hubbard Model
+# # Three-Band Hubbard Model
 #
 # In this example we simulate an effective two-dimensional 3-band Hubbard model 
 # meant to represent a copper-oxide plane in the superconducting cuprates, with a Hamiltonian

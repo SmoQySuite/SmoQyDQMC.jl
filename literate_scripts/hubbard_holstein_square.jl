@@ -1,4 +1,4 @@
-# # Example 5: Hubbard-Holstein Square Lattice Model
+# # Square Hubbard-Holstein Model
 #
 # In this example we write a script to simulate the Hubbard-Holstein model on a square lattice, with a Hamiltonian given by
 # ```math

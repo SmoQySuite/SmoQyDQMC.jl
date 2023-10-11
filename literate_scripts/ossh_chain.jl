@@ -1,4 +1,4 @@
-# # Example 3: Optical Su-Schrieffer-Heeger Chain
+# # Optical Su-Schrieffer-Heeger Chain
 #
 # In this example we simulate the optical Su-Schrieffer-Heeger (OSSH) model on a 1D chain,
 # with a Hamiltonian given by

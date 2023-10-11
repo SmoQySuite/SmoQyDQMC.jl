@@ -1,4 +1,4 @@
-# # Example 2: Holstein Chain with Density Tuning
+# # Holstein Chain with Density Tuning
 #
 # In this example we simulate the Holstein model for electron-phonon models on a 1D chain given by
 # ```math

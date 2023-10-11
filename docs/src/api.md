@@ -257,6 +257,7 @@ save_density_tuning_profile
 - [`correlation_bins_to_csv`](@ref)
 
 ```@docs
+LOCAL_MEASUREMENTS
 CORRELATION_FUNCTIONS
 ```
 
