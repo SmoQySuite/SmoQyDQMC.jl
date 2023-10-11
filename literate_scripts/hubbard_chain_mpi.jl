@@ -1,4 +1,4 @@
-# # Example 1(b): Hubbard Chain with MPI
+# # Hubbard Chain with MPI
 #
 # In this example we simulate the same system as in example 1, the half-filled Hubbard chain.
 # However, in this example we use MPI, via the [`MPI.jl`](https://github.com/JuliaParallel/MPI.jl.git),

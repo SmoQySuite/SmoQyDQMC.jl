@@ -1,4 +1,4 @@
-# # Example 7: Kagome Holstein Model with Density Tuning
+# # Kagome Holstein Model with Density Tuning
 #
 # In this script we simulate the Holstein model on the Kagome lattice, with a Hamiltonian given by
 # ```math
