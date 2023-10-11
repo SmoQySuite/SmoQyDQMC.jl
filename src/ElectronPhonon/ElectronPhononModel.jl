@@ -214,17 +214,29 @@ struct SSHCoupling{T<:Number, E<:AbstractFloat, D}
 end
 
 @doc raw"""
-    SSHCoupling(; model_geometry::ModelGeometry{D,E}, tight_binding_model::TightBindingModel{T,E,D},
-                phonon_modes::NTuple{2,Int}, bond::Bond{D},
-                α_mean::T, α_std::E=0., α2_mean::T=0., α2_std::E=0., α3_mean::T=0., α3_std::E=0.,
-                α4_mean::T=0., α4_std::E=0.) where {D, T<:Number, E<:AbstractFloat}
+    SSHCoupling(;
+        model_geometry::ModelGeometry{D,E},
+        tight_binding_model::TightBindingModel{T,E,D},
+        phonon_modes::NTuple{2,Int},
+        bond::Bond{D},
+        α_mean, α_std = 0,
+        α2_mean = 0, α2_std = 0,
+        α3_mean = 0, α3_std = 0,
+        α4_mean = 0, α4_std = 0
+    ) where {D, T<:Number, E<:AbstractFloat}
 
 Initialize and return a instance of [`SSHCoupling`](@ref).
 """
-function SSHCoupling(; model_geometry::ModelGeometry{D,E}, tight_binding_model::TightBindingModel{T,E,D},
-                     phonon_modes::NTuple{2,Int}, bond::Bond{D},
-                     α_mean::T, α_std::E=0., α2_mean::T=0., α2_std::E=0., α3_mean::T=0., α3_std::E=0.,
-                     α4_mean::T=0., α4_std::E=0.) where {D, T<:Number, E<:AbstractFloat}
+function SSHCoupling(;
+    model_geometry::ModelGeometry{D,E},
+    tight_binding_model::TightBindingModel{T,E,D},
+    phonon_modes::NTuple{2,Int},
+    bond::Bond{D},
+    α_mean::T, α_std = 0,
+    α2_mean = 0, α2_std = 0,
+    α3_mean = 0, α3_std = 0,
+    α4_mean = 0, α4_std = 0
+) where {D, T<:Number, E<:AbstractFloat}
 
     # make sure there is already a hopping definition for the tight binding model corresponding to the ssh coupling
     @assert bond in tight_binding_model.t_bonds
@@ -232,7 +244,7 @@ function SSHCoupling(; model_geometry::ModelGeometry{D,E}, tight_binding_model::
     # get the bond ID
     bond_id = add_bond!(model_geometry, bond)
 
-    return SSHCoupling(phonon_modes, bond, bond_id, α_mean, α_std, α2_mean, α2_std, α3_mean, α3_std, α4_mean, α4_std)
+    return SSHCoupling(phonon_modes, bond, bond_id, T(α_mean), E(α_std), T(α2_mean), E(α2_std), T(α3_mean), E(α3_std), T(α4_mean), E(α4_std))
 end
 
 

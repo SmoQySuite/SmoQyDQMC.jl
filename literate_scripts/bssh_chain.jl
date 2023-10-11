@@ -1,4 +1,4 @@
-# # Example 4: Bond Su-Schrieffer-Heeger Chain
+# # Bond Su-Schrieffer-Heeger Chain
 #
 # In this example we simulate the bond Su-Schrieffer-Heeger (BSSH) model on a 1D chain,
 # with a Hamiltonian given by

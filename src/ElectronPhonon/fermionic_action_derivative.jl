@@ -1,6 +1,6 @@
 @doc raw"""
 fermionic_action_derivative!(dSdx::AbstractMatrix{E},
-                             G::Matrix{T}, logdetG::E, sgndetG::T, δG::E, δθ::T,
+                             G::Matrix{T}, logdetG::E, sgndetG::T, δG::E, δθ::E,
                              electron_phonon_parameters::ElectronPhononParameters{T,E},
                              fermion_greens_calculator::FermionGreensCalculator{T,E},
                              B::Vector{P}, update_B̄::Bool = false) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
@@ -13,7 +13,7 @@ S_{f,\sigma} = -{\rm Tr}\left[ \log \det G_\sigma^{-1}(\tau,\tau) \right]
 for each phonon field ``x_{i,l}``, adding the result to the array `dSdx`.
 """
 function fermionic_action_derivative!(dSdx::AbstractMatrix{E},
-                                      G::Matrix{T}, logdetG::E, sgndetG::T, δG::E, δθ::T,
+                                      G::Matrix{T}, logdetG::E, sgndetG::T, δG::E, δθ::E,
                                       electron_phonon_parameters::ElectronPhononParameters{T,E},
                                       fermion_greens_calculator::FermionGreensCalculator{T,E},
                                       B::Vector{P}) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
@@ -164,7 +164,7 @@ end
 
 # evaluate ∂S/∂x += sgn(det(G))⋅Tr[(∂Λ/∂x)⋅Λ⁻¹⋅A]
 function eval_tr_dΛdx_invΛ_A!(dSdx::AbstractVector{E}, x::AbstractVector{E},
-                              Δτ::E, sgndetG::E, A::Matrix{T},
+                              Δτ::E, sgndetG::T, A::Matrix{T},
                               holstein_parameters::HolsteinParameters{E}) where {T,E}
 
     (; Nholstein, α, α2, α3, α4, neighbor_table, coupling_to_phonon) = holstein_parameters
@@ -182,7 +182,7 @@ function eval_tr_dΛdx_invΛ_A!(dSdx::AbstractVector{E}, x::AbstractVector{E},
             # therefore, ∂Λ/∂x⋅Λ⁻¹ = -Δτ⋅(∂V/∂x)
             nΔτdVdt_ii = -Δτ * (α[c] + 2*α2[c]*x[p] + 3*α3[c]*x[p]^2 + 4*α4[c]*x[p]^3)
             # evaluate ∂S/∂x += Tr[(∂Λ/∂x)⋅A]
-            dSdx[p] += nΔτdVdt_ii * A[i,i]
+            dSdx[p] += real(nΔτdVdt_ii * A[i,i])
         end
     end
 
@@ -192,7 +192,7 @@ end
 
 # evaluate ∂S/∂x += Tr[(∂Γ/∂x)⋅Γ⁻¹⋅A]
 function eval_tr_dΓdx_invΓ_A!(dSdx::AbstractVector{E}, x::AbstractVector{E},
-                              Δτ::E, sgndetG::E, A::Matrix{T}, ssh_parameters::SSHParameters{T},
+                              Δτ::E, sgndetG::T, A::Matrix{T}, ssh_parameters::SSHParameters{T},
                               Γ::AbstractMatrix{T}, M::Vector{E}, A′::Matrix{T}) where {T,E}
 
     (; Nssh, α, α2, α3, α4, coupling_to_phonon, neighbor_table) = ssh_parameters
@@ -216,14 +216,14 @@ function eval_tr_dΓdx_invΓ_A!(dSdx::AbstractVector{E}, x::AbstractVector{E},
                 # get off-diagonal matrix element of -Δτ⋅∂K/∂x
                 nΔτdKdx_ji = -Δτ * (-α[c] - 2*α2[c]*Δx - 3*α3[c]*Δx^2 - 4*α4[c]*Δx^3)
                 # evaluate Tr[-Δτ⋅∂K/∂x⋅A]
-                dSdx[p] += (nΔτdKdx_ji * A[i,j] + conj(nΔτdKdx_ji) * A[j,i])
+                dSdx[p] += real(nΔτdKdx_ji * A[i,j] + conj(nΔτdKdx_ji) * A[j,i])
             end
             # if mass of final phonon is finite
             if isfinite(M[p′])
                 # get off-diagonal matrix element of -Δτ⋅∂K/∂x
                 nΔτdKdx_ji = -Δτ * (α[c] + 2*α2[c]*Δx + 3*α3[c]*Δx^2 + 4*α4[c]*Δx^3)
                 # evaluate Tr[-Δτ⋅∂K/∂x⋅A]
-                dSdx[p′] += (nΔτdKdx_ji * A[i,j] + conj(nΔτdKdx_ji) * A[j,i])
+                dSdx[p′] += real(nΔτdKdx_ji * A[i,j] + conj(nΔτdKdx_ji) * A[j,i])
             end
         end
     end
@@ -234,7 +234,7 @@ end
 
 # evaluate ∂S/∂x += Tr[(∂Γ/∂x)⋅Γ⁻¹⋅A]
 function eval_tr_dΓdx_invΓ_A!(dSdx::AbstractVector{E}, x::AbstractVector{E},
-                              Δτ::E, sgndetG::E, A::Matrix{T},
+                              Δτ::E, sgndetG::T, A::Matrix{T},
                               ssh_parameters::SSHParameters{T},
                               Γ::CheckerboardMatrix{T}, M::Vector{E}, A′::Matrix{T}) where {T,E}
 
@@ -272,14 +272,14 @@ function eval_tr_dΓdx_invΓ_A!(dSdx::AbstractVector{E}, x::AbstractVector{E},
                         # get off-diagonal matrix element of -Δτ⋅∂K/∂x
                         nΔτdKdx_ji = -Δτ * (-α[c] - 2*α2[c]*Δx - 3*α3[c]*Δx^2 - 4*α4[c]*Δx^3)
                         # evaluate Tr[(∂Γ/∂x)⋅A] = Tr[-Δτ⋅∂K/∂x⋅A′]
-                        dSdx[p] += (nΔτdKdx_ji * A′[i,j] + conj(nΔτdKdx_ji) * A′[j,i])
+                        dSdx[p] += real(nΔτdKdx_ji * A′[i,j] + conj(nΔτdKdx_ji) * A′[j,i])
                     end
                     # if mass of final phonon is finite
                     if isfinite(M[p′])
                         # get off-diagonal matrix element of -Δτ⋅∂K/∂x
                         nΔτdKdx_ji = -Δτ * (α[c] + 2*α2[c]*Δx + 3*α3[c]*Δx^2 + 4*α4[c]*Δx^3)
                         # evaluate Tr[(∂Γ/∂x)⋅A] = Tr[-Δτ⋅∂K/∂x⋅A′]
-                        dSdx[p′] += (nΔτdKdx_ji * A′[i,j] + conj(nΔτdKdx_ji) * A′[j,i])
+                        dSdx[p′] += real(nΔτdKdx_ji * A′[i,j] + conj(nΔτdKdx_ji) * A′[j,i])
                     end
                 end
             end
