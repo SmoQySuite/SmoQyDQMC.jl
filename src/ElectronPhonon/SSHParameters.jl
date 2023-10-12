@@ -15,7 +15,7 @@ Defines the SSH coupling parameters in lattice.
 - `coupling_to_phonon::Matrix{Int}`: Maps each SSH coupling onto that pair of coupled phonons.
 - `init_phonon_to_coupling::Vector{Vector{Int}}`: Maps initial phonon mode to corresponding SSH coupling(s).
 - `final_phonon_to_coupling::Vector{Vector{Int}}`: Maps final phonon mode to corresponding SSH coupling(s).
-- `hopping_to_couplings::Vector{Int}`: Maps hopping in the tight-binding model onto SSH couplings.
+- `hopping_to_couplings::Vector{Vector{Int}}`: Maps hopping in the tight-binding model onto SSH couplings.
 - `coupling_to_hopping::Vector{Int}`: Maps each SSH coupling onto the corresponding hopping in the tight-binding model.
 """
 struct SSHParameters{T<:Number}
@@ -188,7 +188,7 @@ Initialize and return null (empty) instance of [`SSHParameters`](@ref).
 """
 function SSHParameters(electron_phonon_model::ElectronPhononModel{T,E,D}) where {T,E,D}
 
-    return SSHParameters(0, 0, T[], T[], T[], T[], Matrix{Int}(undef,2,0), Matrix{Int}(undef,2,0), Vector{Int}[], Vector{Int}[], Int[], Int[])
+    return SSHParameters(0, 0, T[], T[], T[], T[], Matrix{Int}(undef,2,0), Matrix{Int}(undef,2,0), Vector{Int}[], Vector{Int}[], Vector{Int}[], Int[])
 end
 
 
