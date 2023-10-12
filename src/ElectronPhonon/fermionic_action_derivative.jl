@@ -238,7 +238,7 @@ function eval_tr_dΓdx_invΓ_A!(dSdx::AbstractVector{E}, x::AbstractVector{E},
                               ssh_parameters::SSHParameters{T},
                               Γ::CheckerboardMatrix{T}, M::Vector{E}, A′::Matrix{T}) where {T,E}
 
-    (; Nssh, α, α2, α3, α4, coupling_to_phonon, hopping_to_coupling) = ssh_parameters
+    (; Nssh, α, α2, α3, α4, coupling_to_phonon, hopping_to_couplings) = ssh_parameters
     (; Ncolors, perm, neighbor_table) = Γ
     color_bounds = Γ.colors
 
@@ -256,30 +256,33 @@ function eval_tr_dΓdx_invΓ_A!(dSdx::AbstractVector{E}, x::AbstractVector{E},
                 # get the hopping ID associated with the 2x2 checkerboard matrix
                 h = perm[n]
                 # get ssh coupling
-                c = hopping_to_coupling[h]
+                h_to_c = hopping_to_couplings[h]
                 # if there is an ssh coupling associated with the hopping
-                if !iszero(c)
-                    # get the pair of phonons getting coupled
-                    p  = coupling_to_phonon[1,c]
-                    p′ = coupling_to_phonon[2,c]
-                    # get the pair of orbitals that the coupled phonons live on
-                    i = neighbor_table[1,n]
-                    j = neighbor_table[2,n]
-                    # calculate the difference in phonon position
-                    Δx = x[p′] - x[p]
-                    # if mass of initial phonon is finite
-                    if isfinite(M[p])
-                        # get off-diagonal matrix element of -Δτ⋅∂K/∂x
-                        nΔτdKdx_ji = -Δτ * (-α[c] - 2*α2[c]*Δx - 3*α3[c]*Δx^2 - 4*α4[c]*Δx^3)
-                        # evaluate Tr[(∂Γ/∂x)⋅A] = Tr[-Δτ⋅∂K/∂x⋅A′]
-                        dSdx[p] += real(nΔτdKdx_ji * A′[i,j] + conj(nΔτdKdx_ji) * A′[j,i])
-                    end
-                    # if mass of final phonon is finite
-                    if isfinite(M[p′])
-                        # get off-diagonal matrix element of -Δτ⋅∂K/∂x
-                        nΔτdKdx_ji = -Δτ * (α[c] + 2*α2[c]*Δx + 3*α3[c]*Δx^2 + 4*α4[c]*Δx^3)
-                        # evaluate Tr[(∂Γ/∂x)⋅A] = Tr[-Δτ⋅∂K/∂x⋅A′]
-                        dSdx[p′] += real(nΔτdKdx_ji * A′[i,j] + conj(nΔτdKdx_ji) * A′[j,i])
+                if !isempty(h_to_c)
+                    # iterate over ssh coupling associated with hopping
+                    for c in h_to_c
+                        # get the pair of phonons getting coupled
+                        p  = coupling_to_phonon[1,c]
+                        p′ = coupling_to_phonon[2,c]
+                        # get the pair of orbitals that the coupled phonons live on
+                        i = neighbor_table[1,n]
+                        j = neighbor_table[2,n]
+                        # calculate the difference in phonon position
+                        Δx = x[p′] - x[p]
+                        # if mass of initial phonon is finite
+                        if isfinite(M[p])
+                            # get off-diagonal matrix element of -Δτ⋅∂K/∂x
+                            nΔτdKdx_ji = -Δτ * (-α[c] - 2*α2[c]*Δx - 3*α3[c]*Δx^2 - 4*α4[c]*Δx^3)
+                            # evaluate Tr[(∂Γ/∂x)⋅A] = Tr[-Δτ⋅∂K/∂x⋅A′]
+                            dSdx[p] += real(nΔτdKdx_ji * A′[i,j] + conj(nΔτdKdx_ji) * A′[j,i])
+                        end
+                        # if mass of final phonon is finite
+                        if isfinite(M[p′])
+                            # get off-diagonal matrix element of -Δτ⋅∂K/∂x
+                            nΔτdKdx_ji = -Δτ * (α[c] + 2*α2[c]*Δx + 3*α3[c]*Δx^2 + 4*α4[c]*Δx^3)
+                            # evaluate Tr[(∂Γ/∂x)⋅A] = Tr[-Δτ⋅∂K/∂x⋅A′]
+                            dSdx[p′] += real(nΔτdKdx_ji * A′[i,j] + conj(nΔτdKdx_ji) * A′[j,i])
+                        end
                     end
                 end
             end

@@ -15,7 +15,7 @@ Defines the SSH coupling parameters in lattice.
 - `coupling_to_phonon::Matrix{Int}`: Maps each SSH coupling onto that pair of coupled phonons.
 - `init_phonon_to_coupling::Vector{Vector{Int}}`: Maps initial phonon mode to corresponding SSH coupling(s).
 - `final_phonon_to_coupling::Vector{Vector{Int}}`: Maps final phonon mode to corresponding SSH coupling(s).
-- `hopping_to_coupling::Vector{Int}`: Maps hopping in the tight-binding model onto SSH couplings. If zero, this means there is no SSH coupling for that hopping.
+- `hopping_to_couplings::Vector{Int}`: Maps hopping in the tight-binding model onto SSH couplings.
 - `coupling_to_hopping::Vector{Int}`: Maps each SSH coupling onto the corresponding hopping in the tight-binding model.
 """
 struct SSHParameters{T<:Number}
@@ -51,7 +51,7 @@ struct SSHParameters{T<:Number}
     final_phonon_to_coupling::Vector{Vector{Int}}
 
     # map hopping in bare tight binding model to ssh coupling
-    hopping_to_coupling::Vector{Int}
+    hopping_to_couplings::Vector{Vector{Int}}
     
     # map coupling to bare hopping in tight binding model
     coupling_to_hopping::Vector{Int}
@@ -111,9 +111,9 @@ function SSHParameters(; model_geometry::ModelGeometry{D,E},
         α4 = zeros(T, Nssh)
 
         # allocate mapping arrays
-        coupling_to_phonon  = zeros(Int, 2, Nssh)
-        hopping_to_coupling = zeros(Int, Nhoppings)
-        coupling_to_hopping = zeros(Int, Nssh)
+        coupling_to_phonon   = zeros(Int, 2, Nssh)
+        hopping_to_couplings = [Int[] for _ in 1:Nssh]
+        coupling_to_hopping  = zeros(Int, Nssh)
 
         # get all the ssh bonds
         ssh_bonds = [ssh_coupling.bond for ssh_coupling in ssh_couplings]
@@ -140,7 +140,7 @@ function SSHParameters(; model_geometry::ModelGeometry{D,E},
                 ssh_counter += 1
                 # record ssh coupling <==> bare hopping mapping
                 coupling_to_hopping[ssh_counter] = hopping_index
-                hopping_to_coupling[hopping_index] = ssh_counter
+                push!(hopping_to_couplings[hopping_index], ssh_counter)
                 # record the initial phonon
                 coupling_to_phonon[1,ssh_counter] = Ncells * (phonon_mode_i-1) + unit_cell_id
                 # get the site the final phonon lives on
@@ -170,7 +170,7 @@ function SSHParameters(; model_geometry::ModelGeometry{D,E},
         # initialize ssh parameters
         ssh_parameters = SSHParameters(nssh, Nssh, α, α2, α3, α4, ssh_neighbor_table, coupling_to_phonon,
                                        init_phonon_to_coupling, final_phonon_to_coupling,
-                                       hopping_to_coupling, coupling_to_hopping)
+                                       hopping_to_couplings, coupling_to_hopping)
 
     else
 
