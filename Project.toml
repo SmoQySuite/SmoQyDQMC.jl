@@ -43,6 +43,7 @@ PkgVersion = "0.3"
 Reexport = "1"
 StableLinearAlgebra = "1"
 StaticArrays = "1"
+Statistics = "1"
 TOML = "1"
 julia = "1.8"
 
