@@ -149,11 +149,12 @@ function _process_correlation_measurement(
                 read_correlation_measurement!(binned_correlation, folder, correlation, type, space, n, pID, bin_intervals)
 
                 # calculate average and error for current pID
-                analyze_correlations!(correlation_avg, correlation_std, binned_correlation, binned_sign)
+                fill!(correlation_avg, 0)
+                fill!(correlation_var, 0)
+                analyze_correlations!(correlation_avg, correlation_var, binned_correlation, binned_sign)
 
                 # collect all the results
                 MPI.Reduce!(correlation_avg, +, comm)
-                @. correlation_var = abs2(correlation_std)
                 MPI.Reduce!(correlation_var, +, comm)
 
                 # normalize the stats
@@ -174,11 +175,13 @@ function _process_correlation_measurement(
             read_correlation_measurement!(binned_correlation, folder, correlation, type, space, n, pID, bin_intervals)
 
             # calculate average and error for current pID
-            analyze_correlations!(correlation_avg, correlation_std, binned_correlation, binned_sign)
+            # reset correlation containers
+            fill!(correlation_avg, 0)
+            fill!(correlation_std, 0)
+            analyze_correlations!(correlation_avg, correlation_var, binned_correlation, binned_sign)
 
             # collect all the results
             MPI.Reduce!(correlation_avg, +, comm)
-            @. correlation_var = abs2(correlation_std)
             MPI.Reduce!(correlation_var, +, comm)
         end
     end
@@ -258,6 +261,8 @@ function _process_correlation_measurement(
                     read_correlation_measurement!(binned_correlation, folder, correlation, l, space, n, pID, bin_intervals)
 
                     # calculate average and error for current pID
+                    fill!(correlation_avg, 0)
+                    fill!(correlation_var, 0)
                     analyze_correlations!(correlation_avg, correlation_var, binned_correlation, binned_sign)
 
                     # collect all the results
@@ -286,6 +291,8 @@ function _process_correlation_measurement(
                 read_correlation_measurement!(binned_correlation, folder, correlation, l, space, n, pID, bin_intervals)
 
                 # calculate average and error for current pID
+                fill!(correlation_avg, 0)
+                fill!(correlation_var, 0)
                 analyze_correlations!(correlation_avg, correlation_var, binned_correlation, binned_sign)
 
                 # collect all the results
