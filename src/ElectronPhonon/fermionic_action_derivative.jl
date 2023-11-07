@@ -1,17 +1,17 @@
-@doc raw"""
-fermionic_action_derivative!(dSdx::AbstractMatrix{E},
-                             G::Matrix{T}, logdetG::E, sgndetG::T, δG::E, δθ::E,
-                             electron_phonon_parameters::ElectronPhononParameters{T,E},
-                             fermion_greens_calculator::FermionGreensCalculator{T,E},
-                             B::Vector{P}, update_B̄::Bool = false) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
+# @doc raw"""
+# fermionic_action_derivative!(dSdx::AbstractMatrix{E},
+#                              G::Matrix{T}, logdetG::E, sgndetG::T, δG::E, δθ::E,
+#                              electron_phonon_parameters::ElectronPhononParameters{T,E},
+#                              fermion_greens_calculator::FermionGreensCalculator{T,E},
+#                              B::Vector{P}, update_B̄::Bool = false) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
 
-Evaluate the partial derivative ``\frac{\partial S_{f,\sigma}}{\partial x_{l,i}}`` of the fermionic action
-for a single spin species
-```math
-S_{f,\sigma} = -{\rm Tr}\left[ \log \det G_\sigma^{-1}(\tau,\tau) \right]
-```
-for each phonon field ``x_{i,l}``, adding the result to the array `dSdx`.
-"""
+# Evaluate the partial derivative ``\frac{\partial S_{f,\sigma}}{\partial x_{l,i}}`` of the fermionic action
+# for a single spin species
+# ```math
+# S_{f,\sigma} = -{\rm Tr}\left[ \log \det G_\sigma^{-1}(\tau,\tau) \right]
+# ```
+# for each phonon field ``x_{i,l}``, adding the result to the array `dSdx`.
+# """
 function fermionic_action_derivative!(dSdx::AbstractMatrix{E},
                                       G::Matrix{T}, logdetG::E, sgndetG::T, δG::E, δθ::E,
                                       electron_phonon_parameters::ElectronPhononParameters{T,E},

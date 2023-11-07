@@ -29,6 +29,15 @@ or equivalently via `Pkg` do
 julia> using Pkg; Pkg.add("SmoQyDQMC")
 ```
 
+## Publication List
+
+This sections lists of some of the publications that report results generated
+using the [SmoQyDQMC.jl](https://github.com/SmoQySuite/SmoQyDQMC.jl) package.
+
+```@bibliography
+*
+```
+
 ## Notable Package Dependencies
 
 This section reviews some notable package dependencies.

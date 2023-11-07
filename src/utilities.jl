@@ -1,18 +1,18 @@
-@doc raw"""
-    forward_partially_wrap_greens(G::Matrix{T}, B::P,
-                                  M::Matrix{T}=similar(G)) where {T, E, P<:AbstractPropagator{T,E}}
+# @doc raw"""
+#     forward_partially_wrap_greens(G::Matrix{T}, B::P,
+#                                   M::Matrix{T}=similar(G)) where {T, E, P<:AbstractPropagator{T,E}}
 
-If the propagator `B` is represented in the symmetric form
-```math
-B_l = \Gamma_l(\Delta\tau/2) \cdot \Lambda_l(\Delta\tau) \cdot \Gamma_l^\dagger(\Delta\tau/2),
-```
-where ``\tau = \Delta\tau \cdot l``, ``\Gamma(\Delta\tau/2) = e^{-\Delta\tau K_l/2}`` and ``\Lambda(\Delta\tau) = e^{-\Delta\tau V_l}``,
-then apply the transformation
-```math
-\tilde{G}(\tau,\tau) = \Gamma^{-1}_l(\Delta\tau/2) \cdot G(\tau,\tau) \Gamma_l(\Delta\tau/2)
-```
-to the equal-time Green's function matrix `G` in-place.
-"""
+# If the propagator `B` is represented in the symmetric form
+# ```math
+# B_l = \Gamma_l(\Delta\tau/2) \cdot \Lambda_l(\Delta\tau) \cdot \Gamma_l^\dagger(\Delta\tau/2),
+# ```
+# where ``\tau = \Delta\tau \cdot l``, ``\Gamma(\Delta\tau/2) = e^{-\Delta\tau K_l/2}`` and ``\Lambda(\Delta\tau) = e^{-\Delta\tau V_l}``,
+# then apply the transformation
+# ```math
+# \tilde{G}(\tau,\tau) = \Gamma^{-1}_l(\Delta\tau/2) \cdot G(\tau,\tau) \Gamma_l(\Delta\tau/2)
+# ```
+# to the equal-time Green's function matrix `G` in-place.
+# """
 function forward_partially_wrap_greens(G::Matrix{T}, B::P, M::Matrix{T}=similar(G)) where {T, E, P<:AbstractPropagator{T,E}}
 
     # only apply transformation if symmetric/hermitian definition for propagator is being used
@@ -53,21 +53,21 @@ function _forward_partially_wrap_greens(G::Matrix{T}, B::AsymChkbrdPropagator{T,
     return nothing
 end
 
-@doc raw"""
-    reverse_partially_wrap_greens(G::Matrix{T}, B::P,
-                                  M::Matrix{T}=similar(G)) where {T, E, P<:AbstractPropagator{T,E}}
+# @doc raw"""
+#     reverse_partially_wrap_greens(G::Matrix{T}, B::P,
+#                                   M::Matrix{T}=similar(G)) where {T, E, P<:AbstractPropagator{T,E}}
 
-If the propagator `B` is represented in the symmetric form
-```math
-B_l = \Gamma_l(\Delta\tau/2) \cdot \Lambda_l(\Delta\tau) \cdot \Gamma_l^\dagger(\Delta\tau/2),
-```
-where ``\tau = \Delta\tau \cdot l``, ``\Gamma(\Delta\tau/2) = e^{-\Delta\tau K_l/2}`` and ``\Lambda(\Delta\tau) = e^{-\Delta\tau V_l}``,
-then apply the transformation
-```math
-G(\tau,\tau) = \Gamma_l(\Delta\tau/2) \cdot \tilde{G}(\tau,\tau) \Gamma_l^{-1}(\Delta\tau/2)
-```
-to the equal-time Green's function matrix `G` in-place.
-"""
+# If the propagator `B` is represented in the symmetric form
+# ```math
+# B_l = \Gamma_l(\Delta\tau/2) \cdot \Lambda_l(\Delta\tau) \cdot \Gamma_l^\dagger(\Delta\tau/2),
+# ```
+# where ``\tau = \Delta\tau \cdot l``, ``\Gamma(\Delta\tau/2) = e^{-\Delta\tau K_l/2}`` and ``\Lambda(\Delta\tau) = e^{-\Delta\tau V_l}``,
+# then apply the transformation
+# ```math
+# G(\tau,\tau) = \Gamma_l(\Delta\tau/2) \cdot \tilde{G}(\tau,\tau) \Gamma_l^{-1}(\Delta\tau/2)
+# ```
+# to the equal-time Green's function matrix `G` in-place.
+# """
 function reverse_partially_wrap_greens(G::Matrix{T}, B::P, M::Matrix{T}=similar(G)) where {T, E, P<:AbstractPropagator{T,E}}
 
     # only apply transformation if symmetric/hermitian definition for propagator is being used
@@ -109,11 +109,11 @@ function _reverse_partially_wrap_greens(G::Matrix{T}, B::AsymChkbrdPropagator{T,
 end
 
 
-@doc raw"""
-    swap!(a::AbstractArray{T}, b::AbstractArray{T}) where {T}
+# @doc raw"""
+#     swap!(a::AbstractArray{T}, b::AbstractArray{T}) where {T}
 
-Swap the contents of the two arrays `a` and `b`.
-"""
+# Swap the contents of the two arrays `a` and `b`.
+# """
 function swap!(a::AbstractArray{T}, b::AbstractArray{T}) where {T}
 
     @fastmath @inbounds for i in eachindex(a)

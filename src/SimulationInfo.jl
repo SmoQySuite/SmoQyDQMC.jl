@@ -14,7 +14,7 @@ a previous simulation.
 - `pID::Int`: MPI process ID, defaults to 0 if MPI not being used.
 - `sID::Int`: Simulation ID.
 - `resuming::Bool`: Whether current simulation is resuming a previous simulation (`true`) or starting a new one (`false`).
-- `smoqy_version::VersionNumber`: Version of [`SmoQyDQMC`](@ref) used in simulation.
+- `smoqy_version::VersionNumber`: Version of [SmoQyDQMC.jl](https://github.com/SmoQySuite/SmoQyDQMC.jl) used in simulation.
 """
 mutable struct SimulationInfo
 

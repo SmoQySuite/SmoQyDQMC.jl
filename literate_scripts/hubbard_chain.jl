@@ -33,8 +33,8 @@
 # Finally, the eighth command line argument specifies the number of times during the simulation data is written to file `(N_bins = 50)`.
 # Note that this example only runs for a few minutes on most systems and can be easily run on most personal computers.
 
-# However, it should be stressed that this structure for the simulation is *not* enforced by the [`SmoQyDQMC`](@ref) package itself,
-# but rather is simply a function of how
+# However, it should be stressed that this structure for the simulation is *not* enforced by the [SmoQyDQMC.jl](https://github.com/SmoQySuite/SmoQyDQMC.jl)
+# package itself, but rather is simply a function of how
 # the [`example_scripts/hubbard_chain.jl`](https://github.com/SmoQySuite/SmoQyDQMC.jl/blob/main/example_scripts/hubbard_chain.jl)
 # script is structured.
 #

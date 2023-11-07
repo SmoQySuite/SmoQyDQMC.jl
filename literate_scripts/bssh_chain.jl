@@ -18,7 +18,7 @@
 # Lastly, the strength of the electron-phonon coupling is controlled by the parameter ``\alpha``.
 #
 # The example script to simulate this sytem is
-# [`scripts/bssh_chain.jl`](https://github.com/SmoQySuite/SmoQyDQMC.jl/blob/main/scripts/bssh_chain.jl).
+# [`example_scripts/bssh_chain.jl`](https://github.com/SmoQySuite/SmoQyDQMC.jl/blob/main/example_scripts/bssh_chain.jl).
 # A short test simulation using this script that only takes a few minutes on most personal computers is
 # ```
 # > julia bssh_chain.jl 0 1.0 0.5 0.0 4.0 16 1000 5000 20
@@ -29,7 +29,7 @@
 # Bin averaged measurements are then written to file `N_bins = 20` during the simulation.
 #
 # Below you will find the source code in the script
-# [`scripts/bssh_chain.jl`](https://github.com/SmoQySuite/SmoQyDQMC.jl/blob/main/scripts/bssh_chain.jl),
+# [`example_scripts/bssh_chain.jl`](https://github.com/SmoQySuite/SmoQyDQMC.jl/blob/main/example_scripts/bssh_chain.jl),
 # with additional comments giving more detailed explanations for what certain parts of the code are doing.
 
 using LinearAlgebra

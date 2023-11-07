@@ -33,6 +33,12 @@ julia> using Pkg; Pkg.add("SmoQyDQMC")
 - [`STABLE`](https://SmoQySuite.github.io/SmoQyDQMC.jl/stable/): Documentation for the latest version of the code published to the Julia [General](https://github.com/JuliaRegistries/General.git) registry.
 - [`DEV`](https://SmoQySuite.github.io/SmoQyDQMC.jl/dev/): Documentation associated with most recent commit to the main branch.
 
+## Publication List
+
+Follow this [link](https://smoqysuite.github.io/SmoQyDQMC.jl/dev/#Publication-List)
+to see a list of some of the publications that report results generated using
+the [SmoQyDQMC.jl](https://github.com/SmoQySuite/SmoQyDQMC.jl) package.
+
 ## Notable Package Dependencies
 
 This section reviews some notable package dependencies.

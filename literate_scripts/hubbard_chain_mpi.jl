@@ -4,7 +4,7 @@
 # However, in this example we use MPI, via the [`MPI.jl`](https://github.com/JuliaParallel/MPI.jl.git),
 # to perform multiple simulations in parallel, with the results getting automatically averaged over
 # at the end of the simulation. The command to run the script
-# [`scripts/hubbard_chain_mpi.jl`](https://github.com/SmoQySuite/SmoQyDQMC.jl/blob/main/scripts/hubbard_chain_mpi.jl)
+# [`example_scripts/hubbard_chain_mpi.jl`](https://github.com/SmoQySuite/SmoQyDQMC.jl/blob/main/example_scripts/hubbard_chain_mpi.jl)
 # is very similar to the previous example, only modified slightly:
 # ```
 # > mpiexecjl -n 8 julia hubbard_chain_mpi.jl 1 6.0 0.0 8.0 16 2000 10000 50

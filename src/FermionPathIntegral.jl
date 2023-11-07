@@ -117,14 +117,14 @@ function initialize_propagators(fpi::FermionPathIntegral{T,E}; symmetric::Bool, 
 end
 
 
-@doc raw"""
-    allocate_propagators(fpi::FermionPathIntegral{T,E}; symmetric::Bool, checkerboard::Bool) where {T,E}
+# @doc raw"""
+#     allocate_propagators(fpi::FermionPathIntegral{T,E}; symmetric::Bool, checkerboard::Bool) where {T,E}
 
-Allocate and return a vector of propagators of type `Vector{<:AbstractPropagator{T,E}}`, such that each propagator
-in the returned vector is initialized to equal the identity matrix.
-If `symmetric = true`, then each propagator matrix is symmetric/Hermitian.
-If `checkerboard = true`, then the exponentiated hopping matrix is represented using the checkerboard approximation.
-"""
+# Allocate and return a vector of propagators of type `Vector{<:AbstractPropagator{T,E}}`, such that each propagator
+# in the returned vector is initialized to equal the identity matrix.
+# If `symmetric = true`, then each propagator matrix is symmetric/Hermitian.
+# If `checkerboard = true`, then the exponentiated hopping matrix is represented using the checkerboard approximation.
+# """
 function allocate_propagators(fpi::FermionPathIntegral{T,E}; symmetric::Bool, checkerboard::Bool) where {T,E}
 
     # initialize symmetric propagators using the checkerboard approximation
@@ -302,12 +302,12 @@ function calculate_propagator!(B::AbstractPropagator{T,E}, fpi::FermionPathInteg
 end
 
 
-@doc raw"""
-    calculate_exp_V!(B::Vector{P}, fpi::FermionPathIntegral{T,E}) where {T, E, P<:AbstractPropagator{T,E}}
+# @doc raw"""
+#     calculate_exp_V!(B::Vector{P}, fpi::FermionPathIntegral{T,E}) where {T, E, P<:AbstractPropagator{T,E}}
 
-Calculate the diagonal exponentiated on-site energy matrices ``exp(-\Delta\tau V_l)`` appearing in each propagator ``B_l``
-for all imaginary time slices ``\tau = \Delta\tau \cdot l.``
-"""
+# Calculate the diagonal exponentiated on-site energy matrices ``exp(-\Delta\tau V_l)`` appearing in each propagator ``B_l``
+# for all imaginary time slices ``\tau = \Delta\tau \cdot l.``
+# """
 function calculate_exp_V!(B::Vector{P}, fpi::FermionPathIntegral{T,E}) where {T, E, P<:AbstractPropagator{T,E}}
 
     # iterate over imaginary time slices
@@ -320,12 +320,12 @@ function calculate_exp_V!(B::Vector{P}, fpi::FermionPathIntegral{T,E}) where {T,
     return nothing
 end
 
-@doc raw"""
-    calculate_exp_V!(B::AbstractPropagator{T,E}, fpi::FermionPathIntegral{T,E}, l::Int) where {T, E}
+# @doc raw"""
+#     calculate_exp_V!(B::AbstractPropagator{T,E}, fpi::FermionPathIntegral{T,E}, l::Int) where {T, E}
 
-Calculate the diagonal exponentiated on-site energy matrix ``exp(-\Delta\tau V_l)`` appearing in the propagator `B`
-for imaginary time slice `l`.
-"""
+# Calculate the diagonal exponentiated on-site energy matrix ``exp(-\Delta\tau V_l)`` appearing in the propagator `B`
+# for imaginary time slice `l`.
+# """
 function calculate_exp_V!(B::AbstractPropagator{T,E}, fpi::FermionPathIntegral{T,E}, l::Int) where {T, E}
 
     @views @. B.expmΔτV = exp(-fpi.Δτ * fpi.V[:,l])
@@ -334,11 +334,11 @@ function calculate_exp_V!(B::AbstractPropagator{T,E}, fpi::FermionPathIntegral{T
 end
 
 
-@doc raw"""
-    calculate_exp_K!(B::Vector{P}, fpi::FermionPathIntegral{T,E}) where {T, E, P<:AbstractPropagator{T,E}}
+# @doc raw"""
+#     calculate_exp_K!(B::Vector{P}, fpi::FermionPathIntegral{T,E}) where {T, E, P<:AbstractPropagator{T,E}}
 
-Calculate the exponentiated hopping matrix for each propagator matrix in the vector `B`.
-"""
+# Calculate the exponentiated hopping matrix for each propagator matrix in the vector `B`.
+# """
 function calculate_exp_K!(B::Vector{P}, fpi::FermionPathIntegral{T,E}) where {T, E, P<:AbstractPropagator{T,E}}
 
     # iterate over imaginary time slices
@@ -351,11 +351,11 @@ function calculate_exp_K!(B::Vector{P}, fpi::FermionPathIntegral{T,E}) where {T,
     return nothing
 end
 
-@doc raw"""
-    calculate_exp_K!(B::AbstractPropagator{T,E}, fpi::FermionPathIntegral{T,E}, l::Int) where {T, E}
+# @doc raw"""
+#     calculate_exp_K!(B::AbstractPropagator{T,E}, fpi::FermionPathIntegral{T,E}, l::Int) where {T, E}
 
-Calculate the exponentiated hopping matrix appearing in `B` for imaginary time slice `l`.
-"""
+# Calculate the exponentiated hopping matrix appearing in `B` for imaginary time slice `l`.
+# """
 function calculate_exp_K!(B::AbstractPropagator{T,E}, fpi::FermionPathIntegral{T,E}, l::Int) where {T, E}
 
     _calculate_exp_K!(B, fpi, l)
