@@ -23,7 +23,7 @@ DocMeta.setdocmeta!(SmoQyDQMC, :DocTestSetup, :(using SmoQyDQMC); recursive=true
 for i in eachindex(example_names)
     Literate.markdown(example_literate_sources[i], example_documentation_destination; 
                       execute = false,
-                      documenter = true)
+                      documenter = false)
     Literate.script(example_literate_sources[i], example_script_destinations[i])
 end
 
