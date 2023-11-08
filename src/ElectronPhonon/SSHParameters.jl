@@ -112,8 +112,8 @@ function SSHParameters(; model_geometry::ModelGeometry{D,E},
 
         # allocate mapping arrays
         coupling_to_phonon   = zeros(Int, 2, Nssh)
-        hopping_to_couplings = [Int[] for _ in 1:Nssh]
         coupling_to_hopping  = zeros(Int, Nssh)
+        hopping_to_couplings = [Int[] for _ in 1:Nhoppings]
 
         # get all the ssh bonds
         ssh_bonds = [ssh_coupling.bond for ssh_coupling in ssh_couplings]
