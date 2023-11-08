@@ -9,4 +9,5 @@ SmoQyDQMC = "00e12d65-277b-447e-9c1d-a17422dd36f5"
 
 [compat]
 
-Documenter = "1"
+Documenter = "1.1"
+DocumenterCitations = "1.3"

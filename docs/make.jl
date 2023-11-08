@@ -35,9 +35,9 @@ makedocs(;
     sitename="SmoQyDQMC.jl",
     format=Documenter.HTML(;
         prettyurls=get(ENV, "CI", "false") == "true",
-        canonical="https://SmoQySuite.github.io/SmoQyDQMC.jl",
+        canonical="https://smoqysuite.github.io/SmoQyDQMC.jl/stable/",
         edit_link="main",
-        assets=String[],
+        assets=String[]
     ),
     pages=[
         "Home" => "index.md",
@@ -46,7 +46,7 @@ makedocs(;
         "API" => "api.md",
         "Examples" => example_documentation_paths,
     ],
-    draft = false
+    draft = true
 )
 
 deploydocs(;
