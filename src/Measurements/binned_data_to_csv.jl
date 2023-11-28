@@ -6,7 +6,7 @@ Write the binned global measurements to file.
 function global_measurement_bins_to_csv(folder::String)
 
     # get the number of processes that ran during simulation
-    N_process = _get_num_processes(folder)
+    N_process = get_num_walkers(folder)
 
     # get the number of files in each measurement directory
     N_files = length(readdir(joinpath(folder,"global")))
@@ -84,7 +84,7 @@ function local_measurement_bins_to_csv(folder::String, measurement::String)
     local_folder = joinpath(folder, "local")
 
     # get the number of processes that ran during simulation
-    N_process = _get_num_processes(folder)
+    N_process = get_num_walkers(folder)
 
     # get the number of files in each measurement directory
     N_file = length(readdir(global_folder))
@@ -172,7 +172,7 @@ function correlation_bins_to_csv(; folder::String, correlation::String, type::St
     filename = @sprintf "%s_%s_%s_bins.csv" correlation space type
 
     # get the number of processes that ran during simulation
-    N_process = _get_num_processes(folder)
+    N_process = get_num_walkers(folder)
 
     # get the number of files in each measurement directory
     N_files = length(readdir(joinpath(folder,"global")))
