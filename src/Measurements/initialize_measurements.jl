@@ -259,19 +259,19 @@ function initialize_correlation_measurements!(; measurement_container::NamedTupl
     return nothing
 end
 
-@doc raw"""
-    initialize_correlation_measurement!(; measurement_container::NamedTuple,
-                                        model_geometry::ModelGeometry{D,T,N},
-                                        correlation::String, pair::NTuple{2,Int},
-                                        time_displaced::Bool,
-                                        integrated::Bool = false)  where {T<:AbstractFloat, D, N}
+# @doc raw"""
+#     initialize_correlation_measurement!(; measurement_container::NamedTuple,
+#                                         model_geometry::ModelGeometry{D,T,N},
+#                                         correlation::String, pair::NTuple{2,Int},
+#                                         time_displaced::Bool,
+#                                         integrated::Bool = false)  where {T<:AbstractFloat, D, N}
 
-Initialize a measurement of `correlation` between the pair of bond ID's `pair`.
-The name `correlation` must appear in `CORRELATION_FUNCTIONS`.
-If `time-displaced = true` then time-displaced and integrated correlation measurements are made.
-If `time-displaced = false` and `integrated = false`, then just equal-time correlation measurements are made.
-If `time-displaced = false` and `integrated = true`, then both equal-time and integrated correlation measurements are made.
-"""
+# Initialize a measurement of `correlation` between the pair of bond ID's `pair`.
+# The name `correlation` must appear in `CORRELATION_FUNCTIONS`.
+# If `time-displaced = true` then time-displaced and integrated correlation measurements are made.
+# If `time-displaced = false` and `integrated = false`, then just equal-time correlation measurements are made.
+# If `time-displaced = false` and `integrated = true`, then both equal-time and integrated correlation measurements are made.
+# """
 function initialize_correlation_measurement!(; measurement_container::NamedTuple,
                                              model_geometry::ModelGeometry{D,T,N},
                                              correlation::String, pair::NTuple{2,Int},

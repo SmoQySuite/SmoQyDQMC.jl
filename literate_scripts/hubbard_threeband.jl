@@ -26,7 +26,7 @@
 # Cu-``3d_{x^2-y^2}`` and O-``2p_\alpha`` orbitals respectively.
 #
 # The example script to simulate this sytem is
-# [`scripts/hubbard_threeband.jl`](https://github.com/SmoQySuite/SmoQyDQMC.jl/blob/main/scripts/hubbard_threeband.jl).
+# [`example_scripts/hubbard_threeband.jl`](https://github.com/SmoQySuite/SmoQyDQMC.jl/blob/main/example_scripts/hubbard_threeband.jl).
 # A short test simulation using this script that only takes a few minutes on most personal computers is
 # ```
 # > julia hubbard_threeband.jl 0 8.5 4.1 1.13 0.49 0.0 3.24 0.0 4.0 8 2 2000 10000 50

@@ -69,7 +69,7 @@ measure_hopping_energy
 
 - [`HubbardModel`](@ref)
 - [`HubbardParameters`](@ref)
-- [`initialize`](@ref)
+- [`initialize!`](@ref)
 
 **Hubbard Model Measurements**
 
@@ -143,6 +143,7 @@ swap_update!(::Matrix{T}, ::E, ::T, ::HubbardIsingHSParameters{E}) where {T<:Num
 - [`measure_phonon_position_moment`](@ref)
 - [`measure_holstein_energy`](@ref)
 - [`measure_ssh_energy`](@ref)
+- [`measure_ssh_sgn_switch`](@ref)
 - [`measure_dispersion_energy`](@ref)
 
 **Electron-Phonon Updates**
@@ -195,6 +196,7 @@ measure_phonon_potential_energy
 measure_phonon_position_moment
 measure_holstein_energy
 measure_ssh_energy
+measure_ssh_sgn_switch
 measure_dispersion_energy
 ```
 
@@ -210,7 +212,6 @@ LMCUpdater(;)
 lmc_update!(::Matrix{T}, ::E, ::T, ::Matrix{T}, ::E, ::T, ::ElectronPhononParameters{T,E}, ::LMCUpdater{T,E}) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
 lmc_update!(::Matrix{T}, ::E, ::T, ::ElectronPhononParameters{T,E}, ::LMCUpdater{T,E}) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
 SmoQyDQMC.FourierMassMatrix
-SmoQyDQMC.FourierMassMatrix(::ElectronPhononParameters{T,E}, ::E) where {T,E}
 reflection_update!(::Matrix{T}, ::E, ::T, ::Matrix{T}, ::E, ::T, ::ElectronPhononParameters{T,E}) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
 reflection_update!(::Matrix{T}, ::E, ::T, ::ElectronPhononParameters{T,E}) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
 swap_update!(::Matrix{T}, ::E, ::T, ::Matrix{T}, ::E, ::T, ::ElectronPhononParameters{T,E}) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
@@ -249,9 +250,10 @@ save_density_tuning_profile
 
 **Process Measurements**
 
+- [`save_simulation_info`](@ref)
 - [`process_measurements`](@ref)
 - [`process_correlation_measurement`](@ref)
-- [`composite_correlation_stats`](@ref)
+- [`composite_correlation_stat`](@ref)
 - [`global_measurement_bins_to_csv`](@ref)
 - [`local_measurement_bins_to_csv`](@ref)
 - [`correlation_bins_to_csv`](@ref)
@@ -284,6 +286,7 @@ write_measurements!
 
 ### Process Measurements
 ```@docs
+save_simulation_info
 process_measurements
 process_global_measurements
 process_local_measurements

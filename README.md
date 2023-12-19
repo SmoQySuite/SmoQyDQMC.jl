@@ -33,6 +33,12 @@ julia> using Pkg; Pkg.add("SmoQyDQMC")
 - [`STABLE`](https://SmoQySuite.github.io/SmoQyDQMC.jl/stable/): Documentation for the latest version of the code published to the Julia [General](https://github.com/JuliaRegistries/General.git) registry.
 - [`DEV`](https://SmoQySuite.github.io/SmoQyDQMC.jl/dev/): Documentation associated with most recent commit to the main branch.
 
+## Publication List
+
+Follow this [link](https://smoqysuite.github.io/SmoQyDQMC.jl/dev/#Publication-List)
+to see a list of some of the publications that report results generated using
+the [SmoQyDQMC.jl](https://github.com/SmoQySuite/SmoQyDQMC.jl) package.
+
 ## Notable Package Dependencies
 
 This section reviews some notable package dependencies.
@@ -53,6 +59,22 @@ the [Reexport.jl](https://github.com/simonster/Reexport.jl.git) package in order
 - [Checkerboard.jl](https://github.com/SmoQySuite/Checkerboard.jl.git): Implements and exports the checkerboard method for approximating exponentiated hopping matrices by a sparse matrix.
 - [JLD2.jl](https://github.com/JuliaIO/JLD2.jl.git): Package used to write data to binary files in an HDF5 compatible format. It is also recommended this package be used at the scripting level to implement checkpointing in a simulation.
 - [BinningAnalysis.jl](https://github.com/carstenbauer/BinningAnalysis.jl.git): Export method impelementing the jackknife algorithm for calculating error bars.
+
+## Citation
+
+If you found this library to be useful in the course of academic work, please consider citing us:
+
+```bibtex
+@misc{SmoQyDQMC,
+      title={SmoQyDQMC.jl: A flexible implementation of determinant quantum Monte Carlo for Hubbard and electron-phonon interactions}, 
+      author={Benjamin Cohen-Stead and Sohan Malkaruge Costa and James Neuhaus and Andy Tanjaroon Ly and Yutan Zhang and Richard Scalettar and Kipton Barros and Steven Johnston},
+      year={2023},
+      eprint={2311.09395},
+      archivePrefix={arXiv},
+      primaryClass={cond-mat.str-el},
+      url={https://arxiv.org/abs/2311.09395}
+}
+```
 
 ## Contact Us
 

@@ -72,18 +72,18 @@ function composite_correlation_stat(;
     # if there is more than one MPI walker
     if length(pIDs) > 1
         # calculate the variance of the composite correlation
-        VarC = ΔC^2
+        varC = ΔC^2
         # itereate over remaining pIDs
         for pID in pIDs[2:end]
             # calculate composite correlation stat for current MPI walker
             C′, ΔC′ = _composite_correlation_stat(folder, correlations, spaces, types, ids, locs, Δls, num_bins, pID, f)
             # update composite correlation stat
             C += C′
-            VarC += abs2(ΔC′)
+            varC += abs2(ΔC′)
         end
         # normalize composite corrrelation stats
         C /= length(pIDs)
-        ΔC = sqrt(VarC) / length(pIDs)
+        ΔC = sqrt(varC) / length(pIDs)
     end
 
     return C, ΔC
@@ -131,7 +131,7 @@ function composite_correlation_stat(
     C    = MPI.Allreduce(C, +, comm)
     varC = MPI.Allreduce(varC, +, comm)
     C    = C / N_mpi
-    ΔC   = sqrt(ΔC) / N_mpi
+    ΔC   = sqrt(varC) / N_mpi
 
     return C, ΔC
 end

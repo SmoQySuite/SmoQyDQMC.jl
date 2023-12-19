@@ -1,8 +1,14 @@
 using SmoQyDQMC
 using Documenter
+using DocumenterCitations
 using Literate
 using LatticeUtilities
 using JDQMCFramework
+
+bib = CitationBibliography(
+    joinpath(@__DIR__, "src", "references.bib");
+    style=:numeric
+)
 
 example_names = ["hubbard_chain", "hubbard_chain_mpi", "hubbard_chain_checkpoint", "holstein_chain",
                  "ossh_chain", "bssh_chain", "hubbard_holstein_square", "hubbard_threeband",
@@ -17,20 +23,21 @@ DocMeta.setdocmeta!(SmoQyDQMC, :DocTestSetup, :(using SmoQyDQMC); recursive=true
 for i in eachindex(example_names)
     Literate.markdown(example_literate_sources[i], example_documentation_destination; 
                       execute = false,
-                      documenter = true)
+                      documenter = false)
     Literate.script(example_literate_sources[i], example_script_destinations[i])
 end
 
 makedocs(;
+    plugins=[bib],
     modules=[SmoQyDQMC],
     authors="Benjamin Cohen-Stead <benwcs@gmail.com>",
     repo="https://github.com/SmoQySuite/SmoQyDQMC.jl/blob/{commit}{path}#{line}",
     sitename="SmoQyDQMC.jl",
     format=Documenter.HTML(;
         prettyurls=get(ENV, "CI", "false") == "true",
-        canonical="https://SmoQySuite.github.io/SmoQyDQMC.jl",
+        canonical="https://smoqysuite.github.io/SmoQyDQMC.jl/stable/",
         edit_link="main",
-        assets=String[],
+        assets=String[]
     ),
     pages=[
         "Home" => "index.md",
@@ -39,7 +46,7 @@ makedocs(;
         "API" => "api.md",
         "Examples" => example_documentation_paths,
     ],
-    draft = false
+    draft = true
 )
 
 deploydocs(;

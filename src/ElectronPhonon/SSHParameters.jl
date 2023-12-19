@@ -112,8 +112,8 @@ function SSHParameters(; model_geometry::ModelGeometry{D,E},
 
         # allocate mapping arrays
         coupling_to_phonon   = zeros(Int, 2, Nssh)
-        hopping_to_couplings = [Int[] for _ in 1:Nssh]
         coupling_to_hopping  = zeros(Int, Nssh)
+        hopping_to_couplings = [Int[] for _ in 1:Nhoppings]
 
         # get all the ssh bonds
         ssh_bonds = [ssh_coupling.bond for ssh_coupling in ssh_couplings]
@@ -192,15 +192,15 @@ function SSHParameters(electron_phonon_model::ElectronPhononModel{T,E,D}) where 
 end
 
 
-@doc raw"""
-    update!(fermion_path_integral::FermionPathIntegral{T,E},
-            ssh_parameters::SSHParameters{T},
-            x::Matrix{E}, sgn::Int) where {T,E}
+# @doc raw"""
+#     update!(fermion_path_integral::FermionPathIntegral{T,E},
+#             ssh_parameters::SSHParameters{T},
+#             x::Matrix{E}, sgn::Int) where {T,E}
 
-Update the total hopping energy for each time-slice based on the SSH interaction
-and the phonon field configuration `x`, where `sgn = ±1` determines whether the SSH
-contribution to the total hopping energy is either added or subtracted.
-"""
+# Update the total hopping energy for each time-slice based on the SSH interaction
+# and the phonon field configuration `x`, where `sgn = ±1` determines whether the SSH
+# contribution to the total hopping energy is either added or subtracted.
+# """
 function update!(fermion_path_integral::FermionPathIntegral{T,E},
                  ssh_parameters::SSHParameters{T},
                  x::Matrix{E}, sgn::Int) where {T,E}

@@ -143,15 +143,15 @@ function HolsteinParameters(electron_phonon_model::ElectronPhononModel{T,E,D}) w
 end
 
 
-@doc raw"""
-    update!(fermion_path_integral::FermionPathIntegral{T,E},
-            holstein_parameters::HolsteinParameters{E},
-            x::Matrix{E}, sgn::Int) where {T,E}
+# @doc raw"""
+#     update!(fermion_path_integral::FermionPathIntegral{T,E},
+#             holstein_parameters::HolsteinParameters{E},
+#             x::Matrix{E}, sgn::Int) where {T,E}
 
-Update the on-site energy matrix for each time-slice based on the Holstein interaction
-and the phonon field configuration `x`, where `sgn = ±1` determines whether the Holstein
-contribution to the on-site energy matrix is either being added or subtracted.
-"""
+# Update the on-site energy matrix for each time-slice based on the Holstein interaction
+# and the phonon field configuration `x`, where `sgn = ±1` determines whether the Holstein
+# contribution to the on-site energy matrix is either being added or subtracted.
+# """
 function update!(fermion_path_integral::FermionPathIntegral{T,E},
                  holstein_parameters::HolsteinParameters{E},
                  x::Matrix{E}, sgn::Int) where {T,E}
