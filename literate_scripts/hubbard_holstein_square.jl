@@ -18,7 +18,7 @@
 # corresponding ion mass ``M``. The stength of the Holstein electron-phonon is controlled by the parameter ``\alpha``.
 #
 # The example script to simulate this sytem is
-# [`scripts/hubbard_holstein_square.jl`](https://github.com/SmoQySuite/SmoQyDQMC.jl/blob/main/scripts/hubbard_holstein_square.jl).
+# [`example_scripts/hubbard_holstein_square.jl`](https://github.com/SmoQySuite/SmoQyDQMC.jl/blob/main/example_scripts/hubbard_holstein_square.jl).
 # A short test simulation using this script that only takes a few minutes on most personal computers is
 # ```
 # > julia hubbard_holstein_square.jl 0 6.0 0.1 0.1 0.0 4.0 4 1000 5000 50

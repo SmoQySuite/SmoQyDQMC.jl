@@ -33,7 +33,7 @@ end
 @doc raw"""
     FourierMassMatrix(electron_phonon_parameters::ElectronPhononParameters{T,E}, reg::E=1.0) where {T,E}
 
-Initialize and return an instance of [`FouerierMassMatrix`](@ref).
+Initialize and return an instance of `FouerierMassMatrix`.
 Given a regularization value of `reg`, represented by the symbol ``m_{\rm reg}``, the matrix elements of
 the fouerier mass matrix in frequency space, where it is diagonal, are given by
 ```math
@@ -97,11 +97,11 @@ function FourierMassMatrix(electron_phonon_parameters::ElectronPhononParameters{
 end
 
 
-@doc raw"""
-    velocity_to_kinetic_energy(M::FourierMassMatrix{E}, v::Matrix{E}) where {E<:AbstractFloat}
+# @doc raw"""
+#     velocity_to_kinetic_energy(M::FourierMassMatrix{E}, v::Matrix{E}) where {E<:AbstractFloat}
 
-Given the [`FourierMassMatrix`](@ref) `M` and velocity `v`, return the total kinetic energy `K = (v⋅M⋅v)/2`.
-"""
+# Given the [`FourierMassMatrix`](@ref) `M` and velocity `v`, return the total kinetic energy `K = (v⋅M⋅v)/2`.
+# """
 function velocity_to_kinetic_energy(M::FourierMassMatrix{E}, v::Matrix{E}) where {E<:AbstractFloat}
 
     (; M̃, pfft, pifft) = M
@@ -124,11 +124,11 @@ function velocity_to_kinetic_energy(M::FourierMassMatrix{E}, v::Matrix{E}) where
     return real(K)
 end
 
-@doc raw"""
-    momentum_to_kinetic_energy(M::FourierMassMatrix{E}, p::Matrix{E}) where {E<:AbstractFloat}
+# @doc raw"""
+#     momentum_to_kinetic_energy(M::FourierMassMatrix{E}, p::Matrix{E}) where {E<:AbstractFloat}
 
-Given the [`FourierMassMatrix`](@ref) `M` and momentum `p`, return the total kinetic energy `K = (p⋅M⁻¹⋅p)/2`.
-"""
+# Given the [`FourierMassMatrix`](@ref) `M` and momentum `p`, return the total kinetic energy `K = (p⋅M⁻¹⋅p)/2`.
+# """
 function momentum_to_kinetic_energy(M::FourierMassMatrix{E}, p::Matrix{E}) where {E<:AbstractFloat}
 
     (; M̃, pfft, pifft) = M
@@ -152,14 +152,14 @@ function momentum_to_kinetic_energy(M::FourierMassMatrix{E}, p::Matrix{E}) where
 end
 
 
-@doc raw"""
-    lmul!(M::FourierMassMatrix{E}, v::Matrix{E}, α::E=1.0) where {E<:AbstractFloat}
+# @doc raw"""
+#     lmul!(M::FourierMassMatrix{E}, v::Matrix{E}, α::E=1.0) where {E<:AbstractFloat}
 
-    lmul!(M::FourierMassMatrix{E}, v::Matrix{Complex{E}}, α::E=1.0) where {E<:AbstractFloat}
+#     lmul!(M::FourierMassMatrix{E}, v::Matrix{Complex{E}}, α::E=1.0) where {E<:AbstractFloat}
 
-Left multiply `v` by the [`FourierMassMatrix`](@ref) `M` raised to the power `α`, modifying `v` in-place.
-The rows of `v` correspond to phonon modes, and the columns correspond to imaginary time slices.
-"""
+# Left multiply `v` by the [`FourierMassMatrix`](@ref) `M` raised to the power `α`, modifying `v` in-place.
+# The rows of `v` correspond to phonon modes, and the columns correspond to imaginary time slices.
+# """
 function lmul!(M::FourierMassMatrix{E}, v::Matrix{E}, α::E=1.0) where {E<:AbstractFloat}
 
     (; v′) = M
@@ -188,12 +188,12 @@ function lmul!(M::FourierMassMatrix{E}, v::Matrix{Complex{E}}, α::E=1.0) where 
 end
 
 
-@doc raw"""
-    mul!(Mv::Matrix, M::FourierMassMatrix{E}, v::Matrix, α::E=1.0) where {E<:AbstractFloat}
+# @doc raw"""
+#     mul!(Mv::Matrix, M::FourierMassMatrix{E}, v::Matrix, α::E=1.0) where {E<:AbstractFloat}
 
-Multiply `v` by the [`FourierMassMatrix`](@ref) `M` raised to the power `α`, writing the result to `Mv`.
-The rows of `Mv` and `v` correspond to phonon modes, and the columns correspond to imaginary time slices.
-"""
+# Multiply `v` by the [`FourierMassMatrix`](@ref) `M` raised to the power `α`, writing the result to `Mv`.
+# The rows of `Mv` and `v` correspond to phonon modes, and the columns correspond to imaginary time slices.
+# """
 function mul!(Mv::Matrix, M::FourierMassMatrix{E}, v::Matrix, α::E=1.0) where {E<:AbstractFloat}
 
     copyto!(Mv, v)

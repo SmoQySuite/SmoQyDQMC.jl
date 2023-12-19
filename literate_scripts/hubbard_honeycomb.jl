@@ -14,7 +14,7 @@
 # chemical potential. The strength of the repulsive Hubbard interaction is controlled by ``U>0``.
 #
 # The example script to simulate this sytem is
-# [`scripts/hubbard_honeycomb.jl`](https://github.com/SmoQySuite/SmoQyDQMC.jl/blob/main/scripts/hubbard_honeycomb.jl).
+# [`example_scripts/hubbard_honeycomb.jl`](https://github.com/SmoQySuite/SmoQyDQMC.jl/blob/main/example_scripts/hubbard_honeycomb.jl).
 # A short test simulation using this script that only takes a few minutes on most personal computers is
 # ```
 # > julia hubbard_honeycomb.jl 0 6.0 0.0 4.0 3 2000 10000 50

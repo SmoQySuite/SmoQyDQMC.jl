@@ -16,7 +16,7 @@
 # corresponding ion mass ``M``. The stength of the Holstein electron-phonon is controlled by the parameter ``\alpha``.
 #
 # The example script to simulate this sytem is
-# [`scripts/holstein_kagome.jl`](https://github.com/SmoQySuite/SmoQyDQMC.jl/blob/main/scripts/holstein_kagome.jl).
+# [`example_scripts/holstein_kagome.jl`](https://github.com/SmoQySuite/SmoQyDQMC.jl/blob/main/example_scripts/holstein_kagome.jl).
 # To run a short test simulation using this script that only takes a few minutes on most personal computers, run the following command:
 # ```
 # > julia holstein_chain.jl 0 0.1 0.1 0.667 0.0 4.0 3 2000 10000 50

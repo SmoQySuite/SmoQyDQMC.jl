@@ -202,17 +202,17 @@ function update!(fermion_path_integral::FermionPathIntegral{T,E},
 end
 
 
-@doc raw"""
-    std_x_qho(β::T, Ω::T, M::T) where {T<:AbstractFloat}
+# @doc raw"""
+#     std_x_qho(β::T, Ω::T, M::T) where {T<:AbstractFloat}
 
-Given a quantum harmonic oscillator with frequency ``\Omega`` and mass ``M`` at an
-inverse temperature of ``\beta``, return the standard deviation of the equilibrium
-distribution for the phonon position
-```math
-\Delta X = \sqrt{\langle \hat{X}^2 \rangle} = \frac{1}{\sqrt{2 M \Omega \tanh(\beta \Omega/2)}},
-```
-where it is assumed ``\langle \hat{X} \rangle = 0.`` 
-"""
+# Given a quantum harmonic oscillator with frequency ``\Omega`` and mass ``M`` at an
+# inverse temperature of ``\beta``, return the standard deviation of the equilibrium
+# distribution for the phonon position
+# ```math
+# \Delta X = \sqrt{\langle \hat{X}^2 \rangle} = \frac{1}{\sqrt{2 M \Omega \tanh(\beta \Omega/2)}},
+# ```
+# where it is assumed ``\langle \hat{X} \rangle = 0.`` 
+# """
 function std_x_qho(β::T, Ω::T, M::T) where {T<:AbstractFloat}
 
     ΔX = inv(sqrt(2 * M * Ω * tanh(β*Ω/2)))
@@ -220,11 +220,11 @@ function std_x_qho(β::T, Ω::T, M::T) where {T<:AbstractFloat}
 end
 
 
-@doc raw"""
-    reduced_mass(M::T, M′::T) where {T<:AbstractFloat}
+# @doc raw"""
+#     reduced_mass(M::T, M′::T) where {T<:AbstractFloat}
 
-Calculate the reduced mass given the mass of two phonons `M` and `M′`.
-"""
+# Calculate the reduced mass given the mass of two phonons `M` and `M′`.
+# """
 function reduced_mass(M::T, M′::T) where {T<:AbstractFloat}
 
     if !isfinite(M)

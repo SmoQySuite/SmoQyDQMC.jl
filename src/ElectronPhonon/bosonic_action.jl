@@ -1,8 +1,8 @@
-@doc raw"""
-    bosonic_action(electron_phonon_parameters::ElectronPhononParameters{T,E}) where {T,E}
+# """
+#     bosonic_action(electron_phonon_parameters::ElectronPhononParameters{T,E}) where {T,E}
 
-Evaluate and return bosonic action ``S_{\rm b}(x)`` associated with the phonons.
-"""
+# Evaluate and return bosonic action ``S_{\rm b}(x)`` associated with the phonons.
+# """
 function bosonic_action(electron_phonon_parameters::ElectronPhononParameters{T,E}) where {T,E}
 
     (; x, Δτ, phonon_parameters, dispersion_parameters, holstein_parameters) = electron_phonon_parameters
@@ -104,12 +104,12 @@ function _eval_bosonic_action(x::Matrix{E}, Δτ::E, holstein_parameters::Holste
 end
 
 
-@doc raw"""
-    bosonic_action_derivative!(dSdx::Matrix{T}, electron_phonon_parameters::ElectronPhononParameters{T,E}) where {T,E}
+# """
+#     bosonic_action_derivative!(dSdx::Matrix{T}, electron_phonon_parameters::ElectronPhononParameters{T,E}) where {T,E}
 
-Evaluate the derivative of the bosonic action ``\frac{\partial S_{\rm b}}{\parital x_{i,l}}`` with respect to each
-phonon field ``x_{i,l},`` adding the result to the array `dSdx`.
-"""
+# Evaluate the derivative of the bosonic action ``\frac{\partial S_{\rm b}}{\parital x_{i,l}}`` with respect to each
+# phonon field ``x_{i,l},`` adding the result to the array `dSdx`.
+# """
 function bosonic_action_derivative!(dSdx::Matrix{E}, electron_phonon_parameters::ElectronPhononParameters{T,E}) where {T,E}
 
     (; x, Δτ, phonon_parameters, dispersion_parameters, holstein_parameters) = electron_phonon_parameters
