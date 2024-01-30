@@ -185,6 +185,9 @@ function _hmc_update!(Gup::Matrix{T}, logdetGup::E, sgndetGup::T, Gup′::Matrix
             (logdetGdn′, sgndetGdn′, δGdn′, δθ) = fermionic_action_derivative!(dSdx, Gdn′, logdetGdn′, sgndetGdn′, δG′, δθ,
                                                                             electron_phonon_parameters,
                                                                             fermion_greens_calculator_dn_alt, Bdn)
+
+            # record max numerical error
+            δG′ = max(δG′, δGup′, δGdn′)
         catch
             numerically_stable = false
             break
@@ -192,9 +195,6 @@ function _hmc_update!(Gup::Matrix{T}, logdetGup::E, sgndetGup::T, Gup′::Matrix
 
         # calculate derivative associated with Holstein correction
         eval_derivative_holstein_action!(dSdx, x, Δτ, holstein_parameters, phonon_parameters)
-
-        # record max numerical error
-        δG′ = max(δG′, δGup′, δGdn′)
 
         # if numerical error too large or nan occurs
         if !isfinite(δG′) || !isfinite(logdetGup) || !isfinite(logdetGdn) || δG′ > δG_reject
