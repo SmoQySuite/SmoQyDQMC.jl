@@ -157,16 +157,16 @@ function run_hubbard_holstein_square_simulation(sID, U, Ω, α, μ, β, L, N_bur
 #md     ## We do this in order to be able to measure all the pairing channels we need
 #md     ## in order to reconstruct the extended s-wave and d-wave pair susceptibilities.
 
-    ## Define the nearest-neighbor bond in the +x direction.
+    ## Define the nearest-neighbor bond in the -x direction.
     bond_nx = lu.Bond(orbitals = (1,1), displacement = [-1,0])
 
-    ## Add nearest-neighbor bond in the +x direction.
+    ## Add nearest-neighbor bond in the -x direction.
     bond_nx_id = add_bond!(model_geometry, bond_nx)
 
-    ## Define the nearest-neighbor bond in the +y direction.
+    ## Define the nearest-neighbor bond in the -y direction.
     bond_ny = lu.Bond(orbitals = (1,1), displacement = [0,-1])
 
-    ## Add the nearest-neighbor bond in the +y direction.
+    ## Add the nearest-neighbor bond in the -y direction.
     bond_ny_id = add_bond!(model_geometry, bond_ny)
 
     ## Define nearest-neighbor hopping amplitude, setting the energy scale for the system.
@@ -287,6 +287,16 @@ function run_hubbard_holstein_square_simulation(sID, U, Ω, α, μ, β, L, N_bur
         pairs = [(1, 1)]
     )
 
+    # measure equal-times green's function for all τ
+    initialize_correlation_measurements!(
+        measurement_container = measurement_container,
+        model_geometry = model_geometry,
+        correlation = "greens_tautau",
+        time_displaced = false,
+        integrated = true,
+        pairs = [(1, 1)]
+    )
+
     ## Initialize the phonon Green's function measurement.
     initialize_correlation_measurements!(
         measurement_container = measurement_container,
@@ -328,13 +338,13 @@ function run_hubbard_holstein_square_simulation(sID, U, Ω, α, μ, β, L, N_bur
         time_displaced = false,
         integrated = true,
         pairs = [(1, 1),
-                 (bond_px_id, bond_px_id),  (bond_px_id, bond_nx_id),
+                 (bond_px_id, bond_px_id), (bond_px_id, bond_nx_id),
                  (bond_nx_id, bond_px_id), (bond_nx_id, bond_nx_id),
-                 (bond_py_id, bond_py_id),  (bond_py_id, bond_ny_id),
+                 (bond_py_id, bond_py_id), (bond_py_id, bond_ny_id),
                  (bond_ny_id, bond_py_id), (bond_ny_id, bond_ny_id),
-                 (bond_px_id, bond_py_id),  (bond_px_id, bond_ny_id),
+                 (bond_px_id, bond_py_id), (bond_px_id, bond_ny_id),
                  (bond_nx_id, bond_py_id), (bond_nx_id, bond_ny_id),
-                 (bond_py_id, bond_px_id),  (bond_py_id, bond_nx_id),
+                 (bond_py_id, bond_px_id), (bond_py_id, bond_nx_id),
                  (bond_ny_id, bond_px_id), (bond_ny_id, bond_nx_id)]
     )
 
@@ -657,16 +667,17 @@ function run_hubbard_holstein_square_simulation(sID, U, Ω, α, μ, β, L, N_bur
 
     ## Calculate the charge susceptibility for zero momentum transfer (q=0)
     ## with the net charge background signal subtracted off.
-    C0, ΔC0 = composite_correlation_stat(
+    # calculate the Cu-Cu charge susceptibility at q=0 with the background signal remove
+    C0, ΔC0 = composite_correlation_stat(comm;
         folder = simulation_info.datafolder,
-        correlations = ["density", "greens"],
-        spaces = ["momentum", "position"],
-        types = ["integrated", "time-displaced"],
-        ids = [(1,1), (1,1)],
-        locs = [(0,0), (0,0)],
-        Δls = [0, 0],
+        correlations = ["density", "greens_tautau", "greens"],
+        spaces = ["momentum", "position", "position"],
+        types = ["integrated", "integrated", "time-displaced"],
+        ids = [(1,1), (1,1), (1,1)],
+        locs = [(0,0), (0,0), (0,0)],
+        Δls = [0, 0, 0],
         num_bins = N_bins,
-        f = (x, y) -> (x - β*N*(2*(1-y))^2)
+        f = (x, y, z) -> x - (Lx*Ly)*4*(β-y)*(1-z)
     )
     additional_info["Chi_C_q0_avg"] = C0
     additional_info["Chi_C_q0_err"] = ΔC0

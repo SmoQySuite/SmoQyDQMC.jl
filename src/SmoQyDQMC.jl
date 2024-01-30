@@ -122,9 +122,9 @@ include("ElectronPhonon/hmc_update.jl")
 include("ElectronPhonon/HMCUpdater.jl")
 export HMCUpdater, hmc_update!
 
-# defines LMC (langevin Monte Carlo) updater struct and public API for performing LMC updates to phonon fields
-include("ElectronPhonon/LMCUpdater.jl")
-export LMCUpdater, lmc_update!
+# defines Exact Fourier Acceleration HMC update method
+include("ElectronPhonon/EFAHMCUpdater.jl")
+export EFAHMCUpdater
 
 # impelment reflection and swap updates for phonon fields
 include("ElectronPhonon/reflection_update.jl")

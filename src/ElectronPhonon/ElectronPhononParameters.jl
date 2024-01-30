@@ -121,18 +121,19 @@ end
 
 
 @doc raw"""
-    initialize!(fermion_path_integral_up::FermionPathIntegral{T,E},
-                fermion_path_integral_dn::FermionPathIntegral{T,E},
-                electron_phonon_parameters::ElectronPhononParameters{T,E}) where {T,E}
-
-    initialize!(fermion_path_integral::FermionPathIntegral{T,E},
-                electron_phonon_parameters::ElectronPhononParameters{T,E}) where {T,E}
+    initialize!(
+        fermion_path_integral_up::FermionPathIntegral{T,E},
+        fermion_path_integral_dn::FermionPathIntegral{T,E},
+        electron_phonon_parameters::ElectronPhononParameters{T,E}
+    ) where {T,E}
 
 Initialize the contribution of an [`ElectronPhononParameters`](@ref) to a [`FermionPathIntegral`](@ref).
 """
-function initialize!(fermion_path_integral_up::FermionPathIntegral{T,E},
-                     fermion_path_integral_dn::FermionPathIntegral{T,E},
-                     electron_phonon_parameters::ElectronPhononParameters{T,E}) where {T,E}
+function initialize!(
+    fermion_path_integral_up::FermionPathIntegral{T,E},
+    fermion_path_integral_dn::FermionPathIntegral{T,E},
+    electron_phonon_parameters::ElectronPhononParameters{T,E}
+) where {T,E}
 
     # initialize spin up fermion path integral
     initialize!(fermion_path_integral_up, electron_phonon_parameters)
@@ -143,8 +144,18 @@ function initialize!(fermion_path_integral_up::FermionPathIntegral{T,E},
     return nothing
 end
 
-function initialize!(fermion_path_integral::FermionPathIntegral{T,E},
-                     electron_phonon_parameters::ElectronPhononParameters{T,E}) where {T,E}
+@doc raw"""
+    initialize!(
+        fermion_path_integral::FermionPathIntegral{T,E},
+        electron_phonon_parameters::ElectronPhononParameters{T,E}
+    ) where {T,E}
+
+Initialize the contribution of an [`ElectronPhononParameters`](@ref) to a [`FermionPathIntegral`](@ref).
+"""
+function initialize!(
+    fermion_path_integral::FermionPathIntegral{T,E},
+    electron_phonon_parameters::ElectronPhononParameters{T,E}
+) where {T,E}
 
     (; x, holstein_parameters, ssh_parameters) = electron_phonon_parameters
 
@@ -159,21 +170,23 @@ end
 
 
 @doc raw"""
-    update!(fermion_path_integral_up::FermionPathIntegral{T,E},
-            fermion_path_integral_dn::FermionPathIntegral{T,E},
-            electron_phonon_parameters::ElectronPhononParameters{T,E},
-            x′::Matrix{E}, x::Matrix{E} = electron_phonon_parameters.x) where {T,E}
-
-    update!(fermion_path_integral::FermionPathIntegral{T,E},
-            electron_phonon_parameters::ElectronPhononParameters{T,E},
-            x′::Matrix{E}, x::Matrix{E} = electron_phonon_parameters.x) where {T,E}
+    update!(
+        fermion_path_integral_up::FermionPathIntegral{T,E},
+        fermion_path_integral_dn::FermionPathIntegral{T,E},
+        electron_phonon_parameters::ElectronPhononParameters{T,E},
+        x′::Matrix{E},
+        x::Matrix{E}
+    ) where {T,E}
 
 Update a [`FermionPathIntegral`](@ref) to reflect a change in the phonon configuration from `x` to `x′`.
 """
-function update!(fermion_path_integral_up::FermionPathIntegral{T,E},
-                 fermion_path_integral_dn::FermionPathIntegral{T,E},
-                 electron_phonon_parameters::ElectronPhononParameters{T,E},
-                 x′::Matrix{E}, x::Matrix{E} = electron_phonon_parameters.x) where {T,E}
+function update!(
+    fermion_path_integral_up::FermionPathIntegral{T,E},
+    fermion_path_integral_dn::FermionPathIntegral{T,E},
+    electron_phonon_parameters::ElectronPhononParameters{T,E},
+    x′::Matrix{E},
+    x::Matrix{E}
+) where {T,E}
 
     # update spin up fermion path integral
     update!(fermion_path_integral_up, electron_phonon_parameters, x′, x)
@@ -184,9 +197,22 @@ function update!(fermion_path_integral_up::FermionPathIntegral{T,E},
     return nothing
 end
 
-function update!(fermion_path_integral::FermionPathIntegral{T,E},
-                 electron_phonon_parameters::ElectronPhononParameters{T,E},
-                 x′::Matrix{E}, x::Matrix{E} = electron_phonon_parameters.x) where {T,E}
+@doc raw"""
+    update!(
+        fermion_path_integral::FermionPathIntegral{T,E},
+        electron_phonon_parameters::ElectronPhononParameters{T,E},
+        x′::Matrix{E},
+        x::Matrix{E}
+    ) where {T,E}
+
+Update a [`FermionPathIntegral`](@ref) to reflect a change in the phonon configuration from `x` to `x′`.
+"""
+function update!(
+    fermion_path_integral::FermionPathIntegral{T,E},
+    electron_phonon_parameters::ElectronPhononParameters{T,E},
+    x′::Matrix{E},
+    x::Matrix{E}
+) where {T,E}
 
     (; holstein_parameters, ssh_parameters) = electron_phonon_parameters
 
@@ -201,18 +227,37 @@ function update!(fermion_path_integral::FermionPathIntegral{T,E},
     return nothing
 end
 
+@doc raw"""
+    update!(
+        fermion_path_integral::FermionPathIntegral{T,E},
+        electron_phonon_parameters::ElectronPhononParameters{T,E},
+        x::Matrix{E},
+        sgn::Int
+    ) where {T,E}
 
-# @doc raw"""
-#     std_x_qho(β::T, Ω::T, M::T) where {T<:AbstractFloat}
+Update a [`FermionPathIntegral`](@ref) according to `sgn * x`.
+"""
+function update!(fermion_path_integral::FermionPathIntegral{T,E},
+    electron_phonon_parameters::ElectronPhononParameters{T,E},
+    x::Matrix{E},
+    sgn::Int
+) where {T,E}
 
-# Given a quantum harmonic oscillator with frequency ``\Omega`` and mass ``M`` at an
-# inverse temperature of ``\beta``, return the standard deviation of the equilibrium
-# distribution for the phonon position
-# ```math
-# \Delta X = \sqrt{\langle \hat{X}^2 \rangle} = \frac{1}{\sqrt{2 M \Omega \tanh(\beta \Omega/2)}},
-# ```
-# where it is assumed ``\langle \hat{X} \rangle = 0.`` 
-# """
+    (; holstein_parameters, ssh_parameters) = electron_phonon_parameters
+
+    # update fermion path integral based on holstein interaction and new phonon configration
+    update!(fermion_path_integral, holstein_parameters, x, sgn)
+
+    # update fermion path integral based on ssh interaction and new phonon configration
+    update!(fermion_path_integral, ssh_parameters, x, sgn)
+
+    return nothing
+end
+
+
+# Given a quantum harmonic oscillator with frequency Ω and mass M at an
+# inverse temperature of β, return the standard deviation of the equilibrium
+# distribution for the phonon position.
 function std_x_qho(β::T, Ω::T, M::T) where {T<:AbstractFloat}
 
     ΔX = inv(sqrt(2 * M * Ω * tanh(β*Ω/2)))
@@ -220,11 +265,7 @@ function std_x_qho(β::T, Ω::T, M::T) where {T<:AbstractFloat}
 end
 
 
-# @doc raw"""
-#     reduced_mass(M::T, M′::T) where {T<:AbstractFloat}
-
 # Calculate the reduced mass given the mass of two phonons `M` and `M′`.
-# """
 function reduced_mass(M::T, M′::T) where {T<:AbstractFloat}
 
     if !isfinite(M)

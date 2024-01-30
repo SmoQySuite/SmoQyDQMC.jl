@@ -149,9 +149,8 @@ swap_update!(::Matrix{T}, ::E, ::T, ::HubbardIsingHSParameters{E}) where {T<:Num
 **Electron-Phonon Updates**
 
 - [`HMCUpdater`](@ref)
+- [`EFAHMCUpdater`](@ref)
 - [`hmc_update!`](@ref)
-- [`LMCUpdater`](@ref)
-- [`lmc_update!`](@ref)
 - [`SmoQyDQMC.FourierMassMatrix`](@ref)
 - [`reflection_update!`](@ref)
 - [`swap_update!`](@ref)
@@ -185,7 +184,10 @@ SmoQyDQMC.HolsteinParameters
 SmoQyDQMC.SSHParameters
 SmoQyDQMC.DispersionParameters
 initialize!(::FermionPathIntegral{T,E}, ::FermionPathIntegral{T,E}, ::ElectronPhononParameters{T,E}) where {T,E}
+initialize!(::FermionPathIntegral{T,E}, ::ElectronPhononParameters{T,E}) where {T,E}
 update!(::FermionPathIntegral{T,E}, ::FermionPathIntegral{T,E}, ::ElectronPhononParameters{T,E}, ::Matrix{E}, ::Matrix{E}) where {T,E}
+update!(::FermionPathIntegral{T,E}, ::ElectronPhononParameters{T,E}, ::Matrix{E}, ::Matrix{E}) where {T,E}
+update!(::FermionPathIntegral{T,E}, ::ElectronPhononParameters{T,E}, ::Matrix{E}, ::Int) where {T,E}
 ```
 
 ### Electron-Phonon Measurements
@@ -205,12 +207,12 @@ measure_dispersion_energy
 ```@docs
 HMCUpdater
 HMCUpdater(;)
+EFAHMCUpdater
+EFAHMCUpdater(;)
 hmc_update!(::Matrix{T}, ::E, ::T, ::Matrix{T}, ::E, ::T, ::ElectronPhononParameters{T,E}, ::HMCUpdater{T,E}) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
 hmc_update!(::Matrix{T}, ::E, ::T, ::ElectronPhononParameters{T,E}, ::HMCUpdater{T,E}) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
-LMCUpdater
-LMCUpdater(;)
-lmc_update!(::Matrix{T}, ::E, ::T, ::Matrix{T}, ::E, ::T, ::ElectronPhononParameters{T,E}, ::LMCUpdater{T,E}) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
-lmc_update!(::Matrix{T}, ::E, ::T, ::ElectronPhononParameters{T,E}, ::LMCUpdater{T,E}) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
+hmc_update!(::Matrix{T}, ::E, ::T, ::Matrix{T}, ::E, ::T, ::ElectronPhononParameters{T,E}, ::EFAHMCUpdater{T,E}) where {T, E, P<:AbstractPropagator{T,E}}
+hmc_update!(::Matrix{T}, ::E, ::T, ::ElectronPhononParameters{T,E}, ::EFAHMCUpdater{T,E}) where {T, E, P<:AbstractPropagator{T,E}}
 SmoQyDQMC.FourierMassMatrix
 reflection_update!(::Matrix{T}, ::E, ::T, ::Matrix{T}, ::E, ::T, ::ElectronPhononParameters{T,E}) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
 reflection_update!(::Matrix{T}, ::E, ::T, ::ElectronPhononParameters{T,E}) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
