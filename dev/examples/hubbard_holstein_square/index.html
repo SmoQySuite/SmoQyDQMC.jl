@@ -129,16 +129,16 @@ function run_hubbard_holstein_square_simulation(sID, U, Ω, α, μ, β, L, N_bur
     # We do this in order to be able to measure all the pairing channels we need
     # in order to reconstruct the extended s-wave and d-wave pair susceptibilities.
 
-    # Define the nearest-neighbor bond in the +x direction.
+    # Define the nearest-neighbor bond in the -x direction.
     bond_nx = lu.Bond(orbitals = (1,1), displacement = [-1,0])
 
-    # Add nearest-neighbor bond in the +x direction.
+    # Add nearest-neighbor bond in the -x direction.
     bond_nx_id = add_bond!(model_geometry, bond_nx)
 
-    # Define the nearest-neighbor bond in the +y direction.
+    # Define the nearest-neighbor bond in the -y direction.
     bond_ny = lu.Bond(orbitals = (1,1), displacement = [0,-1])
 
-    # Add the nearest-neighbor bond in the +y direction.
+    # Add the nearest-neighbor bond in the -y direction.
     bond_ny_id = add_bond!(model_geometry, bond_ny)
 
     # Define nearest-neighbor hopping amplitude, setting the energy scale for the system.
@@ -257,6 +257,13 @@ function run_hubbard_holstein_square_simulation(sID, U, Ω, α, μ, β, L, N_bur
         correlation = &quot;greens&quot;,
         time_displaced = true,
         pairs = [(1, 1)]
+    )</code></pre><p>measure equal-times green&#39;s function for all τ</p><pre><code class="language-julia hljs">    initialize_correlation_measurements!(
+        measurement_container = measurement_container,
+        model_geometry = model_geometry,
+        correlation = &quot;greens_tautau&quot;,
+        time_displaced = false,
+        integrated = true,
+        pairs = [(1, 1)]
     )
 
     # Initialize the phonon Green&#39;s function measurement.
@@ -300,13 +307,13 @@ function run_hubbard_holstein_square_simulation(sID, U, Ω, α, μ, β, L, N_bur
         time_displaced = false,
         integrated = true,
         pairs = [(1, 1),
-                 (bond_px_id, bond_px_id),  (bond_px_id, bond_nx_id),
+                 (bond_px_id, bond_px_id), (bond_px_id, bond_nx_id),
                  (bond_nx_id, bond_px_id), (bond_nx_id, bond_nx_id),
-                 (bond_py_id, bond_py_id),  (bond_py_id, bond_ny_id),
+                 (bond_py_id, bond_py_id), (bond_py_id, bond_ny_id),
                  (bond_ny_id, bond_py_id), (bond_ny_id, bond_ny_id),
-                 (bond_px_id, bond_py_id),  (bond_px_id, bond_ny_id),
+                 (bond_px_id, bond_py_id), (bond_px_id, bond_ny_id),
                  (bond_nx_id, bond_py_id), (bond_nx_id, bond_ny_id),
-                 (bond_py_id, bond_px_id),  (bond_py_id, bond_nx_id),
+                 (bond_py_id, bond_px_id), (bond_py_id, bond_nx_id),
                  (bond_ny_id, bond_px_id), (bond_ny_id, bond_nx_id)]
     )
 
@@ -628,17 +635,16 @@ function run_hubbard_holstein_square_simulation(sID, U, Ω, α, μ, β, L, N_bur
     additional_info[&quot;P_d_err&quot;] = ΔPd
 
     # Calculate the charge susceptibility for zero momentum transfer (q=0)
-    # with the net charge background signal subtracted off.
-    C0, ΔC0 = composite_correlation_stat(
+    # with the net charge background signal subtracted off.</code></pre><p>calculate the Cu-Cu charge susceptibility at q=0 with the background signal remove</p><pre><code class="language-julia hljs">    C0, ΔC0 = composite_correlation_stat(comm;
         folder = simulation_info.datafolder,
-        correlations = [&quot;density&quot;, &quot;greens&quot;],
-        spaces = [&quot;momentum&quot;, &quot;position&quot;],
-        types = [&quot;integrated&quot;, &quot;time-displaced&quot;],
-        ids = [(1,1), (1,1)],
-        locs = [(0,0), (0,0)],
-        Δls = [0, 0],
+        correlations = [&quot;density&quot;, &quot;greens_tautau&quot;, &quot;greens&quot;],
+        spaces = [&quot;momentum&quot;, &quot;position&quot;, &quot;position&quot;],
+        types = [&quot;integrated&quot;, &quot;integrated&quot;, &quot;time-displaced&quot;],
+        ids = [(1,1), (1,1), (1,1)],
+        locs = [(0,0), (0,0), (0,0)],
+        Δls = [0, 0, 0],
         num_bins = N_bins,
-        f = (x, y) -&gt; (x - β*N*(2*(1-y))^2)
+        f = (x, y, z) -&gt; x - (Lx*Ly)*4*(β-y)*(1-z)
     )
     additional_info[&quot;Chi_C_q0_avg&quot;] = C0
     additional_info[&quot;Chi_C_q0_err&quot;] = ΔC0
@@ -667,4 +673,4 @@ if abspath(PROGRAM_FILE) == @__FILE__
 
     # Run the simulation.
     run_hubbard_holstein_square_simulation(sID, U, Ω, α, μ, β, L, N_burnin, N_updates, N_bins)
-end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../bssh_chain/">« Bond Su-Schrieffer-Heeger Chain</a><a class="docs-footer-nextpage" href="../hubbard_threeband/">Three-Band Hubbard Model »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="auto">Automatic (OS)</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.2.1 on <span class="colophon-date" title="Friday 15 December 2023 16:58">Friday 15 December 2023</span>. Using Julia version 1.9.4.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../bssh_chain/">« Bond Su-Schrieffer-Heeger Chain</a><a class="docs-footer-nextpage" href="../hubbard_threeband/">Three-Band Hubbard Model »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="auto">Automatic (OS)</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.2.1 on <span class="colophon-date" title="Tuesday 30 January 2024 15:22">Tuesday 30 January 2024</span>. Using Julia version 1.10.0.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
