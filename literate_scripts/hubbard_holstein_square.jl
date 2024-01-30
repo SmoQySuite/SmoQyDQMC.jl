@@ -668,7 +668,7 @@ function run_hubbard_holstein_square_simulation(sID, U, Ω, α, μ, β, L, N_bur
     ## Calculate the charge susceptibility for zero momentum transfer (q=0)
     ## with the net charge background signal subtracted off.
     # calculate the Cu-Cu charge susceptibility at q=0 with the background signal remove
-    C0, ΔC0 = composite_correlation_stat(comm;
+    C0, ΔC0 = composite_correlation_stat(
         folder = simulation_info.datafolder,
         correlations = ["density", "greens_tautau", "greens"],
         spaces = ["momentum", "position", "position"],
@@ -677,7 +677,7 @@ function run_hubbard_holstein_square_simulation(sID, U, Ω, α, μ, β, L, N_bur
         locs = [(0,0), (0,0), (0,0)],
         Δls = [0, 0, 0],
         num_bins = N_bins,
-        f = (x, y, z) -> x - (Lx*Ly)*4*(β-y)*(1-z)
+        f = (x, y, z) -> x - (L^2)*4*(β-y)*(1-z)
     )
     additional_info["Chi_C_q0_avg"] = C0
     additional_info["Chi_C_q0_err"] = ΔC0
