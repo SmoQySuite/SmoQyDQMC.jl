@@ -1,30 +1,50 @@
-# """
-#     bosonic_action(electron_phonon_parameters::ElectronPhononParameters{T,E}) where {T,E}
-
-# Evaluate and return bosonic action ``S_{\rm b}(x)`` associated with the phonons.
-# """
-function bosonic_action(electron_phonon_parameters::ElectronPhononParameters{T,E}) where {T,E}
+# evaluate the total bosonic action.
+function bosonic_action(
+    electron_phonon_parameters::ElectronPhononParameters{T,E};
+    holstein_correction::Bool = true
+) where {T,E}
 
     (; x, Δτ, phonon_parameters, dispersion_parameters, holstein_parameters) = electron_phonon_parameters
 
     # evaluate the contribution to the bosonic action from the bare phonon modes
-    Sb = _eval_bosonic_action(x, Δτ, phonon_parameters)
+    Sb = eval_local_phonon_action(x, Δτ, phonon_parameters)
 
     # evaluate the contribution to the bosonic action from phonon dispersion
-    Sb += _eval_bosonic_action(x, Δτ, dispersion_parameters, phonon_parameters)
+    Sb += eval_dispersive_action(x, Δτ, dispersion_parameters, phonon_parameters)
 
     # evaluate the contribution to the bosonic action from the holstein couplings
-    Sb += _eval_bosonic_action(x, Δτ, holstein_parameters)
+    if holstein_correction
+        Sb += eval_holstein_action(x, Δτ, holstein_parameters, phonon_parameters)
+    end
 
     return Sb
 end
 
-# evaluate bare phonon mode contribuation to bosonic action (potential and kinetic energy contribution)
-function _eval_bosonic_action(x::Matrix{E}, Δτ::E, phonon_parameters::PhononParameters{E}) where {E<:AbstractFloat}
+# evaluate the bosonic action of local phonon model
+function eval_local_phonon_action(
+    x::Matrix{E}, Δτ::E,
+    phonon_parameters::PhononParameters{E}
+) where {E<:AbstractFloat}
+
+    Sb = zero(E)
+
+    # evaluate quantum harmonic oscillator action
+    Sb += eval_qho_action(x, Δτ, phonon_parameters)
+
+    # evaluate action associated with on-site anharmonic potential term
+    Sb += eval_anharmonic_action(x, Δτ, phonon_parameters)
+
+    return Sb
+end
+
+# evaluate quantum harmonic oscillator action
+function eval_qho_action(
+    x::Matrix{E}, Δτ::E,
+    phonon_parameters::PhononParameters{E}
+) where {E<:AbstractFloat}
 
     M = phonon_parameters.M::Vector{E}
     Ω = phonon_parameters.Ω::Vector{E}
-    Ω4 = phonon_parameters.Ω4::Vector{E}
     Lτ = size(x, 2)
 
     # initialize bosonic action
@@ -36,8 +56,8 @@ function _eval_bosonic_action(x::Matrix{E}, Δτ::E, phonon_parameters::PhononPa
         for n in axes(x,1)
             # make sure phonon mass is finite
             if isfinite(M[n])
-                # potential energy Δτ⋅M⋅Ω²⋅x²/2 + Δτ⋅M⋅Ω₄²⋅x⁴/24
-                Sb += Δτ*M[n] * (Ω[n]^2/2*x[n,l]^2 + Ω4[n]^2/24*x[n,l]^4)
+                # potential energy Δτ⋅M⋅Ω²⋅x²/2
+                Sb += Δτ * M[n] * Ω[n]^2/2 * x[n,l]^2
                 # kintetic energy Δτ⋅M/2⋅[(x[l]-x[l-1])²/Δτ²]
                 Sb += M[n] * (x[n,l]-x[n,mod1(l-1,Lτ)])^2 / (2*Δτ)
             end
@@ -46,9 +66,40 @@ function _eval_bosonic_action(x::Matrix{E}, Δτ::E, phonon_parameters::PhononPa
     return Sb
 end
 
+# evaluate anharmonic potential
+function eval_anharmonic_action(
+    x::Matrix{E},
+    Δτ::E,
+    phonon_parameters::PhononParameters{E}
+) where {E<:AbstractFloat}
+
+    M = phonon_parameters.M::Vector{E}
+    Ω4 = phonon_parameters.Ω4::Vector{E}
+
+    # initialize bosonic action
+    Sb = zero(E)
+
+    # iterate over imaginary time slice
+    @inbounds for l in axes(x,2)
+        # iterate over phonon modes
+        for n in axes(x,1)
+            # make sure phonon mass is finite
+            if isfinite(M[n]) && !iszero(Ω4[n])
+                # potential energy Δτ⋅M⋅Ω₄²⋅x⁴/24
+                Sb += Δτ * M[n] * Ω4[n]^2/24 * x[n,l]^4
+            end
+        end
+    end
+
+    return Sb
+end
+
 # contribution to bosonic action from phonon dispersion potential energy
-function _eval_bosonic_action(x::Matrix{E}, Δτ::E, dispersion_parameters::DispersionParameters{E},
-                             phonon_parameters::PhononParameters{E}) where {E<:AbstractFloat}
+function eval_dispersive_action(
+    x::Matrix{E}, Δτ::E,
+    dispersion_parameters::DispersionParameters{E},
+    phonon_parameters::PhononParameters{E}
+) where {E<:AbstractFloat}
 
     (; M) = phonon_parameters
     (; Ndispersion, Ω, Ω4, dispersion_to_phonon) = dispersion_parameters
@@ -79,8 +130,14 @@ function _eval_bosonic_action(x::Matrix{E}, Δτ::E, dispersion_parameters::Disp
 end
 
 # contribution to bosonic action of holstein coupling b/c used coupling of form X⋅(n-1) instead of X⋅n
-function _eval_bosonic_action(x::Matrix{E}, Δτ::E, holstein_parameters::HolsteinParameters{E}) where {E<:AbstractFloat}
+function eval_holstein_action(
+    x::Matrix{E},
+    Δτ::E,
+    holstein_parameters::HolsteinParameters{E},
+    phonon_parameters::PhononParameters{E}
+) where {E<:AbstractFloat}
 
+    (; M) = phonon_parameters
     (; Nholstein, α, α2, α3, α4, coupling_to_phonon) = holstein_parameters
     Lτ = size(x,2)
 
@@ -92,10 +149,13 @@ function _eval_bosonic_action(x::Matrix{E}, Δτ::E, holstein_parameters::Holste
         @fastmath @inbounds for l in 1:Lτ
             # iterate over holstein couplings
             for n in 1:Nholstein
-                # get the phonon mode associated with the holstein coupling
-                p = coupling_to_phonon[n]
-                # calculate the contribution to the potential energy
-                Sb -= Δτ * (α[n]*x[p,l] + α2[n]*x[p,l]^2 + α3[n]*x[p,l]^3 + α4[n]*x[p,l]^4)
+                # if finite phonon mass
+                if isfinite(M[n])
+                    # get the phonon mode associated with the holstein coupling
+                    p = coupling_to_phonon[n]
+                    # calculate the contribution to the potential energy
+                    Sb -= Δτ * (α[n]*x[p,l] + α2[n]*x[p,l]^2 + α3[n]*x[p,l]^3 + α4[n]*x[p,l]^4)
+                end
             end
         end
     end
@@ -104,33 +164,53 @@ function _eval_bosonic_action(x::Matrix{E}, Δτ::E, holstein_parameters::Holste
 end
 
 
-# """
-#     bosonic_action_derivative!(dSdx::Matrix{T}, electron_phonon_parameters::ElectronPhononParameters{T,E}) where {T,E}
-
-# Evaluate the derivative of the bosonic action ``\frac{\partial S_{\rm b}}{\parital x_{i,l}}`` with respect to each
-# phonon field ``x_{i,l},`` adding the result to the array `dSdx`.
-# """
-function bosonic_action_derivative!(dSdx::Matrix{E}, electron_phonon_parameters::ElectronPhononParameters{T,E}) where {T,E}
+# evaluate the derivative of the total bosonic action.
+# if (holstein_correction = 1) then the correction arrising from
+# X⋅(n-1) parameterization of the coupling is included.
+function bosonic_action_derivative!(
+    dSdx::Matrix{E},
+    electron_phonon_parameters::ElectronPhononParameters{T,E};
+    holstein_correction::Bool = true,
+) where {T,E}
 
     (; x, Δτ, phonon_parameters, dispersion_parameters, holstein_parameters) = electron_phonon_parameters
 
-    # evaluate the contribution to the bosonic action from the bare phonon modes
-    _eval_derivative_bosonic_action(dSdx, x, Δτ, phonon_parameters)
+    # evaluate the contribution to the bosonic action a single local disperionless phonon mode
+    eval_derivative_local_phonon_action!(dSdx, x, Δτ, phonon_parameters)
 
     # evaluate the contribution to the bosonic action from phonon dispersion
-    _eval_derivative_bosonic_action(dSdx, x, Δτ, dispersion_parameters, phonon_parameters)
+    eval_derivative_dispersive_action!(dSdx, x, Δτ, dispersion_parameters, phonon_parameters)
 
     # evaluate the contribution to the bosonic action from the holstein couplings
-    _eval_derivative_bosonic_action(dSdx, x, Δτ, holstein_parameters)
+    if holstein_correction
+        eval_derivative_holstein_action!(dSdx, x, Δτ, holstein_parameters, phonon_parameters)
+    end
 
     return nothing
 end
 
-# evaluate derivative of bare phonon contribution to bosonic action
-function _eval_derivative_bosonic_action(dSdx::Matrix{E}, x::Matrix{E}, Δτ::E,
-                                         phonon_parameters::PhononParameters{E}) where {E<:AbstractFloat}
+# evaluate derivative of local phonon mode
+function eval_derivative_local_phonon_action!(
+    dSdx::Matrix{E}, x::Matrix{E}, Δτ::E,
+    phonon_parameters::PhononParameters{E}
+) where {E<:AbstractFloat}
 
-    (; M, Ω, Ω4) = phonon_parameters
+    # evaluate derivative of QHO action
+    eval_derivative_qho_action!(dSdx, x, Δτ, phonon_parameters)
+
+    # evaluate derivative of anharmonic contribuation to action
+    eval_derivative_anharmonic_action!(dSdx, x, Δτ, phonon_parameters)
+
+    return nothing
+end
+
+# evaluate derivative of quantum harmonic oscillator action
+function eval_derivative_qho_action!(
+    dSdx::Matrix{E}, x::Matrix{E}, Δτ::E,
+    phonon_parameters::PhononParameters{E}
+) where {E<:AbstractFloat}
+
+    (; M, Ω) = phonon_parameters
 
     # get length of imaginary time axis
     Lτ = size(x, 2)
@@ -142,7 +222,7 @@ function _eval_derivative_bosonic_action(dSdx::Matrix{E}, x::Matrix{E}, Δτ::E,
             # make sure phonon mass is finite
             if isfinite(M[n])
                 # evaluate derivative potential energy
-                dSdx[n,l] += Δτ*M[n]*(Ω[n]^2*x[n,l] + Ω4[n]^2/6*x[n,l]^3)
+                dSdx[n,l] += Δτ*M[n]*Ω[n]^2*x[n,l]
                 # evaluate derivative of kinetic energy
                 dSdx[n,l] += M[n]*(2*x[n,l] - x[n,mod1(l+1,Lτ)] - x[n,mod1(l-1,Lτ)])/Δτ
             end
@@ -152,9 +232,35 @@ function _eval_derivative_bosonic_action(dSdx::Matrix{E}, x::Matrix{E}, Δτ::E,
     return nothing
 end
 
+# evaluate derivative of anharmonic potetential contribution to action
+function eval_derivative_anharmonic_action!(
+    dSdx::Matrix{E}, x::Matrix{E}, Δτ::E,
+    phonon_parameters::PhononParameters{E}
+) where {E<:AbstractFloat}
+
+    (; M, Ω4) = phonon_parameters
+
+    # iterate over imaginary time slice
+    @inbounds for l in axes(x,2)
+        # iterate over phonon modes
+        for n in axes(x,1)
+            # make sure phonon mass is finite
+            if !iszero(Ω4[n]) && isfinite(M[n])
+                # evaluate derivative potential energy
+                dSdx[n,l] += Δτ*M[n]*Ω4[n]^2/6*x[n,l]^3
+            end
+        end
+    end
+
+    return nothing
+end
+
 # evaluate derivative of phonon dispersion potential energy contribution to bosonic action
-function _eval_derivative_bosonic_action(dSdx::Matrix{E}, x::Matrix{E}, Δτ::E, dispersion_parameters::DispersionParameters{E},
-                                         phonon_parameters::PhononParameters{E}) where {E<:AbstractFloat}
+function eval_derivative_dispersive_action!(
+    dSdx::Matrix{E}, x::Matrix{E}, Δτ::E,
+    dispersion_parameters::DispersionParameters{E},
+    phonon_parameters::PhononParameters{E}
+) where {E<:AbstractFloat}
 
     (; M) = phonon_parameters
     (; Ndispersion, Ω, Ω4, dispersion_to_phonon) = dispersion_parameters
@@ -186,9 +292,13 @@ function _eval_derivative_bosonic_action(dSdx::Matrix{E}, x::Matrix{E}, Δτ::E,
 end
 
 # contribution to bosonic action of holstein coupling b/c used coupling of form X⋅(n-1) instead of X⋅n
-function _eval_derivative_bosonic_action(dSdx::Matrix{E}, x::Matrix{E}, Δτ::E,
-                                         holstein_parameters::HolsteinParameters{E}) where {E<:AbstractFloat}
+function eval_derivative_holstein_action!(
+    dSdx::Matrix{E}, x::Matrix{E}, Δτ::E,
+    holstein_parameters::HolsteinParameters{E},
+    phonon_parameters::PhononParameters{E}
+) where {E<:AbstractFloat}
 
+    (; M) = phonon_parameters
     (; Nholstein, α, α2, α3, α4, coupling_to_phonon) = holstein_parameters
     Lτ = size(x,2)
 
@@ -196,10 +306,13 @@ function _eval_derivative_bosonic_action(dSdx::Matrix{E}, x::Matrix{E}, Δτ::E,
     @fastmath @inbounds for l in 1:Lτ
         # iterate over holstein couplings
         for n in 1:Nholstein
-            # get the phonon mode associated with the holstein coupling
-            p = coupling_to_phonon[n]
-            # calculate the contribution to the potential energy
-            dSdx[p,l] -= Δτ * (α[n] + 2 * α2[n] * x[p,l] + 3 * α3[n] * x[p,l]^2 + 4 * α4[n] * x[p,l]^3)
+            # if phonon mass is finite
+            if isfinite(M[n])
+                # get the phonon mode associated with the holstein coupling
+                p = coupling_to_phonon[n]
+                # calculate the contribution to the potential energy
+                dSdx[p,l] -= Δτ * (α[n] + 2 * α2[n] * x[p,l] + 3 * α3[n] * x[p,l]^2 + 4 * α4[n] * x[p,l]^3)
+            end
         end
     end
 

@@ -11,6 +11,7 @@ hybrid/hamiltonian monte carlo or langevin monte carlo updates to the phonon fie
 - `ṽ::Matrix{Complex{E}}`: Temporary storage to avoid some dynamic memory allocations when performing fourier transforms.
 - `pfft::PFFT`: Forward FFT plan to perform transformation from imaginary time to frequency space without allocations.
 - `pifft::PIFFT`: Inverse FFT plan to perform transformation from frequency to imaginary time space without allocations.
+- `is_scalar::Bool`: If the mass matrix is equivalent to a simple scalar.
 """
 struct FourierMassMatrix{E<:AbstractFloat, PFFT, PIFFT}
 
@@ -28,6 +29,9 @@ struct FourierMassMatrix{E<:AbstractFloat, PFFT, PIFFT}
 
     # reverse FFT plan
     pifft::PIFFT
+
+    # if mass matrix is simply a scalar
+    is_scalar::Bool
 end
 
 @doc raw"""
@@ -82,7 +86,7 @@ function FourierMassMatrix(electron_phonon_parameters::ElectronPhononParameters{
             # if regularization is infinite
             elseif isinf(reg)
                 # set corresponding fourier mass matrix to identity
-                M̃[n, ω] = 1.0
+                M̃[n, ω] = Δτ
             # if finite phonon mass and regularization
             else
                 # CHANGE IN FUTURE: if bare on-site phonon frequency is zero, default to 1.0
@@ -93,18 +97,16 @@ function FourierMassMatrix(electron_phonon_parameters::ElectronPhononParameters{
         end
     end
 
-    return FourierMassMatrix(M̃, v′, ṽ, pfft, pifft)
+    # determine if mass matrix is equal to a simple scalar
+    is_scalar = all(m -> (isinf(m)||(m≈Δτ)), M̃)
+
+    return FourierMassMatrix(M̃, v′, ṽ, pfft, pifft, is_scalar)
 end
 
-
-# @doc raw"""
-#     velocity_to_kinetic_energy(M::FourierMassMatrix{E}, v::Matrix{E}) where {E<:AbstractFloat}
-
 # Given the [`FourierMassMatrix`](@ref) `M` and velocity `v`, return the total kinetic energy `K = (v⋅M⋅v)/2`.
-# """
 function velocity_to_kinetic_energy(M::FourierMassMatrix{E}, v::Matrix{E}) where {E<:AbstractFloat}
 
-    (; M̃, pfft, pifft) = M
+    (; M̃, pfft, pifft, is_scalar) = M
     Mv = M.v′
     Mṽ = M.ṽ
 
@@ -112,9 +114,13 @@ function velocity_to_kinetic_energy(M::FourierMassMatrix{E}, v::Matrix{E}) where
     copyto!(Mv, v)
 
     # calculate M⋅v
-    mul!(Mṽ, pfft, Mv)
-    _apply_fourier_mass_matrix!(M̃, Mṽ, 1.0)
-    mul!(Mv, pifft, Mṽ)
+    if is_scalar
+        _apply_fourier_mass_matrix!(M̃, Mv, 1.0)
+    else
+        mul!(Mṽ, pfft, Mv)
+        _apply_fourier_mass_matrix!(M̃, Mṽ, 1.0)
+        mul!(Mv, pifft, Mṽ)
+    end
 
     # calculate the kinetic energy K = (v⋅M⋅v)/2
     v′  = vec(v)
@@ -124,14 +130,10 @@ function velocity_to_kinetic_energy(M::FourierMassMatrix{E}, v::Matrix{E}) where
     return real(K)
 end
 
-# @doc raw"""
-#     momentum_to_kinetic_energy(M::FourierMassMatrix{E}, p::Matrix{E}) where {E<:AbstractFloat}
-
-# Given the [`FourierMassMatrix`](@ref) `M` and momentum `p`, return the total kinetic energy `K = (p⋅M⁻¹⋅p)/2`.
-# """
+# momentum_to_kinetic_energy(M::FourierMassMatrix{E}, p::Matrix{E}) where {E<:AbstractFloat}
 function momentum_to_kinetic_energy(M::FourierMassMatrix{E}, p::Matrix{E}) where {E<:AbstractFloat}
 
-    (; M̃, pfft, pifft) = M
+    (; M̃, pfft, pifft, is_scalar) = M
     M⁻¹p = M.v′
     M⁻¹p̃ = M.ṽ
 
@@ -139,9 +141,14 @@ function momentum_to_kinetic_energy(M::FourierMassMatrix{E}, p::Matrix{E}) where
     copyto!(M⁻¹p, p)
 
     # calculate M⁻¹⋅p
-    mul!(M⁻¹p̃, pfft, M⁻¹p)
-    _apply_fourier_mass_matrix!(M̃, M⁻¹p̃, -1.0)
-    mul!(M⁻¹p, pifft, M⁻¹p̃)
+
+    if is_scalar
+        _apply_fourier_mass_matrix!(M̃, M⁻¹p, -1.0)
+    else
+        mul!(M⁻¹p̃, pfft, M⁻¹p)
+        _apply_fourier_mass_matrix!(M̃, M⁻¹p̃, -1.0)
+        mul!(M⁻¹p, pifft, M⁻¹p̃)
+    end
 
     # calculate the kinetic energy K = (p⋅M⁻¹⋅p)/2
     p′    = vec(p)
@@ -151,15 +158,8 @@ function momentum_to_kinetic_energy(M::FourierMassMatrix{E}, p::Matrix{E}) where
     return real(K)
 end
 
-
-# @doc raw"""
-#     lmul!(M::FourierMassMatrix{E}, v::Matrix{E}, α::E=1.0) where {E<:AbstractFloat}
-
-#     lmul!(M::FourierMassMatrix{E}, v::Matrix{Complex{E}}, α::E=1.0) where {E<:AbstractFloat}
-
 # Left multiply `v` by the [`FourierMassMatrix`](@ref) `M` raised to the power `α`, modifying `v` in-place.
 # The rows of `v` correspond to phonon modes, and the columns correspond to imaginary time slices.
-# """
 function lmul!(M::FourierMassMatrix{E}, v::Matrix{E}, α::E=1.0) where {E<:AbstractFloat}
 
     (; v′) = M
@@ -173,27 +173,23 @@ end
 
 function lmul!(M::FourierMassMatrix{E}, v::Matrix{Complex{E}}, α::E=1.0) where {E<:AbstractFloat}
 
-    (; M̃, ṽ, pfft, pifft) = M
-
-    # fourier transform to frequency space
-    mul!(ṽ, pfft, v)
+    (; M̃, ṽ, pfft, pifft, is_scalar) = M
 
     # apply fourier mass matrix
-    _apply_fourier_mass_matrix!(M̃, ṽ, α)
-
-    # fourier transform back to imaginary time
-    mul!(v, pifft, ṽ)
+    if is_scalar
+        _apply_fourier_mass_matrix!(M̃, v, α)
+    else
+        mul!(ṽ, pfft, v)
+        _apply_fourier_mass_matrix!(M̃, ṽ, α)
+        mul!(v, pifft, ṽ)
+    end
 
     return nothing
 end
 
 
-# @doc raw"""
-#     mul!(Mv::Matrix, M::FourierMassMatrix{E}, v::Matrix, α::E=1.0) where {E<:AbstractFloat}
-
 # Multiply `v` by the [`FourierMassMatrix`](@ref) `M` raised to the power `α`, writing the result to `Mv`.
 # The rows of `Mv` and `v` correspond to phonon modes, and the columns correspond to imaginary time slices.
-# """
 function mul!(Mv::Matrix, M::FourierMassMatrix{E}, v::Matrix, α::E=1.0) where {E<:AbstractFloat}
 
     copyto!(Mv, v)

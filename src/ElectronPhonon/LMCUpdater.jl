@@ -1,22 +1,23 @@
-"""
-    LMCUpdater{T<:Number, E<:AbstractFloat, PFFT, PIFFT}
+# """
 
-Defines a langevin monte carlo (LMC) update for the phonon degrees of freedom.
+#     LMCUpdater{T<:Number, E<:AbstractFloat, PFFT, PIFFT}
 
-# Fields
+# Defines a langevin monte carlo (LMC) update for the phonon degrees of freedom.
 
-- `Δt::E`: Mean fermionic time-step size, which for a given LMC update is sampled from an exponential distribution.
-- `nt::Int`: Number of bosonic time-steps per fermionic time-step. The effective bosonic time-step size is `Δt′ = Δt/nt`.
-- `M::FourierMassMatrix{E, PFFT, PIFFT}`: Fourier mass matrix, refer to [`FourierMassMatrix`](@ref) for more information.
-- `dSdx::Matrix{E}`: Array to contain derivative of fermionic and bosonic action during HMC trajectory.
-- `dSfdx0::Matrix{E}`: Array to contain the initial derivative of fermionic action associated with the initial phonon configuration.
-- `Gup′::Matrix{T}`: Matrix to contain itermediate spin-up Green's function matrices.
-- `Gdn′::Matrix{T}`: Matrix to contain itermediate spin-down Green's function matrices.
-- `x′::Matrix{E}`: Array to record intermediate phonon configurations.
-- `x0::Matrix{E}`: Array to record initial phonon configuration.
-- `v::Matrix{E}`: Conjugate momentum to phonon fields in HMC trajectory.
-- `first_update::Bool`: A flag indicating whether the next update will be the first update
-"""
+# # Fields
+
+# - `Δt::E`: Mean fermionic time-step size, which for a given LMC update is sampled from an exponential distribution.
+# - `nt::Int`: Number of bosonic time-steps per fermionic time-step. The effective bosonic time-step size is `Δt′ = Δt/nt`.
+# - `M::FourierMassMatrix{E, PFFT, PIFFT}`: Fourier mass matrix, refer to [`FourierMassMatrix`](@ref) for more information.
+# - `dSdx::Matrix{E}`: Array to contain derivative of fermionic and bosonic action during HMC trajectory.
+# - `dSfdx0::Matrix{E}`: Array to contain the initial derivative of fermionic action associated with the initial phonon configuration.
+# - `Gup′::Matrix{T}`: Matrix to contain itermediate spin-up Green's function matrices.
+# - `Gdn′::Matrix{T}`: Matrix to contain itermediate spin-down Green's function matrices.
+# - `x′::Matrix{E}`: Array to record intermediate phonon configurations.
+# - `x0::Matrix{E}`: Array to record initial phonon configuration.
+# - `v::Matrix{E}`: Conjugate momentum to phonon fields in HMC trajectory.
+# - `first_update::Bool`: A flag indicating whether the next update will be the first update
+# """
 mutable struct LMCUpdater{T<:Number, E<:AbstractFloat, PFFT, PIFFT}
 
     # average fermionic time-step
@@ -53,20 +54,20 @@ mutable struct LMCUpdater{T<:Number, E<:AbstractFloat, PFFT, PIFFT}
     first_update::Bool
 end
 
-@doc raw"""
-    LMCUpdater(; electron_phonon_parameters::ElectronPhononParameters{T,E},
-               G::Matrix{T}, Δt::E, nt::Int, reg::E) where {T,E}
+# """
+#     LMCUpdater(; electron_phonon_parameters::ElectronPhononParameters{T,E},
+#                G::Matrix{T}, Δt::E, nt::Int, reg::E) where {T,E}
 
-Initialize and return an instance of [`LMCUpdater`](@ref).
+# Initialize and return an instance of [`LMCUpdater`](@ref).
 
-# Arguments
+# # Arguments
 
-- `electron_phonon_parameters::ElectronPhononParameters{T,E}`: Defines electron phonon model.
-- `G::Matrix{T}`: Template Green's function matrix.
-- `Δt::E`: Mean of exponential distribution the fermionic time-step is sampled from.
-- `nt::Int`: Number of bosonic time-steps, with the effective bosonic time-step given by `Δt′ = Δt/nt`.
-- `reg::E`: Regularization parameter for defining an instance of [`FourierMassMatrix`](@ref).
-"""
+# - `electron_phonon_parameters::ElectronPhononParameters{T,E}`: Defines electron phonon model.
+# - `G::Matrix{T}`: Template Green's function matrix.
+# - `Δt::E`: Mean of exponential distribution the fermionic time-step is sampled from.
+# - `nt::Int`: Number of bosonic time-steps, with the effective bosonic time-step given by `Δt′ = Δt/nt`.
+# - `reg::E`: Regularization parameter for defining an instance of [`FourierMassMatrix`](@ref).
+# """
 function LMCUpdater(; electron_phonon_parameters::ElectronPhononParameters{T,E},
                     G::Matrix{T}, Δt::E, nt::Int, reg::E) where {T,E}
 
@@ -89,30 +90,30 @@ function LMCUpdater(; electron_phonon_parameters::ElectronPhononParameters{T,E},
 end
 
 
-@doc raw"""
-    lmc_update!(Gup::Matrix{T}, logdetGup::E, sgndetGup::T,
-                Gdn::Matrix{T}, logdetGdn::E, sgndetGdn::T,
-                electron_phonon_parameters::ElectronPhononParameters{T,E},
-                lmc_updater::LMCUpdater{T,E};
-                fermion_path_integral_up::FermionPathIntegral{T,E},
-                fermion_path_integral_dn::FermionPathIntegral{T,E},
-                fermion_greens_calculator_up::FermionGreensCalculator{T,E},
-                fermion_greens_calculator_dn::FermionGreensCalculator{T,E},
-                fermion_greens_calculator_up_alt::FermionGreensCalculator{T,E},
-                fermion_greens_calculator_dn_alt::FermionGreensCalculator{T,E},
-                Bup::Vector{P}, Bdn::Vector{P},
-                δG_max::E, δG::E, δθ::E, rng::AbstractRNG,
-                update_stabalization_frequency::Bool = true,
-                initialize_force::Bool = true,
-                δG_reject::E = sqrt(δG_max),
-                recenter!::Function = identity,
-                Δt::E = lmc_updater.Δt,
-                nt::Int = lmc_updater.nt) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
+# """
+#     lmc_update!(Gup::Matrix{T}, logdetGup::E, sgndetGup::T,
+#                 Gdn::Matrix{T}, logdetGdn::E, sgndetGdn::T,
+#                 electron_phonon_parameters::ElectronPhononParameters{T,E},
+#                 lmc_updater::LMCUpdater{T,E};
+#                 fermion_path_integral_up::FermionPathIntegral{T,E},
+#                 fermion_path_integral_dn::FermionPathIntegral{T,E},
+#                 fermion_greens_calculator_up::FermionGreensCalculator{T,E},
+#                 fermion_greens_calculator_dn::FermionGreensCalculator{T,E},
+#                 fermion_greens_calculator_up_alt::FermionGreensCalculator{T,E},
+#                 fermion_greens_calculator_dn_alt::FermionGreensCalculator{T,E},
+#                 Bup::Vector{P}, Bdn::Vector{P},
+#                 δG_max::E, δG::E, δθ::E, rng::AbstractRNG,
+#                 update_stabalization_frequency::Bool = true,
+#                 initialize_force::Bool = true,
+#                 δG_reject::E = sqrt(δG_max),
+#                 recenter!::Function = identity,
+#                 Δt::E = lmc_updater.Δt,
+#                 nt::Int = lmc_updater.nt) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
 
-Perform LMC update to the phonon degrees of freedom.
-This method returns `(accepted, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ)`, where `accepted`
-is a boolean field indicating whether the proposed LMC update was accepted or rejected.
-"""
+# Perform LMC update to the phonon degrees of freedom.
+# This method returns `(accepted, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ)`, where `accepted`
+# is a boolean field indicating whether the proposed LMC update was accepted or rejected.
+# """
 function lmc_update!(Gup::Matrix{T}, logdetGup::E, sgndetGup::T,
                      Gdn::Matrix{T}, logdetGdn::E, sgndetGdn::T,
                      electron_phonon_parameters::ElectronPhononParameters{T,E},
@@ -152,25 +153,25 @@ function lmc_update!(Gup::Matrix{T}, logdetGup::E, sgndetGup::T,
     return (accepted, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ)
 end
 
-@doc raw"""
-    lmc_update!(G::Matrix{T}, logdetG::E, sgndetG::T,
-                electron_phonon_parameters::ElectronPhononParameters{T,E},
-                lmc_updater::LMCUpdater{T,E};
-                fermion_path_integral::FermionPathIntegral{T,E},
-                fermion_greens_calculator::FermionGreensCalculator{T,E},
-                fermion_greens_calculator_alt::FermionGreensCalculator{T,E},
-                B::Vector{P}, δG_max::E, δG::E, δθ::E, rng::AbstractRNG,
-                update_stabalization_frequency::Bool = true,
-                initialize_force::Bool = true,
-                δG_reject::E = sqrt(δG_max),
-                recenter!::Function = identity,
-                Δt::E = lmc_updater.Δt,
-                nt::Int = lmc_updater.nt) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
+# """
+#     lmc_update!(G::Matrix{T}, logdetG::E, sgndetG::T,
+#                 electron_phonon_parameters::ElectronPhononParameters{T,E},
+#                 lmc_updater::LMCUpdater{T,E};
+#                 fermion_path_integral::FermionPathIntegral{T,E},
+#                 fermion_greens_calculator::FermionGreensCalculator{T,E},
+#                 fermion_greens_calculator_alt::FermionGreensCalculator{T,E},
+#                 B::Vector{P}, δG_max::E, δG::E, δθ::E, rng::AbstractRNG,
+#                 update_stabalization_frequency::Bool = true,
+#                 initialize_force::Bool = true,
+#                 δG_reject::E = sqrt(δG_max),
+#                 recenter!::Function = identity,
+#                 Δt::E = lmc_updater.Δt,
+#                 nt::Int = lmc_updater.nt) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
 
-Perform LMC update to the phonon degrees of freedom assuming the spin-up and spin-down sectors are equivalent.
-This method returns `(accepted, logdetG, sgndetG, δG, δθ)`, where `accepted`
-is a boolean field indicating whether the proposed LMC update was accepted or rejected.
-"""
+# Perform LMC update to the phonon degrees of freedom assuming the spin-up and spin-down sectors are equivalent.
+# This method returns `(accepted, logdetG, sgndetG, δG, δθ)`, where `accepted`
+# is a boolean field indicating whether the proposed LMC update was accepted or rejected.
+# """
 function lmc_update!(G::Matrix{T}, logdetG::E, sgndetG::T,
                      electron_phonon_parameters::ElectronPhononParameters{T,E},
                      lmc_updater::LMCUpdater{T,E};
