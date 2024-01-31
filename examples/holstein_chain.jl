@@ -1,35 +1,47 @@
-# # Kagome Holstein Model with Density Tuning
+# # Holstein Chain with Density Tuning
 #
-# In this script we simulate the Holstein model on the Kagome lattice, with a Hamiltonian given by
+# In this example we simulate the Holstein model for electron-phonon models on a 1D chain given by
 # ```math
-# \begin{align*}
-# \hat{H} = & -t \sum_{\sigma,\langle i, j \rangle} (\hat{c}^{\dagger}_{\sigma,i}, \hat{c}^{\phantom \dagger}_{\sigma,j} + {\rm h.c.})
-#             -\mu \sum_{\sigma,i}\hat{n}_{\sigma,i} + \alpha \sum_{\sigma,i} \hat{X}_i (\hat{n}_{\sigma,i} - \tfrac{1}{2})\\
-#           & + \sum_i \left( \frac{1}{2M}\hat{P}_i^2 + \frac{1}{2}M\Omega^2\hat{X}_i^2 \right)
-# \end{align*}
+# \hat{H} = \hat{H}_e + \hat{H}_{\rm ph} + \hat{H}_{e\textrm{-ph}}.
+# ```
+# The first term describes bare tight-binding Hamiltonian
+# ```math
+# \hat{H}_e = -t \sum_{\sigma,i} (\hat{c}^{\dagger}_{\sigma,i+1}, \hat{c}^{\phantom \dagger}_{\sigma,i} + {\rm h.c.})
+#             -\mu \sum_{\sigma,i} \hat{n}_{\sigma,i},
 # ```
 # where ``\hat{c}^\dagger_{\sigma,i} \ (\hat{c}^{\phantom \dagger}_{\sigma,i})`` creates (annihilates) a spin ``\sigma``
 # electron on site ``i`` in the lattice, and ``\hat{n}_{\sigma,i} = \hat{c}^\dagger_{\sigma,i} \hat{c}^{\phantom \dagger}_{\sigma,i}``
-# is the spin-``\sigma`` electron number operator for site ``i``. The nearest-neighbor hopping amplitude is ``t`` and ``\mu`` is the
-# chemical potential. The phonon position (momentum) operators ``\hat{X}_i \ (\hat{P}_i)``
-# describe a dispersionless mode placed on site ``i`` with phonon frequency ``\Omega`` and
-# corresponding ion mass ``M``. The stength of the Holstein electron-phonon is controlled by the parameter ``\alpha``.
+# is the spin-``\sigma`` electron number operator for site ``i``.
+# The second terms is the bare phonon Hamiltonian
+# ```math
+# \hat{H}_{\rm ph} = \sum_i \left( \frac{1}{2M}\hat{P}_i^2 + \frac{1}{2}M\Omega^2\hat{X}_i^2 \right)
+# ```
+# which describes a dispersionless phonon modes on each site in the lattice, where ``\hat{X}_i \ (\hat{P}_i)`` is the
+# position (momentum) operator for the phonon mode on site ``i`` in the lattice. The phonon frequency is given by ``\Omega``,
+# and ``M`` is the corresponding ion mass associated with the phonon mode.
+# Lastly, the third term introduces the Holstein electron-phonon interaction
+# ```math
+# \hat{H}_{e\textrm{-ph}} = \alpha \sum_{\sigma,i} \hat{X}_i \left( \hat{n}_{\sigma,i} - \frac{1}{2} \right),
+# ```
+# where the strength of the interaction is controlled by the parameter ``\alpha``.
 #
-# The example script to simulate this sytem is
-# [`example_scripts/holstein_kagome.jl`](https://github.com/SmoQySuite/SmoQyDQMC.jl/blob/main/example_scripts/holstein_kagome.jl).
-# To run a short test simulation using this script that only takes a few minutes on most personal computers, run the following command:
+# The example script [`example_scripts/holstein_chain.jl`](https://github.com/SmoQySuite/SmoQyDQMC.jl/blob/main/example_scripts/holstein_chain.jl)
+# additionally simulate the Holstein model with an algorithm recently recently introduced in
+# [`Phys. Rev. E 105, 045311`](https://journals.aps.org/pre/abstract/10.1103/PhysRevE.105.045311)
+# that dynamically tunes the chemical potential during the simulation to achieve a target electron density.
+#
+# A short test simulation using the script associated with this example can be run as
 # ```
-# > julia holstein_chain.jl 0 0.1 0.1 0.667 0.0 4.0 3 2000 10000 50
+# > julia holstein_chain.jl 0 0.1 0.1 0.5 0.0 4.0 16 2000 10000 20
 # ```
-# Here the Holstein model on a ``3 \times 3`` unit cell Kagome lattice is simulated with ``\Omega = 0.1``, ``\alpha = 0.1`` and inverse temperature ``\beta = 4.0``.
-# The chemical potential is initialized to ``\mu = 0.0``, and then tuned to achieve are target electron density of ``\langle n \rangle = 0.667``.
+# Here a Holstein chain of length ``L=16`` is simulate with ``\Omega = 0.1``, ``\alpha = 0.1`` and inverse temperature ``\beta = 4.0``.
+# The chemical potential is initialized to ``\mu = 0.0``, and then tuned to achieve are target electron density of ``\langle n \rangle = 0.5``.
 # In this example `N_burnin = 2000` thermalizatoin HMC and refleciton updates are performed, followed by an additional `N_updates = 10000`
 # such updates, during which time an equivalent number of measurements are made. Bin averaged measurements are written to
-# file `N_bins = 50` during the simulation.
+# file `N_bins = 20` during the simulation.
 #
-# Below you can find the contents of the script
-# [`example_scripts/holstein_kagome.jl`](https://github.com/SmoQySuite/SmoQyDQMC.jl/blob/main/example_scripts/holstein_kagome.jl)
-# with additional comments that discuss in more detail what certain parts of the code are doing.
+# Below you will find the source code from the julia script linked at the top of this page,
+# but with additional comments giving more detailed explanations for what certain parts of the code are doing.
 
 using LinearAlgebra
 using Random
@@ -46,7 +58,7 @@ import SmoQyDQMC.MuTuner           as mt
 function run_holstein_chain_simulation(sID, Ω, α, n, μ, β, L, N_burnin, N_updates, N_bins; filepath = ".")
 
     ## Construct the foldername the data will be written to.
-    datafolder_prefix = @sprintf "holstein_kagome_w%.2f_a%.2f_n%.2f_L%d_b%.2f" Ω α n L β
+    datafolder_prefix = @sprintf "holstein_chain_w%.2f_a%.2f_n%.2f_L%d_b%.2f" Ω α n L β
 
     ## Initialize an instance of the SimulationInfo type.
     simulation_info = SimulationInfo(
@@ -89,17 +101,11 @@ function run_holstein_chain_simulation(sID, Ω, α, n, μ, β, L, N_burnin, N_up
 #md     ## hybrid/hamiltonian Monte Carlo (HMC) updates. Below we specify some of the
 #md     ## parameters associated with these HMC updates.
 
-    ## Fermionic time-step used in HMC update.
-    Δt = 1/(10*Ω)
-
     ## Number of fermionic time-steps in HMC update.
     Nt = 10
 
-    ## Number of bosonic time-steps per fermionic time-step in HMC udpate.
-    nt = 10
-
-    ## Regularizaton parameter for fourier acceleration mass matrix used in HMC dyanmics.
-    reg = 1.0
+    ## Fermionic time-step used in HMC update.
+    Δt = π/(Nt*Ω)
 
     ## Initialize a dictionary to store additional information about the simulation.
     additional_info = Dict(
@@ -113,10 +119,8 @@ function run_holstein_chain_simulation(sID, Ω, α, n, μ, β, L, N_burnin, N_up
         "n_stab_init" => n_stab,
         "symmetric" => symmetric,
         "checkerboard" => checkerboard,
-        "dt" => Δt,
         "Nt" => Nt,
-        "nt" => nt,
-        "reg" => reg,
+        "dt" => Δt,
         "seed" => seed,
     )
 
@@ -125,18 +129,13 @@ function run_holstein_chain_simulation(sID, Ω, α, n, μ, β, L, N_burnin, N_up
     #######################
 
     ## Initialize an instance of the type UnitCell.
-    unit_cell = lu.UnitCell(
-        lattice_vecs = [[1.0,0.0],
-                        [1/2,√3/2]],
-        basis_vecs   = [[0.0,0.0],
-                        [1/2,0.0],
-                        [1/4,√3/4]]
-    )
+    unit_cell = lu.UnitCell(lattice_vecs = [[1.0]],
+                            basis_vecs   = [[0.0]])
 
     ## Initialize an instance of the type Lattice.
     lattice = lu.Lattice(
-        L = [L, L],
-        periodic = [true, true]
+        L = [L],
+        periodic = [true]
     )
 
     ## Get the number of sites in the lattice.
@@ -145,41 +144,11 @@ function run_holstein_chain_simulation(sID, Ω, α, n, μ, β, L, N_burnin, N_up
     ## Initialize an instance of the ModelGeometry type.
     model_geometry = ModelGeometry(unit_cell, lattice)
 
-    ## Define the nearest-neighbor bond.
-    bond_1 = lu.Bond(orbitals = (1,2), displacement = [0,0])
+    ## Define the nearest-neighbor bond for a 1D chain.
+    bond = lu.Bond(orbitals = (1,1), displacement = [1])
 
-    ## Add nearest neighbor bond to the model.
-    bond_1_id = add_bond!(model_geometry, bond_1)
-
-    ## Define the nearest-neighbor bond.
-    bond_2 = lu.Bond(orbitals = (1,3), displacement = [0,0])
-
-    ## Add nearest neighbor bond to the model.
-    bond_2_id = add_bond!(model_geometry, bond_2)
-
-    ## Define the nearest-neighbor bond.
-    bond_3 = lu.Bond(orbitals = (2,3), displacement = [0,0])
-
-    ## Add nearest neighbor bond to the model.
-    bond_3_id = add_bond!(model_geometry, bond_3)
-
-    ## Define the nearest-neighbor bond.
-    bond_4 = lu.Bond(orbitals = (2,1), displacement = [1,0])
-
-    ## Add nearest neighbor bond to the model.
-    bond_4_id = add_bond!(model_geometry, bond_4)
-
-    ## Define the nearest-neighbor bond.
-    bond_5 = lu.Bond(orbitals = (3,1), displacement = [0,1])
-
-    ## Add nearest neighbor bond to the model.
-    bond_5_id = add_bond!(model_geometry, bond_5)
-
-    ## Define the nearest-neighbor bond.
-    bond_6 = lu.Bond(orbitals = (3,2), displacement = [-1,1])
-
-    ## Add nearest neighbor bond to the model.
-    bond_6_id = add_bond!(model_geometry, bond_6)
+    ## Add this bond to the model, by adding it to the ModelGeometry type.
+    bond_id = add_bond!(model_geometry, bond)
 
     ## Define nearest-neighbor hopping amplitude, setting the energy scale for the system.
     t = 1.0
@@ -187,10 +156,10 @@ function run_holstein_chain_simulation(sID, Ω, α, n, μ, β, L, N_burnin, N_up
     ## Define the tight-binding model
     tight_binding_model = TightBindingModel(
         model_geometry = model_geometry,
-        t_bonds = [bond_1, bond_2, bond_3, bond_4, bond_5, bond_6], # defines hopping
-        t_mean  = [t, t, t, t, t, t],     # defines corresponding hopping amplitude
-        μ       = μ,            # set chemical potential
-        ϵ_mean  = [0.0, 0.0, 0.0]     # set the (mean) on-site energy
+        t_bonds = [bond], # defines hopping
+        t_mean = [t],     # defines corresponding hopping amplitude
+        μ = μ,            # set chemical potential
+        ϵ_mean = [0.]     # set the (mean) on-site energy
     )
 
     ## Initialize a null electron-phonon model.
@@ -199,75 +168,27 @@ function run_holstein_chain_simulation(sID, Ω, α, n, μ, β, L, N_burnin, N_up
         tight_binding_model = tight_binding_model
     )
 
-    ## Define a dispersionless electron-phonon mode to live the first sub-lattice.
-    phonon_1 = PhononMode(orbital = 1, Ω_mean = Ω)
+    ## Define a dispersionless electron-phonon mode to live on each site in the lattice.
+    phonon = PhononMode(orbital = 1, Ω_mean = Ω)
 
     ## Add the phonon mode definition to the electron-phonon model.
-    phonon_1_id = add_phonon_mode!(
+    phonon_id = add_phonon_mode!(
         electron_phonon_model = electron_phonon_model,
-        phonon_mode = phonon_1
+        phonon_mode = phonon
     )
 
-    ## Define a dispersionless electron-phonon mode to live the second sub-lattice.
-    phonon_2 = PhononMode(orbital = 2, Ω_mean = Ω)
-
-    ## Add the phonon mode definition to the electron-phonon model.
-    phonon_2_id = add_phonon_mode!(
-        electron_phonon_model = electron_phonon_model,
-        phonon_mode = phonon_2
-    )
-
-    ## Define a dispersionless electron-phonon mode to live the third sub-lattice.
-    phonon_3 = PhononMode(orbital = 3, Ω_mean = Ω)
-
-    ## Add the phonon mode definition to the electron-phonon model.
-    phonon_3_id = add_phonon_mode!(
-        electron_phonon_model = electron_phonon_model,
-        phonon_mode = phonon_3
-    )
-
-    ## Define a on-site Holstein coupling for first sub-lattice.
-    holstein_coupling_1 = HolsteinCoupling(
+    ## Define a on-site Holstein coupling between the electron and the local dispersionless phonon mode.
+    holstein_coupling = HolsteinCoupling(
     	model_geometry = model_geometry,
-    	phonon_mode = phonon_1_id,
-    	bond = lu.Bond(orbitals = (1,1), displacement = [0,0]),
+    	phonon_mode = phonon_id,
+    	bond = lu.Bond(orbitals = (1,1), displacement = [0]),
     	α_mean = α
     )
 
-    ## Add the Holstein coupling definition to the model for first sub-lattice.
-    holstein_coupling_1_id = add_holstein_coupling!(
+    ## Add the Holstein coupling definition to the model.
+    holstein_coupling_id = add_holstein_coupling!(
     	electron_phonon_model = electron_phonon_model,
-    	holstein_coupling = holstein_coupling_1,
-    	model_geometry = model_geometry
-    )
-
-    ## Define a on-site Holstein coupling for second sub-lattice.
-    holstein_coupling_2 = HolsteinCoupling(
-    	model_geometry = model_geometry,
-    	phonon_mode = phonon_2_id,
-    	bond = lu.Bond(orbitals = (2,2), displacement = [0,0]),
-    	α_mean = α
-    )
-
-    ## Add the Holstein coupling definition to the model for first sub-lattice.
-    holstein_coupling_2_id = add_holstein_coupling!(
-    	electron_phonon_model = electron_phonon_model,
-    	holstein_coupling = holstein_coupling_2,
-    	model_geometry = model_geometry
-    )
-
-    ## Define a on-site Holstein coupling for first sub-lattice.
-    holstein_coupling_3 = HolsteinCoupling(
-    	model_geometry = model_geometry,
-    	phonon_mode = phonon_3_id,
-    	bond = lu.Bond(orbitals = (3,3), displacement = [0,0]),
-    	α_mean = α
-    )
-
-    ## Add the Holstein coupling definition to the model for first sub-lattice.
-    holstein_coupling_3_id = add_holstein_coupling!(
-    	electron_phonon_model = electron_phonon_model,
-    	holstein_coupling = holstein_coupling_3,
+    	holstein_coupling = holstein_coupling,
     	model_geometry = model_geometry
     )
 
@@ -319,8 +240,7 @@ function run_holstein_chain_simulation(sID, Ω, α, n, μ, β, L, N_burnin, N_up
         model_geometry = model_geometry,
         correlation = "greens",
         time_displaced = true,
-        pairs = [(1, 1), (2, 2), (3, 3),
-                 (1, 2), (1, 3), (2, 3)]
+        pairs = [(1, 1)]
     )
 
     ## Initialize time-displaced phonon Green's function measurement.
@@ -329,8 +249,7 @@ function run_holstein_chain_simulation(sID, Ω, α, n, μ, β, L, N_burnin, N_up
         model_geometry = model_geometry,
         correlation = "phonon_greens",
         time_displaced = true,
-        pairs = [(1, 1), (2, 2), (3, 3),
-                 (1, 2), (1, 3), (2, 3)]
+        pairs = [(phonon_id, phonon_id)]
     )
 
     ## Initialize density correlation function measurement.
@@ -340,8 +259,7 @@ function run_holstein_chain_simulation(sID, Ω, α, n, μ, β, L, N_burnin, N_up
         correlation = "density",
         time_displaced = false,
         integrated = true,
-        pairs = [(1, 1), (2, 2), (3, 3),
-                 (1, 2), (1, 3), (2, 3)]
+        pairs = [(1, 1)]
     )
 
     ## Initialize the pair correlation function measurement.
@@ -351,7 +269,7 @@ function run_holstein_chain_simulation(sID, Ω, α, n, μ, β, L, N_burnin, N_up
         correlation = "pair",
         time_displaced = false,
         integrated = true,
-        pairs = [(1, 1), (2, 2), (3, 3)]
+        pairs = [(1, 1)]
     )
 
     ## Initialize the spin-z correlation function measurement.
@@ -361,8 +279,7 @@ function run_holstein_chain_simulation(sID, Ω, α, n, μ, β, L, N_burnin, N_up
         correlation = "spin_z",
         time_displaced = false,
         integrated = true,
-        pairs = [(1, 1), (2, 2), (3, 3),
-                 (1, 2), (1, 3), (2, 3)]
+        pairs = [(1, 1)]
     )
 
     ## Initialize the sub-directories to which the various measurements will be written.
@@ -411,9 +328,9 @@ function run_holstein_chain_simulation(sID, Ω, α, n, μ, β, L, N_burnin, N_up
     δθ = zero(typeof(sgndetG))
 
     ## Initialize Hamitlonian/Hybrid monte carlo (HMC) updater.
-    hmc_updater = HMCUpdater(
+    hmc_updater = EFAHMCUpdater(
         electron_phonon_parameters = electron_phonon_parameters,
-        G = G, Nt = Nt, Δt = Δt, nt = nt, reg = reg
+        G = G, Nt = Nt, Δt = Δt
     )
 
     ## Initialize the density/chemical potential tuner.
@@ -438,7 +355,7 @@ function run_holstein_chain_simulation(sID, Ω, α, n, μ, β, L, N_burnin, N_up
             fermion_path_integral = fermion_path_integral,
             fermion_greens_calculator = fermion_greens_calculator,
             fermion_greens_calculator_alt = fermion_greens_calculator_alt,
-            B = B, rng = rng, phonon_types = (phonon_1_id, phonon_2_id, phonon_3_id)
+            B = B, rng = rng, phonon_types = (phonon_id,)
         )
 
         ## Record whether the reflection update was accepted or rejected.
@@ -450,7 +367,7 @@ function run_holstein_chain_simulation(sID, Ω, α, n, μ, β, L, N_burnin, N_up
             fermion_path_integral = fermion_path_integral,
             fermion_greens_calculator = fermion_greens_calculator,
             fermion_greens_calculator_alt = fermion_greens_calculator_alt,
-            B = B, δG_max = δG_max, δG = δG, δθ = δθ, rng = rng, initialize_force = true
+            B = B, δG_max = δG_max, δG = δG, δθ = δθ, rng = rng
         )
 
         ## Record whether the HMC update was accepted or rejected.
@@ -488,7 +405,7 @@ function run_holstein_chain_simulation(sID, Ω, α, n, μ, β, L, N_burnin, N_up
                 fermion_path_integral = fermion_path_integral,
                 fermion_greens_calculator = fermion_greens_calculator,
                 fermion_greens_calculator_alt = fermion_greens_calculator_alt,
-                B = B, rng = rng, phonon_types = (phonon_1_id, phonon_2_id, phonon_3_id)
+                B = B, rng = rng, phonon_types = (phonon_id,)
             )
 
             ## Record whether the reflection update was accepted or rejected.
@@ -500,7 +417,7 @@ function run_holstein_chain_simulation(sID, Ω, α, n, μ, β, L, N_burnin, N_up
                 fermion_path_integral = fermion_path_integral,
                 fermion_greens_calculator = fermion_greens_calculator,
                 fermion_greens_calculator_alt = fermion_greens_calculator_alt,
-                B = B, δG_max = δG_max, δG = δG, δθ = δθ, rng = rng, initialize_force = true
+                B = B, δG_max = δG_max, δG = δG, δθ = δθ, rng = rng
             )
 
             ## Record whether the HMC update was accepted or rejected.

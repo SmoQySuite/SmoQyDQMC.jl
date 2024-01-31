@@ -1,36 +1,33 @@
-# # Optical Su-Schrieffer-Heeger Chain
+# # Bond Su-Schrieffer-Heeger Chain
 #
-# In this example we simulate the optical Su-Schrieffer-Heeger (OSSH) model on a 1D chain,
+# In this example we simulate the bond Su-Schrieffer-Heeger (BSSH) model on a 1D chain,
 # with a Hamiltonian given by
 # ```math
 # \begin{align*}
-# \hat{H} = \sum_i \left( \frac{1}{2M}\hat{P}_i^2 + \frac{1}{2}M\Omega^2\hat{X}_i^2 \right)
-#           - \sum_{\sigma,i} [t-\alpha(\hat{X}_{i+1}-\hat{X}_{i})] (\hat{c}^{\dagger}_{\sigma,i+1}, \hat{c}^{\phantom \dagger}_{\sigma,i} + {\rm h.c.})
+# \hat{H} = \sum_i \left( \frac{1}{2M}\hat{P}_{\langle i+1, i \rangle}^2 + \frac{1}{2}M\Omega^2\hat{X}_{\langle i+1, i \rangle}^2 \right)
+#           - \sum_{\sigma,i} [t-\alpha \hat{X}_{\langle i+1, i \rangle}] (\hat{c}^{\dagger}_{\sigma,i+1}, \hat{c}^{\phantom \dagger}_{\sigma,i} + {\rm h.c.})
 #           - \mu \sum_{\sigma,i} \hat{n}_{\sigma,i},
 # \end{align*}
 # ```
-# in which the fluctuations in the position of dispersionless phonon modes placed on each site in the lattice modulate the
-# hopping amplitude between neighboring sites.
+# in which dispersionless phonon modes are placed on each *bond*, and their positions modulates only that single corresponding hopping amplitude.
 # In the above expression ``\hat{c}^\dagger_{\sigma,i} \ (\hat{c}^{\phantom \dagger}_{\sigma,i})`` creation (annihilation) operator
 # a spin ``\sigma`` electron on site ``i`` in the lattice, and ``\hat{n}_{\sigma,i} = \hat{c}^\dagger_{\sigma,i} \hat{c}^{\phantom \dagger}_{\sigma,i}``
-# is corresponding electron number operator. The phonon position (momentum) operator for the dispersionless phonon mode on site ``i``
-# is given by ``\hat{X}_i \ (\hat{P}_i)``, where ``\Omega`` and ``M`` are the phonon frequency and associated ion mass respectively.
+# is corresponding electron number operator. The phonon position (momentum) operator for the dispersionless phonon mode on the
+# bond connecting sites ``i`` and ``i+1`` is given by ``\hat{X}_{\langle i+1, i \rangle} \ (\hat{P}_{\langle i+1, i \rangle})``,
+# where ``\Omega`` and ``M`` are the phonon frequency and associated ion mass respectively.
 # Lastly, the strength of the electron-phonon coupling is controlled by the parameter ``\alpha``.
 #
-# The example script to simulate this sytem is
-# [`example_scripts/ossh_chain.jl`](https://github.com/SmoQySuite/SmoQyDQMC.jl/blob/main/example_scripts/ossh_chain.jl).
-# A short test simulation using this script that only takes a few minutes on most personal computers is
+# A short test simulation using the script associated with this example can be run as
 # ```
-# > julia ossh_chain.jl 0 1.0 0.5 0.0 4.0 16 1000 5000 20
+# > julia bssh_chain.jl 0 1.0 0.5 0.0 4.0 16 1000 5000 20
 # ```
 # which simulates an ``L=16`` chain with ``\Omega = 1.0``, ``\alpha = 0.5`` at half-filling ``(\mu = 0.0)`` and
 # an inverse temperature of ``\beta = 4.0``. In this example `N_burnin = 1000` HMC thermalization updates are performed,
 # followed an additional `N_updates = 5000` HMC updates, after each of which measurements are made.
 # Bin averaged measurements are then written to file `N_bins = 20` during the simulation.
 #
-# Below you will find the source code in the script
-# [`example_scripts/ossh_chain.jl`](https://github.com/SmoQySuite/SmoQyDQMC.jl/blob/main/example_scripts/ossh_chain.jl),
-# with additional comments giving more detailed explanations for what certain parts of the code are doing.
+# Below you will find the source code from the julia script linked at the top of this page,
+# but with additional comments giving more detailed explanations for what certain parts of the code are doing.
 
 using LinearAlgebra
 using Random
@@ -42,10 +39,10 @@ import SmoQyDQMC.JDQMCFramework    as dqmcf
 import SmoQyDQMC.JDQMCMeasurements as dqmcm
 
 ## Define top-level function for running the DQMC simulation.
-function run_ossh_chain_simulation(sID, Ω, α, μ, β, L, N_burnin, N_updates, N_bins; filepath = ".")
+function run_bssh_chain_simulation(sID, Ω, α, μ, β, L, N_burnin, N_updates, N_bins; filepath = ".")
 
     ## Construct the foldername the data will be written to.
-    datafolder_prefix = @sprintf "ossh_chain_w%.2f_a%.2f_mu%.2f_L%d_b%.2f" Ω α μ L β
+    datafolder_prefix = @sprintf "bssh_chain_w%.2f_a%.2f_mu%.2f_L%d_b%.2f" Ω α μ L β
 
     ## Initialize an instance of the SimulationInfo type.
     simulation_info = SimulationInfo(
@@ -93,17 +90,11 @@ function run_ossh_chain_simulation(sID, Ω, α, μ, β, L, N_burnin, N_updates, 
     ## Calculate the bin size.
     bin_size = div(N_updates, N_bins)
 
-    ## Fermionic time-step used in HMC update.
-    Δt = 1/(10*Ω)
-
     ## Number of fermionic time-steps in HMC update.
-    Nt = 10
+    Nt = 5
 
-    ## Number of bosonic time-steps per fermionic time-step in HMC udpate.
-    nt = 10
-
-    ## Regularizaton parameter for fourier acceleration mass matrix used in HMC dyanmics.
-    reg = 1.0
+    ## Fermionic time-step used in HMC update.
+    Δt = π/(Nt*Ω)
 
     ## Initialize a dictionary to store additional information about the simulation.
     additional_info = Dict(
@@ -118,8 +109,7 @@ function run_ossh_chain_simulation(sID, Ω, α, μ, β, L, N_burnin, N_updates, 
         "symmetric" => symmetric,
         "checkerboard" => checkerboard,
         "Nt" => Nt,
-        "nt" => nt,
-        "reg" => reg,
+        "dt" => Δt,
         "seed" => seed,
     )
 
@@ -163,8 +153,16 @@ function run_ossh_chain_simulation(sID, Ω, α, μ, β, L, N_burnin, N_updates, 
         tight_binding_model = tight_binding_model
     )
 
+#md     ## Unlike in the optical SSH model in the previous example, here we need to
+#md     ## introduce two types of phonon modes. One of these phonon modes will have
+#md     ## infinite ion mass, resulting in the associated phonon fields remaining
+#md     ## pinned at zero. The means that when we couple these two types of phonon
+#md     ## modes to the electrons with a SSH-like coupling mechanism, this effectively
+#md     ## results in defining a phonon modes associated with a single bond/hopping
+#md     ## in the lattice.
+
     ## Define a dispersionless electron-phonon mode to live on each site in the lattice.
-    phonon = PhononMode(orbital = 1, Ω_mean = Ω)
+    phonon = PhononMode(orbital = 1, Ω_mean = Ω, M = 1.0)
 
     ## Add optical ssh phonon to electron-phonon model.
     phonon_id = add_phonon_mode!(
@@ -172,20 +170,29 @@ function run_ossh_chain_simulation(sID, Ω, α, μ, β, L, N_burnin, N_updates, 
         phonon_mode = phonon
     )
 
-    ## Define optical SSH coupling.
-#md     ## Defines total effective hopping amplitude given by t_eff = t-α⋅(Xᵢ₊₁-Xᵢ).
-    ossh_coupling = SSHCoupling(
+    ## Define a frozen phonon mode.
+    frozen_phonon = PhononMode(orbital = 1, Ω_mean = Ω, M = Inf)
+
+    ## Add frozen phonon mode to electron-phonon model.
+    frozen_phonon_id = add_phonon_mode!(
+        electron_phonon_model = electron_phonon_model,
+        phonon_mode = frozen_phonon
+    )
+
+    ## Define bond SSH coupling.
+#md     ## Defines total effective hopping amplitude given by t_eff = t-α⋅X(i+1,i).
+    bssh_coupling = SSHCoupling(
         model_geometry = model_geometry,
         tight_binding_model = tight_binding_model,
-        phonon_modes = (phonon_id, phonon_id),
+        phonon_modes = (frozen_phonon_id, phonon_id),
         bond = bond,
         α_mean = α
     )
 
-    ## Add optical SSH coupling to the electron-phonon model.
-    ossh_coupling_id = add_ssh_coupling!(
+    ## Add bond SSH coupling to the electron-phonon model.
+    bssh_coupling_id = add_ssh_coupling!(
         electron_phonon_model = electron_phonon_model,
-        ssh_coupling = ossh_coupling,
+        ssh_coupling = bssh_coupling,
         tight_binding_model = tight_binding_model
     )
 
@@ -341,9 +348,9 @@ function run_ossh_chain_simulation(sID, Ω, α, μ, β, L, N_burnin, N_updates, 
     δθ = zero(typeof(sgndetG))
 
     ## Initialize Hamitlonian/Hybrid monte carlo (HMC) updater.
-    hmc_updater = HMCUpdater(
+    hmc_updater = EFAHMCUpdater(
         electron_phonon_parameters = electron_phonon_parameters,
-        G = G, Nt = Nt, Δt = Δt, nt = nt, reg = reg
+        G = G, Nt = Nt, Δt = Δt
     )
 
     ####################################
@@ -354,7 +361,7 @@ function run_ossh_chain_simulation(sID, Ω, α, μ, β, L, N_burnin, N_updates, 
     for n in 1:N_burnin
 
         ## Perform a swap update.
-#md         ## In a swap update, to phonon modes are randomly selected in the lattice
+#md         ## In a swap update, two phonon modes are randomly selected in the lattice
 #md         ## and their phonon fields are exchanged for all imaginary time slices.
         (accepted, logdetG, sgndetG) = swap_update!(
             G, logdetG, sgndetG, electron_phonon_parameters,
@@ -373,7 +380,7 @@ function run_ossh_chain_simulation(sID, Ω, α, μ, β, L, N_burnin, N_updates, 
             fermion_path_integral = fermion_path_integral,
             fermion_greens_calculator = fermion_greens_calculator,
             fermion_greens_calculator_alt = fermion_greens_calculator_alt,
-            B = B, δG_max = δG_max, δG = δG, δθ = δθ, rng = rng, initialize_force = true
+            B = B, δG_max = δG_max, δG = δG, δθ = δθ, rng = rng
         )
 
         ## Record whether the HMC update was accepted or rejected.
@@ -413,7 +420,7 @@ function run_ossh_chain_simulation(sID, Ω, α, μ, β, L, N_burnin, N_updates, 
                 fermion_path_integral = fermion_path_integral,
                 fermion_greens_calculator = fermion_greens_calculator,
                 fermion_greens_calculator_alt = fermion_greens_calculator_alt,
-                B = B, δG_max = δG_max, δG = δG, δθ = δθ, rng = rng, initialize_force = true
+                B = B, δG_max = δG_max, δG = δG, δθ = δθ, rng = rng
             )
 
             ## Record whether the HMC update was accepted or rejected.
@@ -483,5 +490,5 @@ if abspath(PROGRAM_FILE) == @__FILE__
     N_bins = parse(Int, ARGS[9])
 
     ## Run the simulation.
-    run_ossh_chain_simulation(sID, Ω, α, μ, β, L, N_burnin, N_updates, N_bins)
+    run_bssh_chain_simulation(sID, Ω, α, μ, β, L, N_burnin, N_updates, N_bins)
 end
