@@ -1,11 +1,8 @@
-<!DOCTYPE html>
-<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Hubbard Chain with Checkpointing · SmoQyDQMC.jl</title><meta name="title" content="Hubbard Chain with Checkpointing · SmoQyDQMC.jl"/><meta property="og:title" content="Hubbard Chain with Checkpointing · SmoQyDQMC.jl"/><meta property="twitter:title" content="Hubbard Chain with Checkpointing · SmoQyDQMC.jl"/><meta name="description" content="Documentation for SmoQyDQMC.jl."/><meta property="og:description" content="Documentation for SmoQyDQMC.jl."/><meta property="twitter:description" content="Documentation for SmoQyDQMC.jl."/><meta property="og:url" content="https://smoqysuite.github.io/SmoQyDQMC.jl/stable/examples/hubbard_chain_checkpoint/"/><meta property="twitter:url" content="https://smoqysuite.github.io/SmoQyDQMC.jl/stable/examples/hubbard_chain_checkpoint/"/><link rel="canonical" href="https://smoqysuite.github.io/SmoQyDQMC.jl/stable/examples/hubbard_chain_checkpoint/"/><script data-outdated-warner src="../../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../search_index.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../../">SmoQyDQMC.jl</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../../">Home</a></li><li><a class="tocitem" href="../../hamiltonian/">Supported Hamiltonians</a></li><li><a class="tocitem" href="../../simulation_output/">Simulation Output Overview</a></li><li><a class="tocitem" href="../../api/">API</a></li><li><span class="tocitem">Examples</span><ul><li><a class="tocitem" href="../hubbard_chain/">Hubbard Chain</a></li><li><a class="tocitem" href="../hubbard_chain_mpi/">Hubbard Chain with MPI</a></li><li class="is-active"><a class="tocitem" href>Hubbard Chain with Checkpointing</a></li><li><a class="tocitem" href="../holstein_chain/">Holstein Chain with Density Tuning</a></li><li><a class="tocitem" href="../ossh_chain/">Optical Su-Schrieffer-Heeger Chain</a></li><li><a class="tocitem" href="../bssh_chain/">Bond Su-Schrieffer-Heeger Chain</a></li><li><a class="tocitem" href="../hubbard_holstein_square/">Square Hubbard-Holstein Model</a></li><li><a class="tocitem" href="../hubbard_threeband/">Three-Band Hubbard Model</a></li><li><a class="tocitem" href="../holstein_kagome/">Kagome Holstein Model with Density Tuning</a></li><li><a class="tocitem" href="../hubbard_honeycomb/">Honeycomb Hubbard model</a></li></ul></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Examples</a></li><li class="is-active"><a href>Hubbard Chain with Checkpointing</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Hubbard Chain with Checkpointing</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/SmoQySuite/SmoQyDQMC.jl/blob/main/examples/hubbard_chain_checkpoint.jl#" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><p>Download this example as a <a href="../../assets/scripts/hubbard_chain_checkpoint.jl">Julia script</a>.</p><h1 id="Hubbard-Chain-with-Checkpointing"><a class="docs-heading-anchor" href="#Hubbard-Chain-with-Checkpointing">Hubbard Chain with Checkpointing</a><a id="Hubbard-Chain-with-Checkpointing-1"></a><a class="docs-heading-anchor-permalink" href="#Hubbard-Chain-with-Checkpointing" title="Permalink"></a></h1><p>In this script we take the script from the previous example and introduce checkpointing, so that if the simulation is killed at some point it can resumed from the previous checkpoint. It is important to note that how checkpointing is introduced in this script is not unique, and other checkpointing schemes could be implemented in a script. For instance, in this script the checkpointing is implemented such that the number of checkpoints written to file during the simulation is a fixed number at the start of the simulation. It is possible, though slightly more involved, to implement a checkpointing scheme that instead writes checkpoints to file based on the wall clock and the amount of time that has passed since the previous checkpoint was written to file.</p><p>To write the checkpoints we use the package <a href="https://github.com/JuliaIO/JLD2.jl.git"><code>JLD2</code></a>, which allows the checkpoint files to be written to file as binary files that are HDF5 compatible. In this script, following the thermalziation/burnin updates, a checkpoint is written to file whenever measurements are written to file, so a total of <code>N_bins</code> checkpoints are written following the initial thermalization/burnin period of the simulation. During the thermalization/burnin updates, checkpoints are written with the same frequency as they are going to be once measurements start getting made.</p><p>Below you will find the source code from the julia script linked at the top of this page, but with additional comments giving more detailed explanations for what certain parts of the code are doing.</p><pre><code class="language-julia hljs">using LinearAlgebra
+using LinearAlgebra
 using Random
 using Printf
 using MPI
 
-# Import JLD2 package for write checkpoints during the simulation
-# to file as a binary file.
 using JLD2
 
 using SmoQyDQMC
@@ -17,13 +14,13 @@ import SmoQyDQMC.JDQMCMeasurements as dqmcm
 MPI.Init()
 
 # Define top-level function for running DQMC simulation
-function run_hubbard_chain_simulation(sID, U, μ, β, L, N_burnin, N_updates, N_bins; filepath = &quot;.&quot;)
+function run_hubbard_chain_simulation(sID, U, μ, β, L, N_burnin, N_updates, N_bins; filepath = ".")
 
     # Initialize the MPI communicator.
     comm = MPI.COMM_WORLD
 
     # Construct the foldername the data will be written to.
-    datafolder_prefix = @sprintf &quot;hubbard_chain_U%.2f_mu%.2f_L%d_b%.2f&quot; U μ L β
+    datafolder_prefix = @sprintf "hubbard_chain_U%.2f_mu%.2f_L%d_b%.2f" U μ L β
 
     # Get the MPI comm rank, which fixes the process ID (pID).
     pID = MPI.Comm_rank(comm)
@@ -37,19 +34,14 @@ function run_hubbard_chain_simulation(sID, U, μ, β, L, N_burnin, N_updates, N_
     )
 
     # Define checkpoint filename.
-    # We implement three checkpoint files, an old, current and new one,
-    # that get cycled through to ensure a checkpoint file always exists in the off
-    # chance that the simulation is killed while a checkpoint is getting written to file.
-    # Additionally, each simulation that is running in parallel with MPI will have their own
-    # checkpoints written to file.
     datafolder = simulation_info.datafolder
     sID        = simulation_info.sID
     pID        = simulation_info.pID
-    checkpoint_name_old          = @sprintf &quot;checkpoint_sID%d_pID%d_old.jld2&quot; sID pID
+    checkpoint_name_old          = @sprintf "checkpoint_sID%d_pID%d_old.jld2" sID pID
     checkpoint_filename_old      = joinpath(datafolder, checkpoint_name_old)
-    checkpoint_name_current      = @sprintf &quot;checkpoint_sID%d_pID%d_current.jld2&quot; sID pID
+    checkpoint_name_current      = @sprintf "checkpoint_sID%d_pID%d_current.jld2" sID pID
     checkpoint_filename_current  = joinpath(datafolder, checkpoint_name_current)
-    checkpoint_name_new          = @sprintf &quot;checkpoint_sID%d_pID%d_new.jld2&quot; sID pID
+    checkpoint_name_new          = @sprintf "checkpoint_sID%d_pID%d_new.jld2" sID pID
     checkpoint_filename_new      = joinpath(datafolder, checkpoint_name_new)
 
     ######################################################
@@ -68,16 +60,16 @@ function run_hubbard_chain_simulation(sID, U, μ, β, L, N_burnin, N_updates, N_
     # or the asymetric form B = exp(-Δτ⋅V)⋅exp(-Δτ⋅K)
     symmetric = false
 
-    # Set the initial period in imaginary time slices with which the Green&#39;s function matrices
+    # Set the initial period in imaginary time slices with which the Green's function matrices
     # will be recomputed using a numerically stable procedure.
     n_stab = 10
 
-    # Specify the maximum allowed error in any element of the Green&#39;s function matrix that is
+    # Specify the maximum allowed error in any element of the Green's function matrix that is
     # corrected by performing numerical stabiliziation.
     δG_max = 1e-6
 
     # Initialize variables to keep track of the largest numerical error in the
-    # Green&#39;s function matrices corrected by numerical stabalization.
+    # Green's function matrices corrected by numerical stabalization.
     δG = 0.0
     δθ = 0.0
 
@@ -155,17 +147,17 @@ function run_hubbard_chain_simulation(sID, U, μ, β, L, N_burnin, N_updates, N_
 
         # Initialize a dictionary to store additional information about the simulation.
         additional_info = Dict(
-            &quot;dG_max&quot; =&gt; δG_max,
-            &quot;N_burnin&quot; =&gt; N_burnin,
-            &quot;N_updates&quot; =&gt; N_updates,
-            &quot;N_bins&quot; =&gt; N_bins,
-            &quot;bin_size&quot; =&gt; bin_size,
-            &quot;local_acceptance_rate&quot; =&gt; 0.0,
-            &quot;reflection_acceptance_rate&quot; =&gt; 0.0,
-            &quot;n_stab_init&quot; =&gt; n_stab,
-            &quot;symmetric&quot; =&gt; symmetric,
-            &quot;checkerboard&quot; =&gt; checkerboard,
-            &quot;seed&quot; =&gt; seed,
+            "dG_max" => δG_max,
+            "N_burnin" => N_burnin,
+            "N_updates" => N_updates,
+            "N_bins" => N_bins,
+            "bin_size" => bin_size,
+            "local_acceptance_rate" => 0.0,
+            "reflection_acceptance_rate" => 0.0,
+            "n_stab_init" => n_stab,
+            "symmetric" => symmetric,
+            "checkerboard" => checkerboard,
+            "seed" => seed,
         )
 
         #########################################
@@ -208,11 +200,11 @@ function run_hubbard_chain_simulation(sID, U, μ, β, L, N_burnin, N_updates, N_
         # Initialize the Hubbard interaction related measurements.
         initialize_measurements!(measurement_container, hubbard_model)
 
-        # Initialize the single-particle electron Green&#39;s function measurement.
+        # Initialize the single-particle electron Green's function measurement.
         initialize_correlation_measurements!(
             measurement_container = measurement_container,
             model_geometry = model_geometry,
-            correlation = &quot;greens&quot;,
+            correlation = "greens",
             time_displaced = true,
             pairs = [(1, 1)]
         )
@@ -221,7 +213,7 @@ function run_hubbard_chain_simulation(sID, U, μ, β, L, N_burnin, N_updates, N_
         initialize_correlation_measurements!(
             measurement_container = measurement_container,
             model_geometry = model_geometry,
-            correlation = &quot;density&quot;,
+            correlation = "density",
             time_displaced = false,
             integrated = true,
             pairs = [(1, 1)]
@@ -231,7 +223,7 @@ function run_hubbard_chain_simulation(sID, U, μ, β, L, N_burnin, N_updates, N_
         initialize_correlation_measurements!(
             measurement_container = measurement_container,
             model_geometry = model_geometry,
-            correlation = &quot;pair&quot;,
+            correlation = "pair",
             time_displaced = false,
             integrated = true,
             pairs = [(1, 1)]
@@ -241,7 +233,7 @@ function run_hubbard_chain_simulation(sID, U, μ, β, L, N_burnin, N_updates, N_
         initialize_correlation_measurements!(
             measurement_container = measurement_container,
             model_geometry = model_geometry,
-            correlation = &quot;spin_z&quot;,
+            correlation = "spin_z",
             time_displaced = false,
             integrated = true,
             pairs = [(1, 1)]
@@ -261,8 +253,6 @@ function run_hubbard_chain_simulation(sID, U, μ, β, L, N_burnin, N_updates, N_
         bin_size = div(N_updates, N_bins)
 
         # Calculate the number of thermalization/burnin bins.
-        # This determines the number times the simulations checkpoints
-        # during the initial thermalziation/burnin period.
         N_bins_burnin = div(N_burnin, bin_size)
 
         # Initialize variable to keep track of the current burnin bin.
@@ -301,7 +291,7 @@ function run_hubbard_chain_simulation(sID, U, μ, β, L, N_burnin, N_updates, N_
         end
 
         # Try loading in the current checkpoint.
-        if isfile(checkpoint_filename_current) &amp;&amp; isnothing(checkpoint)
+        if isfile(checkpoint_filename_current) && isnothing(checkpoint)
             try
                 # Load the current checkpoint.
                 checkpoint = JLD2.load(checkpoint_filename_current)
@@ -311,7 +301,7 @@ function run_hubbard_chain_simulation(sID, U, μ, β, L, N_burnin, N_updates, N_
         end
 
         # Try loading in the current checkpoint.
-        if isfile(checkpoint_filename_old) &amp;&amp; isnothing(checkpoint)
+        if isfile(checkpoint_filename_old) && isnothing(checkpoint)
             try
                 # Load the old checkpoint.
                 checkpoint = JLD2.load(checkpoint_filename_old)
@@ -322,27 +312,27 @@ function run_hubbard_chain_simulation(sID, U, μ, β, L, N_burnin, N_updates, N_
 
         # Throw an error if no checkpoint was succesfully loaded.
         if isnothing(checkpoint)
-            error(&quot;Failed to load checkpoint successfully!&quot;)
+            error("Failed to load checkpoint successfully!")
         end
 
         # Unpack the contents of the checkpoint.
-        rng                      = checkpoint[&quot;rng&quot;]
-        additional_info          = checkpoint[&quot;additional_info&quot;]
-        N_burnin                 = checkpoint[&quot;N_burnin&quot;]
-        N_updates                = checkpoint[&quot;N_updates&quot;]
-        N_bins                   = checkpoint[&quot;N_bins&quot;]
-        bin_size                 = checkpoint[&quot;bin_size&quot;]
-        N_bins_burnin            = checkpoint[&quot;N_bins_burnin&quot;]
-        n_bin_burnin             = checkpoint[&quot;n_bin_burnin&quot;]
-        n_bin                    = checkpoint[&quot;n_bin&quot;]
-        model_geometry           = checkpoint[&quot;model_geometry&quot;]
-        measurement_container    = checkpoint[&quot;measurement_container&quot;]
-        tight_binding_parameters = checkpoint[&quot;tight_binding_parameters&quot;]
-        hubbard_parameters       = checkpoint[&quot;hubbard_parameters&quot;]
-        hubbard_ising_parameters = checkpoint[&quot;hubbard_ising_parameters&quot;]
-        δG                       = checkpoint[&quot;dG&quot;]
-        δθ                       = checkpoint[&quot;dtheta&quot;]
-        n_stab                   = checkpoint[&quot;n_stab&quot;]
+        rng                      = checkpoint["rng"]
+        additional_info          = checkpoint["additional_info"]
+        N_burnin                 = checkpoint["N_burnin"]
+        N_updates                = checkpoint["N_updates"]
+        N_bins                   = checkpoint["N_bins"]
+        bin_size                 = checkpoint["bin_size"]
+        N_bins_burnin            = checkpoint["N_bins_burnin"]
+        n_bin_burnin             = checkpoint["n_bin_burnin"]
+        n_bin                    = checkpoint["n_bin"]
+        model_geometry           = checkpoint["model_geometry"]
+        measurement_container    = checkpoint["measurement_container"]
+        tight_binding_parameters = checkpoint["tight_binding_parameters"]
+        hubbard_parameters       = checkpoint["hubbard_parameters"]
+        hubbard_ising_parameters = checkpoint["hubbard_ising_parameters"]
+        δG                       = checkpoint["dG"]
+        δθ                       = checkpoint["dtheta"]
+        n_stab                   = checkpoint["n_stab"]
     end
 
     # Synchronize all the MPI processes.
@@ -369,16 +359,16 @@ function run_hubbard_chain_simulation(sID, U, μ, β, L, N_burnin, N_updates, N_
     fermion_greens_calculator_up = dqmcf.FermionGreensCalculator(Bup, β, Δτ, n_stab)
     fermion_greens_calculator_dn = dqmcf.FermionGreensCalculator(Bdn, β, Δτ, n_stab)
 
-    # Allcoate matrices for spin-up and spin-down electron Green&#39;s function matrices.
+    # Allcoate matrices for spin-up and spin-down electron Green's function matrices.
     Gup = zeros(eltype(Bup[1]), size(Bup[1]))
     Gdn = zeros(eltype(Bdn[1]), size(Bdn[1]))
 
-    # Initialize the spin-up and spin-down electron Green&#39;s function matrices, also
+    # Initialize the spin-up and spin-down electron Green's function matrices, also
     # calculating their respective determinants as the same time.
     logdetGup, sgndetGup = dqmcf.calculate_equaltime_greens!(Gup, fermion_greens_calculator_up)
     logdetGdn, sgndetGdn = dqmcf.calculate_equaltime_greens!(Gdn, fermion_greens_calculator_dn)
 
-    # Allocate matrices for various time-displaced Green&#39;s function matrices.
+    # Allocate matrices for various time-displaced Green's function matrices.
     Gup_ττ = similar(Gup) # G↑(τ,τ)
     Gup_τ0 = similar(Gup) # G↑(τ,0)
     Gup_0τ = similar(Gup) # G↑(0,τ)
@@ -408,7 +398,7 @@ function run_hubbard_chain_simulation(sID, U, μ, β, L, N_burnin, N_updates, N_
             )
 
             # Record the acceptance rate for the attempted local updates to the HS fields.
-            additional_info[&quot;local_acceptance_rate&quot;] += acceptance_rate
+            additional_info["local_acceptance_rate"] += acceptance_rate
         end
 
         # Write the new checkpoint to file.
@@ -454,7 +444,7 @@ function run_hubbard_chain_simulation(sID, U, μ, β, L, N_burnin, N_updates, N_
             )
 
             # Record the acceptance rate for the attempted local updates to the HS fields.
-            additional_info[&quot;local_acceptance_rate&quot;] += acceptance_rate
+            additional_info["local_acceptance_rate"] += acceptance_rate
 
             # Make measurements, with the results being added to the measurement container.
             (logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = make_measurements!(
@@ -503,13 +493,13 @@ function run_hubbard_chain_simulation(sID, U, μ, β, L, N_burnin, N_updates, N_
     end
 
     # Calculate acceptance rate for local updates.
-    additional_info[&quot;local_acceptance_rate&quot;] /= (N_updates + N_burnin)
+    additional_info["local_acceptance_rate"] /= (N_updates + N_burnin)
 
     # Record the final numerical stabilization period that the simulation settled on.
-    additional_info[&quot;n_stab_final&quot;] = fermion_greens_calculator_up.n_stab
+    additional_info["n_stab_final"] = fermion_greens_calculator_up.n_stab
 
     # Record the maximum numerical error corrected by numerical stablization.
-    additional_info[&quot;dG&quot;] = δG
+    additional_info["dG"] = δG
 
     # Write simulation summary TOML file.
     save_simulation_info(simulation_info, additional_info)
@@ -549,4 +539,4 @@ if abspath(PROGRAM_FILE) == @__FILE__
 
     # Finalize MPI (not strictly required).
     MPI.Finalize()
-end</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">&lt;&lt; @example-block not executed in draft mode &gt;&gt;</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../hubbard_chain_mpi/">« Hubbard Chain with MPI</a><a class="docs-footer-nextpage" href="../holstein_chain/">Holstein Chain with Density Tuning »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="auto">Automatic (OS)</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.2.1 on <span class="colophon-date" title="Wednesday 31 January 2024 20:31">Wednesday 31 January 2024</span>. Using Julia version 1.10.0.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+end

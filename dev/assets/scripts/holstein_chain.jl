@@ -1,6 +1,4 @@
-<!DOCTYPE html>
-<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Holstein Chain with Density Tuning · SmoQyDQMC.jl</title><meta name="title" content="Holstein Chain with Density Tuning · SmoQyDQMC.jl"/><meta property="og:title" content="Holstein Chain with Density Tuning · SmoQyDQMC.jl"/><meta property="twitter:title" content="Holstein Chain with Density Tuning · SmoQyDQMC.jl"/><meta name="description" content="Documentation for SmoQyDQMC.jl."/><meta property="og:description" content="Documentation for SmoQyDQMC.jl."/><meta property="twitter:description" content="Documentation for SmoQyDQMC.jl."/><meta property="og:url" content="https://smoqysuite.github.io/SmoQyDQMC.jl/stable/examples/holstein_chain/"/><meta property="twitter:url" content="https://smoqysuite.github.io/SmoQyDQMC.jl/stable/examples/holstein_chain/"/><link rel="canonical" href="https://smoqysuite.github.io/SmoQyDQMC.jl/stable/examples/holstein_chain/"/><script data-outdated-warner src="../../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../search_index.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../../">SmoQyDQMC.jl</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../../">Home</a></li><li><a class="tocitem" href="../../hamiltonian/">Supported Hamiltonians</a></li><li><a class="tocitem" href="../../simulation_output/">Simulation Output Overview</a></li><li><a class="tocitem" href="../../api/">API</a></li><li><span class="tocitem">Examples</span><ul><li><a class="tocitem" href="../hubbard_chain/">Hubbard Chain</a></li><li><a class="tocitem" href="../hubbard_chain_mpi/">Hubbard Chain with MPI</a></li><li><a class="tocitem" href="../hubbard_chain_checkpoint/">Hubbard Chain with Checkpointing</a></li><li class="is-active"><a class="tocitem" href>Holstein Chain with Density Tuning</a></li><li><a class="tocitem" href="../ossh_chain/">Optical Su-Schrieffer-Heeger Chain</a></li><li><a class="tocitem" href="../bssh_chain/">Bond Su-Schrieffer-Heeger Chain</a></li><li><a class="tocitem" href="../hubbard_holstein_square/">Square Hubbard-Holstein Model</a></li><li><a class="tocitem" href="../hubbard_threeband/">Three-Band Hubbard Model</a></li><li><a class="tocitem" href="../holstein_kagome/">Kagome Holstein Model with Density Tuning</a></li><li><a class="tocitem" href="../hubbard_honeycomb/">Honeycomb Hubbard model</a></li></ul></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Examples</a></li><li class="is-active"><a href>Holstein Chain with Density Tuning</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Holstein Chain with Density Tuning</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/SmoQySuite/SmoQyDQMC.jl/blob/main/examples/holstein_chain.jl#" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><p>Download this example as a <a href="../../assets/scripts/holstein_chain.jl">Julia script</a>.</p><h1 id="Holstein-Chain-with-Density-Tuning"><a class="docs-heading-anchor" href="#Holstein-Chain-with-Density-Tuning">Holstein Chain with Density Tuning</a><a id="Holstein-Chain-with-Density-Tuning-1"></a><a class="docs-heading-anchor-permalink" href="#Holstein-Chain-with-Density-Tuning" title="Permalink"></a></h1><p>In this example we simulate the Holstein model for electron-phonon models on a 1D chain given by</p><p class="math-container">\[\hat{H} = \hat{H}_e + \hat{H}_{\rm ph} + \hat{H}_{e\textrm{-ph}}.\]</p><p>The first term describes bare tight-binding Hamiltonian</p><p class="math-container">\[\hat{H}_e = -t \sum_{\sigma,i} (\hat{c}^{\dagger}_{\sigma,i+1}, \hat{c}^{\phantom \dagger}_{\sigma,i} + {\rm h.c.})
-            -\mu \sum_{\sigma,i} \hat{n}_{\sigma,i},\]</p><p>where <span>$\hat{c}^\dagger_{\sigma,i} \ (\hat{c}^{\phantom \dagger}_{\sigma,i})$</span> creates (annihilates) a spin <span>$\sigma$</span> electron on site <span>$i$</span> in the lattice, and <span>$\hat{n}_{\sigma,i} = \hat{c}^\dagger_{\sigma,i} \hat{c}^{\phantom \dagger}_{\sigma,i}$</span> is the spin-<span>$\sigma$</span> electron number operator for site <span>$i$</span>. The second terms is the bare phonon Hamiltonian</p><p class="math-container">\[\hat{H}_{\rm ph} = \sum_i \left( \frac{1}{2M}\hat{P}_i^2 + \frac{1}{2}M\Omega^2\hat{X}_i^2 \right)\]</p><p>which describes a dispersionless phonon modes on each site in the lattice, where <span>$\hat{X}_i \ (\hat{P}_i)$</span> is the position (momentum) operator for the phonon mode on site <span>$i$</span> in the lattice. The phonon frequency is given by <span>$\Omega$</span>, and <span>$M$</span> is the corresponding ion mass associated with the phonon mode. Lastly, the third term introduces the Holstein electron-phonon interaction</p><p class="math-container">\[\hat{H}_{e\textrm{-ph}} = \alpha \sum_{\sigma,i} \hat{X}_i \left( \hat{n}_{\sigma,i} - \frac{1}{2} \right),\]</p><p>where the strength of the interaction is controlled by the parameter <span>$\alpha$</span>.</p><p>The example script <a href="https://github.com/SmoQySuite/SmoQyDQMC.jl/blob/main/example_scripts/holstein_chain.jl"><code>example_scripts/holstein_chain.jl</code></a> additionally simulate the Holstein model with an algorithm recently recently introduced in <a href="https://journals.aps.org/pre/abstract/10.1103/PhysRevE.105.045311"><code>Phys. Rev. E 105, 045311</code></a> that dynamically tunes the chemical potential during the simulation to achieve a target electron density.</p><p>A short test simulation using the script associated with this example can be run as</p><pre><code class="nohighlight hljs">&gt; julia holstein_chain.jl 0 0.1 0.1 0.5 0.0 4.0 16 2000 10000 20</code></pre><p>Here a Holstein chain of length <span>$L=16$</span> is simulate with <span>$\Omega = 0.1$</span>, <span>$\alpha = 0.1$</span> and inverse temperature <span>$\beta = 4.0$</span>. The chemical potential is initialized to <span>$\mu = 0.0$</span>, and then tuned to achieve are target electron density of <span>$\langle n \rangle = 0.5$</span>. In this example <code>N_burnin = 2000</code> thermalizatoin HMC and refleciton updates are performed, followed by an additional <code>N_updates = 10000</code> such updates, during which time an equivalent number of measurements are made. Bin averaged measurements are written to file <code>N_bins = 20</code> during the simulation.</p><p>Below you will find the source code from the julia script linked at the top of this page, but with additional comments giving more detailed explanations for what certain parts of the code are doing.</p><pre><code class="language-julia hljs">using LinearAlgebra
+using LinearAlgebra
 using Random
 using Printf
 
@@ -8,14 +6,13 @@ using SmoQyDQMC
 import SmoQyDQMC.LatticeUtilities  as lu
 import SmoQyDQMC.JDQMCFramework    as dqmcf
 import SmoQyDQMC.JDQMCMeasurements as dqmcm
-# Import the MuTuner module that implements the chemical potential tuning algorithm.
 import SmoQyDQMC.MuTuner           as mt
 
 # Define top-level function for running the DQMC simulation.
-function run_holstein_chain_simulation(sID, Ω, α, n, μ, β, L, N_burnin, N_updates, N_bins; filepath = &quot;.&quot;)
+function run_holstein_chain_simulation(sID, Ω, α, n, μ, β, L, N_burnin, N_updates, N_bins; filepath = ".")
 
     # Construct the foldername the data will be written to.
-    datafolder_prefix = @sprintf &quot;holstein_chain_w%.2f_a%.2f_n%.2f_L%d_b%.2f&quot; Ω α n L β
+    datafolder_prefix = @sprintf "holstein_chain_w%.2f_a%.2f_n%.2f_L%d_b%.2f" Ω α n L β
 
     # Initialize an instance of the SimulationInfo type.
     simulation_info = SimulationInfo(
@@ -43,20 +40,17 @@ function run_holstein_chain_simulation(sID, Ω, α, n, μ, β, L, N_burnin, N_up
     # or the asymetric form B = exp(-Δτ⋅V)⋅exp(-Δτ⋅K)
     symmetric = false
 
-    # Set the initial period in imaginary time slices with which the Green&#39;s function matrices
+    # Set the initial period in imaginary time slices with which the Green's function matrices
     # will be recomputed using a numerically stable procedure.
     n_stab = 10
 
-    # Specify the maximum allowed error in any element of the Green&#39;s function matrix that is
+    # Specify the maximum allowed error in any element of the Green's function matrix that is
     # corrected by performing numerical stabiliziation.
     δG_max = 1e-6
 
     # Calculate the bin size.
     bin_size = div(N_updates, N_bins)
 
-    # To update the phonon degrees of freedom in this code we primarily perform
-    # hybrid/hamiltonian Monte Carlo (HMC) updates. Below we specify some of the
-    # parameters associated with these HMC updates.
 
     # Number of fermionic time-steps in HMC update.
     Nt = 10
@@ -66,19 +60,19 @@ function run_holstein_chain_simulation(sID, Ω, α, n, μ, β, L, N_burnin, N_up
 
     # Initialize a dictionary to store additional information about the simulation.
     additional_info = Dict(
-        &quot;dG_max&quot; =&gt; δG_max,
-        &quot;N_burnin&quot; =&gt; N_burnin,
-        &quot;N_updates&quot; =&gt; N_updates,
-        &quot;N_bins&quot; =&gt; N_bins,
-        &quot;bin_size&quot; =&gt; bin_size,
-        &quot;hmc_acceptance_rate&quot; =&gt; 0.0,
-        &quot;reflection_acceptance_rate&quot; =&gt; 0.0,
-        &quot;n_stab_init&quot; =&gt; n_stab,
-        &quot;symmetric&quot; =&gt; symmetric,
-        &quot;checkerboard&quot; =&gt; checkerboard,
-        &quot;Nt&quot; =&gt; Nt,
-        &quot;dt&quot; =&gt; Δt,
-        &quot;seed&quot; =&gt; seed,
+        "dG_max" => δG_max,
+        "N_burnin" => N_burnin,
+        "N_updates" => N_updates,
+        "N_bins" => N_bins,
+        "bin_size" => bin_size,
+        "hmc_acceptance_rate" => 0.0,
+        "reflection_acceptance_rate" => 0.0,
+        "n_stab_init" => n_stab,
+        "symmetric" => symmetric,
+        "checkerboard" => checkerboard,
+        "Nt" => Nt,
+        "dt" => Δt,
+        "seed" => seed,
     )
 
     #######################
@@ -191,20 +185,20 @@ function run_holstein_chain_simulation(sID, Ω, α, n, μ, β, L, N_burnin, N_up
     # Initialize the electron-phonon interaction related measurements.
     initialize_measurements!(measurement_container, electron_phonon_model)
 
-    # Initialize the single-particle electron Green&#39;s function measurement.
+    # Initialize the single-particle electron Green's function measurement.
     initialize_correlation_measurements!(
         measurement_container = measurement_container,
         model_geometry = model_geometry,
-        correlation = &quot;greens&quot;,
+        correlation = "greens",
         time_displaced = true,
         pairs = [(1, 1)]
     )
 
-    # Initialize time-displaced phonon Green&#39;s function measurement.
+    # Initialize time-displaced phonon Green's function measurement.
     initialize_correlation_measurements!(
         measurement_container = measurement_container,
         model_geometry = model_geometry,
-        correlation = &quot;phonon_greens&quot;,
+        correlation = "phonon_greens",
         time_displaced = true,
         pairs = [(phonon_id, phonon_id)]
     )
@@ -213,7 +207,7 @@ function run_holstein_chain_simulation(sID, Ω, α, n, μ, β, L, N_burnin, N_up
     initialize_correlation_measurements!(
         measurement_container = measurement_container,
         model_geometry = model_geometry,
-        correlation = &quot;density&quot;,
+        correlation = "density",
         time_displaced = false,
         integrated = true,
         pairs = [(1, 1)]
@@ -223,7 +217,7 @@ function run_holstein_chain_simulation(sID, Ω, α, n, μ, β, L, N_burnin, N_up
     initialize_correlation_measurements!(
         measurement_container = measurement_container,
         model_geometry = model_geometry,
-        correlation = &quot;pair&quot;,
+        correlation = "pair",
         time_displaced = false,
         integrated = true,
         pairs = [(1, 1)]
@@ -233,7 +227,7 @@ function run_holstein_chain_simulation(sID, Ω, α, n, μ, β, L, N_burnin, N_up
     initialize_correlation_measurements!(
         measurement_container = measurement_container,
         model_geometry = model_geometry,
-        correlation = &quot;spin_z&quot;,
+        correlation = "spin_z",
         time_displaced = false,
         integrated = true,
         pairs = [(1, 1)]
@@ -249,9 +243,6 @@ function run_holstein_chain_simulation(sID, Ω, α, n, μ, β, L, N_burnin, N_up
     ### SET-UP DQMC SIMULATION ##
     #############################
 
-    # Note that the spin-up and spin-down electron sectors are equivalent in the Holstein model
-    # without Hubbard interaction. Therefore, there is only a single Fermion determinant
-    # that needs to be calculated. This fact is reflected in the code below.
 
     # Allocate fermion path integral type.
     fermion_path_integral = FermionPathIntegral(tight_binding_parameters = tight_binding_parameters, β = β, Δτ = Δτ)
@@ -268,19 +259,19 @@ function run_holstein_chain_simulation(sID, Ω, α, n, μ, β, L, N_burnin, N_up
     # Initialize alternate fermion greens calculator required for performing various global updates.
     fermion_greens_calculator_alt = dqmcf.FermionGreensCalculator(fermion_greens_calculator)
 
-    # Allocate equal-time Green&#39;s function matrix.
+    # Allocate equal-time Green's function matrix.
     G = zeros(eltype(B[1]), size(B[1]))
 
-    # Initialize equal-time Green&#39;s function matrix
+    # Initialize equal-time Green's function matrix
     logdetG, sgndetG = dqmcf.calculate_equaltime_greens!(G, fermion_greens_calculator)
 
-    # Allocate matrices for various time-displaced Green&#39;s function matrices.
+    # Allocate matrices for various time-displaced Green's function matrices.
     G_ττ = similar(G) # G(τ,τ)
     G_τ0 = similar(G) # G(τ,0)
     G_0τ = similar(G) # G(0,τ)
 
     # Initialize variables to keep track of the largest numerical error in the
-    # Green&#39;s function matrices corrected by numerical stabalization.
+    # Green's function matrices corrected by numerical stabalization.
     δG = zero(typeof(logdetG))
     δθ = zero(typeof(sgndetG))
 
@@ -291,8 +282,6 @@ function run_holstein_chain_simulation(sID, Ω, α, n, μ, β, L, N_burnin, N_up
     )
 
     # Initialize the density/chemical potential tuner.
-    # This type facilitates the tuning of the chemical potential to achieve
-    # at target electron density.
     chemical_potential_tuner = mt.MuTunerLogger(n₀ = n, β = β, V = N, u₀ = 1.0, μ₀ = μ, c = 0.5)
 
     ####################################
@@ -303,10 +292,6 @@ function run_holstein_chain_simulation(sID, Ω, α, n, μ, β, L, N_burnin, N_up
     for n in 1:N_burnin
 
         # Perform a reflection update.
-        # This update randomly selects a phonon mode in the lattice and reflects
-        # all the associated phonon about the origin, (xᵢ → -xᵢ).
-        # This updates all the phonon fields to cross the on-site energy barrier
-        # associated with bipolaron formation, helping reduce autocorrelation times.
         (accepted, logdetG, sgndetG) = reflection_update!(
             G, logdetG, sgndetG, electron_phonon_parameters,
             fermion_path_integral = fermion_path_integral,
@@ -316,7 +301,7 @@ function run_holstein_chain_simulation(sID, Ω, α, n, μ, β, L, N_burnin, N_up
         )
 
         # Record whether the reflection update was accepted or rejected.
-        additional_info[&quot;reflection_acceptance_rate&quot;] += accepted
+        additional_info["reflection_acceptance_rate"] += accepted
 
         # Perform an HMC update.
         (accepted, logdetG, sgndetG, δG, δθ) = hmc_update!(
@@ -328,7 +313,7 @@ function run_holstein_chain_simulation(sID, Ω, α, n, μ, β, L, N_burnin, N_up
         )
 
         # Record whether the HMC update was accepted or rejected.
-        additional_info[&quot;hmc_acceptance_rate&quot;] += accepted
+        additional_info["hmc_acceptance_rate"] += accepted
 
         # Update the chemical potential.
         logdetG, sgndetG = update_chemical_potential!(
@@ -346,7 +331,7 @@ function run_holstein_chain_simulation(sID, Ω, α, n, μ, β, L, N_burnin, N_up
     ################################
 
     # Re-initialize variables to keep track of the largest numerical error in the
-    # Green&#39;s function matrices corrected by numerical stabalization.
+    # Green's function matrices corrected by numerical stabalization.
     δG = zero(typeof(logdetG))
     δθ = zero(typeof(sgndetG))
 
@@ -366,7 +351,7 @@ function run_holstein_chain_simulation(sID, Ω, α, n, μ, β, L, N_burnin, N_up
             )
 
             # Record whether the reflection update was accepted or rejected.
-            additional_info[&quot;reflection_acceptance_rate&quot;] += accepted
+            additional_info["reflection_acceptance_rate"] += accepted
 
             # Perform an HMC update.
             (accepted, logdetG, sgndetG, δG, δθ) = hmc_update!(
@@ -378,7 +363,7 @@ function run_holstein_chain_simulation(sID, Ω, α, n, μ, β, L, N_burnin, N_up
             )
 
             # Record whether the HMC update was accepted or rejected.
-            additional_info[&quot;hmc_acceptance_rate&quot;] += accepted
+            additional_info["hmc_acceptance_rate"] += accepted
 
             # Make measurements.
             (logdetG, sgndetG, δG, δθ) = make_measurements!(
@@ -414,16 +399,16 @@ function run_holstein_chain_simulation(sID, Ω, α, n, μ, β, L, N_burnin, N_up
     end
 
     # Calculate HMC acceptance rate.
-    additional_info[&quot;hmc_acceptance_rate&quot;] /= (N_updates + N_burnin)
+    additional_info["hmc_acceptance_rate"] /= (N_updates + N_burnin)
 
     # Calculate reflection update acceptance rate.
-    additional_info[&quot;reflection_acceptance_rate&quot;] /= (N_updates + N_burnin)
+    additional_info["reflection_acceptance_rate"] /= (N_updates + N_burnin)
 
     # Record the final numerical stabilization period that the simulation settled on.
-    additional_info[&quot;n_stab_final&quot;] = fermion_greens_calculator.n_stab
+    additional_info["n_stab_final"] = fermion_greens_calculator.n_stab
 
     # Record the maximum numerical error corrected by numerical stablization.
-    additional_info[&quot;dG&quot;] = δG
+    additional_info["dG"] = δG
 
     # Save the density tuning profile.
     save_density_tuning_profile(simulation_info, chemical_potential_tuner)
@@ -459,4 +444,4 @@ if abspath(PROGRAM_FILE) == @__FILE__
 
     # Run the simulation.
     run_holstein_chain_simulation(sID, Ω, α, n, μ, β, L, N_burnin, N_updates, N_bins)
-end</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">&lt;&lt; @example-block not executed in draft mode &gt;&gt;</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../hubbard_chain_checkpoint/">« Hubbard Chain with Checkpointing</a><a class="docs-footer-nextpage" href="../ossh_chain/">Optical Su-Schrieffer-Heeger Chain »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="auto">Automatic (OS)</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.2.1 on <span class="colophon-date" title="Wednesday 31 January 2024 20:31">Wednesday 31 January 2024</span>. Using Julia version 1.10.0.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+end

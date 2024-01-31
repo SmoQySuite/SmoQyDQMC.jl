@@ -1,10 +1,4 @@
-<!DOCTYPE html>
-<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Three-Band Hubbard Model · SmoQyDQMC.jl</title><meta name="title" content="Three-Band Hubbard Model · SmoQyDQMC.jl"/><meta property="og:title" content="Three-Band Hubbard Model · SmoQyDQMC.jl"/><meta property="twitter:title" content="Three-Band Hubbard Model · SmoQyDQMC.jl"/><meta name="description" content="Documentation for SmoQyDQMC.jl."/><meta property="og:description" content="Documentation for SmoQyDQMC.jl."/><meta property="twitter:description" content="Documentation for SmoQyDQMC.jl."/><meta property="og:url" content="https://smoqysuite.github.io/SmoQyDQMC.jl/stable/examples/hubbard_threeband/"/><meta property="twitter:url" content="https://smoqysuite.github.io/SmoQyDQMC.jl/stable/examples/hubbard_threeband/"/><link rel="canonical" href="https://smoqysuite.github.io/SmoQyDQMC.jl/stable/examples/hubbard_threeband/"/><script data-outdated-warner src="../../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../search_index.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../../">SmoQyDQMC.jl</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../../">Home</a></li><li><a class="tocitem" href="../../hamiltonian/">Supported Hamiltonians</a></li><li><a class="tocitem" href="../../simulation_output/">Simulation Output Overview</a></li><li><a class="tocitem" href="../../api/">API</a></li><li><span class="tocitem">Examples</span><ul><li><a class="tocitem" href="../hubbard_chain/">Hubbard Chain</a></li><li><a class="tocitem" href="../hubbard_chain_mpi/">Hubbard Chain with MPI</a></li><li><a class="tocitem" href="../hubbard_chain_checkpoint/">Hubbard Chain with Checkpointing</a></li><li><a class="tocitem" href="../holstein_chain/">Holstein Chain with Density Tuning</a></li><li><a class="tocitem" href="../ossh_chain/">Optical Su-Schrieffer-Heeger Chain</a></li><li><a class="tocitem" href="../bssh_chain/">Bond Su-Schrieffer-Heeger Chain</a></li><li><a class="tocitem" href="../hubbard_holstein_square/">Square Hubbard-Holstein Model</a></li><li class="is-active"><a class="tocitem" href>Three-Band Hubbard Model</a></li><li><a class="tocitem" href="../holstein_kagome/">Kagome Holstein Model with Density Tuning</a></li><li><a class="tocitem" href="../hubbard_honeycomb/">Honeycomb Hubbard model</a></li></ul></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Examples</a></li><li class="is-active"><a href>Three-Band Hubbard Model</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Three-Band Hubbard Model</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/SmoQySuite/SmoQyDQMC.jl/blob/main/examples/hubbard_threeband.jl#" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><p>Download this example as a <a href="../../assets/scripts/hubbard_threeband.jl">Julia script</a>.</p><h1 id="Three-Band-Hubbard-Model"><a class="docs-heading-anchor" href="#Three-Band-Hubbard-Model">Three-Band Hubbard Model</a><a id="Three-Band-Hubbard-Model-1"></a><a class="docs-heading-anchor-permalink" href="#Three-Band-Hubbard-Model" title="Permalink"></a></h1><p>In this example we simulate an effective two-dimensional 3-band Hubbard model meant to represent a copper-oxide plane in the superconducting cuprates, with a Hamiltonian written in hole language given by</p><p class="math-container">\[\begin{align*}
-\hat{H}= &amp; \sum_{\sigma,\langle i,j,\alpha\rangle}t_{pd}^{i,j,\alpha}(\hat{d}_{\sigma,i}^{\dagger}\hat{p}_{\sigma,j,\alpha}^{\phantom{\dagger}}+{\rm h.c.})
-           + \sum_{\sigma,\langle i,\alpha,j,\alpha&#39;\rangle}t_{pp}^{i,\alpha&#39;,j,\alpha}(\hat{p}_{\sigma,i,\alpha&#39;}^{\dagger}\hat{p}_{\sigma,j,\alpha}^{\phantom{\dagger}}+{\rm h.c.})\\
-         &amp; +(\epsilon_{d}-\mu)\sum_{\sigma,i}\hat{n}_{\uparrow,i}^{d}+(\epsilon_{p}-\mu)\sum_{\sigma,j}\hat{n}_{\sigma,j,\alpha}^{p}\\
-         &amp; +U_{d}\sum_{i}\hat{n}_{\uparrow,i}^{d}\hat{n}_{\downarrow,i}^{d}+U_{p}\sum_{j,\alpha}\hat{n}_{\uparrow,j,\alpha}^{p}\hat{n}_{\downarrow,j,\alpha}^{p}.
-\end{align*}\]</p><p>The operator <span>$\hat{d}^{\dagger}_{\sigma, i} \ (\hat{d}^{\phantom \dagger}_{\sigma, i})$</span> creates (annihilates) a spin-<span>$\sigma$</span> hole on a Cu-<span>$3d_{x^2-y^2}$</span> orbital in unit <span>$i$</span> in the lattice. The <span>$\hat{p}^{\dagger}_{\sigma,i,\alpha} \ (\hat{p}^{\phantom \dagger}_{\sigma,i,\alpha})$</span> operator creates (annihilates) a spin-<span>$\sigma$</span> hole on a O-<span>$2p_\alpha$</span> orbital in unit cell <span>$i$</span>, where <span>$\alpha = x \ {\rm or} \ y.$</span> The corresponding spin-<span>$\sigma$</span> hole number operators for the Cu-<span>$3d_{x^2-y^2}$</span> and O-<span>$2p_\alpha$</span> orbitals in unit cell <span>$i$</span> are <span>$\hat{n}^d_{\sigma,i}$</span> and <span>$\hat{n}^p_{\sigma,i,\alpha}$</span>. The hopping integrals between the Cu-<span>$3d_{x^2-y^2}$</span> orbitals and nearest-neighbor O-<span>$2p_\alpha$</span> are parameterized as <span>$t_{pd}^{i,j,\alpha} = P_{pd}^{i,j,\alpha} t_{pd}$</span> where <span>$P_{pd}^{i,j,\alpha} = \pm 1$</span> is a overall phase factor. Similarly, the hopping integral between nearest-neighbor O-<span>$2p_x$</span> and O-<span>$2p_y$</span> orbitals is parameterized as <span>$t_{pp}^{i,\alpha&#39;,j,\alpha} = P_{pp}^{i,\alpha&#39;,j,\alpha} t_{pp}$</span>, where again <span>$P_{pp}^{i,\alpha&#39;,j,\alpha} t_{pp} = \pm 1$</span> is an overall phase factor. Refer to Fig. 1 in <a href="https://journals.aps.org/prb/abstract/10.1103/PhysRevB.103.144514"><code>PhysRevB.103.144514</code></a> to see a figure detailing these phase factor conventions. The on-site energies <span>$\epsilon_d$</span> and <span>$\epsilon_p$</span> are for the Cu-<span>$3d_{x^2-y^2}$</span> and O-<span>$2p_\alpha$</span> orbitals respectively, and <span>$\mu$</span> is the global chemical potential. Finally, <span>$U_d$</span> and <span>$U_p$</span> are the on-site Hubbard interactions for the Cu-<span>$3d_{x^2-y^2}$</span> and O-<span>$2p_\alpha$</span> orbitals respectively.</p><p>A short test simulation using the script associated with this example can be run as</p><pre><code class="nohighlight hljs">&gt; julia hubbard_threeband.jl 0 8.5 4.1 1.13 0.49 0.0 3.24 0.0 4.0 8 2 2000 10000 50</code></pre><p>In this example we are simulating the three-band Hubbard model on a <span>$8 \times 2$</span> unit cell finite lattice at inverse temperature <span>$\beta = 4.0$</span>. The on-site Hubbard interaction on the Cu-<span>$3d_{x^2-y^2}$</span> and O-<span>$2p_\alpha$</span> is <span>$U_d = 8.5$</span> and <span>$U_p = 4.1$</span> respectively. The nearest-neighbor hopping integral amplitude between the Cu-<span>$3d_{x^2-y^2}$</span> and O-<span>$2p_\alpha$</span> orbitals is <span>$t_{pd} = 1.13$</span>, while it is <span>$t_{pp} = 0.49$</span> between the nearest-neighbor O-<span>$2p_x$</span> and O-<span>$2p_y$</span> orbitals. The on-site energy for the Cu-<span>$3d_{x^2-y^2}$</span> and O-<span>$2p_\alpha$</span> orbitals <span>$\epsilon_d = 0.0$</span> and <span>$\epsilon_p = 3.25$</span>. Lastly, the global chemical potential is set to <span>$\mu = 0.0$</span>. In this simulation <code>N_burnin = 2000</code> sweeps through the lattice updating the Hubbard-Stratonovich fields are performed to thermalize the system, followed by <code>N_udpates = 10000</code> sweeps, after each of which measurements are made. Bin averaged measurements are written to file <code>N_bins = 50</code> times during the simulation.</p><p>Below you will find the source code from the julia script linked at the top of this page, but with additional comments giving more detailed explanations for what certain parts of the code are doing.</p><pre><code class="language-julia hljs">using LinearAlgebra
+using LinearAlgebra
 using Random
 using Printf
 
@@ -14,10 +8,10 @@ import SmoQyDQMC.JDQMCFramework    as dqmcf
 import SmoQyDQMC.JDQMCMeasurements as dqmcm
 
 # Define top-level function for running DQMC simulation
-function run_hubbard_threeband_simulation(sID, Ud, Up, tpd, tpp, ϵd, ϵp, μ, β, Lx, Ly, N_burnin, N_updates, N_bins; filepath = &quot;.&quot;)
+function run_hubbard_threeband_simulation(sID, Ud, Up, tpd, tpp, ϵd, ϵp, μ, β, Lx, Ly, N_burnin, N_updates, N_bins; filepath = ".")
 
     # Construct the foldername the data will be written to.
-    datafolder_prefix = @sprintf &quot;hubbard_threeband_Ud%.2f_Up%.2f_tpd%.2f_tpp%.2f_ed%.2f_ep%.2f_mu%.2f_b%.2f_Lx%d_Ly%d&quot; Ud Up tpd tpp ϵd ϵp μ β Lx Ly
+    datafolder_prefix = @sprintf "hubbard_threeband_Ud%.2f_Up%.2f_tpd%.2f_tpp%.2f_ed%.2f_ep%.2f_mu%.2f_b%.2f_Lx%d_Ly%d" Ud Up tpd tpp ϵd ϵp μ β Lx Ly
 
     # Initialize an instance of the SimulationInfo type.
     simulation_info = SimulationInfo(
@@ -48,11 +42,11 @@ function run_hubbard_threeband_simulation(sID, Ud, Up, tpd, tpp, ϵd, ϵp, μ, �
     # or the asymetric form B = exp(-Δτ⋅V)⋅exp(-Δτ⋅K)
     symmetric = false
 
-    # Set the initial period in imaginary time slices with which the Green&#39;s function matrices
+    # Set the initial period in imaginary time slices with which the Green's function matrices
     # will be recomputed using a numerically stable procedure.
     n_stab = 10
 
-    # Specify the maximum allowed error in any element of the Green&#39;s function matrix that is
+    # Specify the maximum allowed error in any element of the Green's function matrix that is
     # corrected by performing numerical stabiliziation.
     δG_max = 1e-6
 
@@ -61,16 +55,16 @@ function run_hubbard_threeband_simulation(sID, Ud, Up, tpd, tpp, ϵd, ϵp, μ, �
 
     # Initialize a dictionary to store additional information about the simulation.
     additional_info = Dict(
-        &quot;dG_max&quot; =&gt; δG_max,
-        &quot;N_burnin&quot; =&gt; N_burnin,
-        &quot;N_updates&quot; =&gt; N_updates,
-        &quot;N_bins&quot; =&gt; N_bins,
-        &quot;bin_size&quot; =&gt; bin_size,
-        &quot;local_acceptance_rate&quot; =&gt; 0.0,
-        &quot;n_stab_init&quot; =&gt; n_stab,
-        &quot;symmetric&quot; =&gt; symmetric,
-        &quot;checkerboard&quot; =&gt; checkerboard,
-        &quot;seed&quot; =&gt; seed,
+        "dG_max" => δG_max,
+        "N_burnin" => N_burnin,
+        "N_updates" => N_updates,
+        "N_bins" => N_bins,
+        "bin_size" => bin_size,
+        "local_acceptance_rate" => 0.0,
+        "n_stab_init" => n_stab,
+        "symmetric" => symmetric,
+        "checkerboard" => checkerboard,
+        "seed" => seed,
     )
 
     #######################
@@ -80,9 +74,9 @@ function run_hubbard_threeband_simulation(sID, Ud, Up, tpd, tpp, ϵd, ϵp, μ, �
     # Initialize an instance of the type UnitCell.
     unit_cell = lu.UnitCell(
         lattice_vecs = [[1.0, 0.0], [0.0, 1.0]],
-        basis_vecs   = [[0.0, 0.0], # Orbital ID = 1 &lt;==&gt; Cu-3d
-                        [0.5, 0.0], # Orbital ID = 2 &lt;==&gt; O-2px
-                        [0.0, 0.5]] # Orbital ID = 3 &lt;==&gt; O-2py
+        basis_vecs   = [[0.0, 0.0], # Orbital ID = 1 <==> Cu-3d
+                        [0.5, 0.0], # Orbital ID = 2 <==> O-2px
+                        [0.0, 0.5]] # Orbital ID = 3 <==> O-2py
     )
 
     # Initialize variables to map orbitals to orbital ID.
@@ -129,8 +123,6 @@ function run_hubbard_threeband_simulation(sID, Ud, Up, tpd, tpp, ϵd, ϵp, μ, �
     bond_2px_2py_pxny = lu.Bond(orbitals = (O_2px, O_2py), displacement = [1,-1])
     bond_2px_2py_pxny_id = add_bond!(model_geometry, bond_2px_2py_pxny)
 
-    # These nexts bonds are needed to measuring a pairing channel needed to
-    # reconstruct the d-wave pair susceptibility.
 
     # Define bond going from Cu-3d to Cu-3d in +x direction.
     bond_3d_3d_px = lu.Bond(orbitals = (Cu_3d, Cu_3d), displacement = [1, 0])
@@ -222,11 +214,11 @@ function run_hubbard_threeband_simulation(sID, Ud, Up, tpd, tpp, ϵd, ϵp, μ, �
     # Initialize the Hubbard interaction related measurements.
     initialize_measurements!(measurement_container, hubbard_model)
 
-    # Initialize the single-particle electron Green&#39;s function measurement.
+    # Initialize the single-particle electron Green's function measurement.
     initialize_correlation_measurements!(
         measurement_container = measurement_container,
         model_geometry = model_geometry,
-        correlation = &quot;greens&quot;,
+        correlation = "greens",
         time_displaced = true,
         pairs = [(Cu_3d, Cu_3d), (O_2px, O_2px), (O_2py, O_2py),
                  (Cu_3d, O_2px), (Cu_3d, O_2py), (O_2px, O_2py)]
@@ -236,7 +228,7 @@ function run_hubbard_threeband_simulation(sID, Ud, Up, tpd, tpp, ϵd, ϵp, μ, �
     initialize_correlation_measurements!(
         measurement_container = measurement_container,
         model_geometry = model_geometry,
-        correlation = &quot;density&quot;,
+        correlation = "density",
         time_displaced = false,
         integrated = true,
         pairs = [(Cu_3d, Cu_3d), (O_2px, O_2px), (O_2py, O_2py),
@@ -247,7 +239,7 @@ function run_hubbard_threeband_simulation(sID, Ud, Up, tpd, tpp, ϵd, ϵp, μ, �
     initialize_correlation_measurements!(
         measurement_container = measurement_container,
         model_geometry = model_geometry,
-        correlation = &quot;pair&quot;,
+        correlation = "pair",
         time_displaced = false,
         integrated = true,
         pairs = [(Cu_3d, Cu_3d), (O_2px, O_2px), (O_2py, O_2py),
@@ -258,22 +250,18 @@ function run_hubbard_threeband_simulation(sID, Ud, Up, tpd, tpp, ϵd, ϵp, μ, �
     initialize_correlation_measurements!(
         measurement_container = measurement_container,
         model_geometry = model_geometry,
-        correlation = &quot;spin_z&quot;,
+        correlation = "spin_z",
         time_displaced = false,
         integrated = true,
         pairs = [(Cu_3d, Cu_3d), (O_2px, O_2px), (O_2py, O_2py),
                  (Cu_3d, O_2px), (Cu_3d, O_2py), (O_2px, O_2py)]
     )
 
-    # Measure all possible combinations of bond pairing channels
-    # for the bonds we have defined. We will need each of these
-    # pairs channels measured in order to reconstruct the extended
-    # s-wave and d-wave pair susceptibilities.
     # Initialize the pair correlation function measurement.
     initialize_correlation_measurements!(
         measurement_container = measurement_container,
         model_geometry = model_geometry,
-        correlation = &quot;pair&quot;,
+        correlation = "pair",
         time_displaced = false,
         integrated = true,
         pairs = [(Cu_3d, Cu_3d), (O_2px, O_2px), (O_2py, O_2py),
@@ -315,16 +303,16 @@ function run_hubbard_threeband_simulation(sID, Ud, Up, tpd, tpp, ϵd, ϵp, μ, �
     fermion_greens_calculator_up = dqmcf.FermionGreensCalculator(Bup, β, Δτ, n_stab)
     fermion_greens_calculator_dn = dqmcf.FermionGreensCalculator(Bdn, β, Δτ, n_stab)
 
-    # Allcoate matrices for spin-up and spin-down electron Green&#39;s function matrices.
+    # Allcoate matrices for spin-up and spin-down electron Green's function matrices.
     Gup = zeros(eltype(Bup[1]), size(Bup[1]))
     Gdn = zeros(eltype(Bdn[1]), size(Bdn[1]))
 
-    # Initialize the spin-up and spin-down electron Green&#39;s function matrices, also
+    # Initialize the spin-up and spin-down electron Green's function matrices, also
     # calculating their respective determinants as the same time.
     logdetGup, sgndetGup = dqmcf.calculate_equaltime_greens!(Gup, fermion_greens_calculator_up)
     logdetGdn, sgndetGdn = dqmcf.calculate_equaltime_greens!(Gdn, fermion_greens_calculator_dn)
 
-    # Allocate matrices for various time-displaced Green&#39;s function matrices.
+    # Allocate matrices for various time-displaced Green's function matrices.
     Gup_ττ = similar(Gup) # G↑(τ,τ)
     Gup_τ0 = similar(Gup) # G↑(τ,0)
     Gup_0τ = similar(Gup) # G↑(0,τ)
@@ -333,7 +321,7 @@ function run_hubbard_threeband_simulation(sID, Ud, Up, tpd, tpp, ϵd, ϵp, μ, �
     Gdn_0τ = similar(Gdn) # G↓(0,τ)
 
     # Initialize variables to keep track of the largest numerical error in the
-    # Green&#39;s function matrices corrected by numerical stabalization.
+    # Green's function matrices corrected by numerical stabalization.
     δG = zero(typeof(logdetGup))
     δθ = zero(typeof(sgndetGup))
 
@@ -356,7 +344,7 @@ function run_hubbard_threeband_simulation(sID, Ud, Up, tpd, tpp, ϵd, ϵp, μ, �
         )
 
         # Record the acceptance rate for the attempted local updates to the HS fields.
-        additional_info[&quot;local_acceptance_rate&quot;] += acceptance_rate
+        additional_info["local_acceptance_rate"] += acceptance_rate
     end
 
     ################################
@@ -364,7 +352,7 @@ function run_hubbard_threeband_simulation(sID, Ud, Up, tpd, tpp, ϵd, ϵp, μ, �
     ################################
 
     # Re-initialize variables to keep track of the largest numerical error in the
-    # Green&#39;s function matrices corrected by numerical stabalization.
+    # Green's function matrices corrected by numerical stabalization.
     δG = zero(typeof(logdetGup))
     δθ = zero(typeof(sgndetGup))
 
@@ -386,7 +374,7 @@ function run_hubbard_threeband_simulation(sID, Ud, Up, tpd, tpp, ϵd, ϵp, μ, �
             )
 
             # Record the acceptance rate for the attempted local updates to the HS fields.
-            additional_info[&quot;local_acceptance_rate&quot;] += acceptance_rate
+            additional_info["local_acceptance_rate"] += acceptance_rate
 
             # Make measurements, with the results being added to the measurement container.
             (logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = make_measurements!(
@@ -415,13 +403,13 @@ function run_hubbard_threeband_simulation(sID, Ud, Up, tpd, tpp, ϵd, ϵp, μ, �
     end
 
     # Calculate acceptance rate for local updates.
-    additional_info[&quot;local_acceptance_rate&quot;] /= (N_updates + N_burnin)
+    additional_info["local_acceptance_rate"] /= (N_updates + N_burnin)
 
     # Record the final numerical stabilization period that the simulation settled on.
-    additional_info[&quot;n_stab_final&quot;] = fermion_greens_calculator_up.n_stab
+    additional_info["n_stab_final"] = fermion_greens_calculator_up.n_stab
 
     # Record the maximum numerical error corrected by numerical stablization.
-    additional_info[&quot;dG&quot;] = δG
+    additional_info["dG"] = δG
 
     # Write simulation summary TOML file.
     save_simulation_info(simulation_info, additional_info)
@@ -437,9 +425,9 @@ function run_hubbard_threeband_simulation(sID, Ud, Up, tpd, tpp, ϵd, ϵp, μ, �
     # Measure the d-wave pair suspcetibility.
     P_d, ΔP_d = composite_correlation_stats(
         folder = simulation_info.datafolder,
-        correlation = &quot;pair&quot;,
-        space = &quot;momentum&quot;,
-        type = &quot;integrated&quot;,
+        correlation = "pair",
+        space = "momentum",
+        type = "integrated",
         ids = [(bond_3d_3d_px_id, bond_3d_3d_px_id), (bond_3d_3d_px_id, bond_3d_3d_nx_id),
                (bond_3d_3d_nx_id, bond_3d_3d_px_id), (bond_3d_3d_nx_id, bond_3d_3d_nx_id),
                (bond_3d_3d_py_id, bond_3d_3d_py_id), (bond_3d_3d_py_id, bond_3d_3d_ny_id),
@@ -464,7 +452,7 @@ function run_hubbard_threeband_simulation(sID, Ud, Up, tpd, tpp, ϵd, ϵp, μ, �
              P_px_py, P_px_ny,
              P_nx_py, P_nx_ny,
              P_py_px, P_py_nx,
-             P_ny_px, P_ny_nx) -&gt; (P_px_px + P_px_nx +
+             P_ny_px, P_ny_nx) -> (P_px_px + P_px_nx +
                                    P_nx_px + P_nx_nx +
                                    P_py_py + P_py_ny +
                                    P_ny_py + P_ny_ny -
@@ -475,8 +463,8 @@ function run_hubbard_threeband_simulation(sID, Ud, Up, tpd, tpp, ϵd, ϵp, μ, �
     )
 
     # Record the d-wave pair suspcetibility.
-    additional_info[&quot;P_d_mean&quot;] = real(P_d)
-    additional_info[&quot;P_d_std&quot;]  = ΔP_d
+    additional_info["P_d_mean"] = real(P_d)
+    additional_info["P_d_std"]  = ΔP_d
 
     # Write simulation summary TOML file.
     save_simulation_info(simulation_info, additional_info)
@@ -506,4 +494,4 @@ if abspath(PROGRAM_FILE) == @__FILE__
 
     # Run the simulation.
     run_hubbard_threeband_simulation(sID, Ud, Up, tpd, tpp, ϵd, ϵp, μ, β, Lx, Ly, N_burnin, N_updates, N_bins)
-end</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">&lt;&lt; @example-block not executed in draft mode &gt;&gt;</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../hubbard_holstein_square/">« Square Hubbard-Holstein Model</a><a class="docs-footer-nextpage" href="../holstein_kagome/">Kagome Holstein Model with Density Tuning »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="auto">Automatic (OS)</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.2.1 on <span class="colophon-date" title="Wednesday 31 January 2024 20:31">Wednesday 31 January 2024</span>. Using Julia version 1.10.0.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+end
