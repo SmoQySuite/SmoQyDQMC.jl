@@ -17,9 +17,7 @@
 # is the phonon position (momentum) operator for a dispersionless mode placed on site ``i`` with phonon frequency ``\Omega`` and
 # corresponding ion mass ``M``. The stength of the Holstein electron-phonon is controlled by the parameter ``\alpha``.
 #
-# The example script to simulate this sytem is
-# [`example_scripts/hubbard_holstein_square.jl`](https://github.com/SmoQySuite/SmoQyDQMC.jl/blob/main/example_scripts/hubbard_holstein_square.jl).
-# A short test simulation using this script that only takes a few minutes on most personal computers is
+# A short test simulation using the script associated with this example can be run as
 # ```
 # > julia hubbard_holstein_square.jl 0 6.0 0.1 0.1 0.0 4.0 4 1000 5000 50
 # ```
@@ -28,9 +26,8 @@
 # are thermalized with `N_burnin = 1000` rounds of updates, followed by `N_udpates = 5000` rounds of updates with measurements
 # being made. Bin averaged measurements are written to file `N_bins = 50` during the simulation.
 #
-# Below you will find a more heavily commented version
-# of the [`example_scripts/hubbard_holstein_square.jl`](https://github.com/SmoQySuite/SmoQyDQMC.jl/blob/main/example_scripts/hubbard_holstein_square.jl)
-# script that includes additional exposition on what each part of the code is doing.
+# Below you will find the source code from the julia script linked at the top of this page,
+# but with additional comments giving more detailed explanations for what certain parts of the code are doing.
 # Additionally, this script demonstrates how to calculate the extended s-wave and d-wave pair susceptibilities.
 
 using LinearAlgebra
@@ -88,17 +85,11 @@ function run_hubbard_holstein_square_simulation(sID, U, Ω, α, μ, β, L, N_bur
     ## Calculate the bins size.
     bin_size = div(N_updates, N_bins)
 
-    ## Fermionic time-step used in HMC update.
-    Δt = 1/(10*Ω)
-
     ## Number of fermionic time-steps in HMC update.
-    Nt = 10
+    Nt = 5
 
-    ## Number of bosonic time-steps per fermionic time-step in HMC udpate.
-    nt = 10
-
-    ## Regularizaton parameter for fourier acceleration mass matrix used in HMC dyanmics.
-    reg = 1.0
+    ## Fermionic time-step used in HMC update.
+    Δt = π/(Nt*Ω)
 
     ## Initialize a dictionary to store additional information about the simulation.
     additional_info = Dict(
@@ -114,10 +105,8 @@ function run_hubbard_holstein_square_simulation(sID, U, Ω, α, μ, β, L, N_bur
         "symmetric" => symmetric,
         "checkerboard" => checkerboard,
         "seed" => seed,
-        "dt" => Δt,
         "Nt" => Nt,
-        "nt" => nt,
-        "reg" => reg
+        "dt" => Δt,
     )
 
     #######################
@@ -400,9 +389,9 @@ function run_hubbard_holstein_square_simulation(sID, U, Ω, α, μ, β, L, N_bur
     logdetGdn, sgndetGdn = dqmcf.calculate_equaltime_greens!(Gdn, fermion_greens_calculator_dn)
 
     ## Initialize Hamitlonian/Hybrid monte carlo (HMC) updater.
-    hmc_updater = HMCUpdater(
+    hmc_updater = EFAHMCUpdater(
         electron_phonon_parameters = electron_phonon_parameters,
-        G = Gup, Nt = Nt, Δt = Δt, nt = nt, reg = reg
+        G = Gup, Nt = Nt, Δt = Δt
     )
 
     ## Allocate matrices for various time-displaced Green's function matrices.
@@ -455,8 +444,7 @@ function run_hubbard_holstein_square_simulation(sID, U, Ω, α, μ, β, L, N_bur
             fermion_greens_calculator_up_alt = fermion_greens_calculator_up_alt,
             fermion_greens_calculator_dn_alt = fermion_greens_calculator_dn_alt,
             Bup = Bup, Bdn = Bdn,
-            δG_max = δG_max, δG = δG, δθ = δθ, rng = rng,
-            initialize_force = true
+            δG_max = δG_max, δG = δG, δθ = δθ, rng = rng
         )
 
         ## Record whether the HMC update was accepted or rejected.
@@ -522,8 +510,7 @@ function run_hubbard_holstein_square_simulation(sID, U, Ω, α, μ, β, L, N_bur
                 fermion_greens_calculator_up_alt = fermion_greens_calculator_up_alt,
                 fermion_greens_calculator_dn_alt = fermion_greens_calculator_dn_alt,
                 Bup = Bup, Bdn = Bdn,
-                δG_max = δG_max, δG = δG, δθ = δθ, rng = rng,
-                initialize_force = true
+                δG_max = δG_max, δG = δG, δθ = δθ, rng = rng
             )
 
             ## Record whether the HMC update was accepted or rejected.

@@ -9,8 +9,8 @@ for the phonon degrees of freedom.
 - `Nt::Int`: Number of time-steps in HMC trajectory.
 - `Δt::E`: Average time-step size used in HMC update.
 - `δ::E`: Time-step used in EFA-HMC update is jittered by an amount `Δt = Δt * (1 + δ*(2*rand(rng)-1))`.
-- `Δτ::E`: Discretization constant in imaginary time direction.
 - `ω::Matrix{E}`: Harmonic frequency associated fourier mode in the non-interacting quantum Harmonic oscillator action.
+- `m::Vector{E}`: Mass associated with quantum Harmonic oscillator fourier mode equations of motion.
 - `x::Matrix{E}`: Records initial phonon configuration in position space.
 - `p::Matrix{E}`: Conjugate momentum in HMC dynamics.
 - `x̃::Matrix{Complex{E}}`: Phonon configuration in frequency space.
@@ -33,11 +33,11 @@ struct EFAHMCUpdater{T<:Number, E<:AbstractFloat, PFFT, PIFFT}
     # Amount of disorder in HMC time-step.
     δ::E
 
-    # discretization in imaginary time
-    Δτ::E
-
     # fourier harmonic frequencies
     ω::Matrix{E}
+
+    # mass in equation of motion
+    m::Vector{E}
 
     # position space phonon field configuration
     x::Matrix{E}
@@ -96,8 +96,9 @@ function EFAHMCUpdater(;
 ) where {T<:Number, E<:AbstractFloat}
 
     (; Δτ, phonon_parameters) = electron_phonon_parameters
-    (; Ω) = phonon_parameters
+    (; Ω, M) = phonon_parameters
     ω = zero(electron_phonon_parameters.x)
+    m = zero(M)
     x = zero(ω)
     p = zero(ω)
     x̃ = zeros(Complex{E}, size(ω))
@@ -112,6 +113,9 @@ function EFAHMCUpdater(;
     # length of imaginary time axis
     Lτ = size(x, 2)
 
+    # calculate mass of qho fourier mode equations of motion
+    @. m = Δτ * M
+
     # iterate over fourier modes
     for n in axes(x, 2)
         # iterate over phonon modes
@@ -121,7 +125,7 @@ function EFAHMCUpdater(;
         end
     end
 
-    return EFAHMCUpdater(Nt, Δt, δ, Δτ, ω, x, p, x̃, p̃, u, dSdx, Gup′, Gdn′, pfft, pifft)
+    return EFAHMCUpdater(Nt, Δt, δ, ω, m, x, p, x̃, p̃, u, dSdx, Gup′, Gdn′, pfft, pifft)
 end
 
 @doc raw"""
@@ -171,8 +175,9 @@ function hmc_update!(
     δ::E = hmc_updater.δ
 ) where {T, E, P<:AbstractPropagator{T,E}}
 
-    (; Δτ, p, dSdx, Gup′, Gdn′) = hmc_updater
+    (; m, p, dSdx, Gup′, Gdn′) = hmc_updater
 
+    Δτ = electron_phonon_parameters.Δτ::E
     holstein_parameters = electron_phonon_parameters.holstein_parameters::HolsteinParameters{E}
     ssh_parameters = electron_phonon_parameters.ssh_parameters::SSHParameters{T}
     phonon_parameters = electron_phonon_parameters.phonon_parameters::PhononParameters{E}
@@ -205,12 +210,14 @@ function hmc_update!(
     logdetGdn′ = logdetGdn
     sgndetGdn′ = sgndetGdn
 
-    # initialize momentum
+    # initialize momentum and calculate initial kinetic energy
     randn!(rng, p)
-    @. p = sqrt(Δτ) * p
-
-    # calculate initial kinetic energy
-    K = dot(p,p)/(2*Δτ)
+    K = dot(p,p)/2
+    for l in axes(p,2)
+        for n in axes(p,1)
+            p[n,l] = sqrt(m[n]) * p[n,l]
+        end
+    end
 
     # calculate initial bosonic action
     Sb = bosonic_action(electron_phonon_parameters)
@@ -345,7 +352,12 @@ function hmc_update!(
     if numerically_stable
 
         # calculate final kinetic energy
-        K′ = dot(p,p)/(2*Δτ)
+        K′ = zero(K)
+        for l in axes(p,2)
+            for n in axes(p,1)
+                K′ += abs2(p[n,l]) / (2*m[n])
+            end
+        end
 
         # calculate final bosonic action
         Sb′ = bosonic_action(electron_phonon_parameters)
@@ -471,9 +483,10 @@ function hmc_update!(
     δ::E = hmc_updater.δ
 ) where {T, E, P<:AbstractPropagator{T,E}}
 
-    (; Δτ, p, dSdx) = hmc_updater
+    (; m, p, dSdx) = hmc_updater
     G′ = hmc_updater.Gup′
 
+    Δτ = electron_phonon_parameters.Δτ::E
     holstein_parameters = electron_phonon_parameters.holstein_parameters::HolsteinParameters{E}
     ssh_parameters = electron_phonon_parameters.ssh_parameters::SSHParameters{T}
     phonon_parameters = electron_phonon_parameters.phonon_parameters::PhononParameters{E}
@@ -506,12 +519,14 @@ function hmc_update!(
     logdetG′ = logdetG
     sgndetG′ = sgndetG
 
-    # initialize momentum
+    # initialize momentum and calculate initial kinetic energy
     randn!(rng, p)
-    @. p = sqrt(Δτ) * p
-
-    # calculate initial kinetic energy
-    K = dot(p,p)/(2*Δτ)
+    K = dot(p,p)/2
+    for l in axes(p,2)
+        for n in axes(p,1)
+            p[n,l] = sqrt(m[n]) * p[n,l]
+        end
+    end
 
     # calculate initial bosonic action
     Sb = bosonic_action(electron_phonon_parameters)
@@ -624,7 +639,12 @@ function hmc_update!(
     if numerically_stable
 
         # calculate final kinetic energy
-        K′ = dot(p,p)/(2*Δτ)
+        K′ = zero(K)
+        for l in axes(p,2)
+            for n in axes(p,1)
+                K′ += abs2(p[n,l]) / (2*m[n])
+            end
+        end
 
         # calculate final bosonic action
         Sb′ = bosonic_action(electron_phonon_parameters)
@@ -707,7 +727,7 @@ function evolve_qho_action!(
     hmc_updates::EFAHMCUpdater{T, E, PFFT, PIFFT}
 ) where {T<:Number, E<:AbstractFloat, PFFT, PIFFT}
 
-    (; Δτ, ω, x̃, p̃, u, pfft, pifft) = hmc_updates
+    (; m, ω, x̃, p̃, u, pfft, pifft) = hmc_updates
 
     # length of imaginary time axis
     Lτ = size(x,2)
@@ -726,13 +746,15 @@ function evolve_qho_action!(
         for i in axes(ω,1)
             # get relevant frequency
             ωₙ = ω[i,n]
+            # get the relevant mass
+            mᵢ = m[i]
             # make sure finite frequency
-            if ωₙ > 0
+            if ωₙ > 0 && isfinite(mᵢ)
                 # evolve momentum and phonon position
                 x̃′ = x̃[i,n]
                 p̃′ = p̃[i,n]
-                x̃[i,n] = x̃′*cos(ωₙ*Δt) + p̃′*sin(ωₙ*Δt)/(ωₙ*Δτ)
-                p̃[i,n] = p̃′*cos(ωₙ*Δt) - x̃′*sin(ωₙ*Δt)*(ωₙ*Δτ)
+                x̃[i,n] = x̃′*cos(ωₙ*Δt) + p̃′/(ωₙ*mᵢ)*sin(ωₙ*Δt)
+                p̃[i,n] = p̃′*cos(ωₙ*Δt) - x̃′*(ωₙ*mᵢ)*sin(ωₙ*Δt)
             end
         end
     end

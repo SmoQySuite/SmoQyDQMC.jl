@@ -1,27 +1,65 @@
+```@meta
+EditURL = "../../../examples/hubbard_chain_mpi.jl"
+```
+
+Download this example as a [Julia script](../assets/scripts/hubbard_chain_mpi.jl).
+
+# Hubbard Chain with MPI
+
+In this example we simulate the same system as in example 1, the half-filled Hubbard chain.
+However, in this example we use MPI, via the [`MPI.jl`](https://github.com/JuliaParallel/MPI.jl.git),
+to perform multiple simulations in parallel, with the results getting automatically averaged over
+at the end of the simulation.
+A short test simulation using the script associated with this example can be run as
+```
+> mpiexecjl -n 8 julia hubbard_chain_mpi.jl 1 6.0 0.0 8.0 16 2000 10000 50
+```
+This would result in `8` identical simulations being run in parallel.
+It possible that this command may need to be modified slightly depending on how MPI is set up on your system.
+For more information I recommend you refer to the
+[`MPI.jl documenation`](https://juliaparallel.org/MPI.jl/stable/).
+
+Below you will find the source code from the julia script linked at the top of this page,
+but with additional comments giving more detailed explanations for what certain parts of the code are doing.
+
+````@example hubbard_chain_mpi
 using LinearAlgebra
 using Random
 using Printf
+using MPI
 
 using SmoQyDQMC
 import SmoQyDQMC.LatticeUtilities  as lu
 import SmoQyDQMC.JDQMCFramework    as dqmcf
 import SmoQyDQMC.JDQMCMeasurements as dqmcm
 
+# initialize MPI
+MPI.Init()
+
 # Define top-level function for running DQMC simulation
-function run_hubbard_threeband_simulation(sID, Ud, Up, tpd, tpp, ϵd, ϵp, μ, β, Lx, Ly, N_burnin, N_updates, N_bins; filepath = ".")
+function run_hubbard_chain_simulation(sID, U, μ, β, L, N_burnin, N_updates, N_bins; filepath = ".")
+
+    # Initialize the MPI communicator.
+    comm = MPI.COMM_WORLD
 
     # Construct the foldername the data will be written to.
-    datafolder_prefix = @sprintf "hubbard_threeband_Ud%.2f_Up%.2f_tpd%.2f_tpp%.2f_ed%.2f_ep%.2f_mu%.2f_b%.2f_Lx%d_Ly%d" Ud Up tpd tpp ϵd ϵp μ β Lx Ly
+    datafolder_prefix = @sprintf "hubbard_chain_U%.2f_mu%.2f_L%d_b%.2f" U μ L β
+
+    # Get the MPI comm rank, which fixes the process ID (pID).
+    pID = MPI.Comm_rank(comm)
 
     # Initialize an instance of the SimulationInfo type.
     simulation_info = SimulationInfo(
         filepath = filepath,
         datafolder_prefix = datafolder_prefix,
-        sID = sID
+        sID = sID,
+        pID = pID
     )
 
-    # Initialize the directory the data will be written to.
-    initialize_datafolder(simulation_info)
+    # Synchronize all the MPI processes.
+    # Here we need to make sure the data folder is initialized before letting
+    # all the various processes move beyond this point.
+    MPI.Barrier(comm)
 
     # Initialize a random number generator that will be used throughout the simulation.
     seed = abs(rand(Int))
@@ -61,6 +99,7 @@ function run_hubbard_threeband_simulation(sID, Ud, Up, tpd, tpp, ϵd, ϵp, μ, �
         "N_bins" => N_bins,
         "bin_size" => bin_size,
         "local_acceptance_rate" => 0.0,
+        "reflection_acceptance_rate" => 0.0,
         "n_stab_init" => n_stab,
         "symmetric" => symmetric,
         "checkerboard" => checkerboard,
@@ -72,99 +111,45 @@ function run_hubbard_threeband_simulation(sID, Ud, Up, tpd, tpp, ϵd, ϵp, μ, �
     #######################
 
     # Initialize an instance of the type UnitCell.
-    unit_cell = lu.UnitCell(
-        lattice_vecs = [[1.0, 0.0], [0.0, 1.0]],
-        basis_vecs   = [[0.0, 0.0], # Orbital ID = 1 <==> Cu-3d
-                        [0.5, 0.0], # Orbital ID = 2 <==> O-2px
-                        [0.0, 0.5]] # Orbital ID = 3 <==> O-2py
-    )
-
-    # Initialize variables to map orbitals to orbital ID.
-    (Cu_3d, O_2px, O_2py) = (1, 2, 3)
+    unit_cell = lu.UnitCell(lattice_vecs = [[1.0]],
+                            basis_vecs   = [[0.0]])
 
     # Initialize an instance of the type Lattice.
     lattice = lu.Lattice(
-        L = [Lx, Ly],
-        periodic = [true, true]
+        L = [L],
+        periodic = [true]
     )
 
     # Initialize an instance of the ModelGeometry type.
     model_geometry = ModelGeometry(unit_cell, lattice)
 
-    # Define bond going from Cu-3d to O-2px in +x direction.
-    bond_3d_2px_px = lu.Bond(orbitals = (Cu_3d, O_2px), displacement = [0,0])
-    bond_3d_2px_px_id = add_bond!(model_geometry, bond_3d_2px_px)
+    # Define the nearest-neighbor bond for a 1D chain.
+    bond = lu.Bond(orbitals = (1,1), displacement = [1])
 
-    # Define bond going from Cu-3d to O-2py in +y direction.
-    bond_3d_2py_py = lu.Bond(orbitals = (Cu_3d, O_2py), displacement = [0,0])
-    bond_3d_2py_py_id = add_bond!(model_geometry, bond_3d_2py_py)
+    # Add this bond to the model, by adding it to the ModelGeometry type.
+    bond_id = add_bond!(model_geometry, bond)
 
-    # Define bond going from Cu-3d to O-2px in -x direction.
-    bond_2px_3d_nx = lu.Bond(orbitals = (Cu_3d, O_2px), displacement = [-1,0])
-    bond_2px_3d_nx_id = add_bond!(model_geometry, bond_2px_3d_nx)
+    # Define nearest-neighbor hopping amplitude, setting the energy scale for the system.
+    t = 1.0
 
-    # Define bond going from Cu-3d to O-2py in -y direction.
-    bond_2py_3d_ny = lu.Bond(orbitals = (Cu_3d, O_2py), displacement = [0,-1])
-    bond_2py_3d_ny_id = add_bond!(model_geometry, bond_2py_3d_ny)
-
-    # Define bond going from O-2px to O-2py in the (-x+y)/√2 direction.
-    bond_2px_2py_nxpy = lu.Bond(orbitals = (O_2px, O_2py), displacement = [0,0])
-    bond_2px_2py_nxpy_id = add_bond!(model_geometry, bond_2px_2py_nxpy)
-
-    # Define bond going to O-2px to O-2py in the (-x-y)/√2 direction.
-    bond_2px_2py_nxny = lu.Bond(orbitals = (O_2px, O_2py), displacement = [0,-1])
-    bond_2px_2py_nxny_id = add_bond!(model_geometry, bond_2px_2py_nxny)
-
-    # Define bond going from O-2px to O-2py in the (+x+y)/√2 direction.
-    bond_2px_2py_pxpy = lu.Bond(orbitals = (O_2px, O_2py), displacement = [1,0])
-    bond_2px_2py_pxpy_id = add_bond!(model_geometry, bond_2px_2py_pxpy)
-
-    # Define bond going from O-2px to O-2py in the (+x-y)/√2 direction.
-    bond_2px_2py_pxny = lu.Bond(orbitals = (O_2px, O_2py), displacement = [1,-1])
-    bond_2px_2py_pxny_id = add_bond!(model_geometry, bond_2px_2py_pxny)
-
-
-    # Define bond going from Cu-3d to Cu-3d in +x direction.
-    bond_3d_3d_px = lu.Bond(orbitals = (Cu_3d, Cu_3d), displacement = [1, 0])
-    bond_3d_3d_px_id = add_bond!(model_geometry, bond_3d_3d_px)
-
-    # Define bond going from Cu-3d to Cu-3d in -x direction.
-    bond_3d_3d_nx = lu.Bond(orbitals = (Cu_3d, Cu_3d), displacement = [-1, 0])
-    bond_3d_3d_nx_id = add_bond!(model_geometry, bond_3d_3d_nx)
-
-    # Define bond going from Cu-3d to Cu-3d in +y direction.
-    bond_3d_3d_py = lu.Bond(orbitals = (Cu_3d, Cu_3d), displacement = [0, 1])
-    bond_3d_3d_py_id = add_bond!(model_geometry, bond_3d_3d_py)
-
-    # Define bond going from Cu-3d to Cu-3d in -y direction.
-    bond_3d_3d_ny = lu.Bond(orbitals = (Cu_3d, Cu_3d), displacement = [0, -1])
-    bond_3d_3d_ny_id = add_bond!(model_geometry, bond_3d_3d_ny)
-
-    # Define tight binding model
+    # Define the tight-binding model
     tight_binding_model = TightBindingModel(
         model_geometry = model_geometry,
-        μ = μ,
-        ϵ_mean  = [ϵd, ϵp, ϵp],
-        t_bonds = [bond_3d_2px_px, bond_3d_2py_py, bond_2px_3d_nx, bond_2py_3d_ny,
-                   bond_2px_2py_nxpy, bond_2px_2py_nxny, bond_2px_2py_pxpy, bond_2px_2py_pxny],
-        t_mean  = [tpd, -tpd, -tpd, tpd, -tpp, tpp, tpp, -tpp]
+        t_bonds = [bond], # defines hopping
+        t_mean = [t],     # defines corresponding hopping amplitude
+        μ = μ,            # set chemical potential
+        ϵ_mean = [0.]     # set the (mean) on-site energy
     )
 
-    # Initialize a finite Hubbard interaction just on copper orbitals.
-    if iszero(Up)
-        hubbard_model = HubbardModel(
-            shifted   = true, # If true, Hubbard interaction instead parameterized as U⋅nup⋅ndn
-            U_orbital = [1, 2, 3],
-            U_mean    = [Ud, Up, Up],
-        )
-    # Initialize the Hubbard interaction on copper and oxygen orbitals.
-    else
-        hubbard_model = HubbardModel(
-            shifted   = true, # If true, Hubbard interaction instead parameterized as U⋅nup⋅ndn
-            U_orbital = [1],
-            U_mean    = [Ud],
-        )
-    end
+    # Initialize the Hubbard interaction in the model.
+    hubbard_model = HubbardModel(
+        shifted = false, # If true, Hubbard interaction instead parameterized as U⋅nup⋅ndn
+        U_orbital = [1],
+        U_mean = [U],
+    )
+
+    # Initialize the directory the data will be written to.
+    initialize_datafolder(simulation_info)
 
     # Write the model summary to file.
     model_summary(
@@ -178,6 +163,7 @@ function run_hubbard_threeband_simulation(sID, Ud, Up, tpd, tpp, ϵd, ϵp, μ, �
     #########################################
     ### INITIALIZE FINITE MODEL PARAMETERS ##
     #########################################
+
 
     # Initialize tight-binding parameters.
     tight_binding_parameters = TightBindingParameters(
@@ -220,8 +206,7 @@ function run_hubbard_threeband_simulation(sID, Ud, Up, tpd, tpp, ϵd, ϵp, μ, �
         model_geometry = model_geometry,
         correlation = "greens",
         time_displaced = true,
-        pairs = [(Cu_3d, Cu_3d), (O_2px, O_2px), (O_2py, O_2py),
-                 (Cu_3d, O_2px), (Cu_3d, O_2py), (O_2px, O_2py)]
+        pairs = [(1, 1)]
     )
 
     # Initialize density correlation function measurement.
@@ -231,8 +216,7 @@ function run_hubbard_threeband_simulation(sID, Ud, Up, tpd, tpp, ϵd, ϵp, μ, �
         correlation = "density",
         time_displaced = false,
         integrated = true,
-        pairs = [(Cu_3d, Cu_3d), (O_2px, O_2px), (O_2py, O_2py),
-                 (Cu_3d, O_2px), (Cu_3d, O_2py), (O_2px, O_2py)]
+        pairs = [(1, 1)]
     )
 
     # Initialize the pair correlation function measurement.
@@ -242,8 +226,7 @@ function run_hubbard_threeband_simulation(sID, Ud, Up, tpd, tpp, ϵd, ϵp, μ, �
         correlation = "pair",
         time_displaced = false,
         integrated = true,
-        pairs = [(Cu_3d, Cu_3d), (O_2px, O_2px), (O_2py, O_2py),
-                 (Cu_3d, O_2px), (Cu_3d, O_2py), (O_2px, O_2py)]
+        pairs = [(1, 1)]
     )
 
     # Initialize the spin-z correlation function measurement.
@@ -253,26 +236,7 @@ function run_hubbard_threeband_simulation(sID, Ud, Up, tpd, tpp, ϵd, ϵp, μ, �
         correlation = "spin_z",
         time_displaced = false,
         integrated = true,
-        pairs = [(Cu_3d, Cu_3d), (O_2px, O_2px), (O_2py, O_2py),
-                 (Cu_3d, O_2px), (Cu_3d, O_2py), (O_2px, O_2py)]
-    )
-
-    # Initialize the pair correlation function measurement.
-    initialize_correlation_measurements!(
-        measurement_container = measurement_container,
-        model_geometry = model_geometry,
-        correlation = "pair",
-        time_displaced = false,
-        integrated = true,
-        pairs = [(Cu_3d, Cu_3d), (O_2px, O_2px), (O_2py, O_2py),
-                 (bond_3d_3d_px_id, bond_3d_3d_px_id), (bond_3d_3d_px_id, bond_3d_3d_nx_id),
-                 (bond_3d_3d_nx_id, bond_3d_3d_px_id), (bond_3d_3d_nx_id, bond_3d_3d_nx_id),
-                 (bond_3d_3d_py_id, bond_3d_3d_py_id), (bond_3d_3d_py_id, bond_3d_3d_ny_id),
-                 (bond_3d_3d_ny_id, bond_3d_3d_py_id), (bond_3d_3d_ny_id, bond_3d_3d_ny_id),
-                 (bond_3d_3d_px_id, bond_3d_3d_py_id), (bond_3d_3d_px_id, bond_3d_3d_ny_id),
-                 (bond_3d_3d_nx_id, bond_3d_3d_py_id), (bond_3d_3d_nx_id, bond_3d_3d_ny_id),
-                 (bond_3d_3d_py_id, bond_3d_3d_px_id), (bond_3d_3d_py_id, bond_3d_3d_nx_id),
-                 (bond_3d_3d_ny_id, bond_3d_3d_px_id), (bond_3d_3d_ny_id, bond_3d_3d_nx_id)]
+        pairs = [(1, 1)]
     )
 
     # Initialize the sub-directories to which the various measurements will be written.
@@ -281,10 +245,15 @@ function run_hubbard_threeband_simulation(sID, Ud, Up, tpd, tpp, ϵd, ϵp, μ, �
         measurement_container = measurement_container
     )
 
+    # Synchronize all the MPI processes.
+    # We need to ensure the sub-directories the measurements will be written are created
+    # prior to letting any of the processes move beyond this point.
+    MPI.Barrier(comm)
 
     #############################
     ### SET-UP DQMC SIMULATION ##
     #############################
+
 
     # Allocate FermionPathIntegral type for both the spin-up and spin-down electrons.
     fermion_path_integral_up = FermionPathIntegral(tight_binding_parameters = tight_binding_parameters, β = β, Δτ = Δτ)
@@ -418,82 +387,40 @@ function run_hubbard_threeband_simulation(sID, Ud, Up, tpd, tpp, ϵd, ϵp, μ, �
     ### PROCESS SIMULATION RESULTS ##
     #################################
 
-    # Process the simulation results, calculating final error bars for all measurements,
+    # Synchronize all the MPI processes.
+    # Before we prcoess the binned data to get the final averages and error bars
+    # we need to make sure all the simulations running in parallel have run to
+    # completion.
+    MPI.Barrier(comm)
+
+    # Have the primary MPI process calculate the final error bars for all measurements,
     # writing final statisitics to CSV files.
-    process_measurements(simulation_info.datafolder, N_bins)
-
-    # Measure the d-wave pair suspcetibility.
-    P_d, ΔP_d = composite_correlation_stats(
-        folder = simulation_info.datafolder,
-        correlation = "pair",
-        space = "momentum",
-        type = "integrated",
-        ids = [(bond_3d_3d_px_id, bond_3d_3d_px_id), (bond_3d_3d_px_id, bond_3d_3d_nx_id),
-               (bond_3d_3d_nx_id, bond_3d_3d_px_id), (bond_3d_3d_nx_id, bond_3d_3d_nx_id),
-               (bond_3d_3d_py_id, bond_3d_3d_py_id), (bond_3d_3d_py_id, bond_3d_3d_ny_id),
-               (bond_3d_3d_ny_id, bond_3d_3d_py_id), (bond_3d_3d_ny_id, bond_3d_3d_ny_id),
-               (bond_3d_3d_px_id, bond_3d_3d_py_id), (bond_3d_3d_px_id, bond_3d_3d_ny_id),
-               (bond_3d_3d_nx_id, bond_3d_3d_py_id), (bond_3d_3d_nx_id, bond_3d_3d_ny_id),
-               (bond_3d_3d_py_id, bond_3d_3d_px_id), (bond_3d_3d_py_id, bond_3d_3d_nx_id),
-               (bond_3d_3d_ny_id, bond_3d_3d_px_id), (bond_3d_3d_ny_id, bond_3d_3d_nx_id)],
-        locs = [(0,0), (0,0),
-                (0,0), (0,0),
-                (0,0), (0,0),
-                (0,0), (0,0),
-                (0,0), (0,0),
-                (0,0), (0,0),
-                (0,0), (0,0),
-                (0,0), (0,0)],
-        num_bins = N_bins,
-        f = (P_px_px, P_px_nx,
-             P_nx_px, P_nx_nx,
-             P_py_py, P_py_ny,
-             P_ny_py, P_ny_ny,
-             P_px_py, P_px_ny,
-             P_nx_py, P_nx_ny,
-             P_py_px, P_py_nx,
-             P_ny_px, P_ny_nx) -> (P_px_px + P_px_nx +
-                                   P_nx_px + P_nx_nx +
-                                   P_py_py + P_py_ny +
-                                   P_ny_py + P_ny_ny -
-                                   P_px_py - P_px_ny -
-                                   P_nx_py - P_nx_ny -
-                                   P_py_px - P_py_nx -
-                                   P_ny_px - P_ny_nx)/4
-    )
-
-    # Record the d-wave pair suspcetibility.
-    additional_info["P_d_mean"] = real(P_d)
-    additional_info["P_d_std"]  = ΔP_d
-
-    # Write simulation summary TOML file.
-    save_simulation_info(simulation_info, additional_info)
+    if iszero(simulation_info.pID)
+        process_measurements(simulation_info.datafolder, N_bins)
+    end
 
     return nothing
 end
 
 
-# Only excute if the script is run directly from the command line.
+# Only excute if script is run directly from the command line.
 if abspath(PROGRAM_FILE) == @__FILE__
 
     # Read in the command line arguments.
     sID = parse(Int, ARGS[1]) # simulation ID
-    Ud = parse(Float64, ARGS[2])
-    Up = parse(Float64, ARGS[3])
-    tpd = parse(Float64, ARGS[4])
-    tpp = parse(Float64, ARGS[5])
-    ϵd = parse(Float64, ARGS[6])
-    ϵp = parse(Float64, ARGS[7])
-    μ = parse(Float64, ARGS[8])
-    β = parse(Float64, ARGS[9])
-    Lx = parse(Int, ARGS[10])
-    Ly = parse(Int, ARGS[11])
-    N_burnin = parse(Int, ARGS[12])
-    N_updates = parse(Int, ARGS[13])
-    N_bins = parse(Int, ARGS[14])
+    U = parse(Float64, ARGS[2])
+    μ = parse(Float64, ARGS[3])
+    β = parse(Float64, ARGS[4])
+    L = parse(Int, ARGS[5])
+    N_burnin = parse(Int, ARGS[6])
+    N_updates = parse(Int, ARGS[7])
+    N_bins = parse(Int, ARGS[8])
 
     # Run the simulation.
-    run_hubbard_threeband_simulation(sID, Ud, Up, tpd, tpp, ϵd, ϵp, μ, β, Lx, Ly, N_burnin, N_updates, N_bins)
-end
+    run_hubbard_chain_simulation(sID, U, μ, β, L, N_burnin, N_updates, N_bins)
 
-# This file was generated using Literate.jl, https://github.com/fredrikekre/Literate.jl
+    # Finalize MPI (not strictly required).
+    MPI.Finalize()
+end
+````
+

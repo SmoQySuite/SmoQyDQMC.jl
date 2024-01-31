@@ -1,3 +1,42 @@
+```@meta
+EditURL = "../../../examples/hubbard_holstein_square.jl"
+```
+
+Download this example as a [Julia script](../assets/scripts/hubbard_holstein_square.jl).
+
+# Square Hubbard-Holstein Model
+
+In this example we write a script to simulate the Hubbard-Holstein model on a square lattice, with a Hamiltonian given by
+```math
+\begin{align*}
+\hat{H} = & -t \sum_{\sigma,\langle i, j \rangle} (\hat{c}^{\dagger}_{\sigma,i}, \hat{c}^{\phantom \dagger}_{\sigma,j} + {\rm h.c.})
+            -\mu \sum_{\sigma,i}\hat{n}_{\sigma,i}\\
+          & + U \sum_{i} (\hat{n}_{\uparrow,i}-\tfrac{1}{2})(\hat{n}_{\downarrow,i}-\tfrac{1}{2})
+            + \alpha \sum_{\sigma,i} \hat{X}_i (\hat{n}_{\sigma,i} - \tfrac{1}{2}) \\
+          & + \sum_i \left( \frac{1}{2M}\hat{P}_i^2 + \frac{1}{2}M\Omega^2\hat{X}_i^2 \right),
+\end{align*}
+```
+where ``\hat{c}^\dagger_{\sigma,i} \ (\hat{c}^{\phantom \dagger}_{\sigma,i})`` creates (annihilates) a spin ``\sigma``
+electron on site ``i`` in the lattice, and ``\hat{n}_{\sigma,i} = \hat{c}^\dagger_{\sigma,i} \hat{c}^{\phantom \dagger}_{\sigma,i}``
+is the spin-``\sigma`` electron number operator for site ``i``. The nearest-neighbor hopping amplitude is ``t`` and ``\mu`` is the
+chemical potential. The strength of the repulsive Hubbard interaction is controlled by ``U>0``. ``\hat{X}_i \ (\hat{P}_i)``
+is the phonon position (momentum) operator for a dispersionless mode placed on site ``i`` with phonon frequency ``\Omega`` and
+corresponding ion mass ``M``. The stength of the Holstein electron-phonon is controlled by the parameter ``\alpha``.
+
+A short test simulation using the script associated with this example can be run as
+```
+> julia hubbard_holstein_square.jl 0 6.0 0.1 0.1 0.0 4.0 4 1000 5000 50
+```
+which simulates the Hubbard-Holstein model on a ``L = 4`` square lattice, with ``U = 6.0``, ``\Omega = 0.1``, ``\alpha = 0.1``
+and ``\mu = 0.0`` at an inverse temperature of ``\beta = 4.0``. In this simulation the Hubbard-Stranonovich and phonon fields
+are thermalized with `N_burnin = 1000` rounds of updates, followed by `N_udpates = 5000` rounds of updates with measurements
+being made. Bin averaged measurements are written to file `N_bins = 50` during the simulation.
+
+Below you will find the source code from the julia script linked at the top of this page,
+but with additional comments giving more detailed explanations for what certain parts of the code are doing.
+Additionally, this script demonstrates how to calculate the extended s-wave and d-wave pair susceptibilities.
+
+````@example hubbard_holstein_square
 using LinearAlgebra
 using Random
 using Printf
@@ -53,17 +92,11 @@ function run_hubbard_holstein_square_simulation(sID, U, Ω, α, μ, β, L, N_bur
     # Calculate the bins size.
     bin_size = div(N_updates, N_bins)
 
-    # Fermionic time-step used in HMC update.
-    Δt = 1/(10*Ω)
-
     # Number of fermionic time-steps in HMC update.
-    Nt = 10
+    Nt = 5
 
-    # Number of bosonic time-steps per fermionic time-step in HMC udpate.
-    nt = 10
-
-    # Regularizaton parameter for fourier acceleration mass matrix used in HMC dyanmics.
-    reg = 1.0
+    # Fermionic time-step used in HMC update.
+    Δt = π/(Nt*Ω)
 
     # Initialize a dictionary to store additional information about the simulation.
     additional_info = Dict(
@@ -79,10 +112,8 @@ function run_hubbard_holstein_square_simulation(sID, U, Ω, α, μ, β, L, N_bur
         "symmetric" => symmetric,
         "checkerboard" => checkerboard,
         "seed" => seed,
-        "dt" => Δt,
         "Nt" => Nt,
-        "nt" => nt,
-        "reg" => reg
+        "dt" => Δt,
     )
 
     #######################
@@ -118,6 +149,9 @@ function run_hubbard_holstein_square_simulation(sID, U, Ω, α, μ, β, L, N_bur
     # Add the nearest-neighbor bond in the +y direction.
     bond_py_id = add_bond!(model_geometry, bond_py)
 
+    # Here we define bonds to points in the negative x and y directions respectively.
+    # We do this in order to be able to measure all the pairing channels we need
+    # in order to reconstruct the extended s-wave and d-wave pair susceptibilities.
 
     # Define the nearest-neighbor bond in the -x direction.
     bond_nx = lu.Bond(orbitals = (1,1), displacement = [-1,0])
@@ -248,7 +282,11 @@ function run_hubbard_holstein_square_simulation(sID, U, Ω, α, μ, β, L, N_bur
         time_displaced = true,
         pairs = [(1, 1)]
     )
+````
 
+measure equal-times green's function for all τ
+
+````@example hubbard_holstein_square
     initialize_correlation_measurements!(
         measurement_container = measurement_container,
         model_geometry = model_geometry,
@@ -287,6 +325,10 @@ function run_hubbard_holstein_square_simulation(sID, U, Ω, α, μ, β, L, N_bur
         pairs = [(1, 1)]
     )
 
+    # Measure all possible combinations of bond pairing channels
+    # for the bonds we have defined. We will need each of these
+    # pairs channels measured in order to reconstruct the extended
+    # s-wave and d-wave pair susceptibilities.
     # Initialize the pair correlation function measurement.
     initialize_correlation_measurements!(
         measurement_container = measurement_container,
@@ -357,9 +399,9 @@ function run_hubbard_holstein_square_simulation(sID, U, Ω, α, μ, β, L, N_bur
     logdetGdn, sgndetGdn = dqmcf.calculate_equaltime_greens!(Gdn, fermion_greens_calculator_dn)
 
     # Initialize Hamitlonian/Hybrid monte carlo (HMC) updater.
-    hmc_updater = HMCUpdater(
+    hmc_updater = EFAHMCUpdater(
         electron_phonon_parameters = electron_phonon_parameters,
-        G = Gup, Nt = Nt, Δt = Δt, nt = nt, reg = reg
+        G = Gup, Nt = Nt, Δt = Δt
     )
 
     # Allocate matrices for various time-displaced Green's function matrices.
@@ -412,8 +454,7 @@ function run_hubbard_holstein_square_simulation(sID, U, Ω, α, μ, β, L, N_bur
             fermion_greens_calculator_up_alt = fermion_greens_calculator_up_alt,
             fermion_greens_calculator_dn_alt = fermion_greens_calculator_dn_alt,
             Bup = Bup, Bdn = Bdn,
-            δG_max = δG_max, δG = δG, δθ = δθ, rng = rng,
-            initialize_force = true
+            δG_max = δG_max, δG = δG, δθ = δθ, rng = rng
         )
 
         # Record whether the HMC update was accepted or rejected.
@@ -479,8 +520,7 @@ function run_hubbard_holstein_square_simulation(sID, U, Ω, α, μ, β, L, N_bur
                 fermion_greens_calculator_up_alt = fermion_greens_calculator_up_alt,
                 fermion_greens_calculator_dn_alt = fermion_greens_calculator_dn_alt,
                 Bup = Bup, Bdn = Bdn,
-                δG_max = δG_max, δG = δG, δθ = δθ, rng = rng,
-                initialize_force = true
+                δG_max = δG_max, δG = δG, δθ = δθ, rng = rng
             )
 
             # Record whether the HMC update was accepted or rejected.
@@ -545,6 +585,12 @@ function run_hubbard_holstein_square_simulation(sID, U, Ω, α, μ, β, L, N_bur
     # writing final statisitics to CSV files.
     process_measurements(simulation_info.datafolder, N_bins)
 
+    # Here we use the `composite_correlation_stats` to reconstruct the extended
+    # s-wave and d-wave pair susceptibilities. We also subract off the background
+    # signal associated with the zero-momentum transfer charge susceptibility.
+    # Behind the scenes, uses the binning
+    # method to calculate the error bars by calculating both susceptibilities for
+    # each bin of data that was written to file.
 
     # Measure the extended s-wave pair susceptibility.
     Pes, ΔPes = composite_correlation_stat(
@@ -618,8 +664,12 @@ function run_hubbard_holstein_square_simulation(sID, U, Ω, α, μ, β, L, N_bur
 
     # Calculate the charge susceptibility for zero momentum transfer (q=0)
     # with the net charge background signal subtracted off.
+````
 
-    C0, ΔC0 = composite_correlation_stat(comm;
+calculate the Cu-Cu charge susceptibility at q=0 with the background signal remove
+
+````@example hubbard_holstein_square
+    C0, ΔC0 = composite_correlation_stat(
         folder = simulation_info.datafolder,
         correlations = ["density", "greens_tautau", "greens"],
         spaces = ["momentum", "position", "position"],
@@ -628,7 +678,7 @@ function run_hubbard_holstein_square_simulation(sID, U, Ω, α, μ, β, L, N_bur
         locs = [(0,0), (0,0), (0,0)],
         Δls = [0, 0, 0],
         num_bins = N_bins,
-        f = (x, y, z) -> x - (Lx*Ly)*4*(β-y)*(1-z)
+        f = (x, y, z) -> x - (L^2)*4*(β-y)*(1-z)
     )
     additional_info["Chi_C_q0_avg"] = C0
     additional_info["Chi_C_q0_err"] = ΔC0
@@ -658,5 +708,5 @@ if abspath(PROGRAM_FILE) == @__FILE__
     # Run the simulation.
     run_hubbard_holstein_square_simulation(sID, U, Ω, α, μ, β, L, N_burnin, N_updates, N_bins)
 end
+````
 
-# This file was generated using Literate.jl, https://github.com/fredrikekre/Literate.jl
