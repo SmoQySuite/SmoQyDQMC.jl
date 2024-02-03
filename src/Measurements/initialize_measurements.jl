@@ -24,17 +24,21 @@ function initialize_measurement_container(model_geometry::ModelGeometry{D,T,N}, 
 
     # initialize global measurements
     global_measurements = Dict{String, Complex{T}}(
-        "density" => zero(Complex{T}), # average total density ⟨n⟩
-        "double_occ" => zero(Complex{T}),
-        "Nsqrd" => zero(Complex{T}), # total particle number square ⟨N²⟩
-        "sgndetGup" => zero(Complex{T}), # sign(det(Gup))
-        "sgndetGdn" => zero(Complex{T}), # sign(det(Gdn))
-        "sgn" => zero(Complex{T}), # sign(det(Gup))⋅sign(det(Gdn))
+        "density"    => zero(Complex{T}), # average total density ⟨n⟩
+        "density_up" => zero(Complex{T}), # average total spin-dn density ⟨n⟩
+        "density_dn" => zero(Complex{T}), # average total spin-up density ⟨n⟩
+        "double_occ" => zero(Complex{T}), # average double occupancy
+        "Nsqrd"      => zero(Complex{T}), # total particle number square ⟨N²⟩
+        "sgndetGup"  => zero(Complex{T}), # sign(det(Gup))
+        "sgndetGdn"  => zero(Complex{T}), # sign(det(Gdn))
+        "sgn"        => zero(Complex{T}), # sign(det(Gup))⋅sign(det(Gdn))
     )
 
     # initialize local measurement
     local_measurements = Dict{String, Vector{Complex{T}}}(
-        "density" => zeros(Complex{T}, norbitals), # average density for each orbital species
+        "density"    => zeros(Complex{T}, norbitals), # average density for each orbital species
+        "density_up" => zeros(Complex{T}, norbitals), # average density for each orbital species
+        "density_dn" => zeros(Complex{T}, norbitals), # average density for each orbital species
         "double_occ" => zeros(Complex{T}, norbitals), # average double occupancy for each orbital
     )
 
@@ -95,11 +99,15 @@ function initialize_measurements!(measurement_container::NamedTuple,
     global_measurements["chemical_potential"] = zero(Complex{E})
 
     # initialize on-site energy measurement
-    local_measurements["onsite_energy"] = zeros(Complex{E}, norbital)
+    local_measurements["onsite_energy"]    = zeros(Complex{E}, norbital)
+    local_measurements["onsite_energy_up"] = zeros(Complex{E}, norbital)
+    local_measurements["onsite_energy_dn"] = zeros(Complex{E}, norbital)
 
     # initialize hopping energy measurement
     if nhopping > 0
-        local_measurements["hopping_energy"] = zeros(Complex{E}, nhopping)
+        local_measurements["hopping_energy"]    = zeros(Complex{E}, nhopping)
+        local_measurements["hopping_energy_up"] = zeros(Complex{E}, nhopping)
+        local_measurements["hopping_energy_dn"] = zeros(Complex{E}, nhopping)
     end
 
     return nothing
@@ -189,7 +197,9 @@ function _initialize_measurements!(local_measurements::Dict{String, Vector{Compl
     n_couplings = length(holstein_couplings)
 
     # add measurements
-    local_measurements["holstein_energy"] = zeros(Complex{T}, n_couplings)
+    local_measurements["holstein_energy"]    = zeros(Complex{T}, n_couplings)
+    local_measurements["holstein_energy_up"] = zeros(Complex{T}, n_couplings)
+    local_measurements["holstein_energy_dn"] = zeros(Complex{T}, n_couplings)
 
     return nothing
 end
@@ -202,8 +212,12 @@ function _initialize_measurements!(local_measurements::Dict{String, Vector{Compl
     n_couplings = length(ssh_couplings)
 
     # add measurements
-    local_measurements["ssh_energy"] = zeros(Complex{E}, n_couplings)
-    local_measurements["ssh_sgn_switch"] = zeros(Complex{E}, n_couplings)
+    local_measurements["ssh_energy"]        = zeros(Complex{E}, n_couplings)
+    local_measurements["ssh_energy_up"]     = zeros(Complex{E}, n_couplings)
+    local_measurements["ssh_energy_dn"]     = zeros(Complex{E}, n_couplings)
+    local_measurements["ssh_sgn_switch"]    = zeros(Complex{E}, n_couplings)
+    local_measurements["ssh_sgn_switch_up"] = zeros(Complex{E}, n_couplings)
+    local_measurements["ssh_sgn_switch_dn"] = zeros(Complex{E}, n_couplings)
 
     return nothing
 end
