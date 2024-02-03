@@ -741,20 +741,27 @@ function evolve_qho_action!(
     mul!(p̃, pfft, u)
 
     # iterate over fourier modes
-    @simd for n in 1:Lτ
+    @simd for n in axes(ω,2)
         # iterate over phonon modes
         for i in axes(ω,1)
             # get relevant frequency
             ωₙ = ω[i,n]
             # get the relevant mass
             mᵢ = m[i]
-            # make sure finite frequency
-            if ωₙ > 0 && isfinite(mᵢ)
-                # evolve momentum and phonon position
-                x̃′ = x̃[i,n]
-                p̃′ = p̃[i,n]
-                x̃[i,n] = x̃′*cos(ωₙ*Δt) + p̃′/(ωₙ*mᵢ)*sin(ωₙ*Δt)
-                p̃[i,n] = p̃′*cos(ωₙ*Δt) - x̃′*(ωₙ*mᵢ)*sin(ωₙ*Δt)
+            # make sure mass if finite
+            if isfinite(mᵢ)
+                # if finite frequency
+                if ωₙ > 1e-10
+                    # evolve momentum and phonon position
+                    x̃′ = x̃[i,n]
+                    p̃′ = p̃[i,n]
+                    x̃[i,n] = x̃′*cos(ωₙ*Δt) + p̃′/(ωₙ*mᵢ) * sin(ωₙ*Δt)
+                    p̃[i,n] = p̃′*cos(ωₙ*Δt) - x̃′*(ωₙ*mᵢ) * sin(ωₙ*Δt)
+                # if frequency is very near zero
+                elseif abs(ωₙ) ≤ 1e-10
+                    # perform integration using taylor expansion of above expression
+                    x̃[i,n] = x̃[i,n] + (Δt - Δt^3*ωₙ^2/6 + Δt^5*ωₙ^4/120) * p̃[i,n]/mᵢ
+                end
             end
         end
     end
