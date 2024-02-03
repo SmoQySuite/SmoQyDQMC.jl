@@ -761,6 +761,7 @@ function evolve_qho_action!(
                 elseif abs(ωₙ) ≤ 1e-10
                     # perform integration using taylor expansion of above expression
                     x̃[i,n] = x̃[i,n] + (Δt - Δt^3*ωₙ^2/6 + Δt^5*ωₙ^4/120) * p̃[i,n]/mᵢ
+                    p̃[i,n] = p̃′*cos(ωₙ*Δt) - x̃′*(ωₙ*mᵢ) * sin(ωₙ*Δt)
                 end
             end
         end
