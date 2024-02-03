@@ -751,16 +751,16 @@ function evolve_qho_action!(
             # make sure mass if finite
             if isfinite(mᵢ)
                 # if finite frequency
-                if ωₙ > 0
+                if ωₙ > 1e-10
                     # evolve momentum and phonon position
                     x̃′ = x̃[i,n]
                     p̃′ = p̃[i,n]
-                    x̃[i,n] = x̃′*cos(ωₙ*Δt) + p̃′/(ωₙ*mᵢ)*sin(ωₙ*Δt)
-                    p̃[i,n] = p̃′*cos(ωₙ*Δt) - x̃′*(ωₙ*mᵢ)*sin(ωₙ*Δt)
-                # if zero frequency
-                elseif iszero(ωₙ)
-                    # perform a standard numerical integration step
-                    x̃[i,n] = x̃[i,n] + Δt * p̃[i,n] / mᵢ
+                    x̃[i,n] = x̃′*cos(ωₙ*Δt) + p̃′/(ωₙ*mᵢ) * sin(ωₙ*Δt)
+                    p̃[i,n] = p̃′*cos(ωₙ*Δt) - x̃′*(ωₙ*mᵢ) * sin(ωₙ*Δt)
+                # if frequency is very near zero
+                elseif abs(ωₙ) ≤ 1e-10
+                    # perform integration using taylor expansion of above expression
+                    x̃[i,n] = x̃[i,n] + (Δt - Δt^3*ωₙ^2/6 + Δt^5*ωₙ^4/120) * p̃[i,n]/mᵢ
                 end
             end
         end
