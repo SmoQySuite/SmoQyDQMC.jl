@@ -1,7 +1,8 @@
 @doc raw"""
     TightBindingModel{T<:Number, E<:AbstractFloat, D}
 
-Defines a tight binding model in `D` dimensions.
+Defines a tight binding model in `D` dimensions. Note that `spin = 1 (spin = 2)` corresponds to
+spin-up (spin-down), and `spin = 0` corresponds to both spin-up and spin-down.
 
 # Fields
 
@@ -12,6 +13,7 @@ Defines a tight binding model in `D` dimensions.
 - `t_bonds::Vector{Bond{D}}`: Bond definition for each type of hopping in the tight binding model.
 - `t_mean::Vector{T}`: Mean hopping energy for each type of hopping.
 - `t_std::Vector{E}`: Standard deviation of hopping energy for each type of hopping.
+- `spin::Int`: Defines relevant spin-species for tight-binding model.
 """
 struct TightBindingModel{T<:Number, E<:AbstractFloat, D}
     
@@ -35,27 +37,39 @@ struct TightBindingModel{T<:Number, E<:AbstractFloat, D}
 
     # standard deviation of hopping energy for each type of hopping in tight-binding model
     t_std::Vector{E}
+
+    # specifies the spin species the tight binding model applies to
+    spin::Int
 end
 
 @doc raw"""
-    TightBindingModel(; model_geometry::ModelGeometry{D,E,N},
-                      μ::E,
-                      ϵ_mean::Vector{E},
-                      ϵ_std::Vector{E} = zeros(eltype(ϵ_mean), length(ϵ_mean)),
-                      t_bonds::Vector{Bond{D}} = Bond{ndims(model_geometry.unit_cell)}[],
-                      t_mean::Vector{T} = eltype(ϵ_mean)[],
-                      t_std::Vector{E} = zeros(eltype(ϵ_mean), length(t_mean))) where {T<:Number, E<:AbstractFloat, D, N}
+    TightBindingModel(;
+        model_geometry::ModelGeometry{D,E,N},
+        μ::E,
+        ϵ_mean::Vector{E},
+        ϵ_std::Vector{E} = zeros(eltype(ϵ_mean), length(ϵ_mean)),
+        t_bonds::Vector{Bond{D}} = Bond{ndims(model_geometry.unit_cell)}[],
+        t_mean::Vector{T} = eltype(ϵ_mean)[],
+        t_std::Vector{E} = zeros(eltype(ϵ_mean), length(t_mean)),
+        spin::Int = 0
+    ) where {T<:Number, E<:AbstractFloat, D, N}
 
 Initialize and return an instance of [`TightBindingModel`](@ref), also adding/recording the bond defintions `t_bonds` to the
 [`ModelGeometry`](@ref) instance `model_geometry`.
 """
-function TightBindingModel(; model_geometry::ModelGeometry{D,E,N},
-                           μ::E,
-                           ϵ_mean::Vector{E},
-                           ϵ_std::Vector{E} = zeros(eltype(ϵ_mean), length(ϵ_mean)),
-                           t_bonds::Vector{Bond{D}} = Bond{ndims(model_geometry.unit_cell)}[],
-                           t_mean::Vector{T} = eltype(ϵ_mean)[],
-                           t_std::Vector{E} = zeros(eltype(ϵ_mean), length(t_mean))) where {T<:Number, E<:AbstractFloat, D, N}
+function TightBindingModel(;
+    model_geometry::ModelGeometry{D,E,N},
+    μ::E,
+    ϵ_mean::Vector{E},
+    ϵ_std::Vector{E} = zeros(eltype(ϵ_mean), length(ϵ_mean)),
+    t_bonds::Vector{Bond{D}} = Bond{ndims(model_geometry.unit_cell)}[],
+    t_mean::Vector{T} = eltype(ϵ_mean)[],
+    t_std::Vector{E} = zeros(eltype(ϵ_mean), length(t_mean)),
+    spin::Int = 0
+) where {T<:Number, E<:AbstractFloat, D, N}
+
+    # check that valid spin species is defined
+    @assert spin ∈ (-1, 0, +1)
 
     # get the number of orbitals per unit cell
     unit_cell = model_geometry.unit_cell::UnitCell{D,E,N}
@@ -78,7 +92,14 @@ end
 # show struct info as TOML formatted string for real hopping energies
 function Base.show(io::IO, ::MIME"text/plain", tbm::TightBindingModel{T,E,D}) where {T<:AbstractFloat,E,D}
 
-    @printf io "[tight_binding_model]\n\n"
+    if iszero(tbm.spin)
+        @printf io "[tight_binding_model]\n\n"
+    elseif isone(tbm.spin)
+        @printf io "[tight_binding_model_up]\n\n"
+    else
+        @printf io "[tight_binding_model_down]\n\n"
+    end
+    @printf io "spin = %d\n\n" tbm.spin
     @printf io "chemical_potential = %.8f\n\n" tbm.μ
     @printf io "[tight_binding_model.onsite_energy]\n\n"
     @printf io "e_mean = %s\n" string(tbm.ϵ_mean)
@@ -99,7 +120,14 @@ end
 # show struct info as TOML formatted string for complex hopping energies
 function Base.show(io::IO, ::MIME"text/plain", tbm::TightBindingModel{T,E,D}) where {T<:Complex,E,D}
 
-    @printf io "[tight_binding_model]\n\n"
+    if iszero(tbm.spin)
+        @printf io "[tight_binding_model]\n\n"
+    elseif isone(tbm.spin)
+        @printf io "[tight_binding_model_up]\n\n"
+    else
+        @printf io "[tight_binding_model_down]\n\n"
+    end
+    @printf io "spin = %d\n\n" tbm.spin
     @printf io "chemical_potential = %.8f\n\n" tbm.μ
     @printf io "[tight_binding_model.onsite_energy]\n\n"
     @printf io "e_mean = %s\n" string(tbm.ϵ_mean)
@@ -139,6 +167,7 @@ and ``\mu`` is the chemical potential.
 - `const bond_ids::Vector{Int}`: The bond ID definitions that define the types of hopping in the lattice.
 - `const bond_slices::Vector{UnitRange{Int}}`: Slices of `neighbor_table` corresponding to given bond ID i.e. the neighbors `neighbor_table[:,bond_slices[1]]` corresponds the `bond_ids[1]` bond defintion.
 - `const norbital::Int`: Number of orbitals per unit cell.
+- `const spin::Int`: Spin species for tight-binding model parameters.
 """
 mutable struct TightBindingParameters{T<:Number, E<:AbstractFloat}
 
@@ -162,23 +191,33 @@ mutable struct TightBindingParameters{T<:Number, E<:AbstractFloat}
 
     # number of orbitals per unit cell
     const norbital::Int
+
+    # spin species for tight-binding model
+    const spin::Int
 end
 
 
 @doc raw"""
-    TightBindingParameters(; tight_binding_model::TightBindingModel{T,E,D},
-                           model_geometry::ModelGeometry{D,E},
-                           rng::AbstractRNG) where {T,E,D}
+    TightBindingParameters(;
+        tight_binding_model::TightBindingModel{T,E,D},
+        model_geometry::ModelGeometry{D,E},
+        rng::AbstractRNG
+    ) where {T,E,D}
 
 Initialize and return an instance of [`TightBindingParameters`](@ref).
 """
-function TightBindingParameters(; tight_binding_model::TightBindingModel{T,E,D},
-                                model_geometry::ModelGeometry{D,E},
-                                rng::AbstractRNG) where {T,E,D}
+function TightBindingParameters(;
+    tight_binding_model::TightBindingModel{T,E,D},
+    model_geometry::ModelGeometry{D,E},
+    rng::AbstractRNG
+) where {T,E,D}
 
     (; unit_cell, lattice) = model_geometry
     N = lattice.N # number of unit cells in lattice
     n = unit_cell.n # number of orbital per unit cell
+
+    # get the spin species
+    spin = tight_binding_model.spin
 
     # set chemical potential
     μ = tight_binding_model.μ
@@ -227,5 +266,5 @@ function TightBindingParameters(; tight_binding_model::TightBindingModel{T,E,D},
         end
     end
 
-    return TightBindingParameters(μ, ϵ, t, neighbor_table, bond_ids, bond_slices, n)
+    return TightBindingParameters(μ, ϵ, t, neighbor_table, bond_ids, bond_slices, n, spin)
 end

@@ -3,32 +3,36 @@
 #######################################################
 
 @doc raw"""
-    make_measurements!(measurement_container::NamedTuple,
-                       logdetGup::E, sgndetGup::T, Gup::AbstractMatrix{T}, Gup_ττ::AbstractMatrix{T}, Gup_τ0::AbstractMatrix{T}, Gup_0τ::AbstractMatrix{T},
-                       logdetGdn::E, sgndetGdn::T, Gdn::AbstractMatrix{T}, Gdn_ττ::AbstractMatrix{T}, Gdn_τ0::AbstractMatrix{T}, Gdn_0τ::AbstractMatrix{T};
-                       fermion_path_integral_up::FermionPathIntegral{T,E},
-                       fermion_path_integral_dn::FermionPathIntegral{T,E},
-                       fermion_greens_calculator_up::FermionGreensCalculator{T,E},
-                       fermion_greens_calculator_dn::FermionGreensCalculator{T,E},
-                       Bup::Vector{P}, Bdn::Vector{P}, δG_max::E, δG::E, δθ::E,
-                       model_geometry::ModelGeometry{D,E,N},
-                       tight_binding_parameters::TightBindingParameters{T,E},
-                       coupling_parameters::Tuple) where {T<:Number, E<:AbstractFloat, D, N, P<:AbstractPropagator{T,E}}
+    make_measurements!(
+        measurement_container::NamedTuple,
+        logdetGup::E, sgndetGup::T, Gup::AbstractMatrix{T}, Gup_ττ::AbstractMatrix{T}, Gup_τ0::AbstractMatrix{T}, Gup_0τ::AbstractMatrix{T},
+        logdetGdn::E, sgndetGdn::T, Gdn::AbstractMatrix{T}, Gdn_ττ::AbstractMatrix{T}, Gdn_τ0::AbstractMatrix{T}, Gdn_0τ::AbstractMatrix{T};
+        fermion_path_integral_up::FermionPathIntegral{T,E},
+        fermion_path_integral_dn::FermionPathIntegral{T,E},
+        fermion_greens_calculator_up::FermionGreensCalculator{T,E},
+        fermion_greens_calculator_dn::FermionGreensCalculator{T,E},
+        Bup::Vector{P}, Bdn::Vector{P}, δG_max::E, δG::E, δθ::E,
+        model_geometry::ModelGeometry{D,E,N},
+        tight_binding_parameters::TightBindingParameters{T,E},
+        coupling_parameters::Tuple
+    ) where {T<:Number, E<:AbstractFloat, D, N, P<:AbstractPropagator{T,E}}
 
 Make measurements, including time-displaced correlation and zero Matsubara frequency measurements.
 This method also returns `(logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ)`.
 """
-function make_measurements!(measurement_container::NamedTuple,
-                            logdetGup::E, sgndetGup::T, Gup::AbstractMatrix{T}, Gup_ττ::AbstractMatrix{T}, Gup_τ0::AbstractMatrix{T}, Gup_0τ::AbstractMatrix{T},
-                            logdetGdn::E, sgndetGdn::T, Gdn::AbstractMatrix{T}, Gdn_ττ::AbstractMatrix{T}, Gdn_τ0::AbstractMatrix{T}, Gdn_0τ::AbstractMatrix{T};
-                            fermion_path_integral_up::FermionPathIntegral{T,E},
-                            fermion_path_integral_dn::FermionPathIntegral{T,E},
-                            fermion_greens_calculator_up::FermionGreensCalculator{T,E},
-                            fermion_greens_calculator_dn::FermionGreensCalculator{T,E},
-                            Bup::Vector{P}, Bdn::Vector{P}, δG_max::E, δG::E, δθ::E,
-                            model_geometry::ModelGeometry{D,E,N},
-                            tight_binding_parameters::TightBindingParameters{T,E},
-                            coupling_parameters::Tuple) where {T<:Number, E<:AbstractFloat, D, N, P<:AbstractPropagator{T,E}}
+function make_measurements!(
+    measurement_container::NamedTuple,
+    logdetGup::E, sgndetGup::T, Gup::AbstractMatrix{T}, Gup_ττ::AbstractMatrix{T}, Gup_τ0::AbstractMatrix{T}, Gup_0τ::AbstractMatrix{T},
+    logdetGdn::E, sgndetGdn::T, Gdn::AbstractMatrix{T}, Gdn_ττ::AbstractMatrix{T}, Gdn_τ0::AbstractMatrix{T}, Gdn_0τ::AbstractMatrix{T};
+    fermion_path_integral_up::FermionPathIntegral{T,E},
+    fermion_path_integral_dn::FermionPathIntegral{T,E},
+    fermion_greens_calculator_up::FermionGreensCalculator{T,E},
+    fermion_greens_calculator_dn::FermionGreensCalculator{T,E},
+    Bup::Vector{P}, Bdn::Vector{P}, δG_max::E, δG::E, δθ::E,
+    model_geometry::ModelGeometry{D,E,N},
+    tight_binding_parameters::TightBindingParameters{T,E},
+    coupling_parameters::Tuple
+) where {T<:Number, E<:AbstractFloat, D, N, P<:AbstractPropagator{T,E}}
 
     # extract temporary storage vectors
     (; time_displaced_correlations, equaltime_correlations, a, a′, a″) = measurement_container
@@ -115,28 +119,32 @@ function make_measurements!(measurement_container::NamedTuple,
 end
 
 @doc raw"""
-    make_measurements!(measurement_container::NamedTuple,
-                       logdetG::E, sgndetG::T, G::AbstractMatrix{T},
-                       G_ττ::AbstractMatrix{T}, G_τ0::AbstractMatrix{T}, G_0τ::AbstractMatrix{T};
-                       fermion_path_integral::FermionPathIntegral{T,E},
-                       fermion_greens_calculator::FermionGreensCalculator{T,E},
-                       B::Vector{P}, δG_max::E, δG::E, δθ::E,
-                       model_geometry::ModelGeometry{D,E,N},
-                       tight_binding_parameters::TightBindingParameters{T,E},
-                       coupling_parameters::Tuple) where {T<:Number, E<:AbstractFloat, D, N, P<:AbstractPropagator{T,E}}
+    make_measurements!(
+        measurement_container::NamedTuple,
+        logdetG::E, sgndetG::T, G::AbstractMatrix{T},
+        G_ττ::AbstractMatrix{T}, G_τ0::AbstractMatrix{T}, G_0τ::AbstractMatrix{T};
+        fermion_path_integral::FermionPathIntegral{T,E},
+        fermion_greens_calculator::FermionGreensCalculator{T,E},
+        B::Vector{P}, δG_max::E, δG::E, δθ::E,
+        model_geometry::ModelGeometry{D,E,N},
+        tight_binding_parameters::TightBindingParameters{T,E},
+        coupling_parameters::Tuple
+    ) where {T<:Number, E<:AbstractFloat, D, N, P<:AbstractPropagator{T,E}}
 
 Make measurements, including time-displaced correlation and zero Matsubara frequency measurements.
 This method also returns `(logdetG, sgndetG, δG, δθ)`.
 """
-function make_measurements!(measurement_container::NamedTuple,
-                            logdetG::E, sgndetG::T, G::AbstractMatrix{T},
-                            G_ττ::AbstractMatrix{T}, G_τ0::AbstractMatrix{T}, G_0τ::AbstractMatrix{T};
-                            fermion_path_integral::FermionPathIntegral{T,E},
-                            fermion_greens_calculator::FermionGreensCalculator{T,E},
-                            B::Vector{P}, δG_max::E, δG::E, δθ::E,
-                            model_geometry::ModelGeometry{D,E,N},
-                            tight_binding_parameters::TightBindingParameters{T,E},
-                            coupling_parameters::Tuple) where {T<:Number, E<:AbstractFloat, D, N, P<:AbstractPropagator{T,E}}
+function make_measurements!(
+    measurement_container::NamedTuple,
+    logdetG::E, sgndetG::T, G::AbstractMatrix{T},
+    G_ττ::AbstractMatrix{T}, G_τ0::AbstractMatrix{T}, G_0τ::AbstractMatrix{T};
+    fermion_path_integral::FermionPathIntegral{T,E},
+    fermion_greens_calculator::FermionGreensCalculator{T,E},
+    B::Vector{P}, δG_max::E, δG::E, δθ::E,
+    model_geometry::ModelGeometry{D,E,N},
+    tight_binding_parameters::TightBindingParameters{T,E},
+    coupling_parameters::Tuple
+) where {T<:Number, E<:AbstractFloat, D, N, P<:AbstractPropagator{T,E}}
 
     # extract temporary storage vectors
     (; time_displaced_correlations, equaltime_correlations, a, a′, a″) = measurement_container
@@ -555,7 +563,7 @@ function make_time_displaced_measurements!(time_displaced_correlations::Dict{Str
                                            model_geometry::ModelGeometry{D,E,N},
                                            tight_binding_parameters::TightBindingParameters{T,E},
                                            fermion_path_integral_up::FermionPathIntegral{T,E},
-                                           fermion_path_integral_dn::FermionPathIntegral{T,E},) where {T<:Number, E<:AbstractFloat, P, D, N}
+                                           fermion_path_integral_dn::FermionPathIntegral{T,E}) where {T<:Number, E<:AbstractFloat, P, D, N}
 
     unit_cell = model_geometry.unit_cell::UnitCell{D,E,N}
     lattice = model_geometry.lattice::Lattice{D}
