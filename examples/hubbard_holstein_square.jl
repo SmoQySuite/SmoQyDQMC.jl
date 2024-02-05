@@ -89,7 +89,7 @@ function run_hubbard_holstein_square_simulation(sID, U, Ω, α, μ, β, L, N_bur
     Nt = 5
 
     ## Fermionic time-step used in HMC update.
-    Δt = π/(Nt*Ω)
+    Δt = 1/(Nt*Ω)
 
     ## Initialize a dictionary to store additional information about the simulation.
     additional_info = Dict(
