@@ -56,7 +56,7 @@ function run_bssh_chain_simulation(sID, Ω, α, μ, β, L, N_burnin, N_updates, 
     Nt = 5
 
     # Fermionic time-step used in HMC update.
-    Δt = π/(Nt*Ω)
+    Δt = 1/(Nt*Ω)
 
     # Initialize a dictionary to store additional information about the simulation.
     additional_info = Dict(

@@ -56,7 +56,7 @@ function run_holstein_chain_simulation(sID, Ω, α, n, μ, β, L, N_burnin, N_up
     Nt = 5
 
     # Fermionic time-step used in HMC update.
-    Δt = π/(Nt*Ω)
+    Δt = 1/(Nt*Ω)
 
     # Initialize a dictionary to store additional information about the simulation.
     additional_info = Dict(
