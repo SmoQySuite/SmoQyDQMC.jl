@@ -457,22 +457,41 @@ function Base.show(io::IO, ::MIME"text/plain", elphm::ElectronPhononModel{T,E,D}
         @printf io "alpha4_mean     = %.6f\n" holstein_coupling_dn.α4_mean
         @printf io "alpha4_std      = %.6f\n\n" holstein_coupling_dn.α4_std
     end
-    for (i, ssh_coupling) in enumerate(elphm.ssh_couplings)
-        bond::Bond{D} = ssh_coupling.bond
+    for i in eachindex(elphm.ssh_couplings_up)
+
+        ssh_coupling_up = elphm.ssh_couplings_up[i]
+        bond::Bond{D} = ssh_coupling_up.bond
         @printf io "[[ElectronPhononModel.SSHCoupling]]\n\n"
         @printf io "SSH_ID       = %d\n" i
-        @printf io "PHONON_IDS   = [%d, %d]\n" ssh_coupling.phonon_modes[1] ssh_coupling.phonon_modes[2]
-        @printf io "BOND_ID      = %d\n" ssh_coupling.bond_id
+        @printf io "PHONON_IDS   = [%d, %d]\n" ssh_coupling_up.phonon_modes[1] ssh_coupling_up.phonon_modes[2]
+        @printf io "BOND_ID      = %d\n" ssh_coupling_up.bond_id
         @printf io "orbitals     = [%d, %d]\n" bond.orbitals[1] bond.orbitals[2]
         @printf io "displacement = %s\n" string(bond.displacement)
-        @printf io "alpha_mean   = %.6f\n" ssh_coupling.α_mean
-        @printf io "alpha_std    = %.6f\n" ssh_coupling.α_std
-        @printf io "alpha2_mean  = %.6f\n" ssh_coupling.α2_mean
-        @printf io "alpha2_std   = %.6f\n" ssh_coupling.α2_std
-        @printf io "alpha3_mean  = %.6f\n" ssh_coupling.α3_mean
-        @printf io "alpha3_std   = %.6f\n" ssh_coupling.α3_std
-        @printf io "alpha4_mean  = %.6f\n" ssh_coupling.α4_mean
-        @printf io "alpha4_std   = %.6f\n\n" ssh_coupling.α4_std
+        @printf io "alpha_mean   = %.6f\n" ssh_coupling_up.α_mean
+        @printf io "alpha_std    = %.6f\n" ssh_coupling_up.α_std
+        @printf io "alpha2_mean  = %.6f\n" ssh_coupling_up.α2_mean
+        @printf io "alpha2_std   = %.6f\n" ssh_coupling_up.α2_std
+        @printf io "alpha3_mean  = %.6f\n" ssh_coupling_up.α3_mean
+        @printf io "alpha3_std   = %.6f\n" ssh_coupling_up.α3_std
+        @printf io "alpha4_mean  = %.6f\n" ssh_coupling_up.α4_mean
+        @printf io "alpha4_std   = %.6f\n\n" ssh_coupling_up.α4_std
+
+        ssh_coupling_dn = elphm.ssh_couplings_dn[i]
+        bond::Bond{D} = ssh_coupling_dn.bond
+        @printf io "[[ElectronPhononModel.SSHCoupling]]\n\n"
+        @printf io "SSH_ID       = %d\n" i
+        @printf io "PHONON_IDS   = [%d, %d]\n" ssh_coupling_dn.phonon_modes[1] ssh_coupling_dn.phonon_modes[2]
+        @printf io "BOND_ID      = %d\n" ssh_coupling_dn.bond_id
+        @printf io "orbitals     = [%d, %d]\n" bond.orbitals[1] bond.orbitals[2]
+        @printf io "displacement = %s\n" string(bond.displacement)
+        @printf io "alpha_mean   = %.6f\n" ssh_coupling_dn.α_mean
+        @printf io "alpha_std    = %.6f\n" ssh_coupling_dn.α_std
+        @printf io "alpha2_mean  = %.6f\n" ssh_coupling_dn.α2_mean
+        @printf io "alpha2_std   = %.6f\n" ssh_coupling_dn.α2_std
+        @printf io "alpha3_mean  = %.6f\n" ssh_coupling_dn.α3_mean
+        @printf io "alpha3_std   = %.6f\n" ssh_coupling_dn.α3_std
+        @printf io "alpha4_mean  = %.6f\n" ssh_coupling_dn.α4_mean
+        @printf io "alpha4_std   = %.6f\n\n" ssh_coupling_dn.α4_std
     end
 
     return nothing
@@ -509,44 +528,87 @@ function Base.show(io::IO, ::MIME"text/plain", elphm::ElectronPhononModel{T,E,D}
         @printf io "omega_4_mean  = %.6f\n" dispersion.Ω4_mean
         @printf io "omega_4_std   = %.6f\n\n" dispersion.Ω4_std
     end
-    for (i, holstein_coupling) in enumerate(elphm.holstein_couplings)
-        bond::Bond{D} = holstein_coupling.bond
+    for i in eachindex(elphm.holstein_couplings_up)
+
+        holstein_coupling_up = elphm.holstein_couplings_up[i]
+        bond::Bond{D} = holstein_coupling_up.bond
         @printf io "[[ElectronPhononModel.HolsteinCoupling]]\n\n"
         @printf io "HOLSTEIN_ID     = %d\n" i
-        @printf io "PHONON_ID       = %d\n" holstein_coupling.phonon_mode
-        @printf io "BOND_ID         = %d\n" holstein_coupling.bond_id
+        @printf io "PHONON_ID       = %d\n" holstein_coupling_up.phonon_mode
+        @printf io "BOND_ID         = %d\n" holstein_coupling_up.bond_id
         @printf io "phonon_orbital  = %d\n" bond.orbitals[1]
         @printf io "density_orbital = %d\n" bond.orbitals[2]
         @printf io "displacement    = %s\n" string(bond.displacement)
-        @printf io "alpha_mean      = %.6f\n" holstein_coupling.α_mean
-        @printf io "alpha_std       = %.6f\n" holstein_coupling.α_std
-        @printf io "alpha2_mean     = %.6f\n" holstein_coupling.α2_mean
-        @printf io "alpha2_std      = %.6f\n" holstein_coupling.α2_std
-        @printf io "alpha3_mean     = %.6f\n" holstein_coupling.α3_mean
-        @printf io "alpha3_std      = %.6f\n" holstein_coupling.α3_std
-        @printf io "alpha4_mean     = %.6f\n" holstein_coupling.α4_mean
-        @printf io "alpha4_std      = %.6f\n\n" holstein_coupling.α4_std
+        @printf io "alpha_mean      = %.6f\n" holstein_coupling_up.α_mean
+        @printf io "alpha_std       = %.6f\n" holstein_coupling_up.α_std
+        @printf io "alpha2_mean     = %.6f\n" holstein_coupling_up.α2_mean
+        @printf io "alpha2_std      = %.6f\n" holstein_coupling_up.α2_std
+        @printf io "alpha3_mean     = %.6f\n" holstein_coupling_up.α3_mean
+        @printf io "alpha3_std      = %.6f\n" holstein_coupling_up.α3_std
+        @printf io "alpha4_mean     = %.6f\n" holstein_coupling_up.α4_mean
+        @printf io "alpha4_std      = %.6f\n\n" holstein_coupling_up.α4_std
+
+        holstein_coupling_dn = elphm.holstein_couplings_dn[i]
+        bond::Bond{D} = holstein_coupling_dn.bond
+        @printf io "[[ElectronPhononModel.HolsteinCoupling]]\n\n"
+        @printf io "HOLSTEIN_ID     = %d\n" i
+        @printf io "PHONON_ID       = %d\n" holstein_coupling_dn.phonon_mode
+        @printf io "BOND_ID         = %d\n" holstein_coupling_dn.bond_id
+        @printf io "phonon_orbital  = %d\n" bond.orbitals[1]
+        @printf io "density_orbital = %d\n" bond.orbitals[2]
+        @printf io "displacement    = %s\n" string(bond.displacement)
+        @printf io "alpha_mean      = %.6f\n" holstein_coupling_dn.α_mean
+        @printf io "alpha_std       = %.6f\n" holstein_coupling_dn.α_std
+        @printf io "alpha2_mean     = %.6f\n" holstein_coupling_dn.α2_mean
+        @printf io "alpha2_std      = %.6f\n" holstein_coupling_dn.α2_std
+        @printf io "alpha3_mean     = %.6f\n" holstein_coupling_dn.α3_mean
+        @printf io "alpha3_std      = %.6f\n" holstein_coupling_dn.α3_std
+        @printf io "alpha4_mean     = %.6f\n" holstein_coupling_dn.α4_mean
+        @printf io "alpha4_std      = %.6f\n\n" holstein_coupling_dn.α4_std
     end
-    for (i, ssh_coupling) in enumerate(elphm.ssh_couplings)
-        bond::Bond{D} = ssh_coupling.bond
+    for i in eachindex(elphm.ssh_couplings_up)
+
+        ssh_coupling_up = elphm.ssh_couplings_up[i]
+        bond::Bond{D} = ssh_coupling_up.bond
         @printf io "[[ElectronPhononModel.SSHCoupling]]\n\n"
         @printf io "SSH_ID           = %d\n" i
-        @printf io "PHONON_IDS       = [%d, %d]\n" ssh_coupling.phonon_modes[1] ssh_coupling.phonon_modes[2]
-        @printf io "BOND_ID          = %d\n" ssh_coupling.bond_id
+        @printf io "PHONON_IDS       = [%d, %d]\n" ssh_coupling_up.phonon_modes[1] ssh_coupling_up.phonon_modes[2]
+        @printf io "BOND_ID          = %d\n" ssh_coupling_up.bond_id
         @printf io "orbitals         = [%d, %d]\n" bond.orbitals[1] bond.orbitals[2]
         @printf io "displacement     = %s\n" string(bond.displacement)
-        @printf io "alpha_mean_real  = %.6f\n" real(ssh_coupling.α_mean)
-        @printf io "alpha_mean_imag  = %.6f\n" imag(ssh_coupling.α_mean)
-        @printf io "alpha_std        = %.6f\n" ssh_coupling.α_std
-        @printf io "alpha2_mean_real = %.6f\n" real(ssh_coupling.α2_mean)
-        @printf io "alpha2_mean_imag = %.6f\n" imag(ssh_coupling.α2_mean)
-        @printf io "alpha2_std       = %.6f\n" ssh_coupling.α2_std
-        @printf io "alpha3_mean_real = %.6f\n" real(ssh_coupling.α3_mean)
-        @printf io "alpha3_mean_imag = %.6f\n" imag(ssh_coupling.α3_mean)
-        @printf io "alpha3_std       = %.6f\n" ssh_coupling.α3_std
-        @printf io "alpha4_mean_real = %.6f\n" real(ssh_coupling.α4_mean)
-        @printf io "alpha4_mean_imag = %.6f\n" imag(ssh_coupling.α4_mean)
-        @printf io "alpha4_std       = %.6f\n\n" ssh_coupling.α4_std
+        @printf io "alpha_mean_real  = %.6f\n" real(ssh_coupling_up.α_mean)
+        @printf io "alpha_mean_imag  = %.6f\n" imag(ssh_coupling_up.α_mean)
+        @printf io "alpha_std        = %.6f\n" ssh_coupling_up.α_std
+        @printf io "alpha2_mean_real = %.6f\n" real(ssh_coupling_up.α2_mean)
+        @printf io "alpha2_mean_imag = %.6f\n" imag(ssh_coupling_up.α2_mean)
+        @printf io "alpha2_std       = %.6f\n" ssh_coupling_up.α2_std
+        @printf io "alpha3_mean_real = %.6f\n" real(ssh_coupling_up.α3_mean)
+        @printf io "alpha3_mean_imag = %.6f\n" imag(ssh_coupling_up.α3_mean)
+        @printf io "alpha3_std       = %.6f\n" ssh_coupling_up.α3_std
+        @printf io "alpha4_mean_real = %.6f\n" real(ssh_coupling_up.α4_mean)
+        @printf io "alpha4_mean_imag = %.6f\n" imag(ssh_coupling_up.α4_mean)
+        @printf io "alpha4_std       = %.6f\n\n" ssh_coupling_up.α4_std
+
+        ssh_coupling_dn = elphm.ssh_couplings_dn[i]
+        bond::Bond{D} = ssh_coupling_dn.bond
+        @printf io "[[ElectronPhononModel.SSHCoupling]]\n\n"
+        @printf io "SSH_ID           = %d\n" i
+        @printf io "PHONON_IDS       = [%d, %d]\n" ssh_coupling_dn.phonon_modes[1] ssh_coupling_dn.phonon_modes[2]
+        @printf io "BOND_ID          = %d\n" ssh_coupling_dn.bond_id
+        @printf io "orbitals         = [%d, %d]\n" bond.orbitals[1] bond.orbitals[2]
+        @printf io "displacement     = %s\n" string(bond.displacement)
+        @printf io "alpha_mean_real  = %.6f\n" real(ssh_coupling_dn.α_mean)
+        @printf io "alpha_mean_imag  = %.6f\n" imag(ssh_coupling_dn.α_mean)
+        @printf io "alpha_std        = %.6f\n" ssh_coupling_dn.α_std
+        @printf io "alpha2_mean_real = %.6f\n" real(ssh_coupling_dn.α2_mean)
+        @printf io "alpha2_mean_imag = %.6f\n" imag(ssh_coupling_dn.α2_mean)
+        @printf io "alpha2_std       = %.6f\n" ssh_coupling_dn.α2_std
+        @printf io "alpha3_mean_real = %.6f\n" real(ssh_coupling_dn.α3_mean)
+        @printf io "alpha3_mean_imag = %.6f\n" imag(ssh_coupling_dn.α3_mean)
+        @printf io "alpha3_std       = %.6f\n" ssh_coupling_dn.α3_std
+        @printf io "alpha4_mean_real = %.6f\n" real(ssh_coupling_dn.α4_mean)
+        @printf io "alpha4_mean_imag = %.6f\n" imag(ssh_coupling_dn.α4_mean)
+        @printf io "alpha4_std       = %.6f\n\n" ssh_coupling_dn.α4_std
     end
 
     return nothing
@@ -570,80 +632,6 @@ function add_phonon_mode!(;
     push!(electron_phonon_model.phonon_modes, phonon_mode)
 
     return length(electron_phonon_model.phonon_modes)
-end
-
-
-@doc raw"""
-    add_holstein_coupling!(;
-        electron_phonon_model::ElectronPhononModel{T,E,D},
-        holstein_coupling::HolsteinCoupling{E,D},
-        model_geometry::ModelGeometry{D,E}
-    ) where {T,E,D}
-
-Add the [`HolsteinCoupling`](@ref) to an [`ElectronPhononModel`](@ref).
-"""
-function add_holstein_coupling!(;
-    electron_phonon_model::ElectronPhononModel{T,E,D},
-    holstein_coupling::HolsteinCoupling{E,D},
-    model_geometry::ModelGeometry{D,E}
-) where {T,E,D}
-
-    # get the phonon mode getting coupled to
-    phonon_modes::Vector{PhononMode{E}} = electron_phonon_model.phonon_modes
-    phonon_mode = phonon_modes[holstein_coupling.phonon_mode]
-
-    # get the bond associated with holstein coupling
-    holstein_bond::Bond{D} = holstein_coupling.bond
-
-    # make sure the initial bond orbital matches the orbital species of the phonon mode
-    @assert phonon_mode.orbital == holstein_bond.orbitals[1]
-
-    # record the bond definition associated with the holstein coupling if not already recorded
-    bond_id = add_bond!(model_geometry, holstein_bond)
-
-    # record the holstein coupling
-    holstein_couplings::Vector{HolsteinCoupling{E,D}} = electron_phonon_model.holstein_couplings
-    push!(holstein_couplings, holstein_coupling)
-
-    return length(holstein_couplings)
-end
-
-
-@doc raw"""
-    add_ssh_coupling!(;
-        electron_phonon_model::ElectronPhononModel{T,E,D},
-        ssh_coupling::SSHCoupling{T,E,D},
-        tight_binding_model::TightBindingModel{T,E,D}
-    ) where {T,E,D}
-
-Add a [`SSHCoupling`](@ref) to an [`ElectronPhononModel`](@ref).
-"""
-function add_ssh_coupling!(;
-    electron_phonon_model::ElectronPhononModel{T,E,D},
-    ssh_coupling::SSHCoupling{T,E,D},
-    tight_binding_model::TightBindingModel{T,E,D}
-) where {T,E,D}
-
-    phonon_modes::Vector{PhononMode{E}} = electron_phonon_model.phonon_modes
-    ssh_couplings::Vector{SSHCoupling{T,E,D}} = electron_phonon_model.ssh_couplings
-    tbm_bonds = tight_binding_model.t_bonds
-    ssh_bond::Bond{D} = ssh_coupling.bond
-
-    # get initial and final phonon modes that are coupled
-    phonon_mode_init = phonon_modes[ssh_coupling.phonon_modes[1]]
-    phonon_mode_final = phonon_modes[ssh_coupling.phonon_modes[2]]
-
-    # make sure a hopping already exists in the tight binding model for the ssh coupling
-    @assert ssh_bond in tbm_bonds
-
-    # make the the staring and ending orbitals of the ssh bond match the orbital species of the phonon modes getting coupled
-    @assert ssh_bond.orbitals[1] == phonon_mode_init.orbital
-    @assert ssh_bond.orbitals[2] == phonon_mode_final.orbital
-
-    # record the ssh_bond
-    push!(ssh_couplings, ssh_coupling)
-
-    return length(ssh_couplings)
 end
 
 
@@ -682,4 +670,86 @@ function add_phonon_dispersion!(;
     push!(phonon_dispersions, phonon_dispersion)
 
     return length(phonon_dispersions)
+end
+
+
+@doc raw"""
+    add_holstein_coupling!(;
+        model_geometry::ModelGeometry{D,E},
+        electron_phonon_model::ElectronPhononModel{T,E,D},
+        holstein_coupling::HolsteinCoupling{E,D},
+        holstein_coupling_dn::HolsteinCoupling{E,D} = holstein_coupling
+    ) where {T,E,D}
+
+Add the [`HolsteinCoupling`](@ref) to an [`ElectronPhononModel`](@ref).
+"""
+function add_holstein_coupling!(;
+    model_geometry::ModelGeometry{D,E},
+    electron_phonon_model::ElectronPhononModel{T,E,D},
+    holstein_coupling::HolsteinCoupling{E,D},
+    holstein_coupling_dn::HolsteinCoupling{E,D} = holstein_coupling
+) where {T,E,D}
+
+    # get the phonon mode getting coupled to
+    phonon_modes::Vector{PhononMode{E}} = electron_phonon_model.phonon_modes
+    phonon_mode = phonon_modes[holstein_coupling.phonon_mode]
+
+    # get the bond associated with holstein coupling
+    holstein_bond::Bond{D} = holstein_coupling.bond
+
+    # make sure the initial bond orbital matches the orbital species of the phonon mode
+    @assert phonon_mode.orbital == holstein_bond.orbitals[1]
+
+    # record the bond definition associated with the holstein coupling if not already recorded
+    bond_id = add_bond!(model_geometry, holstein_bond)
+
+    # record the holstein coupling
+    holstein_couplings_up::Vector{HolsteinCoupling{E,D}} = electron_phonon_model.holstein_couplings_up
+    holstein_couplings_dn::Vector{HolsteinCoupling{E,D}} = electron_phonon_model.holstein_couplings_dn
+    push!(holstein_couplings_up, holstein_coupling)
+    push!(holstein_couplings_dn, holstein_coupling_dn)
+
+    return length(holstein_couplings_up)
+end
+
+
+@doc raw"""
+    add_ssh_coupling!(;
+        electron_phonon_model::ElectronPhononModel{T,E,D},
+        tight_binding_model::TightBindingModel{T,E,D},
+        ssh_coupling::SSHCoupling{T,E,D},
+        ssh_coupling_dn::SSHCoupling{T,E,D} = ssh_coupling
+    ) where {T,E,D}
+
+Add a [`SSHCoupling`](@ref) to an [`ElectronPhononModel`](@ref).
+"""
+function add_ssh_coupling!(;
+    electron_phonon_model::ElectronPhononModel{T,E,D},
+    tight_binding_model::TightBindingModel{T,E,D},
+    ssh_coupling::SSHCoupling{T,E,D},
+    ssh_coupling_dn::SSHCoupling{T,E,D} = ssh_coupling
+) where {T,E,D}
+
+    phonon_modes::Vector{PhononMode{E}} = electron_phonon_model.phonon_modes
+    ssh_couplings_up::Vector{SSHCoupling{T,E,D}} = electron_phonon_model.ssh_couplings_up
+    ssh_couplings_dn::Vector{SSHCoupling{T,E,D}} = electron_phonon_model.ssh_couplings_dn
+    tbm_bonds = tight_binding_model.t_bonds
+    ssh_bond::Bond{D} = ssh_coupling.bond
+
+    # get initial and final phonon modes that are coupled
+    phonon_mode_init = phonon_modes[ssh_coupling.phonon_modes[1]]
+    phonon_mode_final = phonon_modes[ssh_coupling.phonon_modes[2]]
+
+    # make sure a hopping already exists in the tight binding model for the ssh coupling
+    @assert ssh_bond in tbm_bonds
+
+    # make the the staring and ending orbitals of the ssh bond match the orbital species of the phonon modes getting coupled
+    @assert ssh_bond.orbitals[1] == phonon_mode_init.orbital
+    @assert ssh_bond.orbitals[2] == phonon_mode_final.orbital
+
+    # record the ssh_bond
+    push!(ssh_couplings_up, ssh_coupling)
+    push!(ssh_couplings_dn, ssh_coupling_dn)
+
+    return length(ssh_couplings)
 end

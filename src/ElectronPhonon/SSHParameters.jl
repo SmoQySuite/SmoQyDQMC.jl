@@ -70,13 +70,14 @@ function SSHParameters(; model_geometry::ModelGeometry{D,E},
                        tight_binding_parameters::TightBindingParameters{T,E},
                        rng::AbstractRNG) where {T,E,D}
 
-    ssh_couplings = electron_phonon_model.ssh_couplings::Vector{SSHCoupling{T,E,D}}
+    ssh_couplings_up = electron_phonon_model.ssh_couplings_up::Vector{SSHCoupling{T,E,D}}
+    ssh_couplings_dn = electron_phonon_model.ssh_couplings_dn::Vector{SSHCoupling{T,E,D}}
     phonon_modes = electron_phonon_model.phonon_modes::Vector{PhononMode{E}}
     lattice = model_geometry.lattice::Lattice{D}
     unit_cell = model_geometry.unit_cell::UnitCell{D,E}
 
     # number holstein coupling definitions
-    nssh = length(ssh_couplings)
+    nssh = length(ssh_couplings_up)
 
     if nssh>0
 
@@ -105,10 +106,14 @@ function SSHParameters(; model_geometry::ModelGeometry{D,E},
         hopping_bond_slices = tight_binding_parameters.bond_slices::Vector{UnitRange{Int}}
 
         # allocate arrays of ssh coupling parameters
-        α  = zeros(T, Nssh)
-        α2 = zeros(T, Nssh)
-        α3 = zeros(T, Nssh)
-        α4 = zeros(T, Nssh)
+        α_up  = zeros(T, Nssh)
+        α2_up = zeros(T, Nssh)
+        α3_up = zeros(T, Nssh)
+        α4_up = zeros(T, Nssh)
+        α_dn  = zeros(T, Nssh)
+        α2_dn = zeros(T, Nssh)
+        α3_dn = zeros(T, Nssh)
+        α4_dn = zeros(T, Nssh)
 
         # allocate mapping arrays
         coupling_to_phonon   = zeros(Int, 2, Nssh)
@@ -116,7 +121,7 @@ function SSHParameters(; model_geometry::ModelGeometry{D,E},
         hopping_to_couplings = [Int[] for _ in 1:Nhoppings]
 
         # get all the ssh bonds
-        ssh_bonds = [ssh_coupling.bond for ssh_coupling in ssh_couplings]
+        ssh_bonds = [ssh_coupling.bond for ssh_coupling in ssh_couplings_up]
 
         # construct neighbor table for ssh couplings
         ssh_neighbor_table = build_neighbor_table(ssh_bonds, unit_cell, lattice)
@@ -125,10 +130,11 @@ function SSHParameters(; model_geometry::ModelGeometry{D,E},
         ssh_counter = 0 # ssh coupling counter
         for sc in 1:nssh
             # get the ssh coupling definition
-            ssh_coupling = electron_phonon_model.ssh_couplings[sc]::SSHCoupling{T,E,D}
+            ssh_coupling_up = electron_phonon_model.ssh_couplings_up[sc]::SSHCoupling{T,E,D}
+            ssh_coupling_dn = electron_phonon_model.ssh_couplings_dn[sc]::SSHCoupling{T,E,D}
             # get the pair of phonon mode definitions assoicated with ssh coupling
-            phonon_mode_i = ssh_coupling.phonon_modes[1]
-            phonon_mode_f = ssh_coupling.phonon_modes[2]
+            phonon_mode_i = ssh_coupling_up.phonon_modes[1]
+            phonon_mode_f = ssh_coupling_up.phonon_modes[2]
             # get the bond id associated with the ssh coupling
             ssh_bond_id = ssh_coupling.bond_id
             # get range/slice of bare hoppings that need to be iterated over for given bond_id
@@ -150,10 +156,14 @@ function SSHParameters(; model_geometry::ModelGeometry{D,E},
                 # record the final phonon
                 coupling_to_phonon[2,ssh_counter] = Ncells * (phonon_mode_f-1) + unit_cell_id_final
                 # initialize coupling parameters
-                α[ssh_counter]  = ssh_coupling.α_mean  + ssh_coupling.α_std  * randn(rng)
-                α2[ssh_counter] = ssh_coupling.α2_mean + ssh_coupling.α2_std * randn(rng)
-                α3[ssh_counter] = ssh_coupling.α3_mean + ssh_coupling.α3_std * randn(rng)
-                α4[ssh_counter] = ssh_coupling.α4_mean + ssh_coupling.α4_std * randn(rng)
+                α_up[ssh_counter]  = ssh_coupling_up.α_mean  + ssh_coupling_up.α_std  * randn(rng)
+                α2_up[ssh_counter] = ssh_coupling_up.α2_mean + ssh_coupling_up.α2_std * randn(rng)
+                α3_up[ssh_counter] = ssh_coupling_up.α3_mean + ssh_coupling_up.α3_std * randn(rng)
+                α4_up[ssh_counter] = ssh_coupling_up.α4_mean + ssh_coupling_up.α4_std * randn(rng)
+                α_dn[ssh_counter]  = ssh_coupling_dn.α_mean  + ssh_coupling_dn.α_std  * randn(rng)
+                α2_dn[ssh_counter] = ssh_coupling_dn.α2_mean + ssh_coupling_dn.α2_std * randn(rng)
+                α3_dn[ssh_counter] = ssh_coupling_dn.α3_mean + ssh_coupling_dn.α3_std * randn(rng)
+                α4_dn[ssh_counter] = ssh_coupling_dn.α4_mean + ssh_coupling_dn.α4_std * randn(rng)
             end
         end
 
@@ -168,17 +178,25 @@ function SSHParameters(; model_geometry::ModelGeometry{D,E},
         end
 
         # initialize ssh parameters
-        ssh_parameters = SSHParameters(nssh, Nssh, α, α2, α3, α4, ssh_neighbor_table, coupling_to_phonon,
-                                       init_phonon_to_coupling, final_phonon_to_coupling,
-                                       hopping_to_couplings, coupling_to_hopping)
+        ssh_parameters_up = SSHParameters(
+            nssh, Nssh, α_up, α2_up, α3_up, α4_up, ssh_neighbor_table, coupling_to_phonon,
+            init_phonon_to_coupling, final_phonon_to_coupling,
+            hopping_to_couplings, coupling_to_hopping
+        )
+        ssh_parameters_dn = SSHParameters(
+            nssh, Nssh, α_dn, α2_dn, α3_dn, α4_dn, ssh_neighbor_table, coupling_to_phonon,
+            init_phonon_to_coupling, final_phonon_to_coupling,
+            hopping_to_couplings, coupling_to_hopping
+        )
 
     else
 
         # initialize null ssh parameters
-        ssh_parameters = SSHParameters(electron_phonon_model)
+        ssh_parameters_up = SSHParameters(electron_phonon_model)
+        ssh_parameters_dn = SSHParameters(electron_phonon_model)
     end
 
-    return ssh_parameters
+    return ssh_parameters_up, ssh_parameters_dn
 end
 
 @doc raw"""

@@ -10,8 +10,10 @@ Describes all parameters in the electron-phonon model.
 - `Lτ::Int`: Length of imaginary time axis.
 - `x::Matrix{E}`: Phonon fields, where each column represents the phonon fields for a given imaginary time slice.
 - `phonon_parameters::PhononParameters{E}`: Refer to [`PhononParameters`](@ref).
-- `holstein_parameters::HolsteinParameters{E}`: Refer to [`HolsteinParameters`](@ref).
-- `ssh_parameters::SSHParameters{T}`: Refer to [`SSHParameters`](@ref).
+- `holstein_parameters_up::HolsteinParameters{E}`: Spin up [`HolsteinParameters`](@ref).
+- `holstein_parameters_dn::HolsteinParameters{E}`: Spin down [`HolsteinParameters`](@ref).
+- `ssh_parameters_up::SSHParameters{T}`: Spin up [`SSHParameters`](@ref).
+- `ssh_parameters_dn::SSHParameters{T}`: Spin down [`SSHParameters`](@ref).
 - `dispersion_parameters::DispersionParameters{E}`: Refer to [`DispersionParameters`](@ref).
 """
 struct ElectronPhononParameters{T<:Number, E<:AbstractFloat}
@@ -30,15 +32,21 @@ struct ElectronPhononParameters{T<:Number, E<:AbstractFloat}
 
     # all the phonon parameters
     phonon_parameters::PhononParameters{E}
-    
-    # all the holstein coupling parameters
-    holstein_parameters::HolsteinParameters{E}
-
-    # all the ssh coupling parameters
-    ssh_parameters::SSHParameters{T}
 
     # all the phonon dispersion parameters
     dispersion_parameters::DispersionParameters{E}
+    
+    # all the spin-up holstein coupling parameters
+    holstein_parameters_up::HolsteinParameters{E}
+
+    # all the spin-down holstein coupling parameters
+    holstein_parameters_dn::HolsteinParameters{E}
+
+    # all the spin-up ssh coupling parameters
+    ssh_parameters_up::SSHParameters{T}
+
+    # all the spin-down ssh coupling parameters
+    ssh_parameters_dn::SSHParameters{T}
 end
 
 @doc raw"""
@@ -61,22 +69,28 @@ function ElectronPhononParameters(; β::E, Δτ::E,
                                          electron_phonon_model = electron_phonon_model,
                                          rng = rng)
 
+    # initialize phonon dispersion parameters
+    dispersion_parameters = DispersionParameters(
+        model_geometry = model_geometry,
+        electron_phonon_model = electron_phonon_model,
+        phonon_parameters = phonon_parameters,
+        rng = rng
+    )
+
     # initialize holstein parameters
-    holstein_parameters = HolsteinParameters(model_geometry = model_geometry,
-                                             electron_phonon_model = electron_phonon_model,
-                                             rng = rng)
+    holstein_parameters_up, holstein_parameters_dn = HolsteinParameters(
+        model_geometry = model_geometry,
+        electron_phonon_model = electron_phonon_model,
+        rng = rng
+    )
 
     # initialize ssh parameter
-    ssh_parameters = SSHParameters(model_geometry = model_geometry,
-                                   electron_phonon_model = electron_phonon_model,
-                                   tight_binding_parameters = tight_binding_parameters,
-                                   rng = rng)
-
-    # initialize phonon dispersion parameters
-    dispersion_parameters = DispersionParameters(model_geometry = model_geometry,
-                                                 electron_phonon_model = electron_phonon_model,
-                                                 phonon_parameters = phonon_parameters,
-                                                 rng = rng)
+    ssh_parameters_up, ssh_parameters_dn = SSHParameters(
+        model_geometry = model_geometry,
+        electron_phonon_model = electron_phonon_model,
+        tight_binding_parameters = tight_binding_parameters,
+        rng = rng
+    )
 
     # evaluate length of imaginary time axis
     Lτ = eval_length_imaginary_axis(β, Δτ)
@@ -111,11 +125,14 @@ function ElectronPhononParameters(; β::E, Δτ::E,
     end
 
     # initialize electron-phonon parameters
-    electron_phonon_parameters = ElectronPhononParameters(β, Δτ, Lτ, x,
-                                                          phonon_parameters,
-                                                          holstein_parameters,
-                                                          ssh_parameters,
-                                                          dispersion_parameters)
+    electron_phonon_parameters = ElectronPhononParameters(
+        β, Δτ, Lτ, x,
+        phonon_parameters,
+        dispersion_parameters,
+        holstein_parameters_up, holstein_parameters_dn,
+        ssh_parameters_up, ssh_parameters_dn
+    )
+    
     return electron_phonon_parameters
 end
 

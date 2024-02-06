@@ -143,13 +143,25 @@ end
 
 
 @doc raw"""
-    correlation_bins_to_csv(; folder::String, correlation::String, type::String, space::String, write_index_key::Bool = true)
+    correlation_bins_to_csv(;
+        folder::String,
+        correlation::String,
+        type::String,
+        space::String,
+        write_index_key::Bool = true
+    )
 
 Write binned correlation data for `correlation` to a CSV file.
 The field `type` must be set equal to `"equal-time"`, `"time-displaced"` or `"integrated"`,
 and the field `space` but bet set to either `"position"` or `"momentum"`.
 """
-function correlation_bins_to_csv(; folder::String, correlation::String, type::String, space::String, write_index_key::Bool = true)
+function correlation_bins_to_csv(;
+    folder::String,
+    correlation::String,
+    type::String,
+    space::String,
+    write_index_key::Bool = true
+)
 
     @assert (type == "equal-time") || (type == "time-displaced") || (type == "integrated")
     @assert (space == "momentum") || (space == "position")
