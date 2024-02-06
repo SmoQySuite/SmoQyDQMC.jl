@@ -355,9 +355,14 @@ function hmc_update!(
         calculate_exp_V = calculate_exp_V
     )
 
-    # update the Green's function to reflect the new phonon configuration
-    logdetGup′, sgndetGup′ = calculate_equaltime_greens!(Gup′, fermion_greens_calculator_up_alt, Bup)
-    logdetGdn′, sgndetGdn′ = calculate_equaltime_greens!(Gdn′, fermion_greens_calculator_dn_alt, Bdn)
+    try
+        # attempt to update the Green's function to reflect the new phonon configuration
+        logdetGup′, sgndetGup′ = calculate_equaltime_greens!(Gup′, fermion_greens_calculator_up_alt, Bup)
+        logdetGdn′, sgndetGdn′ = calculate_equaltime_greens!(Gdn′, fermion_greens_calculator_dn_alt, Bdn)
+    catch
+        # record if a numerical instability is encountered
+        numerically_stable = false
+    end
 
     # if the simulation remained numerical stable
     if numerically_stable
@@ -632,8 +637,13 @@ function hmc_update!(
         calculate_exp_V = calculate_exp_V
     )
 
-    # update the Green's function to reflect the new phonon configuration
-    logdetG′, sgndetG′ = calculate_equaltime_greens!(G′, fermion_greens_calculator_alt, B)
+    try
+        # attempt to update the Green's function to reflect the new phonon configuration
+        logdetG′, sgndetG′ = calculate_equaltime_greens!(G′, fermion_greens_calculator_alt, B)
+    catch
+        # record if a numerical instability is encountered
+        numerically_stable = false
+    end
 
     # if the simulation remained numerical stable
     if numerically_stable
