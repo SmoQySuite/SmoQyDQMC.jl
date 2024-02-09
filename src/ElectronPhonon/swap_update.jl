@@ -52,8 +52,10 @@ function swap_update!(Gup::Matrix{T}, logdetGup::E, sgndetGup::T,
     Gup′ = fermion_greens_calculator_up_alt.G′
     Gdn′ = fermion_greens_calculator_dn_alt.G′
     phonon_parameters = electron_phonon_parameters.phonon_parameters::PhononParameters{E}
-    holstein_parameters = electron_phonon_parameters.holstein_parameters::HolsteinParameters{E}
-    ssh_parameters = electron_phonon_parameters.ssh_parameters::SSHParameters{T}
+    holstein_parameters_up = electron_phonon_parameters.holstein_parameters_up::HolsteinParameters{E}
+    holstein_parameters_dn = electron_phonon_parameters.holstein_parameters_dn::HolsteinParameters{E}
+    ssh_parameters_up = electron_phonon_parameters.ssh_parameters_up::SSHParameters{T}
+    ssh_parameters_dn = electron_phonon_parameters.ssh_parameters_dn::SSHParameters{T}
     x = electron_phonon_parameters.x
 
     # make sure stabilization frequencies match
@@ -83,11 +85,11 @@ function swap_update!(Gup::Matrix{T}, logdetGup::E, sgndetGup::T,
 
     # whether the exponentiated on-site energy matrix needs to be updated with the phonon field,
     # true if phonon mode appears in holstein coupling
-    calculate_exp_V = (phonon_mode_i in holstein_parameters.coupling_to_phonon) || (phonon_mode_j in holstein_parameters.coupling_to_phonon)
+    calculate_exp_V = (phonon_mode_i in holstein_parameters_up.coupling_to_phonon) || (phonon_mode_j in holstein_parameters_up.coupling_to_phonon)
 
     # whether the exponentiated hopping matrix needs to be updated with the phonon field,
     # true if phonon mode appears in SSH coupling
-    calculate_exp_K = (phonon_mode_i in ssh_parameters.coupling_to_phonon) || (phonon_mode_j in ssh_parameters.coupling_to_phonon)
+    calculate_exp_K = (phonon_mode_i in ssh_parameters_dn.coupling_to_phonon) || (phonon_mode_j in ssh_parameters_dn.coupling_to_phonon)
 
     # get the corresponding phonon fields
     x_i = @view x[phonon_mode_i, :]
@@ -98,12 +100,12 @@ function swap_update!(Gup::Matrix{T}, logdetGup::E, sgndetGup::T,
 
     # substract off the effect of the current phonon configuration on the fermion path integrals
     if calculate_exp_V
-        update!(fermion_path_integral_up, holstein_parameters, x, -1)
-        update!(fermion_path_integral_dn, holstein_parameters, x, -1)
+        update!(fermion_path_integral_up, holstein_parameters_up, x, -1)
+        update!(fermion_path_integral_dn, holstein_parameters_dn, x, -1)
     end
     if calculate_exp_K
-        update!(fermion_path_integral_up, ssh_parameters, x, -1)
-        update!(fermion_path_integral_dn, ssh_parameters, x, -1)
+        update!(fermion_path_integral_up, ssh_parameters_up, x, -1)
+        update!(fermion_path_integral_dn, ssh_parameters_dn, x, -1)
     end
 
     # swap phonon fields
@@ -117,12 +119,12 @@ function swap_update!(Gup::Matrix{T}, logdetGup::E, sgndetGup::T,
 
     # update the fermion path integrals to reflect new phonon field configuration
     if calculate_exp_V
-        update!(fermion_path_integral_up, holstein_parameters, x, +1)
-        update!(fermion_path_integral_dn, holstein_parameters, x, +1)
+        update!(fermion_path_integral_up, holstein_parameters_up, x, +1)
+        update!(fermion_path_integral_dn, holstein_parameters_dn, x, +1)
     end
     if calculate_exp_K
-        update!(fermion_path_integral_up, ssh_parameters, x, +1)
-        update!(fermion_path_integral_dn, ssh_parameters, x, +1)
+        update!(fermion_path_integral_up, ssh_parameters_up, x, +1)
+        update!(fermion_path_integral_dn, ssh_parameters_dn, x, +1)
     end
 
     # update the spin up and spin down propagators to reflect current phonon configuration
@@ -157,23 +159,23 @@ function swap_update!(Gup::Matrix{T}, logdetGup::E, sgndetGup::T,
     else
         # substract off the effect of the current phonon configuration on the fermion path integrals
         if calculate_exp_V
-            update!(fermion_path_integral_up, holstein_parameters, x, -1)
-            update!(fermion_path_integral_dn, holstein_parameters, x, -1)
+            update!(fermion_path_integral_up, holstein_parameters_up, x, -1)
+            update!(fermion_path_integral_dn, holstein_parameters_dn, x, -1)
         end
         if calculate_exp_K
-            update!(fermion_path_integral_up, ssh_parameters, x, -1)
-            update!(fermion_path_integral_dn, ssh_parameters, x, -1)
+            update!(fermion_path_integral_up, ssh_parameters_up, x, -1)
+            update!(fermion_path_integral_dn, ssh_parameters_dn, x, -1)
         end
         # revert to the original phonon configuration
         swap!(x_i, x_j)
         # update the fermion path integrals to reflect new phonon field configuration
         if calculate_exp_V
-            update!(fermion_path_integral_up, holstein_parameters, x, +1)
-            update!(fermion_path_integral_dn, holstein_parameters, x, +1)
+            update!(fermion_path_integral_up, holstein_parameters_up, x, +1)
+            update!(fermion_path_integral_dn, holstein_parameters_dn, x, +1)
         end
         if calculate_exp_K
-            update!(fermion_path_integral_up, ssh_parameters, x, +1)
-            update!(fermion_path_integral_dn, ssh_parameters, x, +1)
+            update!(fermion_path_integral_up, ssh_parameters_up, x, +1)
+            update!(fermion_path_integral_dn, ssh_parameters_dn, x, +1)
         end
         # update the fermion path integrals to reflect the original phonon configuration
         calculate_propagators!(Bup, fermion_path_integral_up, calculate_exp_K = calculate_exp_K, calculate_exp_V = calculate_exp_V)
@@ -221,8 +223,8 @@ function swap_update!(G::Matrix{T}, logdetG::E, sgndetG::T,
 
     G′ = fermion_greens_calculator_alt.G′
     phonon_parameters = electron_phonon_parameters.phonon_parameters::PhononParameters{E}
-    holstein_parameters = electron_phonon_parameters.holstein_parameters::HolsteinParameters{E}
-    ssh_parameters = electron_phonon_parameters.ssh_parameters::SSHParameters{T}
+    holstein_parameters = electron_phonon_parameters.holstein_parameters_up::HolsteinParameters{E}
+    ssh_parameters = electron_phonon_parameters.ssh_parameters_up::SSHParameters{T}
     x = electron_phonon_parameters.x
 
     # make sure stabilization frequencies match

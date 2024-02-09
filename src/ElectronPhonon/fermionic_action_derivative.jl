@@ -1,22 +1,12 @@
-# @doc raw"""
-# fermionic_action_derivative!(dSdx::AbstractMatrix{E},
-#                              G::Matrix{T}, logdetG::E, sgndetG::T, δG::E, δθ::E,
-#                              electron_phonon_parameters::ElectronPhononParameters{T,E},
-#                              fermion_greens_calculator::FermionGreensCalculator{T,E},
-#                              B::Vector{P}, update_B̄::Bool = false) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
-
-# Evaluate the partial derivative ``\frac{\partial S_{f,\sigma}}{\partial x_{l,i}}`` of the fermionic action
-# for a single spin species
-# ```math
-# S_{f,\sigma} = -{\rm Tr}\left[ \log \det G_\sigma^{-1}(\tau,\tau) \right]
-# ```
-# for each phonon field ``x_{i,l}``, adding the result to the array `dSdx`.
-# """
-function fermionic_action_derivative!(dSdx::AbstractMatrix{E},
-                                      G::Matrix{T}, logdetG::E, sgndetG::T, δG::E, δθ::E,
-                                      electron_phonon_parameters::ElectronPhononParameters{T,E},
-                                      fermion_greens_calculator::FermionGreensCalculator{T,E},
-                                      B::Vector{P}) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
+# calculate the derivative of the fermionic action
+function fermionic_action_derivative!(
+    dSdx::AbstractMatrix{E},
+    G::Matrix{T}, logdetG::E, sgndetG::T, δG::E, δθ::E,
+    electron_phonon_parameters::ElectronPhononParameters{T,E},
+    fermion_greens_calculator::FermionGreensCalculator{T,E},
+    B::Vector{P};
+    spin::Int = +1
+) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
 
     # get some temporary storage matrices to work with
     ldr_ws = fermion_greens_calculator.ldr_ws::LDRWorkspace{T}
@@ -34,7 +24,7 @@ function fermionic_action_derivative!(dSdx::AbstractMatrix{E},
         # calculate the derivative of the fermionic action with respect to each phonon field
         # for the current imaginary time slice τ = Δτ⋅l
         dSdx_l = @view dSdx[:,l]
-        _fermionic_action_derivative!(dSdx_l, l, G, sgndetG, electron_phonon_parameters, B[l], G′, G″, G‴)
+        _fermionic_action_derivative!(dSdx_l, l, G, sgndetG, electron_phonon_parameters, B[l], G′, G″, G‴, spin = spin)
 
         # Periodically re-calculate the Green's function matrix for numerical stability.
         logdetG, sgndetG, δG′, δθ′ = stabilize_equaltime_greens!(G, logdetG, sgndetG, fermion_greens_calculator, B, update_B̄=false)
@@ -48,17 +38,20 @@ function fermionic_action_derivative!(dSdx::AbstractMatrix{E},
 end
 
 # evaluate the derivative of the fermionic action for at time slice l
-function _fermionic_action_derivative!(dSdx::AbstractVector{E}, l::Int, G::Matrix{T}, sgndetG::T,
-                                       electron_phonon_parameters::ElectronPhononParameters{T,E},
-                                       B::AbstractPropagator{T,E}, G′::Matrix{T}, G″::Matrix{T},
-                                       G‴::Matrix{T}) where {T<:Number, E<:AbstractFloat}
+function _fermionic_action_derivative!(
+    dSdx::AbstractVector{E}, l::Int, G::Matrix{T}, sgndetG::T,
+    electron_phonon_parameters::ElectronPhononParameters{T,E},
+    B::AbstractPropagator{T,E},
+    G′::Matrix{T}, G″::Matrix{T}, G‴::Matrix{T};
+    spin::Int
+) where {T<:Number, E<:AbstractFloat}
 
     if ishermitian(B)
         # evaluate derivative of fermionic action for hermitian propagators
-        _fermionic_action_derivative_sym!(dSdx, l, G, sgndetG, electron_phonon_parameters, B, G′, G″, G‴)
+        _fermionic_action_derivative_sym!(dSdx, l, G, sgndetG, electron_phonon_parameters, B, G′, G″, G‴, spin = spin)
     else
         # evaluate derivative of fermionic action for non-hermitian/asymmetric propagators
-        _fermionic_action_derivative_asym!(dSdx, l, G, sgndetG, electron_phonon_parameters, B, G′, G″, G‴)
+        _fermionic_action_derivative_asym!(dSdx, l, G, sgndetG, electron_phonon_parameters, B, G′, G″, G‴, spin = spin)
     end
 
     return nothing
@@ -66,14 +59,22 @@ end
 
 
 # evaluate the derivative of the fermionic action for at time slice l for hermitian propagators
-function _fermionic_action_derivative_sym!(dSdx::AbstractVector{E}, l::Int, G::Matrix{T}, sgndetG::T,
-                                           electron_phonon_parameters::ElectronPhononParameters{T,E},
-                                           B::AbstractPropagator{T,E}, G′::Matrix{T}, G″::Matrix{T},
-                                           G‴::Matrix{T}) where {T<:Number, E<:AbstractFloat}
+function _fermionic_action_derivative_sym!(
+    dSdx::AbstractVector{E}, l::Int, G::Matrix{T}, sgndetG::T,
+    electron_phonon_parameters::ElectronPhononParameters{T,E},
+    B::AbstractPropagator{T,E},
+    G′::Matrix{T}, G″::Matrix{T}, G‴::Matrix{T};
+    spin::Int
+) where {T<:Number, E<:AbstractFloat}
 
     phonon_parameters = electron_phonon_parameters.phonon_parameters::PhononParameters{E}
-    holstein_parameters = electron_phonon_parameters.holstein_parameters::HolsteinParameters{E}
-    ssh_parameters = electron_phonon_parameters.ssh_parameters::SSHParameters{T}
+    if isone(spin)
+        holstein_parameters = electron_phonon_parameters.holstein_parameters_up::HolsteinParameters{E}
+        ssh_parameters = electron_phonon_parameters.ssh_parameters_up::SSHParameters{T}
+    else
+        holstein_parameters = electron_phonon_parameters.holstein_parameters_dn::HolsteinParameters{E}
+        ssh_parameters = electron_phonon_parameters.ssh_parameters_dn::SSHParameters{T}
+    end
 
     # get discretization in imaginary time
     Δτ = electron_phonon_parameters.Δτ
@@ -120,14 +121,22 @@ end
 
 
 # evaluate the derivative of the fermionic action for at time slice l for non-hermitian propagators
-function _fermionic_action_derivative_asym!(dSdx::AbstractVector{E}, l::Int, G::Matrix{T}, sgndetG::T,
-                                            electron_phonon_parameters::ElectronPhononParameters{T,E},
-                                            B::AbstractPropagator{T,E}, G′::Matrix{T}, G″::Matrix{T},
-                                            G‴::Matrix{T}) where {T<:Number, E<:AbstractFloat}
+function _fermionic_action_derivative_asym!(
+    dSdx::AbstractVector{E}, l::Int, G::Matrix{T}, sgndetG::T,
+    electron_phonon_parameters::ElectronPhononParameters{T,E},
+    B::AbstractPropagator{T,E},
+    G′::Matrix{T}, G″::Matrix{T}, G‴::Matrix{T};
+    spin::Int
+) where {T<:Number, E<:AbstractFloat}
 
     phonon_parameters = electron_phonon_parameters.phonon_parameters::PhononParameters{E}
-    holstein_parameters = electron_phonon_parameters.holstein_parameters::HolsteinParameters{E}
-    ssh_parameters = electron_phonon_parameters.ssh_parameters::SSHParameters{T}
+    if isone(spin)
+        holstein_parameters = electron_phonon_parameters.holstein_parameters_up::HolsteinParameters{E}
+        ssh_parameters = electron_phonon_parameters.ssh_parameters_up::SSHParameters{T}
+    else
+        holstein_parameters = electron_phonon_parameters.holstein_parameters_dn::HolsteinParameters{E}
+        ssh_parameters = electron_phonon_parameters.ssh_parameters_dn::SSHParameters{T}
+    end
 
     # get discretization in imaginary time
     Δτ = electron_phonon_parameters.Δτ

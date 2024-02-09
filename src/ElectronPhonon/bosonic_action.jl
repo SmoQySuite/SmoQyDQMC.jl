@@ -173,7 +173,7 @@ function bosonic_action_derivative!(
     holstein_correction::Bool = true,
 ) where {T,E}
 
-    (; x, Δτ, phonon_parameters, dispersion_parameters, holstein_parameters) = electron_phonon_parameters
+    (; x, Δτ, phonon_parameters, dispersion_parameters, holstein_parameters_up, holstein_parameters_dn) = electron_phonon_parameters
 
     # evaluate the contribution to the bosonic action a single local disperionless phonon mode
     eval_derivative_local_phonon_action!(dSdx, x, Δτ, phonon_parameters)
@@ -183,7 +183,8 @@ function bosonic_action_derivative!(
 
     # evaluate the contribution to the bosonic action from the holstein couplings
     if holstein_correction
-        eval_derivative_holstein_action!(dSdx, x, Δτ, holstein_parameters, phonon_parameters)
+        eval_derivative_holstein_action!(dSdx, x, Δτ, holstein_parameters_up, phonon_parameters)
+        eval_derivative_holstein_action!(dSdx, x, Δτ, holstein_parameters_dn, phonon_parameters)
     end
 
     return nothing
@@ -311,7 +312,7 @@ function eval_derivative_holstein_action!(
                 # get the phonon mode associated with the holstein coupling
                 p = coupling_to_phonon[n]
                 # calculate the contribution to the potential energy
-                dSdx[p,l] -= Δτ * (α[n] + 2 * α2[n] * x[p,l] + 3 * α3[n] * x[p,l]^2 + 4 * α4[n] * x[p,l]^3)
+                dSdx[p,l] -= Δτ * (α[n] + 2 * α2[n] * x[p,l] + 3 * α3[n] * x[p,l]^2 + 4 * α4[n] * x[p,l]^3)/2
             end
         end
     end

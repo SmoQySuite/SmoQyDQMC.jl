@@ -153,10 +153,10 @@ function initialize!(
 ) where {T,E}
 
     # initialize spin up fermion path integral
-    initialize!(fermion_path_integral_up, electron_phonon_parameters)
+    initialize!(fermion_path_integral_up, electron_phonon_parameters, spin = +1)
 
     # initialize spin down fermion path integral
-    initialize!(fermion_path_integral_dn, electron_phonon_parameters)
+    initialize!(fermion_path_integral_dn, electron_phonon_parameters, spin = -1)
 
     return nothing
 end
@@ -164,17 +164,26 @@ end
 @doc raw"""
     initialize!(
         fermion_path_integral::FermionPathIntegral{T,E},
-        electron_phonon_parameters::ElectronPhononParameters{T,E}
+        electron_phonon_parameters::ElectronPhononParameters{T,E};
+        spin::Int = +1,
     ) where {T,E}
 
 Initialize the contribution of an [`ElectronPhononParameters`](@ref) to a [`FermionPathIntegral`](@ref).
 """
 function initialize!(
     fermion_path_integral::FermionPathIntegral{T,E},
-    electron_phonon_parameters::ElectronPhononParameters{T,E}
+    electron_phonon_parameters::ElectronPhononParameters{T,E};
+    spin::Int = +1
 ) where {T,E}
 
-    (; x, holstein_parameters, ssh_parameters) = electron_phonon_parameters
+    x = electron_phonon_parameters.x
+    if isone(spin)
+        holstein_parameters = electron_phonon_parameters.holstein_parameters_up
+        ssh_parameters = electron_phonon_parameters.ssh_parameters_up
+    else
+        holstein_parameters = electron_phonon_parameters.holstein_parameters_dn
+        ssh_parameters = electron_phonon_parameters.ssh_parameters_dn
+    end
 
     # update fermion path integral based on holstein interaction
     update!(fermion_path_integral, holstein_parameters, x, 1)
@@ -206,10 +215,10 @@ function update!(
 ) where {T,E}
 
     # update spin up fermion path integral
-    update!(fermion_path_integral_up, electron_phonon_parameters, x′, x)
+    update!(fermion_path_integral_up, electron_phonon_parameters, x′, x, spin = +1)
 
     # update spin down fermion path integral
-    update!(fermion_path_integral_dn, electron_phonon_parameters, x′, x)
+    update!(fermion_path_integral_dn, electron_phonon_parameters, x′, x, spin = -1)
 
     return nothing
 end
@@ -219,7 +228,8 @@ end
         fermion_path_integral::FermionPathIntegral{T,E},
         electron_phonon_parameters::ElectronPhononParameters{T,E},
         x′::Matrix{E},
-        x::Matrix{E}
+        x::Matrix{E};
+        spin::Int = +1
     ) where {T,E}
 
 Update a [`FermionPathIntegral`](@ref) to reflect a change in the phonon configuration from `x` to `x′`.
@@ -228,10 +238,17 @@ function update!(
     fermion_path_integral::FermionPathIntegral{T,E},
     electron_phonon_parameters::ElectronPhononParameters{T,E},
     x′::Matrix{E},
-    x::Matrix{E}
+    x::Matrix{E};
+    spin::Int = +1
 ) where {T,E}
 
-    (; holstein_parameters, ssh_parameters) = electron_phonon_parameters
+    if isone(spin)
+        holstein_parameters = electron_phonon_parameters.holstein_parameters_up
+        ssh_parameters = electron_phonon_parameters.ssh_parameters_up
+    else
+        holstein_parameters = electron_phonon_parameters.holstein_parameters_dn
+        ssh_parameters = electron_phonon_parameters.ssh_parameters_dn
+    end
 
     # update fermion path integral based on holstein interaction and new phonon configration
     update!(fermion_path_integral, holstein_parameters, x, -1)
@@ -245,11 +262,11 @@ function update!(
 end
 
 @doc raw"""
-    update!(
-        fermion_path_integral::FermionPathIntegral{T,E},
+    update!(fermion_path_integral::FermionPathIntegral{T,E},
         electron_phonon_parameters::ElectronPhononParameters{T,E},
         x::Matrix{E},
-        sgn::Int
+        sgn::Int;
+        spin::Int = +1
     ) where {T,E}
 
 Update a [`FermionPathIntegral`](@ref) according to `sgn * x`.
@@ -257,10 +274,17 @@ Update a [`FermionPathIntegral`](@ref) according to `sgn * x`.
 function update!(fermion_path_integral::FermionPathIntegral{T,E},
     electron_phonon_parameters::ElectronPhononParameters{T,E},
     x::Matrix{E},
-    sgn::Int
+    sgn::Int;
+    spin::Int = +1
 ) where {T,E}
 
-    (; holstein_parameters, ssh_parameters) = electron_phonon_parameters
+    if isone(spin)
+        holstein_parameters = electron_phonon_parameters.holstein_parameters_up
+        ssh_parameters = electron_phonon_parameters.ssh_parameters_up
+    else
+        holstein_parameters = electron_phonon_parameters.holstein_parameters_dn
+        ssh_parameters = electron_phonon_parameters.ssh_parameters_dn
+    end
 
     # update fermion path integral based on holstein interaction and new phonon configration
     update!(fermion_path_integral, holstein_parameters, x, sgn)

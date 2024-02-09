@@ -31,7 +31,9 @@ function make_measurements!(
     Bup::Vector{P}, Bdn::Vector{P}, δG_max::E, δG::E, δθ::E,
     model_geometry::ModelGeometry{D,E,N},
     tight_binding_parameters::TightBindingParameters{T,E},
-    coupling_parameters::Tuple
+    tight_binding_parameters_dn::TightBindingParameters{T,E} = tight_binding_parameters,
+    coupling_parameters::Tuple,
+
 ) where {T<:Number, E<:AbstractFloat, D, N, P<:AbstractPropagator{T,E}}
 
     # extract temporary storage vectors
@@ -246,7 +248,11 @@ function make_global_measurements!(global_measurements::Dict{String, Complex{E}}
     global_measurements["sgndetGdn"] += sgndetGdn
 
     # measure average density
-    global_measurements["density"] += sgn * (measure_n(Gup) + measure_n(Gdn))
+    nup = measure_n(Gup)
+    ndn = measure_n(Gdn)
+    global_measurements["density_up"] += sgn * nup
+    global_measurements["density_dn"] += sgn * nup
+    global_measurements["density"] += sgn * (nup + ndn)
 
     # measure double occupancy
     global_measurements["double_occ"] += sgn * measure_double_occ(Gup, Gdn)
@@ -266,11 +272,14 @@ end
 #############################
 
 # make local measurements
-function make_local_measurements!(local_measurements::Dict{String, Vector{Complex{E}}},
-                                  Gup::AbstractMatrix{T}, Gdn::AbstractMatrix{T}, sgn::T,
-                                  model_geometry::ModelGeometry{D,E,N},
-                                  tight_binding_parameters::TightBindingParameters{T,E},
-                                  coupling_parameters::Tuple) where {T<:Number, E<:AbstractFloat, D, N}
+function make_local_measurements!(
+    local_measurements::Dict{String, Vector{Complex{E}}},
+    Gup::AbstractMatrix{T}, Gdn::AbstractMatrix{T}, sgn::T,
+    model_geometry::ModelGeometry{D,E,N},
+    tight_binding_parameters_up::TightBindingParameters{T,E},
+    tight_binding_parameters_dn::TightBindingParameters{T,E},
+    coupling_parameters::Tuple
+) where {T<:Number, E<:AbstractFloat, D, N}
 
     # number of orbitals per unit cell
     unit_cell = model_geometry.unit_cell::UnitCell{D,E,N}
@@ -279,44 +288,63 @@ function make_local_measurements!(local_measurements::Dict{String, Vector{Comple
     # iterate over orbital species
     for n in 1:norbital
         # measure density
-        local_measurements["density"][n] += sgn * (measure_n(Gup, n, unit_cell) + measure_n(Gdn, n, unit_cell))
+        nup = measure_n(Gup, n, unit_cell)
+        ndn = measure_n(Gdn, n, unit_cell)
+        local_measurements["density_up"][n] += sgn * nup
+        local_measurements["density_dn"][n] += sgn * ndn
+        local_measurements["density"][n] += sgn * (nup + ndn)
         # measure double occupancy
         local_measurements["double_occ"][n] += sgn * measure_double_occ(Gup, Gdn, n, unit_cell)
     end
 
     # make tight-binding measurements
-    make_local_measurements!(local_measurements, Gup, Gdn, sgn, model_geometry, tight_binding_parameters)
+    make_local_measurements!(local_measurements, Gup, Gdn, sgn, model_geometry,
+                             tight_binding_parameters_up, tight_binding_parameters_dn)
 
     # make local measurements associated with couplings
     for coupling_parameter in coupling_parameters
-        make_local_measurements!(local_measurements, Gup, Gdn, sgn, model_geometry, coupling_parameter, tight_binding_parameters)
+        make_local_measurements!(local_measurements, Gup, Gdn, sgn, model_geometry,
+                                 coupling_parameter, tight_binding_parameters_up, tight_binding_parameters_dn)
     end
     
     return nothing
 end
 
 # make local measurements associated with tight-binding model
-function make_local_measurements!(local_measurements::Dict{String, Vector{Complex{E}}},
-                                  Gup::AbstractMatrix{T}, Gdn::AbstractMatrix{T}, sgn::T,
-                                  model_geometry::ModelGeometry{D,E,N},
-                                  tight_binding_parameters::TightBindingParameters{T,E}) where {T<:Number, E<:AbstractFloat, D, N}
+function make_local_measurements!(
+    local_measurements::Dict{String, Vector{Complex{E}}},
+    Gup::AbstractMatrix{T}, Gdn::AbstractMatrix{T}, sgn::T,
+    model_geometry::ModelGeometry{D,E,N},
+    tight_binding_parameters_up::TightBindingParameters{T,E},
+    tight_binding_parameters_dn::TightBindingParameters{T,E}
+) where {T<:Number, E<:AbstractFloat, D, N}
 
     # number of orbitals per unit cell
-    norbital = tight_binding_parameters.norbital
+    norbital = tight_binding_parameters_up.norbital
 
     # number of types of hopping
-    bond_ids = tight_binding_parameters.bond_ids
-    nhopping = length(tight_binding_parameters.bond_ids)
+    bond_ids = tight_binding_parameters_up.bond_ids
+    nhopping = length(tight_binding_parameters_up.bond_ids)
 
     # measure on-site energy
     for n in 1:norbital
-        local_measurements["onsite_energy"][n] += sgn * measure_onsite_energy(tight_binding_parameters, Gup, Gdn, n)
+        eup = sgn * measure_onsite_energy(tight_binding_parameters_up, Gup, Gdn, n)
+        edn = sgn * measure_onsite_energy(tight_binding_parameters_up, Gup, Gdn, n)
+        e = eup + edn
+        local_measurements["onsite_energy_up"][n] += eup
+        local_measurements["onsite_energy_dn"][n] += edn
+        local_measurements["onsite_energy"][n] += e
     end
 
     # measure hopping energy
     if nhopping > 0
-        for h in 1:nhopping
-            local_measurements["hopping_energy"][h] += sgn * measure_hopping_energy(tight_binding_parameters, Gup, Gdn, bond_ids[h])
+        for n in 1:nhopping
+            hup = sgn * measure_hopping_energy(tight_binding_parameters_up, Gup, Gdn, bond_ids[n])
+            hdn = sgn * measure_hopping_energy(tight_binding_parameters_dn, Gup, Gdn, bond_ids[n])
+            h = hup + hdn
+            local_measurements["hopping_energy_up"][n] += hup
+            local_measurements["hopping_energy_dn"][n] += hdn
+            local_measurements["hopping_energy"][n] += h
         end
     end
 
@@ -324,11 +352,12 @@ function make_local_measurements!(local_measurements::Dict{String, Vector{Comple
 end
 
 # make local measurements associated with hubbard model
-function make_local_measurements!(local_measurements::Dict{String, Vector{Complex{E}}},
-                                  Gup::AbstractMatrix{T}, Gdn::AbstractMatrix{T}, sgn::T,
-                                  model_geometry::ModelGeometry{D,E,N},
-                                  hubbard_parameters::HubbardParameters{E},
-                                  tight_binding_parameters::TightBindingParameters{T,E}) where {T<:Number, E<:AbstractFloat, D, N}
+function make_local_measurements!(
+    local_measurements::Dict{String, Vector{Complex{E}}},
+    Gup::AbstractMatrix{T}, Gdn::AbstractMatrix{T}, sgn::T,
+    model_geometry::ModelGeometry{D,E,N},
+    hubbard_parameters::HubbardParameters{E},
+) where {T<:Number, E<:AbstractFloat, D, N}
 
     # measure hubbard energy for each orbital in unit cell
     hubbard_energies = local_measurements["hubbard_energy"]
@@ -340,15 +369,18 @@ function make_local_measurements!(local_measurements::Dict{String, Vector{Comple
 end
 
 # make local measurements associated with electron-phonon model
-function make_local_measurements!(local_measurements::Dict{String, Vector{Complex{E}}},
-                                  Gup::AbstractMatrix{T}, Gdn::AbstractMatrix{T}, sgn::T,
-                                  model_geometry::ModelGeometry{D,E,N},
-                                  electron_phonon_parameters::ElectronPhononParameters{T,E},
-                                  tight_binding_parameters::TightBindingParameters{T,E}) where {T<:Number, E<:AbstractFloat, D, N}
+function make_local_measurements!(
+    local_measurements::Dict{String, Vector{Complex{E}}},
+    Gup::AbstractMatrix{T}, Gdn::AbstractMatrix{T}, sgn::T,
+    model_geometry::ModelGeometry{D,E,N},
+    electron_phonon_parameters::ElectronPhononParameters{T,E},
+    tight_binding_parameters_up::TightBindingParameters{T,E},
+    tight_binding_parameters_dn::TightBindingParameters{T,E}
+) where {T<:Number, E<:AbstractFloat, D, N}
 
     nphonon = electron_phonon_parameters.phonon_parameters.nphonon::Int # number of phonon modes per unit cell
-    nholstein = electron_phonon_parameters.holstein_parameters.nholstein::Int # number of types of holstein couplings
-    nssh = electron_phonon_parameters.ssh_parameters.nssh::Int # number of types of ssh coupling
+    nholstein = electron_phonon_parameters.holstein_parameters_up.nholstein::Int # number of types of holstein couplings
+    nssh = electron_phonon_parameters.ssh_parameters_up.nssh::Int # number of types of ssh coupling
     ndispersion = electron_phonon_parameters.dispersion_parameters.ndispersion::Int # number of types of dispersive phonon couplings
 
     # make phonon mode related measurements

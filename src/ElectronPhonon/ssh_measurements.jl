@@ -20,15 +20,19 @@ function measure_ssh_energy(electron_phonon_parameters::ElectronPhononParameters
                             ssh_id::Int) where {T<:Number, E<:AbstractFloat}
 
     x = electron_phonon_parameters.x::Matrix{E}
-    ssh_parameters = electron_phonon_parameters.ssh_parameters::SSHParameters{T}
-    ϵ_ssh = measure_ssh_energy(ssh_parameters, Gup, Gdn, x, ssh_id)
+    ssh_parameters_up = electron_phonon_parameters.ssh_parameters_up::SSHParameters{T}
+    ϵ_ssh_up = measure_ssh_energy(ssh_parameters_up, Gup, x, ssh_id)
+    ssh_parameters_up = electron_phonon_parameters.ssh_parameters_dn::SSHParameters{T}
+    ϵ_ssh_dn = measure_ssh_energy(ssh_parameters_dn, Gdn, x, ssh_id)
+    ϵ_ssh = ϵ_ssh_up + ϵ_ssh_dn
 
-    return ϵ_ssh
+    return ϵ_ssh, ϵ_ssh_up, ϵ_ssh_dn
 end
 
-function measure_ssh_energy(ssh_parameters::SSHParameters{T},
-                            Gup::Matrix{T}, Gdn::Matrix{T},
-                            x::Matrix{E}, ssh_id::Int) where {T<:Number, E<:AbstractFloat}
+function measure_ssh_energy(
+    ssh_parameters::SSHParameters{T},
+    G::Matrix{T}, x::Matrix{E}, ssh_id::Int
+) where {T<:Number, E<:AbstractFloat}
 
     (; nssh, Nssh, α, α2, α3, α4, neighbor_table, coupling_to_phonon) = ssh_parameters
 
@@ -57,12 +61,8 @@ function measure_ssh_energy(ssh_parameters::SSHParameters{T},
         Δx = x[p′,Lτ] - x[p,Lτ]
         i  = nt[1,u]
         j  = nt[2,u]
-        hup = -Gup[i,j]
-        hdn = -Gdn[i,j]
-        ϵ_ssh += (α′[u]*Δx + α2′[u]*Δx^2 + α3′[u]*Δx^3 + α4′[u]*Δx^4) * (hup + hdn)
-        hup = -Gup[j,i]
-        hdn = -Gdn[j,i]
-        ϵ_ssh += conj(α′[u]*Δx + α2′[u]*Δx^2 + α3′[u]*Δx^3 + α4′[u]*Δx^4) * (hup + hdn)
+        h = -(G[i,j] + G[j,i])
+        ϵ_ssh += (α′[u]*Δx + α2′[u]*Δx^2 + α3′[u]*Δx^3 + α4′[u]*Δx^4) * h
     end
 
     # normalize measurement
@@ -77,27 +77,39 @@ end
 ###############################################################
 
 @doc raw"""
-    measure_ssh_sgn_switch(electron_phonon_parameters::ElectronPhononParameters{T,E},
-                        tight_binding_parameters::TightBindingParameters{T,E},
-                        ssh_id::Int) where {T<:Number, E<:AbstractFloat}
+    measure_ssh_sgn_switch(
+        electron_phonon_parameters::ElectronPhononParameters{T,E},
+        tight_binding_parameters::TightBindingParameters{T,E},
+        ssh_id::Int;
+        spin::Int = +1
+    ) where {T<:Number, E<:AbstractFloat}
 
 Calculate the fraction of the time the sign of the hopping is changed as a result of the
 SSH coupling associated with `ssh_id`.
 """
-function measure_ssh_sgn_switch(electron_phonon_parameters::ElectronPhononParameters{T,E},
-                                tight_binding_parameters::TightBindingParameters{T,E},
-                                ssh_id::Int) where {T<:Number, E<:AbstractFloat}
+function measure_ssh_sgn_switch(
+    electron_phonon_parameters::ElectronPhononParameters{T,E},
+    tight_binding_parameters::TightBindingParameters{T,E},
+    ssh_id::Int;
+    spin::Int = +1
+) where {T<:Number, E<:AbstractFloat}
 
     x = electron_phonon_parameters.x::Matrix{E}
-    ssh_parameters = electron_phonon_parameters.ssh_parameters::SSHParameters{T}
+    if isone(spin)
+        ssh_parameters = electron_phonon_parameters.ssh_parameters_up::SSHParameters{T}
+    else
+        ssh_parameters = electron_phonon_parameters.ssh_parameters_dn::SSHParameters{T}
+    end
     sgn = measure_ssh_sgn_switch(ssh_parameters, tight_binding_parameters, x, ssh_id)
 
     return sgn
 end
 
-function measure_ssh_sgn_switch(ssh_parameters::SSHParameters{T},
-                                tight_binding_parameters::TightBindingParameters{T,E},
-                                x::Matrix{E}, ssh_id::Int) where {T<:Number, E<:AbstractFloat}
+function measure_ssh_sgn_switch(
+    ssh_parameters::SSHParameters{T},
+    tight_binding_parameters::TightBindingParameters{T,E},
+    x::Matrix{E}, ssh_id::Int
+) where {T<:Number, E<:AbstractFloat}
 
     (; t) = tight_binding_parameters
     (; nssh, Nssh, α, α2, α3, α4, coupling_to_phonon, coupling_to_hopping) = ssh_parameters

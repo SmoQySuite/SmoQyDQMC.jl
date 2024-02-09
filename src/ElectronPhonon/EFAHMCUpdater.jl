@@ -195,8 +195,10 @@ function hmc_update!(
     (; reg, pfft, pifft, m, p, dSdx, Gup′, Gdn′) = hmc_updater
 
     Δτ = electron_phonon_parameters.Δτ::E
-    holstein_parameters = electron_phonon_parameters.holstein_parameters::HolsteinParameters{E}
-    ssh_parameters = electron_phonon_parameters.ssh_parameters::SSHParameters{T}
+    holstein_parameters_up = electron_phonon_parameters.holstein_parameters_up::HolsteinParameters{E}
+    holstein_parameters_dn = electron_phonon_parameters.holstein_parameters_dn::HolsteinParameters{E}
+    ssh_parameters_up = electron_phonon_parameters.ssh_parameters_up::SSHParameters{T}
+    ssh_parameters_up = electron_phonon_parameters.ssh_parameters_dn::SSHParameters{T}
     phonon_parameters = electron_phonon_parameters.phonon_parameters::PhononParameters{E}
     dispersion_parameters = electron_phonon_parameters.dispersion_parameters::DispersionParameters{E}
 
@@ -205,11 +207,11 @@ function hmc_update!(
     
     # whether the exponentiated on-site energy matrix needs to be updated with the phonon field,
     # true if there is a non-zero number of holstein couplings Nholstein
-    calculate_exp_V = (holstein_parameters.Nholstein > 0)
+    calculate_exp_V = (holstein_parameters_up.Nholstein > 0)
 
     # whether the exponentiated hopping matrix needs to be updated with the phonon field,
     # true if there is a non-zero number of ssh couplings Nssh
-    calculate_exp_K = (ssh_parameters.Nssh > 0)
+    calculate_exp_K = (ssh_parameters_up.Nssh > 0)
 
     # flag to indicate numerical stability
     numerically_stable = true
@@ -248,12 +250,12 @@ function hmc_update!(
 
     # evolve momentum and phonon fields according to bosonic action and update the
     # fermion path integrals to reflect the change in the phonon fields
-    update!(fermion_path_integral_up, electron_phonon_parameters, x, -1)
-    update!(fermion_path_integral_dn, electron_phonon_parameters, x, -1)
+    update!(fermion_path_integral_up, electron_phonon_parameters, x, -1, spin = +1)
+    update!(fermion_path_integral_dn, electron_phonon_parameters, x, -1, spin = -1)
     evolve_qho_action!(x, p, Δt/2, hmc_updater)
     recenter!(x)
-    update!(fermion_path_integral_up, electron_phonon_parameters, x, +1)
-    update!(fermion_path_integral_dn, electron_phonon_parameters, x, +1)
+    update!(fermion_path_integral_up, electron_phonon_parameters, x, +1, spin = +1)
+    update!(fermion_path_integral_dn, electron_phonon_parameters, x, +1, spin = -1)
 
     # iterate over HMC time-steps
     for t in 1:Nt
@@ -285,7 +287,8 @@ function hmc_update!(
                 dSdx, Gup′, logdetGup′, sgndetGup′, δG′, δθ,
                 electron_phonon_parameters,
                 fermion_greens_calculator_up_alt,
-                Bup
+                Bup,
+                spin = +1
             )
 
             # calculate derivative of fermionic action for spin down
@@ -293,7 +296,8 @@ function hmc_update!(
                 dSdx, Gdn′, logdetGdn′, sgndetGdn′, δG′, δθ,
                 electron_phonon_parameters,
                 fermion_greens_calculator_dn_alt,
-                Bdn
+                Bdn,
+                spin = -1
             )
 
             # record max numerical error
@@ -327,20 +331,21 @@ function hmc_update!(
         eval_derivative_dispersive_action!(dSdx, x, Δτ, dispersion_parameters, phonon_parameters)
 
         # calculate the holstein contribution to the derivative of the bosonic action
-        eval_derivative_holstein_action!(dSdx, x, Δτ, holstein_parameters, phonon_parameters)
+        eval_derivative_holstein_action!(dSdx, x, Δτ, holstein_parameters_up, phonon_parameters)
+        eval_derivative_holstein_action!(dSdx, x, Δτ, holstein_parameters_dn, phonon_parameters)
 
         # update momentum
         @. p = p - Δt * dSdx
 
         # evolve momentum and phonon fields according to bosonic action and update the
         # fermion path integrals to reflect the change in the phonon fields
-        update!(fermion_path_integral_up, electron_phonon_parameters, x, -1)
-        update!(fermion_path_integral_dn, electron_phonon_parameters, x, -1)
+        update!(fermion_path_integral_up, electron_phonon_parameters, x, -1, spin = +1)
+        update!(fermion_path_integral_dn, electron_phonon_parameters, x, -1, spin = -1)
         Δt′ = (t==Nt) ? Δt/2 : Δt
         evolve_qho_action!(x, p, Δt′, hmc_updater)
         recenter!(x)
-        update!(fermion_path_integral_up, electron_phonon_parameters, x, +1)
-        update!(fermion_path_integral_dn, electron_phonon_parameters, x, +1)
+        update!(fermion_path_integral_up, electron_phonon_parameters, x, +1, spin = +1)
+        update!(fermion_path_integral_dn, electron_phonon_parameters, x, +1, spin = -1)
     end
 
     # update the spin up and spin down propagators to reflect current phonon configuration
@@ -498,8 +503,8 @@ function hmc_update!(
     G′ = hmc_updater.Gup′
 
     Δτ = electron_phonon_parameters.Δτ::E
-    holstein_parameters = electron_phonon_parameters.holstein_parameters::HolsteinParameters{E}
-    ssh_parameters = electron_phonon_parameters.ssh_parameters::SSHParameters{T}
+    holstein_parameters = electron_phonon_parameters.holstein_parameters_up::HolsteinParameters{E}
+    ssh_parameters = electron_phonon_parameters.ssh_parameters_up::SSHParameters{T}
     phonon_parameters = electron_phonon_parameters.phonon_parameters::PhononParameters{E}
     dispersion_parameters = electron_phonon_parameters.dispersion_parameters::DispersionParameters{E}
 
@@ -616,7 +621,8 @@ function hmc_update!(
         eval_derivative_dispersive_action!(dSdx, x, Δτ, dispersion_parameters, phonon_parameters)
 
         # calculate the holstein contribution to the derivative of the bosonic action
-        eval_derivative_holstein_action!(dSdx, x, Δτ, holstein_parameters, phonon_parameters)
+        eval_derivative_holstein_action!(dSdx, x, Δτ, holstein_parameters, phonon_parameters) # spin-up
+        eval_derivative_holstein_action!(dSdx, x, Δτ, holstein_parameters, phonon_parameters) # spin-dn
 
         # update momentum
         @. p = p - Δt * dSdx
