@@ -407,7 +407,7 @@ function Base.show(io::IO, ::MIME"text/plain", elphm::ElectronPhononModel{T,E,D}
         @printf io "omega_4_std  = %.6f\n\n" phonon_mode.Ω4_std
     end
     for (i, dispersion) in enumerate(elphm.phonon_dispersions)
-        bond::Bond{D} = dispersion.bond
+        bond = dispersion.bond
         @printf io "[[ElectronPhononModel.PhononDispersion]]\n\n"
         @printf io "DISPERSION_ID = %d\n" i
         @printf io "PHONON_IDS    = [%d, %d]\n" dispersion.phonon_modes[1] dispersion.phonon_modes[2]
@@ -422,7 +422,7 @@ function Base.show(io::IO, ::MIME"text/plain", elphm::ElectronPhononModel{T,E,D}
     for i in eachindex(elphm.holstein_couplings_up)
 
         holstein_coupling_up = elphm.holstein_couplings_up[i]
-        bond::Bond{D} = holstein_coupling_up.bond
+        bond = holstein_coupling_up.bond
         @printf io "[[ElectronPhononModel.HolsteinCouplingUp]]\n\n"
         @printf io "HOLSTEIN_ID     = %d\n" i
         @printf io "PHONON_ID       = %d\n" holstein_coupling_up.phonon_mode
@@ -440,7 +440,7 @@ function Base.show(io::IO, ::MIME"text/plain", elphm::ElectronPhononModel{T,E,D}
         @printf io "alpha4_std      = %.6f\n\n" holstein_coupling_up.α4_std
 
         holstein_coupling_dn = elphm.holstein_couplings_dn[i]
-        bond::Bond{D} = holstein_coupling_dn.bond
+        bond = holstein_coupling_dn.bond
         @printf io "[[ElectronPhononModel.HolsteinCouplingDown]]\n\n"
         @printf io "HOLSTEIN_ID     = %d\n" i
         @printf io "PHONON_ID       = %d\n" holstein_coupling_dn.phonon_mode
@@ -460,7 +460,7 @@ function Base.show(io::IO, ::MIME"text/plain", elphm::ElectronPhononModel{T,E,D}
     for i in eachindex(elphm.ssh_couplings_up)
 
         ssh_coupling_up = elphm.ssh_couplings_up[i]
-        bond::Bond{D} = ssh_coupling_up.bond
+        bond = ssh_coupling_up.bond
         @printf io "[[ElectronPhononModel.SSHCoupling]]\n\n"
         @printf io "SSH_ID       = %d\n" i
         @printf io "PHONON_IDS   = [%d, %d]\n" ssh_coupling_up.phonon_modes[1] ssh_coupling_up.phonon_modes[2]
@@ -477,7 +477,7 @@ function Base.show(io::IO, ::MIME"text/plain", elphm::ElectronPhononModel{T,E,D}
         @printf io "alpha4_std   = %.6f\n\n" ssh_coupling_up.α4_std
 
         ssh_coupling_dn = elphm.ssh_couplings_dn[i]
-        bond::Bond{D} = ssh_coupling_dn.bond
+        bond = ssh_coupling_dn.bond
         @printf io "[[ElectronPhononModel.SSHCoupling]]\n\n"
         @printf io "SSH_ID       = %d\n" i
         @printf io "PHONON_IDS   = [%d, %d]\n" ssh_coupling_dn.phonon_modes[1] ssh_coupling_dn.phonon_modes[2]
@@ -516,7 +516,7 @@ function Base.show(io::IO, ::MIME"text/plain", elphm::ElectronPhononModel{T,E,D}
         @printf io "omega_4_std  = %.6f\n\n" phonon_mode.Ω4_std
     end
     for (i, dispersion) in enumerate(elphm.phonon_dispersions)
-        bond::Bond{D} = dispersion.bond
+        bond = dispersion.bond
         @printf io "[[ElectronPhononModel.PhononDispersion]]\n\n"
         @printf io "DISPERSION_ID = %d\n" i
         @printf io "PHONON_ID     = [%d, %d]\n" dispersion.phonon_modes[1] dispersion.phonon_modes[2]
@@ -531,7 +531,7 @@ function Base.show(io::IO, ::MIME"text/plain", elphm::ElectronPhononModel{T,E,D}
     for i in eachindex(elphm.holstein_couplings_up)
 
         holstein_coupling_up = elphm.holstein_couplings_up[i]
-        bond::Bond{D} = holstein_coupling_up.bond
+        bond = holstein_coupling_up.bond
         @printf io "[[ElectronPhononModel.HolsteinCoupling]]\n\n"
         @printf io "HOLSTEIN_ID     = %d\n" i
         @printf io "PHONON_ID       = %d\n" holstein_coupling_up.phonon_mode
@@ -549,7 +549,7 @@ function Base.show(io::IO, ::MIME"text/plain", elphm::ElectronPhononModel{T,E,D}
         @printf io "alpha4_std      = %.6f\n\n" holstein_coupling_up.α4_std
 
         holstein_coupling_dn = elphm.holstein_couplings_dn[i]
-        bond::Bond{D} = holstein_coupling_dn.bond
+        bond = holstein_coupling_dn.bond
         @printf io "[[ElectronPhononModel.HolsteinCoupling]]\n\n"
         @printf io "HOLSTEIN_ID     = %d\n" i
         @printf io "PHONON_ID       = %d\n" holstein_coupling_dn.phonon_mode
@@ -569,7 +569,7 @@ function Base.show(io::IO, ::MIME"text/plain", elphm::ElectronPhononModel{T,E,D}
     for i in eachindex(elphm.ssh_couplings_up)
 
         ssh_coupling_up = elphm.ssh_couplings_up[i]
-        bond::Bond{D} = ssh_coupling_up.bond
+        bond = ssh_coupling_up.bond
         @printf io "[[ElectronPhononModel.SSHCoupling]]\n\n"
         @printf io "SSH_ID           = %d\n" i
         @printf io "PHONON_IDS       = [%d, %d]\n" ssh_coupling_up.phonon_modes[1] ssh_coupling_up.phonon_modes[2]
@@ -590,7 +590,7 @@ function Base.show(io::IO, ::MIME"text/plain", elphm::ElectronPhononModel{T,E,D}
         @printf io "alpha4_std       = %.6f\n\n" ssh_coupling_up.α4_std
 
         ssh_coupling_dn = elphm.ssh_couplings_dn[i]
-        bond::Bond{D} = ssh_coupling_dn.bond
+        bond = ssh_coupling_dn.bond
         @printf io "[[ElectronPhononModel.SSHCoupling]]\n\n"
         @printf io "SSH_ID           = %d\n" i
         @printf io "PHONON_IDS       = [%d, %d]\n" ssh_coupling_dn.phonon_modes[1] ssh_coupling_dn.phonon_modes[2]
