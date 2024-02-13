@@ -136,7 +136,7 @@ function SSHParameters(; model_geometry::ModelGeometry{D,E},
             phonon_mode_i = ssh_coupling_up.phonon_modes[1]
             phonon_mode_f = ssh_coupling_up.phonon_modes[2]
             # get the bond id associated with the ssh coupling
-            ssh_bond_id = ssh_coupling.bond_id
+            ssh_bond_id = ssh_coupling_up.bond_id
             # get range/slice of bare hoppings that need to be iterated over for given bond_id
             hopping_bond_id_index = findfirst(hopping_bond_id -> hopping_bond_id == ssh_bond_id, hopping_bond_ids)
             hopping_bond_slice = hopping_bond_slices[hopping_bond_id_index]

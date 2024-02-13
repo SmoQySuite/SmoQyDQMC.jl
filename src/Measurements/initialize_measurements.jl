@@ -161,11 +161,11 @@ function initialize_measurements!(measurement_container::NamedTuple,
                                   electron_phonon_model::ElectronPhononModel{T, E, D}) where {T<:Number, E<:AbstractFloat, D}
 
     (; local_measurements) = measurement_container
-    (; phonon_modes, holstein_couplings, ssh_couplings, phonon_dispersions) = electron_phonon_model
+    (; phonon_modes, holstein_couplings_up, ssh_couplings_up, phonon_dispersions) = electron_phonon_model
 
     _initialize_measurements!(local_measurements, phonon_modes)
-    _initialize_measurements!(local_measurements, holstein_couplings)
-    _initialize_measurements!(local_measurements, ssh_couplings)
+    _initialize_measurements!(local_measurements, holstein_couplings_up)
+    _initialize_measurements!(local_measurements, ssh_couplings_up)
     _initialize_measurements!(local_measurements, phonon_dispersions)
 
     return nothing

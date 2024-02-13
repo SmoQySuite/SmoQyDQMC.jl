@@ -611,6 +611,9 @@ function hmc_update!(
             break
         end
 
+        # calculate the holstein contribution to the derivative of the bosonic action
+        eval_derivative_holstein_action!(dSdx, x, Δτ, holstein_parameters, phonon_parameters)
+
         # account for both spin species with the derivative
         @. dSdx = 2 * dSdx
 
@@ -619,10 +622,6 @@ function hmc_update!(
 
         # calculate the dispersive contribution to the action derivative
         eval_derivative_dispersive_action!(dSdx, x, Δτ, dispersion_parameters, phonon_parameters)
-
-        # calculate the holstein contribution to the derivative of the bosonic action
-        eval_derivative_holstein_action!(dSdx, x, Δτ, holstein_parameters, phonon_parameters) # spin-up
-        eval_derivative_holstein_action!(dSdx, x, Δτ, holstein_parameters, phonon_parameters) # spin-dn
 
         # update momentum
         @. p = p - Δt * dSdx

@@ -1,15 +1,21 @@
 @doc raw"""
-    model_summary(; simulation_info::SimulationInfo,
-                  β::T, Δτ::T, model_geometry::ModelGeometry,
-                  tight_binding_model::TightBindingModel,
-                  interactions::Tuple) where {T<:AbstractFloat}
+    model_summary(;
+        simulation_info::SimulationInfo,
+        β::T, Δτ::T, model_geometry::ModelGeometry,
+        tight_binding_model::TightBindingModel,
+        tight_binding_model_dn::TightBindingModel = tight_binding_model,
+        interactions::Tuple
+    ) where {T<:AbstractFloat}
 
 Write model to summary to file.
 """
-function model_summary(; simulation_info::SimulationInfo,
-                       β::T, Δτ::T, model_geometry::ModelGeometry,
-                       tight_binding_model::TightBindingModel,
-                       interactions::Tuple) where {T<:AbstractFloat}
+function model_summary(;
+    simulation_info::SimulationInfo,
+    β::T, Δτ::T, model_geometry::ModelGeometry,
+    tight_binding_model::TightBindingModel,
+    tight_binding_model_dn::TightBindingModel = tight_binding_model,
+    interactions::Tuple
+) where {T<:AbstractFloat}
 
     # if process ID is 1
     if iszero(simulation_info.pID)
@@ -32,6 +38,9 @@ function model_summary(; simulation_info::SimulationInfo,
             show(fout, "text/plain", model_geometry)
             # write tight binding model to file
             show(fout, "text/plain", tight_binding_model)
+            if tight_binding_model.spin != tight_binding_model_dn.spin
+                show(fout, "text/plain", tight_binding_model_dn)
+            end
             # write various interactions to file
             for interaction in interactions
                 show(fout, "text/plain", interaction)

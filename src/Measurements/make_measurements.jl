@@ -5,8 +5,10 @@
 @doc raw"""
     make_measurements!(
         measurement_container::NamedTuple,
-        logdetGup::E, sgndetGup::T, Gup::AbstractMatrix{T}, Gup_ττ::AbstractMatrix{T}, Gup_τ0::AbstractMatrix{T}, Gup_0τ::AbstractMatrix{T},
-        logdetGdn::E, sgndetGdn::T, Gdn::AbstractMatrix{T}, Gdn_ττ::AbstractMatrix{T}, Gdn_τ0::AbstractMatrix{T}, Gdn_0τ::AbstractMatrix{T};
+        logdetGup::E, sgndetGup::T, Gup::AbstractMatrix{T},
+        Gup_ττ::AbstractMatrix{T}, Gup_τ0::AbstractMatrix{T}, Gup_0τ::AbstractMatrix{T},
+        logdetGdn::E, sgndetGdn::T, Gdn::AbstractMatrix{T},
+        Gdn_ττ::AbstractMatrix{T}, Gdn_τ0::AbstractMatrix{T}, Gdn_0τ::AbstractMatrix{T};
         fermion_path_integral_up::FermionPathIntegral{T,E},
         fermion_path_integral_dn::FermionPathIntegral{T,E},
         fermion_greens_calculator_up::FermionGreensCalculator{T,E},
@@ -14,6 +16,7 @@
         Bup::Vector{P}, Bdn::Vector{P}, δG_max::E, δG::E, δθ::E,
         model_geometry::ModelGeometry{D,E,N},
         tight_binding_parameters::TightBindingParameters{T,E},
+        tight_binding_parameters_dn::TightBindingParameters{T,E} = tight_binding_parameters,
         coupling_parameters::Tuple
     ) where {T<:Number, E<:AbstractFloat, D, N, P<:AbstractPropagator{T,E}}
 
@@ -22,8 +25,10 @@ This method also returns `(logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ
 """
 function make_measurements!(
     measurement_container::NamedTuple,
-    logdetGup::E, sgndetGup::T, Gup::AbstractMatrix{T}, Gup_ττ::AbstractMatrix{T}, Gup_τ0::AbstractMatrix{T}, Gup_0τ::AbstractMatrix{T},
-    logdetGdn::E, sgndetGdn::T, Gdn::AbstractMatrix{T}, Gdn_ττ::AbstractMatrix{T}, Gdn_τ0::AbstractMatrix{T}, Gdn_0τ::AbstractMatrix{T};
+    logdetGup::E, sgndetGup::T, Gup::AbstractMatrix{T},
+    Gup_ττ::AbstractMatrix{T}, Gup_τ0::AbstractMatrix{T}, Gup_0τ::AbstractMatrix{T},
+    logdetGdn::E, sgndetGdn::T, Gdn::AbstractMatrix{T},
+    Gdn_ττ::AbstractMatrix{T}, Gdn_τ0::AbstractMatrix{T}, Gdn_0τ::AbstractMatrix{T};
     fermion_path_integral_up::FermionPathIntegral{T,E},
     fermion_path_integral_dn::FermionPathIntegral{T,E},
     fermion_greens_calculator_up::FermionGreensCalculator{T,E},
@@ -32,8 +37,7 @@ function make_measurements!(
     model_geometry::ModelGeometry{D,E,N},
     tight_binding_parameters::TightBindingParameters{T,E},
     tight_binding_parameters_dn::TightBindingParameters{T,E} = tight_binding_parameters,
-    coupling_parameters::Tuple,
-
+    coupling_parameters::Tuple
 ) where {T<:Number, E<:AbstractFloat, D, N, P<:AbstractPropagator{T,E}}
 
     # extract temporary storage vectors
@@ -289,7 +293,7 @@ function make_global_measurements!(
     nup = measure_n(Gup)
     ndn = measure_n(Gdn)
     global_measurements["density_up"] += sgn * nup
-    global_measurements["density_dn"] += sgn * nup
+    global_measurements["density_dn"] += sgn * ndn
     global_measurements["density"] += sgn * (nup + ndn)
 
     # measure double occupancy
@@ -463,7 +467,7 @@ function make_local_measurements!(
             local_measurements["ssh_energy"][n] += ϵ_ssh
             s_ssh_up = sgn * measure_ssh_sgn_switch(ssh_parameters_up, tight_binding_parameters_up, x, n)
             s_ssh_dn = sgn * measure_ssh_sgn_switch(ssh_parameters_dn, tight_binding_parameters_dn, x, n)
-            s_ssh = s_ssh_up + s_ssh_dn
+            s_ssh = (s_ssh_up + s_ssh_dn)/2
             local_measurements["ssh_sgn_switch_up"][n] += s_ssh_up
             local_measurements["ssh_sgn_switch_dn"][n] += s_ssh_dn
             local_measurements["ssh_sgn_switch"][n] += s_ssh
@@ -748,8 +752,8 @@ function make_equaltime_measurements!(
         elseif correlation == "current_updn"
 
             (; bond_ids, bond_slices) = tight_binding_parameters_up
-            tup = fermion_path_integral_up.tup
-            tdn = fermion_path_integral_dn.tdn
+            tup = fermion_path_integral_up.t
+            tdn = fermion_path_integral_dn.t
 
             for i in eachindex(id_pairs)
                 # get the hopping IDs associated with current operators
@@ -780,8 +784,8 @@ function make_equaltime_measurements!(
         elseif correlation == "current_dnup"
 
             (; bond_ids, bond_slices) = tight_binding_parameters_up
-            tup = fermion_path_integral_up.tup
-            tdn = fermion_path_integral_dn.tdn
+            tup = fermion_path_integral_up.t
+            tdn = fermion_path_integral_dn.t
 
             for i in eachindex(id_pairs)
                 # get the hopping IDs associated with current operators
@@ -812,8 +816,8 @@ function make_equaltime_measurements!(
         elseif correlation == "current"
 
             (; bond_ids, bond_slices) = tight_binding_parameters_up
-            tup = fermion_path_integral_up.tup
-            tdn = fermion_path_integral_dn.tdn
+            tup = fermion_path_integral_up.t
+            tdn = fermion_path_integral_dn.t
 
             for i in eachindex(id_pairs)
                 # get the hopping IDs associated with current operators
@@ -865,6 +869,7 @@ function make_time_displaced_measurements!(time_displaced_correlations::Dict{Str
                                            fermion_path_integral_up::FermionPathIntegral{T,E},
                                            fermion_path_integral_dn::FermionPathIntegral{T,E}) where {T<:Number, E<:AbstractFloat, P, D, N}
 
+    Lτ = fermion_path_integral_up.Lτ::Int
     unit_cell = model_geometry.unit_cell::UnitCell{D,E,N}
     lattice = model_geometry.lattice::Lattice{D}
     bonds = model_geometry.bonds::Vector{Bond{D}}
@@ -1047,7 +1052,7 @@ function make_time_displaced_measurements!(time_displaced_correlations::Dict{Str
         elseif correlation == "current_upup"
 
             (; bond_ids, bond_slices) = tight_binding_parameters_up
-            tup = fermion_path_integral_up.tup
+            tup = fermion_path_integral_up.t
 
             for i in eachindex(id_pairs)
                 # get the hopping IDs associated with current operators
@@ -1078,7 +1083,7 @@ function make_time_displaced_measurements!(time_displaced_correlations::Dict{Str
         elseif correlation == "current_dndn"
 
             (; bond_ids, bond_slices) = tight_binding_parameters_dn
-            tdn = fermion_path_integral_dn.tdn
+            tdn = fermion_path_integral_dn.t
 
             for i in eachindex(id_pairs)
                 # get the hopping IDs associated with current operators
@@ -1109,8 +1114,8 @@ function make_time_displaced_measurements!(time_displaced_correlations::Dict{Str
         elseif correlation == "current_updn"
 
             (; bond_ids, bond_slices) = tight_binding_parameters_up
-            tup = fermion_path_integral_up.tup
-            tdn = fermion_path_integral_dn.tdn
+            tup = fermion_path_integral_up.t
+            tdn = fermion_path_integral_dn.t
 
             for i in eachindex(id_pairs)
                 # get the hopping IDs associated with current operators
@@ -1141,8 +1146,8 @@ function make_time_displaced_measurements!(time_displaced_correlations::Dict{Str
         elseif correlation == "current_dnup"
 
             (; bond_ids, bond_slices) = tight_binding_parameters_up
-            tup = fermion_path_integral_up.tup
-            tdn = fermion_path_integral_dn.tdn
+            tup = fermion_path_integral_up.t
+            tdn = fermion_path_integral_dn.t
 
             for i in eachindex(id_pairs)
                 # get the hopping IDs associated with current operators
@@ -1173,8 +1178,8 @@ function make_time_displaced_measurements!(time_displaced_correlations::Dict{Str
         elseif correlation == "current"
 
             (; bond_ids, bond_slices) = tight_binding_parameters_up
-            tup = fermion_path_integral_up.tup
-            tdn = fermion_path_integral_dn.tdn
+            tup = fermion_path_integral_up.t
+            tdn = fermion_path_integral_dn.t
 
             for i in eachindex(id_pairs)
                 # get the hopping IDs associated with current operators

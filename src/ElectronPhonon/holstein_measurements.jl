@@ -70,7 +70,7 @@ function measure_holstein_energy(
     for u in eachindex(ctp)
         x_ul = x[ctp[u],Lτ]
         i_ul = nt[2,1]
-        n_ul = 1 - real(Gup[i_ul, i_ul])
+        n_ul = 1 - real(G[i_ul, i_ul])
         # [α⋅x + α₂⋅x² + α₃⋅x³ + α₄⋅x⁴]⋅(n₊ + n₋ - 1)
         ϵ_hol += (α′[u]*x_ul + α2′[u]*x_ul^2 + α3′[u]*x_ul^3 + α4′[u]*x_ul^4) * (n_ul - 0.5)
     end

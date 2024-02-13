@@ -85,7 +85,7 @@ function TightBindingModel(;
         t_bond_ids[i] = add_bond!(model_geometry, t_bonds[i])
     end
 
-    return TightBindingModel(μ, ϵ_mean, ϵ_std, t_bond_ids, t_bonds, t_mean, t_std)
+    return TightBindingModel(μ, ϵ_mean, ϵ_std, t_bond_ids, t_bonds, t_mean, t_std, spin)
 end
 
 
@@ -101,11 +101,23 @@ function Base.show(io::IO, ::MIME"text/plain", tbm::TightBindingModel{T,E,D}) wh
     end
     @printf io "spin = %d\n\n" tbm.spin
     @printf io "chemical_potential = %.8f\n\n" tbm.μ
-    @printf io "[tight_binding_model.onsite_energy]\n\n"
+    if iszero(tbm.spin)
+        @printf io "[tight_binding_model.onsite_energy]\n\n"
+    elseif isone(tbm.spin)
+        @printf io "[tight_binding_model_up.onsite_energy]\n\n"
+    else
+        @printf io "[tight_binding_model_dn.onsite_energy]\n\n"
+    end
     @printf io "e_mean = %s\n" string(tbm.ϵ_mean)
     @printf io "e_std  = %s\n\n" string(tbm.ϵ_std)
     for i in eachindex(tbm.t_bonds)
-        @printf io "[[tight_binding_model.hopping]]\n\n"
+        if iszero(tbm.spin)
+            @printf io "[[tight_binding_model.hopping]]\n\n"
+        elseif isone(tbm.spin)
+            @printf io "[[tight_binding_model_up.hopping]]\n\n"
+        else
+            @printf io "[[tight_binding_model_dn.hopping]]\n\n"
+        end
         @printf io "HOPPING_ID   = %d\n" i
         @printf io "BOND_ID      = %d\n" tbm.t_bond_ids[i]
         @printf io "orbitals     = [%d, %d]\n" tbm.t_bonds[i].orbitals[1] tbm.t_bonds[i].orbitals[2]
@@ -129,11 +141,23 @@ function Base.show(io::IO, ::MIME"text/plain", tbm::TightBindingModel{T,E,D}) wh
     end
     @printf io "spin = %d\n\n" tbm.spin
     @printf io "chemical_potential = %.8f\n\n" tbm.μ
-    @printf io "[tight_binding_model.onsite_energy]\n\n"
+    if iszero(tbm.spin)
+        @printf io "[tight_binding_model.onsite_energy]\n\n"
+    elseif isone(tbm.spin)
+        @printf io "[tight_binding_model_up.onsite_energy]\n\n"
+    else
+        @printf io "[tight_binding_model_dn.onsite_energy]\n\n"
+    end
     @printf io "e_mean = %s\n" string(tbm.ϵ_mean)
     @printf io "e_std  = %s\n\n" string(tbm.ϵ_mean)
     for i in eachindex(tbm.t_bonds)
-        @printf io "[[tight_binding_model.hopping]]\n\n"
+        if iszero(tbm.spin)
+            @printf io "[[tight_binding_model.hopping]]\n\n"
+        elseif isone(tbm.spin)
+            @printf io "[[tight_binding_model_up.hopping]]\n\n"
+        else
+            @printf io "[[tight_binding_model_dn.hopping]]\n\n"
+        end
         @printf io "HOPPING_ID   = %d\n" i
         @printf io "BOND_ID      = %d\n" tbm.t_bond_ids[i]
         @printf io "orbitals     = [%d, %d]\n" tbm.t_bonds[i].orbitals[1] tbm.t_bonds[i].orbitals[2]

@@ -73,6 +73,7 @@ const CORRELATION_FUNCTIONS = Dict(
         "onsite_energy"      => "ORBITAL_ID",
         "onsite_energy_up"   => "ORBITAL_ID",
         "onsite_energy_dn"   => "ORBITAL_ID",
+        "hopping_energy"     => "HOPPING_ID",
         "hopping_energy_up"  => "HOPPING_ID",
         "hopping_energy_dn"  => "HOPPING_ID",
         "hubbard_energy"     => "ORBITAL_ID",
@@ -90,7 +91,7 @@ const CORRELATION_FUNCTIONS = Dict(
         "ssh_energy_dn"      => "SSH_ID",
         "ssh_sgn_switch"     => "SSH_ID",
         "ssh_sgn_switch_up"  => "SSH_ID",
-        "ssh_sgn_switch_n"   => "SSH_ID",
+        "ssh_sgn_switch_dn"  => "SSH_ID",
         "dispersion_energy"  => "DISPERSION_ID"
     )
 
@@ -105,6 +106,7 @@ const LOCAL_MEASUREMENTS = Dict(
     "onsite_energy"      => "ORBITAL_ID",
     "onsite_energy_up"   => "ORBITAL_ID",
     "onsite_energy_dn"   => "ORBITAL_ID",
+    "hopping_energy"     => "HOPPING_ID",
     "hopping_energy_up"  => "HOPPING_ID",
     "hopping_energy_dn"  => "HOPPING_ID",
     "hubbard_energy"     => "ORBITAL_ID",
@@ -121,5 +123,7 @@ const LOCAL_MEASUREMENTS = Dict(
     "ssh_energy_up"      => "SSH_ID",
     "ssh_energy_dn"      => "SSH_ID",
     "ssh_sgn_switch"     => "SSH_ID",
+    "ssh_sgn_switch_up"  => "SSH_ID",
+    "ssh_sgn_switch_dn"  => "SSH_ID",
     "dispersion_energy"  => "DISPERSION_ID"
 )
