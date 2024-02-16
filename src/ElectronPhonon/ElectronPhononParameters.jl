@@ -50,19 +50,34 @@ struct ElectronPhononParameters{T<:Number, E<:AbstractFloat}
 end
 
 @doc raw"""
-    ElectronPhononParameters(; β::E, Δτ::E,
-                             model_geometry::ModelGeometry{D,E},
-                             tight_binding_parameters::TightBindingParameters{T,E},
-                             electron_phonon_model::ElectronPhononModel{T,E,D},
-                             rng::AbstractRNG) where {T,E,D}
+    ElectronPhononParameters(;
+        β::E, Δτ::E,
+        model_geometry::ModelGeometry{D,E},
+        tight_binding_parameters::Union{TightBindingParameters{T,E}, Nothing} = nothing,
+        tight_binding_parameters_up::Union{TightBindingParameters{T,E}, Nothing} = nothing,
+        tight_binding_parameters_dn::Union{TightBindingParameters{T,E}, Nothing} = nothing,
+        electron_phonon_model::ElectronPhononModel{T,E,D},
+        rng::AbstractRNG
+    ) where {T,E,D}
 
 Initialize and return an instance of [`ElectronPhononParameters`](@ref).
 """
-function ElectronPhononParameters(; β::E, Δτ::E,
-                                  model_geometry::ModelGeometry{D,E},
-                                  tight_binding_parameters::TightBindingParameters{T,E},
-                                  electron_phonon_model::ElectronPhononModel{T,E,D},
-                                  rng::AbstractRNG) where {T,E,D}
+function ElectronPhononParameters(;
+    β::E, Δτ::E,
+    model_geometry::ModelGeometry{D,E},
+    tight_binding_parameters::Union{TightBindingParameters{T,E}, Nothing} = nothing,
+    tight_binding_parameters_up::Union{TightBindingParameters{T,E}, Nothing} = nothing,
+    tight_binding_parameters_dn::Union{TightBindingParameters{T,E}, Nothing} = nothing,
+    electron_phonon_model::ElectronPhononModel{T,E,D},
+    rng::AbstractRNG
+) where {T,E,D}
+
+    # specify spin-up and spin-down tight binding parameters if need
+    if !isnothing(tight_binding_parameters)
+
+        tight_binding_parameters_up = tight_binding_parameters
+        tight_binding_parameters_dn = tight_binding_parameters
+    end
 
     # initialize phonon parameters
     phonon_parameters = PhononParameters(model_geometry = model_geometry,
@@ -77,18 +92,19 @@ function ElectronPhononParameters(; β::E, Δτ::E,
         rng = rng
     )
 
-    # initialize holstein parameters
+    # initialize spin-down holstein parameters
     holstein_parameters_up, holstein_parameters_dn = HolsteinParameters(
         model_geometry = model_geometry,
         electron_phonon_model = electron_phonon_model,
         rng = rng
     )
 
-    # initialize ssh parameter
+    # initialize spin-up ssh parameters
     ssh_parameters_up, ssh_parameters_dn = SSHParameters(
         model_geometry = model_geometry,
         electron_phonon_model = electron_phonon_model,
-        tight_binding_parameters = tight_binding_parameters,
+        tight_binding_parameters_up = tight_binding_parameters_up,
+        tight_binding_parameters_dn = tight_binding_parameters_dn,
         rng = rng
     )
 

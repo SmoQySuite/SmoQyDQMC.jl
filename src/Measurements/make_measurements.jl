@@ -8,6 +8,7 @@
         logdetGup::E, sgndetGup::T, Gup::AbstractMatrix{T},
         Gup_ττ::AbstractMatrix{T}, Gup_τ0::AbstractMatrix{T}, Gup_0τ::AbstractMatrix{T},
         logdetGdn::E, sgndetGdn::T, Gdn::AbstractMatrix{T},
+        # Keyword Arguments Start Here
         Gdn_ττ::AbstractMatrix{T}, Gdn_τ0::AbstractMatrix{T}, Gdn_0τ::AbstractMatrix{T};
         fermion_path_integral_up::FermionPathIntegral{T,E},
         fermion_path_integral_dn::FermionPathIntegral{T,E},
@@ -29,19 +30,27 @@ function make_measurements!(
     Gup_ττ::AbstractMatrix{T}, Gup_τ0::AbstractMatrix{T}, Gup_0τ::AbstractMatrix{T},
     logdetGdn::E, sgndetGdn::T, Gdn::AbstractMatrix{T},
     Gdn_ττ::AbstractMatrix{T}, Gdn_τ0::AbstractMatrix{T}, Gdn_0τ::AbstractMatrix{T};
+    # Keyword Arguments Start Here
     fermion_path_integral_up::FermionPathIntegral{T,E},
     fermion_path_integral_dn::FermionPathIntegral{T,E},
     fermion_greens_calculator_up::FermionGreensCalculator{T,E},
     fermion_greens_calculator_dn::FermionGreensCalculator{T,E},
     Bup::Vector{P}, Bdn::Vector{P}, δG_max::E, δG::E, δθ::E,
     model_geometry::ModelGeometry{D,E,N},
-    tight_binding_parameters::TightBindingParameters{T,E},
-    tight_binding_parameters_dn::TightBindingParameters{T,E} = tight_binding_parameters,
+    tight_binding_parameters::Union{Nothing, TightBindingParameters{T,E}} = nothing,
+    tight_binding_parameters_up::Union{Nothing, TightBindingParameters{T,E}} = nothing,
+    tight_binding_parameters_dn::Union{Nothing, TightBindingParameters{T,E}} = nothing,
     coupling_parameters::Tuple
 ) where {T<:Number, E<:AbstractFloat, D, N, P<:AbstractPropagator{T,E}}
 
     # extract temporary storage vectors
     (; time_displaced_correlations, equaltime_correlations, a, a′, a″) = measurement_container
+
+    # assign spin-up and spin-down tight-binding parameters if necessary
+    if !isnothing(tight_binding_parameters)
+        tight_binding_parameters_up = tight_binding_parameters
+        tight_binding_parameters_dn = tight_binding_parameters
+    end
 
     # calculate sign
     sgn = sgndetGup * sgndetGdn
@@ -51,15 +60,18 @@ function make_measurements!(
     global_measurements = measurement_container.global_measurements
     make_global_measurements!(
         global_measurements,
-        tight_binding_parameters, tight_binding_parameters_dn,
+        tight_binding_parameters_up, tight_binding_parameters_dn,
         sgndetGup, sgndetGdn, Gup, Gdn
     )
 
     # make local measurements
     local_measurements = measurement_container.local_measurements
     make_local_measurements!(
-        local_measurements, Gup, Gdn, sgn, model_geometry,
-        tight_binding_parameters, tight_binding_parameters_dn,
+        local_measurements,
+        Gup, Gdn, sgn,
+        model_geometry,
+        tight_binding_parameters_up, tight_binding_parameters_dn,
+        fermion_path_integral_up, fermion_path_integral_dn,
         coupling_parameters
     )
 
@@ -72,7 +84,7 @@ function make_measurements!(
         equaltime_correlations, sgn,
         Gup, Gup_ττ, Gup_τ0, Gup_0τ,
         Gdn, Gdn_ττ, Gdn_τ0, Gdn_0τ,
-        model_geometry, tight_binding_parameters, tight_binding_parameters_dn,
+        model_geometry, tight_binding_parameters_up, tight_binding_parameters_dn,
         fermion_path_integral_up, fermion_path_integral_dn
     )
 
@@ -83,7 +95,7 @@ function make_measurements!(
         make_time_displaced_measurements!(
             time_displaced_correlations, 0, sgn,
             Gup, Gup_ττ, Gup_τ0, Gup_0τ, Gdn, Gdn_ττ, Gdn_τ0, Gdn_0τ,
-            model_geometry, tight_binding_parameters, tight_binding_parameters_dn,
+            model_geometry, tight_binding_parameters_up, tight_binding_parameters_dn,
             fermion_path_integral_up, fermion_path_integral_dn
         )
 
@@ -98,7 +110,7 @@ function make_measurements!(
             make_time_displaced_measurements!(
                 time_displaced_correlations, l, sgn,
                 Gup, Gup_ττ, Gup_τ0, Gup_0τ, Gdn, Gdn_ττ, Gdn_τ0, Gdn_0τ,
-                model_geometry, tight_binding_parameters, tight_binding_parameters_dn,
+                model_geometry, tight_binding_parameters_up, tight_binding_parameters_dn,
                 fermion_path_integral_up, fermion_path_integral_dn
             )
 
@@ -149,6 +161,7 @@ end
         measurement_container::NamedTuple,
         logdetG::E, sgndetG::T, G::AbstractMatrix{T},
         G_ττ::AbstractMatrix{T}, G_τ0::AbstractMatrix{T}, G_0τ::AbstractMatrix{T};
+        # Keyword Arguments Start Here
         fermion_path_integral::FermionPathIntegral{T,E},
         fermion_greens_calculator::FermionGreensCalculator{T,E},
         B::Vector{P}, δG_max::E, δG::E, δθ::E,
@@ -164,6 +177,7 @@ function make_measurements!(
     measurement_container::NamedTuple,
     logdetG::E, sgndetG::T, G::AbstractMatrix{T},
     G_ττ::AbstractMatrix{T}, G_τ0::AbstractMatrix{T}, G_0τ::AbstractMatrix{T};
+    # Keyword Arguments Start Here
     fermion_path_integral::FermionPathIntegral{T,E},
     fermion_greens_calculator::FermionGreensCalculator{T,E},
     B::Vector{P}, δG_max::E, δG::E, δθ::E,
@@ -193,6 +207,7 @@ function make_measurements!(
         local_measurements,
         G, G, sgn, model_geometry,
         tight_binding_parameters, tight_binding_parameters,
+        fermion_path_integral, fermion_path_integral,
         coupling_parameters
     )
 
@@ -320,6 +335,8 @@ function make_local_measurements!(
     model_geometry::ModelGeometry{D,E,N},
     tight_binding_parameters_up::TightBindingParameters{T,E},
     tight_binding_parameters_dn::TightBindingParameters{T,E},
+    fermion_path_integral_up::FermionPathIntegral{T,E},
+    fermion_path_integral_dn::FermionPathIntegral{T,E},
     coupling_parameters::Tuple
 ) where {T<:Number, E<:AbstractFloat, D, N}
 
@@ -341,7 +358,8 @@ function make_local_measurements!(
 
     # make tight-binding measurements
     make_local_measurements!(local_measurements, Gup, Gdn, sgn, model_geometry,
-                             tight_binding_parameters_up, tight_binding_parameters_dn)
+                             tight_binding_parameters_up, tight_binding_parameters_dn,
+                             fermion_path_integral_up, fermion_path_integral_dn)
 
     # make local measurements associated with couplings
     for coupling_parameter in coupling_parameters
@@ -358,7 +376,9 @@ function make_local_measurements!(
     Gup::AbstractMatrix{T}, Gdn::AbstractMatrix{T}, sgn::T,
     model_geometry::ModelGeometry{D,E,N},
     tight_binding_parameters_up::TightBindingParameters{T,E},
-    tight_binding_parameters_dn::TightBindingParameters{T,E}
+    tight_binding_parameters_dn::TightBindingParameters{T,E},
+    fermion_path_integral_up::FermionPathIntegral{T,E},
+    fermion_path_integral_dn::FermionPathIntegral{T,E}
 ) where {T<:Number, E<:AbstractFloat, D, N}
 
     # number of orbitals per unit cell
@@ -370,8 +390,8 @@ function make_local_measurements!(
 
     # measure on-site energy
     for n in 1:norbital
-        eup = sgn * measure_onsite_energy(tight_binding_parameters_up, Gup, Gdn, n)
-        edn = sgn * measure_onsite_energy(tight_binding_parameters_up, Gup, Gdn, n)
+        eup = sgn * measure_onsite_energy(tight_binding_parameters_up, Gup, n)
+        edn = sgn * measure_onsite_energy(tight_binding_parameters_dn, Gdn, n)
         e = eup + edn
         local_measurements["onsite_energy_up"][n] += eup
         local_measurements["onsite_energy_dn"][n] += edn
@@ -381,12 +401,49 @@ function make_local_measurements!(
     # measure hopping energy
     if nhopping > 0
         for n in 1:nhopping
-            hup = sgn * measure_hopping_energy(tight_binding_parameters_up, Gup, Gdn, bond_ids[n])
-            hdn = sgn * measure_hopping_energy(tight_binding_parameters_dn, Gup, Gdn, bond_ids[n])
+
+            # get the bond ID corresponding to the hopping
+            bond_id = bond_ids[n]
+
+            # measure bare hopping energy
+            hup = sgn * measure_bare_hopping_energy(tight_binding_parameters_up, Gup, bond_id)
+            hdn = sgn * measure_bare_hopping_energy(tight_binding_parameters_dn, Gdn, bond_id)
+            h = hup + hdn
+            local_measurements["bare_hopping_energy_up"][n] += hup
+            local_measurements["bare_hopping_energy_dn"][n] += hdn
+            local_measurements["bare_hopping_energy"][n] += h
+
+            # measure hopping amplitude
+            hup = sgn * measure_hopping_energy(tight_binding_parameters_up, fermion_path_integral_up, Gup, bond_id)
+            hdn = sgn * measure_hopping_energy(tight_binding_parameters_dn, fermion_path_integral_up, Gdn, bond_id)
             h = hup + hdn
             local_measurements["hopping_energy_up"][n] += hup
             local_measurements["hopping_energy_dn"][n] += hdn
             local_measurements["hopping_energy"][n] += h
+
+            # measure hopping amplitude
+            tup = sgn * measure_hopping_amplitude(tight_binding_parameters_up, fermion_path_integral_up, bond_id)
+            tdn = sgn * measure_hopping_amplitude(tight_binding_parameters_dn, fermion_path_integral_up, bond_id)
+            tn = (tup + tup)/2
+            local_measurements["hopping_amplitude_up"][n] += tup
+            local_measurements["hopping_amplitude_dn"][n] += tdn
+            local_measurements["hopping_amplitude"][n] += tn
+
+            # measure hopping inversion
+            tup = sgn * measure_hopping_inversion(tight_binding_parameters_up, fermion_path_integral_up, bond_id)
+            tdn = sgn * measure_hopping_inversion(tight_binding_parameters_dn, fermion_path_integral_up, bond_id)
+            tn = (tup + tup)/2
+            local_measurements["hopping_inversion_up"][n] += tup
+            local_measurements["hopping_inversion_dn"][n] += tdn
+            local_measurements["hopping_inversion"][n] += tn
+
+            # measure hopping inversion
+            tup = sgn * measure_hopping_inversion_avg(tight_binding_parameters_up, fermion_path_integral_up, bond_id)
+            tdn = sgn * measure_hopping_inversion_avg(tight_binding_parameters_dn, fermion_path_integral_up, bond_id)
+            tn = (tup + tup)/2
+            local_measurements["hopping_inversion_avg_up"][n] += tup
+            local_measurements["hopping_inversion_avg_dn"][n] += tdn
+            local_measurements["hopping_inversion_avg"][n] += tn
         end
     end
 
@@ -465,12 +522,6 @@ function make_local_measurements!(
             local_measurements["ssh_energy_up"][n] += ϵ_ssh_up
             local_measurements["ssh_energy_dn"][n] += ϵ_ssh_dn
             local_measurements["ssh_energy"][n] += ϵ_ssh
-            s_ssh_up = sgn * measure_ssh_sgn_switch(ssh_parameters_up, tight_binding_parameters_up, x, n)
-            s_ssh_dn = sgn * measure_ssh_sgn_switch(ssh_parameters_dn, tight_binding_parameters_dn, x, n)
-            s_ssh = (s_ssh_up + s_ssh_dn)/2
-            local_measurements["ssh_sgn_switch_up"][n] += s_ssh_up
-            local_measurements["ssh_sgn_switch_dn"][n] += s_ssh_dn
-            local_measurements["ssh_sgn_switch"][n] += s_ssh
         end
     end
 

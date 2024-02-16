@@ -325,16 +325,23 @@ function _write_local_measurements(
     # write header
     write(fout, "MEASUREMENT ID_TYPE ID MEAN_R MEAN_I STD\n")
 
+    # made measurements
+    measurements = collect(keys(local_measurements_avg))
+
     # iterate over measurements
-    for key in keys(local_measurements_avg)
+    for key in keys(LOCAL_MEASUREMENTS)
 
-        # iterate over ID's associated with measurement
-        for id in 1:length(local_measurements_avg[key])
+        # check if local measurement was made
+        if key in measurements
 
-            # write the measurement to file
-            avg = local_measurements_avg[key][id]
-            err = local_measurements_std[key][id]
-            @printf(fout, "%s %s %d %.8f %.8f %.8f\n", key, LOCAL_MEASUREMENTS[key], id, real(avg), imag(avg), err)
+            # iterate over ID's associated with measurement
+            for id in 1:length(local_measurements_avg[key])
+
+                # write the measurement to file
+                avg = local_measurements_avg[key][id]
+                err = local_measurements_std[key][id]
+                @printf(fout, "%s %s %d %.8f %.8f %.8f\n", key, LOCAL_MEASUREMENTS[key], id, real(avg), imag(avg), err)
+            end
         end
     end
 

@@ -76,10 +76,12 @@ end
 
 @doc raw"""
     EFAHMCUpdater(;
+        # Keyword Arguments Start Here
         electron_phonon_parameters::ElectronPhononParameters{T,E},
         G::Matrix{T},
         Nt::Int,
         Δt::E,
+        reg::E = 0.0,
         δ::E = 0.05
     ) where {T<:Number, E<:AbstractFloat}
 
@@ -93,11 +95,12 @@ end
 - `δ::E = 0.05`: Amount of jitter added to time-step used in EFA-HMC update.
 """
 function EFAHMCUpdater(;
+    # Keyword Arguments Start Here
     electron_phonon_parameters::ElectronPhononParameters{T,E},
     G::Matrix{T},
     Nt::Int,
     Δt::E,
-    reg::E = Inf,
+    reg::E = 0.0,
     δ::E = 0.05
 ) where {T<:Number, E<:AbstractFloat}
 
@@ -151,6 +154,7 @@ end
         Gdn::Matrix{T}, logdetGdn::E, sgndetGdn::T,
         electron_phonon_parameters::ElectronPhononParameters{T,E},
         hmc_updater::EFAHMCUpdater{T,E};
+        # Keyword Arguments Start Here
         fermion_path_integral_up::FermionPathIntegral{T,E},
         fermion_path_integral_dn::FermionPathIntegral{T,E},
         fermion_greens_calculator_up::FermionGreensCalculator{T,E},
@@ -176,6 +180,7 @@ function hmc_update!(
     Gdn::Matrix{T}, logdetGdn::E, sgndetGdn::T,
     electron_phonon_parameters::ElectronPhononParameters{T,E},
     hmc_updater::EFAHMCUpdater{T,E};
+    # Keyword Arguments Start Here
     fermion_path_integral_up::FermionPathIntegral{T,E},
     fermion_path_integral_dn::FermionPathIntegral{T,E},
     fermion_greens_calculator_up::FermionGreensCalculator{T,E},

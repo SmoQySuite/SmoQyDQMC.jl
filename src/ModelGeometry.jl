@@ -47,17 +47,17 @@ function Base.show(io::IO, ::MIME"text/plain", model_geo::ModelGeometry{D,T}) wh
 
     (; unit_cell, lattice, bonds) = model_geo
 
-    @printf io "[geometry]\n\n"
+    @printf io "[Geometry]\n\n"
     @printf io "dimensions = %d\n\n" D
-    @printf io "[geometry.unit_cell]\n\n"
+    @printf io "[Geometry.UnitCell]\n\n"
     @printf io "orbitals = %d\n\n" unit_cell.n
-    @printf io "[geometry.unit_cell.lattice_vectors]\n\n"
+    @printf io "[Geometry.UnitCell.LatticeVectors]\n\n"
     for d in 1:D
         a = @view unit_cell.lattice_vecs[:,d]
         @printf io "a_%d = %s\n" d string(round.(a, digits=6)) 
     end
     @printf io "\n"
-    @printf io "[geometry.unit_cell.reciprocal_vectors]\n\n"
+    @printf io "[Geometry.UnitCell.ReciprocalVectors]\n\n"
     for d in 1:D
         b = @view unit_cell.reciprocal_vecs[:,d]
         @printf io "b_%d = %s\n" d string(round.(b, digits=6)) 
@@ -65,16 +65,16 @@ function Base.show(io::IO, ::MIME"text/plain", model_geo::ModelGeometry{D,T}) wh
     @printf io "\n"
     for i in 1:unit_cell.n
         r = unit_cell.basis_vecs[i]
-        @printf io "[[geometry.unit_cell.basis_vector]]\n\n"
+        @printf io "[[Geometry.UnitCell.BasisVectors]]\n\n"
         @printf io "ORBITAL_ID = %d\n" i
         @printf io "r          = %s\n\n" string(round.(r, digits=6))
     end
     @printf io "\n"
-    @printf io "[geometry.lattice]\n\n"
+    @printf io "[Geometry.Lattice]\n\n"
     @printf io "L        = %s\n" string(lattice.L)
     @printf io "periodic = [%s]\n\n" join(lattice.periodic, ", ")
     for i in eachindex(bonds)
-        @printf io "[[geometry.bond]]\n\n"
+        @printf io "[[Geometry.Bond]]\n\n"
         @printf io "BOND_ID      = %d\n" i
         @printf io "orbitals     = [%d, %d]\n" bonds[i].orbitals[1] bonds[i].orbitals[2]
         @printf io "displacement = %s\n\n" string(bonds[i].displacement)

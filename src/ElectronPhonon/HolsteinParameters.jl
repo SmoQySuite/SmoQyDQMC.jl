@@ -11,6 +11,7 @@ Defines the Holstein coupling parameters in lattice.
 - `α2::Vector{T}`: Quadratic Holstein coupling.
 - `α3::Vector{T}`: Cubic Holstein coupling.
 - `α4::Vector{T}`: Quartic Holstein coupling.
+- `shifted::Vector{Bool}`: If the density multiplying the odd powered interaction terms is shifted.
 - `neighbor_table::Matrix{Int}`: Neighbor table where the first row specifies the site where the phonon mode is located, and the second row specifies the site corresponds to the density getting coupled to.
 - `coupling_to_phonon::Vector{Int}`: Maps each Holstein coupling in the lattice to the corresponding phonon mode.
 - `phonon_to_coupling::Vector{Vector{Int}}`: Maps each phonon model to correspond Holstein couplings.
@@ -35,6 +36,9 @@ struct HolsteinParameters{E<:AbstractFloat}
     # quartic coupling
     α4::Vector{E}
 
+    # whether the density multiplying the odd powered interaction terms are shifted
+    shifted::Vector{Bool}
+
     # neighbor table for couplings where first row is site phonon lives on,
     # and the second row is the site where density getting coupled to is
     neighbor_table::Matrix{Int}
@@ -47,9 +51,11 @@ struct HolsteinParameters{E<:AbstractFloat}
 end
 
 @doc raw"""
-    HolsteinParameters(; model_geometry::ModelGeometry{D,E},
-                       electron_phonon_model::ElectronPhononModel{T,E,D},
-                       rng::AbstractRNG) where {T,E,D}
+    HolsteinParameters(;
+        model_geometry::ModelGeometry{D,E},
+        electron_phonon_model::ElectronPhononModel{T,E,D},
+        rng::AbstractRNG,
+    ) where {T,E,D}
 
 Initialize and return an instance of [`HolsteinParameters`](@ref).
 """
@@ -96,6 +102,10 @@ function HolsteinParameters(;
         α3_dn = zeros(E, Nholstein)
         α4_dn = zeros(E, Nholstein)
 
+        # whether type of holstein coupling term is shifted
+        shifted_up = [holstein_coupling.shifted for holstein_coupling in holstein_couplings_up]
+        shifted_dn = [holstein_coupling.shifted for holstein_coupling in holstein_couplings_dn]
+
         # allocate arrays mapping holstein coupling to phonon in lattice
         coupling_to_phonon = zeros(Int, Nholstein)
 
@@ -137,8 +147,8 @@ function HolsteinParameters(;
         end
 
         # initialize holstein parameters
-        holstein_parameters_up = HolsteinParameters(nholstein, Nholstein, α_up, α2_up, α3_up, α4_up, neighbor_table, coupling_to_phonon, phonon_to_coupling)
-        holstein_parameters_dn = HolsteinParameters(nholstein, Nholstein, α_dn, α2_dn, α3_dn, α4_dn, neighbor_table, coupling_to_phonon, phonon_to_coupling)
+        holstein_parameters_up = HolsteinParameters(nholstein, Nholstein, α_up, α2_up, α3_up, α4_up, shifted_up, neighbor_table, coupling_to_phonon, phonon_to_coupling)
+        holstein_parameters_dn = HolsteinParameters(nholstein, Nholstein, α_dn, α2_dn, α3_dn, α4_dn, shifted_dn, neighbor_table, coupling_to_phonon, phonon_to_coupling)
     else
 
         # initialize null holstein parameters
@@ -156,7 +166,7 @@ Initialize and return null (empty) instance of [`HolsteinParameters`](@ref).
 """
 function HolsteinParameters(electron_phonon_model::ElectronPhononModel{T,E,D}) where {T,E,D}
 
-    return HolsteinParameters(0, 0, E[], E[], E[], E[], Matrix{Int}(undef,2,0), Int[], Vector{Int}[])
+    return HolsteinParameters(0, 0, E[], E[], E[], E[], Bool[], Matrix{Int}(undef,2,0), Int[], Vector{Int}[])
 end
 
 # Update the on-site energy matrix for each time-slice based on the Holstein interaction

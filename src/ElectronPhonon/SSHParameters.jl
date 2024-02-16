@@ -58,17 +58,23 @@ struct SSHParameters{T<:Number}
 end
 
 @doc raw"""
-    SSHParameters(; model_geometry::ModelGeometry{D,E},
-                  electron_phonon_model::ElectronPhononModel{T,E,D},
-                  tight_binding_parameters::TightBindingParameters{T,E},
-                  rng::AbstractRNG) where {T,E,D}
+    SSHParameters(;
+        model_geometry::ModelGeometry{D,E},
+        electron_phonon_model::ElectronPhononModel{T,E,D},
+        tight_binding_parameters_up::TightBindingParameters{T,E},
+        tight_binding_parameters_dn::TightBindingParameters{T,E},
+        rng::AbstractRNG
+    ) where {T,E,D}
 
 Initialize and return an instance of [`SSHParameters`](@ref).
 """
-function SSHParameters(; model_geometry::ModelGeometry{D,E},
-                       electron_phonon_model::ElectronPhononModel{T,E,D},
-                       tight_binding_parameters::TightBindingParameters{T,E},
-                       rng::AbstractRNG) where {T,E,D}
+function SSHParameters(;
+    model_geometry::ModelGeometry{D,E},
+    electron_phonon_model::ElectronPhononModel{T,E,D},
+    tight_binding_parameters_up::TightBindingParameters{T,E},
+    tight_binding_parameters_dn::TightBindingParameters{T,E},
+    rng::AbstractRNG
+) where {T,E,D}
 
     ssh_couplings_up = electron_phonon_model.ssh_couplings_up::Vector{SSHCoupling{T,E,D}}
     ssh_couplings_dn = electron_phonon_model.ssh_couplings_dn::Vector{SSHCoupling{T,E,D}}
@@ -94,16 +100,16 @@ function SSHParameters(; model_geometry::ModelGeometry{D,E},
         Nphonon = nphonon * Ncells
 
         # get the bare tight binding model hopping neighbor table
-        hopping_neighbor_table = tight_binding_parameters.neighbor_table
+        hopping_neighbor_table = tight_binding_parameters_up.neighbor_table
 
         # get the total number of hoppings in lattice
         Nhoppings = size(hopping_neighbor_table,2)
 
         # get bare hopping bond ids
-        hopping_bond_ids = tight_binding_parameters.bond_ids::Vector{Int}
+        hopping_bond_ids = tight_binding_parameters_up.bond_ids::Vector{Int}
 
         # get the slice of hopping neighbor table associated with each bond ID
-        hopping_bond_slices = tight_binding_parameters.bond_slices::Vector{UnitRange{Int}}
+        hopping_bond_slices = tight_binding_parameters_up.bond_slices::Vector{UnitRange{Int}}
 
         # allocate arrays of ssh coupling parameters
         α_up  = zeros(T, Nssh)
@@ -209,16 +215,9 @@ function SSHParameters(electron_phonon_model::ElectronPhononModel{T,E,D}) where 
     return SSHParameters(0, 0, T[], T[], T[], T[], Matrix{Int}(undef,2,0), Matrix{Int}(undef,2,0), Vector{Int}[], Vector{Int}[], Vector{Int}[], Int[])
 end
 
-
-# @doc raw"""
-#     update!(fermion_path_integral::FermionPathIntegral{T,E},
-#             ssh_parameters::SSHParameters{T},
-#             x::Matrix{E}, sgn::Int) where {T,E}
-
 # Update the total hopping energy for each time-slice based on the SSH interaction
 # and the phonon field configuration `x`, where `sgn = ±1` determines whether the SSH
 # contribution to the total hopping energy is either added or subtracted.
-# """
 function update!(fermion_path_integral::FermionPathIntegral{T,E},
                  ssh_parameters::SSHParameters{T},
                  x::Matrix{E}, sgn::Int) where {T,E}

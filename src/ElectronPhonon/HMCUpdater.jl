@@ -118,6 +118,7 @@ end
         Gdn::Matrix{T}, logdetGdn::E, sgndetGdn::T,
         electron_phonon_parameters::ElectronPhononParameters{T,E},
         hmc_updater::HMCUpdater{T,E};
+        # Keyword Arguments Start Here
         fermion_path_integral_up::FermionPathIntegral{T,E},
         fermion_path_integral_dn::FermionPathIntegral{T,E},
         fermion_greens_calculator_up::FermionGreensCalculator{T,E},
@@ -145,6 +146,7 @@ function hmc_update!(
     Gdn::Matrix{T}, logdetGdn::E, sgndetGdn::T,
     electron_phonon_parameters::ElectronPhononParameters{T,E},
     hmc_updater::HMCUpdater{T,E};
+    # Keyword Arguments Start Here
     fermion_path_integral_up::FermionPathIntegral{T,E},
     fermion_path_integral_dn::FermionPathIntegral{T,E},
     fermion_greens_calculator_up::FermionGreensCalculator{T,E},
@@ -191,6 +193,7 @@ end
         G::Matrix{T}, logdetG::E, sgndetG::T,
         electron_phonon_parameters::ElectronPhononParameters{T,E},
         hmc_updater::HMCUpdater{T,E};
+        # Keyword Arguments Start Here
         fermion_path_integral::FermionPathIntegral{T,E},
         fermion_greens_calculator::FermionGreensCalculator{T,E},
         fermion_greens_calculator_alt::FermionGreensCalculator{T,E},
@@ -213,6 +216,7 @@ function hmc_update!(
     G::Matrix{T}, logdetG::E, sgndetG::T,
     electron_phonon_parameters::ElectronPhononParameters{T,E},
     hmc_updater::HMCUpdater{T,E};
+    # Keyword Arguments Start Here
     fermion_path_integral::FermionPathIntegral{T,E},
     fermion_greens_calculator::FermionGreensCalculator{T,E},
     fermion_greens_calculator_alt::FermionGreensCalculator{T,E},

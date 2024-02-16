@@ -66,18 +66,35 @@ end
     HolsteinCoupling{E<:AbstractFloat, D}
 
 Defines a Holstein coupling between a specified phonon mode and orbital density.
-Specifically, it defines the (extended) Holstein Hamiltonian interaction term
+Specifically, if `shifted = true` a Holstein interaction term is given by
 ```math
-\hat{H}_{{\rm hol}} = \sum_{\sigma,\mathbf{i}}
-    \left[ \sum_{n=1}^{4}\alpha_{n,\mathbf{i},(\mathbf{r},\kappa,\nu)}\hat{X}_{\mathbf{i},\nu}^{n} \right]
-    \left( \hat{n}_{\sigma,\mathbf{i}+\mathbf{r},\kappa}-\tfrac{1}{2} \right),
+\begin{align*}
+H = \sum_{\mathbf{i}} \Big[ 
+        & (\alpha_{\mathbf{i},(\mathbf{r},\kappa,\nu)} \hat{X}_{\mathbf{i},\nu}
+        + \alpha_{3,\mathbf{i},(\mathbf{r},\kappa,\nu)} \hat{X}^3_{\mathbf{i},\nu}) \ (\hat{n}_{\sigma,\mathbf{i}+\mathbf{r},\kappa}-\tfrac{1}{2})\\
+        & + (\alpha_{2,\mathbf{i},(\mathbf{r},\kappa,\nu)} \hat{X}^2_{\mathbf{i},\nu}
+        + \alpha_{4,\mathbf{i},(\mathbf{r},\kappa,\nu)} \hat{X}^4_{\mathbf{i},\nu}) \ \hat{n}_{\sigma,\mathbf{i}+\mathbf{r},\kappa} 
+\Big]
+\end{align*},
 ```
-where ``\sigma`` specifies the sum, and the sum over ``\mathbf{i}`` runs over unit cells in the lattice.
+whereas if `shifted = false` then it is given by
+```math
+\begin{align*}
+H = \sum_{\mathbf{i}} \Big[ 
+        & (\alpha_{\mathbf{i},(\mathbf{r},\kappa,\nu)} \hat{X}_{\mathbf{i},\nu}
+        + \alpha_{3,\mathbf{i},(\mathbf{r},\kappa,\nu)} \hat{X}^3_{\mathbf{i},\nu}) \ \hat{n}_{\sigma,\mathbf{i}+\mathbf{r},\kappa}\\
+        & + (\alpha_{2,\mathbf{i},(\mathbf{r},\kappa,\nu)} \hat{X}^2_{\mathbf{i},\nu}
+        + \alpha_{4,\mathbf{i},(\mathbf{r},\kappa,\nu)} \hat{X}^4_{\mathbf{i},\nu}) \ \hat{n}_{\sigma,\mathbf{i}+\mathbf{r},\kappa} 
+\Big]
+\end{align*}.
+```
+In the above, ``\sigma`` specifies the sum, and the sum over ``\mathbf{i}`` runs over unit cells in the lattice.
 In the above ``\nu`` and ``\kappa`` specify orbital species in the unit cell, and ``\mathbf{r}`` is a static
 displacement in unit cells.
 
 # Fields
 
+- `shifted::Bool`: If the odd powered interaction terms are shifted to render them particle-hole symmetric in the atomic limit.
 - `phonon_mode::Int`: The phonon mode getting coupled to.
 - `bond::Bond{D}`: Static displacement from ``\hat{X}_{\mathbf{i},\nu}`` to ``\hat{n}_{\sigma,\mathbf{i}+\mathbf{r},\kappa}.``
 - `bond_id::Int`: Bond ID associtated with `bond` field.
@@ -128,6 +145,9 @@ struct HolsteinCoupling{E<:AbstractFloat, D}
 
     # standard deviation of quartic (X⁴) coupling coefficient
     α4_std::E
+
+    # whether the odd powered interactions are shifted
+    shifted::Bool
 end
 
 @doc raw"""
@@ -138,7 +158,8 @@ end
         α_mean::E,        α_std::E  = 0.0,
         α2_mean::E = 0.0, α2_std::E = 0.0,
         α3_mean::E = 0.0, α3_std::E = 0.0,
-        α4_mean::E = 0.0, α4_std::E = 0.0
+        α4_mean::E = 0.0, α4_std::E = 0.0,
+        shifted::Bool = true
     ) where {D, E<:AbstractFloat}
 
 Initialize and return a instance of [`HolsteinCoupling`](@ref).
@@ -150,11 +171,12 @@ function HolsteinCoupling(;
     α_mean::E,        α_std::E  = 0.0,
     α2_mean::E = 0.0, α2_std::E = 0.0,
     α3_mean::E = 0.0, α3_std::E = 0.0,
-    α4_mean::E = 0.0, α4_std::E = 0.0
+    α4_mean::E = 0.0, α4_std::E = 0.0,
+    shifted::Bool = true
 ) where {D, E<:AbstractFloat}
 
     bond_id = add_bond!(model_geometry, bond)
-    return HolsteinCoupling(phonon_mode, bond, bond_id, α_mean, α_std, α2_mean, α2_std, α3_mean, α3_std, α4_mean, α4_std)
+    return HolsteinCoupling(phonon_mode, bond, bond_id, α_mean, α_std, α2_mean, α2_std, α3_mean, α3_std, α4_mean, α4_std, shifted)
 end
 
 
@@ -235,10 +257,10 @@ end
         tight_binding_model::TightBindingModel{T,E,D},
         phonon_modes::NTuple{2,Int},
         bond::Bond{D},
-        α_mean::T,        α_std::E  = 0.0,
-        α2_mean::T = 0.0, α2_std::E = 0.0,
-        α3_mean::T = 0.0, α3_std::E = 0.0,
-        α4_mean::T = 0.0, α4_std::E = 0.0
+        α_mean::Union{T,E},        α_std::E  = 0.0,
+        α2_mean::Union{T,E} = 0.0, α2_std::E = 0.0,
+        α3_mean::Union{T,E} = 0.0, α3_std::E = 0.0,
+        α4_mean::Union{T,E} = 0.0, α4_std::E = 0.0
     ) where {D, T<:Number, E<:AbstractFloat}
 
 Initialize and return a instance of [`SSHCoupling`](@ref).
@@ -248,10 +270,10 @@ function SSHCoupling(;
     tight_binding_model::TightBindingModel{T,E,D},
     phonon_modes::NTuple{2,Int},
     bond::Bond{D},
-    α_mean::T,        α_std::E  = 0.0,
-    α2_mean::T = 0.0, α2_std::E = 0.0,
-    α3_mean::T = 0.0, α3_std::E = 0.0,
-    α4_mean::T = 0.0, α4_std::E = 0.0
+    α_mean::Union{T,E},        α_std::E  = 0.0,
+    α2_mean::Union{T,E} = 0.0, α2_std::E = 0.0,
+    α3_mean::Union{T,E} = 0.0, α3_std::E = 0.0,
+    α4_mean::Union{T,E} = 0.0, α4_std::E = 0.0
 ) where {D, T<:Number, E<:AbstractFloat}
 
     # make sure there is already a hopping definition for the tight binding model corresponding to the ssh coupling
@@ -385,15 +407,25 @@ end
 @doc raw"""
     ElectronPhononModel(;
         model_geometry::ModelGeometry{D,E},
-        tight_binding_model::TightBindingModel{T,E,D}
+        tight_binding_model::Union{TightBindingModel{T,E,D}, Nothing} = nothing,
+        tight_binding_model_up::Union{TightBindingModel{T,E,D}, Nothing} = nothing,
+        tight_binding_model_dn::Union{TightBindingModel{T,E,D}, Nothing} = nothing
     ) where {T<:Number, E<:AbstractFloat, D}
 
-Initialize and return a null (empty) instance of [`ElectronPhononModel`](@ref) given `model_geometry` and `tight_binding_model`.
+Initialize and return a null (empty) instance of [`ElectronPhononModel`](@ref).
+Note that either `tight_binding_model` or `tight_binding_model_up` and `tight_binding_model_dn`
+needs to be specified.
 """
 function ElectronPhononModel(;
     model_geometry::ModelGeometry{D,E},
-    tight_binding_model::TightBindingModel{T,E,D}
+    tight_binding_model::Union{TightBindingModel{T,E,D}, Nothing} = nothing,
+    tight_binding_model_up::Union{TightBindingModel{T,E,D}, Nothing} = nothing,
+    tight_binding_model_dn::Union{TightBindingModel{T,E,D}, Nothing} = nothing
 ) where {T<:Number, E<:AbstractFloat, D}
+
+    if isnothing(tight_binding_model) && isnothing(tight_binding_model_up) && isnothing(tight_binding_model_dn)
+        error("Tight Binding Model Improperly Specified.")
+    end
 
     phonon_modes = PhononMode{E}[]
     phonon_dispersions = PhononDispersion{E,D}[]
@@ -700,25 +732,39 @@ end
     add_holstein_coupling!(;
         model_geometry::ModelGeometry{D,E},
         electron_phonon_model::ElectronPhononModel{T,E,D},
-        holstein_coupling::HolsteinCoupling{E,D},
-        holstein_coupling_dn::HolsteinCoupling{E,D} = holstein_coupling
+        holstein_coupling::Union{HolsteinCoupling{E,D}, Nothing} = nothing,
+        holstein_coupling_up::Union{HolsteinCoupling{E,D}, Nothing} = nothing,
+        holstein_coupling_dn::Union{HolsteinCoupling{E,D}, Nothing} = nothing
     ) where {T,E,D}
 
-Add the [`HolsteinCoupling`](@ref) to an [`ElectronPhononModel`](@ref).
+Add the [`HolsteinCoupling`](@ref) to an [`ElectronPhononModel`](@ref). Note that either `holstein_coupling`
+or `holstein_coupling_up` and `holstein_coupling_dn` must be specified.
 """
 function add_holstein_coupling!(;
     model_geometry::ModelGeometry{D,E},
     electron_phonon_model::ElectronPhononModel{T,E,D},
-    holstein_coupling::HolsteinCoupling{E,D},
-    holstein_coupling_dn::HolsteinCoupling{E,D} = holstein_coupling
+    holstein_coupling::Union{HolsteinCoupling{E,D}, Nothing} = nothing,
+    holstein_coupling_up::Union{HolsteinCoupling{E,D}, Nothing} = nothing,
+    holstein_coupling_dn::Union{HolsteinCoupling{E,D}, Nothing} = nothing
 ) where {T,E,D}
+
+    # if spin-symmetric holstein coupling
+    if !isnothing(holstein_coupling_up) && !isnothing(holstein_coupling_dn)
+
+        @assert holstein_coupling_up.bond == holstein_coupling_dn.bond
+        @assert holstein_coupling_up.phonon_mode == holstein_coupling_dn.phonon_mode
+    else
+
+        holstein_coupling_up = holstein_coupling
+        holstein_coupling_dn = holstein_coupling
+    end
 
     # get the phonon mode getting coupled to
     phonon_modes::Vector{PhononMode{E}} = electron_phonon_model.phonon_modes
-    phonon_mode = phonon_modes[holstein_coupling.phonon_mode]
+    phonon_mode = phonon_modes[holstein_coupling_up.phonon_mode]
 
     # get the bond associated with holstein coupling
-    holstein_bond::Bond{D} = holstein_coupling.bond
+    holstein_bond::Bond{D} = holstein_coupling_up.bond
 
     # make sure the initial bond orbital matches the orbital species of the phonon mode
     @assert phonon_mode.orbital == holstein_bond.orbitals[1]
@@ -729,7 +775,7 @@ function add_holstein_coupling!(;
     # record the holstein coupling
     holstein_couplings_up::Vector{HolsteinCoupling{E,D}} = electron_phonon_model.holstein_couplings_up
     holstein_couplings_dn::Vector{HolsteinCoupling{E,D}} = electron_phonon_model.holstein_couplings_dn
-    push!(holstein_couplings_up, holstein_coupling)
+    push!(holstein_couplings_up, holstein_coupling_up)
     push!(holstein_couplings_dn, holstein_coupling_dn)
 
     return length(holstein_couplings_up)
@@ -739,39 +785,72 @@ end
 @doc raw"""
     add_ssh_coupling!(;
         electron_phonon_model::ElectronPhononModel{T,E,D},
-        tight_binding_model::TightBindingModel{T,E,D},
-        ssh_coupling::SSHCoupling{T,E,D},
-        ssh_coupling_dn::SSHCoupling{T,E,D} = ssh_coupling
+        tight_binding_model::Union{TightBindingModel{T,E,D}, Nothing} = nothing,
+        ssh_coupling::Union{SSHCoupling{T,E,D}, Nothing} = nothing,
+        tight_binding_model_up::Union{TightBindingModel{T,E,D}, Nothing} = nothing,
+        tight_binding_model_dn::Union{TightBindingModel{T,E,D}, Nothing} = nothing,
+        ssh_coupling_up::Union{SSHCoupling{T,E,D}, Nothing} = nothing,
+        ssh_coupling_dn::Union{SSHCoupling{T,E,D}, Nothing} = nothing
     ) where {T,E,D}
 
 Add a [`SSHCoupling`](@ref) to an [`ElectronPhononModel`](@ref).
+Note that either `ssh_coupling` and `tight_binding_model` or
+`ssh_coupling_up`, `ssh_coupling_dn`, `tight_binding_model_up` and
+`tight_binding_model_dn` need to be specified.
 """
 function add_ssh_coupling!(;
     electron_phonon_model::ElectronPhononModel{T,E,D},
-    tight_binding_model::TightBindingModel{T,E,D},
-    ssh_coupling::SSHCoupling{T,E,D},
-    ssh_coupling_dn::SSHCoupling{T,E,D} = ssh_coupling
+    tight_binding_model::Union{TightBindingModel{T,E,D}, Nothing} = nothing,
+    ssh_coupling::Union{SSHCoupling{T,E,D}, Nothing} = nothing,
+    tight_binding_model_up::Union{TightBindingModel{T,E,D}, Nothing} = nothing,
+    tight_binding_model_dn::Union{TightBindingModel{T,E,D}, Nothing} = nothing,
+    ssh_coupling_up::Union{SSHCoupling{T,E,D}, Nothing} = nothing,
+    ssh_coupling_dn::Union{SSHCoupling{T,E,D}, Nothing} = nothing
 ) where {T,E,D}
+
+    if (!isnothing(ssh_coupling_up)        && !isnothing(ssh_coupling_dn) &&
+        !isnothing(tight_binding_model_up) && !isnothing(tight_binding_model_dn))
+
+        @assert ssh_coupling_up.bond == ssh_coupling_dn.bond
+        @assert ssh_coupling_up.phonon_modes == ssh_coupling_dn.phonon_modes
+
+    elseif !isnothing(ssh_coupling) && !isnothing(tight_binding_model)
+
+        tight_binding_model_up = tight_binding_model
+        tight_binding_model_dn = tight_binding_model
+        ssh_coupling_up = ssh_coupling
+        ssh_coupling_dn = ssh_coupling
+    
+    else
+
+        error("SSH Coupling Note Consistently Specified.")
+    end
 
     phonon_modes::Vector{PhononMode{E}} = electron_phonon_model.phonon_modes
     ssh_couplings_up::Vector{SSHCoupling{T,E,D}} = electron_phonon_model.ssh_couplings_up
     ssh_couplings_dn::Vector{SSHCoupling{T,E,D}} = electron_phonon_model.ssh_couplings_dn
-    tbm_bonds = tight_binding_model.t_bonds
-    ssh_bond::Bond{D} = ssh_coupling.bond
+    tbm_bonds_up = tight_binding_model_up.t_bonds
+    tbm_bonds_dn = tight_binding_model_dn.t_bonds
+    ssh_bond::Bond{D} = ssh_coupling_up.bond
 
     # get initial and final phonon modes that are coupled
-    phonon_mode_init = phonon_modes[ssh_coupling.phonon_modes[1]]
-    phonon_mode_final = phonon_modes[ssh_coupling.phonon_modes[2]]
+    phonon_mode_up_init = phonon_modes[ssh_coupling_up.phonon_modes[1]]
+    phonon_mode_up_final = phonon_modes[ssh_coupling_up.phonon_modes[2]]
+    phonon_mode_dn_init = phonon_modes[ssh_coupling_up.phonon_modes[1]]
+    phonon_mode_dn_final = phonon_modes[ssh_coupling_up.phonon_modes[2]]
+    @assert phonon_mode_up_init == phonon_mode_dn_init
+    @assert phonon_mode_up_final == phonon_mode_dn_final
 
     # make sure a hopping already exists in the tight binding model for the ssh coupling
-    @assert ssh_bond in tbm_bonds
+    @assert ssh_bond in tbm_bonds_up
+    @assert ssh_bond in tbm_bonds_dn
 
     # make the the staring and ending orbitals of the ssh bond match the orbital species of the phonon modes getting coupled
-    @assert ssh_bond.orbitals[1] == phonon_mode_init.orbital
-    @assert ssh_bond.orbitals[2] == phonon_mode_final.orbital
+    @assert ssh_bond.orbitals[1] == phonon_mode_up_init.orbital
+    @assert ssh_bond.orbitals[2] == phonon_mode_up_final.orbital
 
     # record the ssh_bond
-    push!(ssh_couplings_up, ssh_coupling)
+    push!(ssh_couplings_up, ssh_coupling_up)
     push!(ssh_couplings_dn, ssh_coupling_dn)
 
     return length(ssh_couplings_up)

@@ -46,13 +46,17 @@ end
 
 
 @doc raw"""
-    FermionPathIntegral(; tight_binding_parameters::TightBindingParameters{T,E},
-                        β::E, Δτ::E) where {T,E}
+    FermionPathIntegral(;
+        tight_binding_parameters::TightBindingParameters{T,E},
+        β::E, Δτ::E
+    ) where {T,E}
 
 Initialize an instance of [`FermionPathIntegral`](@ref) an instance of [`TightBindingParameters`](@ref).
 """
-function FermionPathIntegral(; tight_binding_parameters::TightBindingParameters{T,E},
-                             β::E, Δτ::E) where {T,E}
+function FermionPathIntegral(;
+    tight_binding_parameters::TightBindingParameters{T,E},
+    β::E, Δτ::E
+) where {T,E}
 
     # rename for convenience
     tbp = tight_binding_parameters

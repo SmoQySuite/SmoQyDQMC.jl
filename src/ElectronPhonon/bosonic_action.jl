@@ -139,23 +139,33 @@ function eval_holstein_action(
 ) where {E<:AbstractFloat}
 
     (; M) = phonon_parameters
-    (; Nholstein, α, α2, α3, α4, coupling_to_phonon) = holstein_parameters
+    (; Nholstein, nholstein, α, α3, shifted, coupling_to_phonon) = holstein_parameters
     Lτ = size(x,2)
 
     # initialize bosonic action
     Sb = zero(E)
 
     if Nholstein > 0
+        # number of unit cells
+        Nunitcells = Nholstein ÷ nholstein
         # iterate over imaginary time slices
         @fastmath @inbounds for l in 1:Lτ
-            # iterate over holstein couplings
-            for n in 1:Nholstein
-                # if finite phonon mass
-                if isfinite(M[n])
-                    # get the phonon mode associated with the holstein coupling
-                    p = coupling_to_phonon[n]
-                    # calculate the contribution to the potential energy
-                    Sb -= Δτ * (α[n]*x[p,l] + α2[n]*x[p,l]^2 + α3[n]*x[p,l]^3 + α4[n]*x[p,l]^4)/2
+            # iterate over types of holstein couplings
+            for h in 1:nholstein
+                # if shifted holstein term
+                if shifted[h]
+                    # iterate over unit cells
+                    for i in 1:Nunitcells
+                        # get the holstein coupling index
+                        n = (h-1) * Nunitcells + i
+                        # if finite phonon mass
+                        if isfinite(M[n])
+                            # get the phonon mode associated with the holstein coupling
+                            p = coupling_to_phonon[n]
+                            # calculate the contribution to the potential energy
+                            Sb -= Δτ * (α[n] * x[p,l] + α3[n] * x[p,l]^3)/2
+                        end
+                    end
                 end
             end
         end
@@ -301,19 +311,32 @@ function eval_derivative_holstein_action!(
 ) where {E<:AbstractFloat}
 
     (; M) = phonon_parameters
-    (; Nholstein, α, α2, α3, α4, coupling_to_phonon) = holstein_parameters
+    (; Nholstein, nholstein, α, α3, coupling_to_phonon, shifted) = holstein_parameters
     Lτ = size(x,2)
 
-    # iterate over imaginary time slices
-    @fastmath @inbounds for l in 1:Lτ
-        # iterate over holstein couplings
-        for n in 1:Nholstein
-            # if phonon mass is finite
-            if isfinite(M[n])
-                # get the phonon mode associated with the holstein coupling
-                p = coupling_to_phonon[n]
-                # calculate the contribution to the potential energy
-                dSdx[p,l] -= Δτ * (α[n] + 2 * α2[n] * x[p,l] + 3 * α3[n] * x[p,l]^2 + 4 * α4[n] * x[p,l]^3)/2
+    # check if there are holstein couplings
+    if nholstein > 0
+        # iterate over imaginary time slices
+        @fastmath @inbounds for l in 1:Lτ
+            # number of unit cells
+            Nunitcells = Nholstein ÷ nholstein
+            # iterate over types of holstein couplings
+            for h in 1:nholstein
+                # if holstein type has shifted interaction
+                if shifted[h]
+                    # iterate over unit cells
+                    for i in 1:Nunitcells
+                        # get the holstein coupling index
+                        n = (h-1) * Nunitcells + i
+                        # if phonon mass is finite
+                        if isfinite(M[n])
+                            # get the phonon mode associated with the holstein coupling
+                            p = coupling_to_phonon[n]
+                            # calculate the contribution to the potential energy
+                            dSdx[p,l] -= Δτ * (α[n] + 3 * α3[n] * x[p,l]^2)/2
+                        end
+                    end
+                end
             end
         end
     end

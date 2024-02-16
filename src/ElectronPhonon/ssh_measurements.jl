@@ -3,9 +3,11 @@
 ####################################
 
 @doc raw"""
-    measure_ssh_energy(electron_phonon_parameters::ElectronPhononParameters{T,E},
-                    Gup::Matrix{T}, Gdn::Matrix{T},
-                    ssh_id::Int) where {T<:Number, E<:AbstractFloat}
+    measure_ssh_energy(
+        electron_phonon_parameters::ElectronPhononParameters{T,E},
+        Gup::Matrix{T}, Gdn::Matrix{T},
+        ssh_id::Int
+    ) where {T<:Number, E<:AbstractFloat}
 
 Calculate the return the SSH interaction energy
 ```math
@@ -29,6 +31,20 @@ function measure_ssh_energy(electron_phonon_parameters::ElectronPhononParameters
     return ϵ_ssh, ϵ_ssh_up, ϵ_ssh_dn
 end
 
+@doc raw"""
+    measure_ssh_energy(
+        ssh_parameters::SSHParameters{T},
+        G::Matrix{T}, x::Matrix{E}, ssh_id::Int
+    ) where {T<:Number, E<:AbstractFloat}
+
+Calculate the return the SSH interaction energy
+```math
+\epsilon_{\rm ssh} = \left\langle [\alpha \hat{X}     + \alpha_2 \hat{X}^2
+                                   \alpha_3 \hat{X}^3 + \alpha_4 \hat{X}^4]
+                        (\hat{c}^\dagger_{\sigma,i} \hat{c}_{\sigma,j} + {\rm h.c.}) \right\rangle
+```
+for coupling definition specified by `ssh_id`.
+"""
 function measure_ssh_energy(
     ssh_parameters::SSHParameters{T},
     G::Matrix{T}, x::Matrix{E}, ssh_id::Int
@@ -59,10 +75,11 @@ function measure_ssh_energy(
         p  = ctp[1,u]
         p′ = ctp[2,u]
         Δx = x[p′,Lτ] - x[p,Lτ]
-        i  = nt[1,u]
-        j  = nt[2,u]
-        h = -(G[i,j] + G[j,i])
-        ϵ_ssh += (α′[u]*Δx + α2′[u]*Δx^2 + α3′[u]*Δx^3 + α4′[u]*Δx^4) * h
+        j  = nt[1,u]
+        i  = nt[2,u]
+        hij = -G[j,i]
+        ϵij = α′[u]*Δx + α2′[u]*Δx^2 + α3′[u]*Δx^3 + α4′[u]*Δx^4
+        ϵ_ssh += ϵij*hij + conj(ϵij*hij)
     end
 
     # normalize measurement
