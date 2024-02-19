@@ -1,15 +1,24 @@
 @doc raw"""
-    model_summary(; simulation_info::SimulationInfo,
-                  β::T, Δτ::T, model_geometry::ModelGeometry,
-                  tight_binding_model::TightBindingModel,
-                  interactions::Tuple) where {T<:AbstractFloat}
+    model_summary(;
+        simulation_info::SimulationInfo,
+        β::T, Δτ::T, model_geometry::ModelGeometry,
+        tight_binding_model::Union{TightBindingModel,Nothing} = nothing,
+        tight_binding_model_up::Union{TightBindingModel,Nothing} = nothing,
+        tight_binding_model_dn::Union{TightBindingModel,Nothing} = nothing,
+        interactions::Tuple
+    ) where {T<:AbstractFloat}
 
-Write model to summary to file.
+Write model to summary to file. Note that either `tight_binding_model` or
+`tight_binding_model_up` and `tight_binding_model_dn` need to be specified.
 """
-function model_summary(; simulation_info::SimulationInfo,
-                       β::T, Δτ::T, model_geometry::ModelGeometry,
-                       tight_binding_model::TightBindingModel,
-                       interactions::Tuple) where {T<:AbstractFloat}
+function model_summary(;
+    simulation_info::SimulationInfo,
+    β::T, Δτ::T, model_geometry::ModelGeometry,
+    tight_binding_model::Union{TightBindingModel,Nothing} = nothing,
+    tight_binding_model_up::Union{TightBindingModel,Nothing} = nothing,
+    tight_binding_model_dn::Union{TightBindingModel,Nothing} = nothing,
+    interactions::Tuple
+) where {T<:AbstractFloat}
 
     # if process ID is 1
     if iszero(simulation_info.pID)
@@ -30,8 +39,17 @@ function model_summary(; simulation_info::SimulationInfo,
             @printf fout "L_tau = %d\n\n" Lτ
             # write model geometry out to file
             show(fout, "text/plain", model_geometry)
-            # write tight binding model to file
-            show(fout, "text/plain", tight_binding_model)
+            # write tight binding models to file
+            if isnothing(tight_binding_model)
+                @assert tight_binding_model_up.μ == tight_binding_model_dn.μ
+                # write spin up tight-binding model to file
+                show(fout, MIME("text/plain"), tight_binding_model_up, spin = +1)
+                # write spin-down tight-binding model to file
+                show(fout, MIME("text/plain"), tight_binding_model_dn, spin = -1)
+            else
+                # write tight-binding model to file assuming spin symmetry
+                show(fout, MIME("text/plain"), tight_binding_model)
+            end
             # write various interactions to file
             for interaction in interactions
                 show(fout, "text/plain", interaction)

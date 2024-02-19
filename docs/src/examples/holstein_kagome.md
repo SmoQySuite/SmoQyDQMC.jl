@@ -94,10 +94,10 @@ function run_holstein_chain_simulation(sID, Ω, α, n, μ, β, L, N_burnin, N_up
     # parameters associated with these HMC updates.
 
     # Number of fermionic time-steps in HMC update.
-    Nt = 5
+    Nt = 4
 
     # Fermionic time-step used in HMC update.
-    Δt = 1/(Nt*Ω)
+    Δt = π/(Nt*Ω)
 
     # Initialize a dictionary to store additional information about the simulation.
     additional_info = Dict(

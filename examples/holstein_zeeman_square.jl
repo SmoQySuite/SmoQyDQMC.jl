@@ -1,27 +1,31 @@
-# # Square Hubbard-Holstein Model
+# # Square Holstein Model with Zeeman Splitting
 #
-# In this example we write a script to simulate the Hubbard-Holstein model on a square lattice, with a Hamiltonian given by
+# In this example we write a script to simulate the Holstein model on a square lattice in an external applied magentic field
+# perpendicular to the lattice, manifesting as a Zeeman splitting in the on-site energies between the spin up and down electrons.
+# More generally, this examples demonstrates how to simulate models with explicit spin-dependence appearing in the Hamiltonian.
+# The Hamiltonian is given by
 # ```math
 # \begin{align*}
 # \hat{H} = & -t \sum_{\sigma,\langle i, j \rangle} (\hat{c}^{\dagger}_{\sigma,i}, \hat{c}^{\phantom \dagger}_{\sigma,j} + {\rm h.c.})
-#             -\mu \sum_{\sigma,i}\hat{n}_{\sigma,i}\\
-#           & + U \sum_{i} (\hat{n}_{\uparrow,i}-\tfrac{1}{2})(\hat{n}_{\downarrow,i}-\tfrac{1}{2})
-#             + \alpha \sum_{\sigma,i} \hat{X}_i (\hat{n}_{\sigma,i} - \tfrac{1}{2}) \\
+#             + \sum_{\sigma,i}(\epsilon_\sigma - \mu) \hat{n}_{\sigma,i}\\
+#           & + \alpha \sum_{\sigma,i} \hat{X}_i (\hat{n}_{\sigma,i} - \tfrac{1}{2}) \\
 #           & + \sum_i \left( \frac{1}{2M}\hat{P}_i^2 + \frac{1}{2}M\Omega^2\hat{X}_i^2 \right),
 # \end{align*}
 # ```
 # where ``\hat{c}^\dagger_{\sigma,i} \ (\hat{c}^{\phantom \dagger}_{\sigma,i})`` creates (annihilates) a spin ``\sigma``
 # electron on site ``i`` in the lattice, and ``\hat{n}_{\sigma,i} = \hat{c}^\dagger_{\sigma,i} \hat{c}^{\phantom \dagger}_{\sigma,i}``
 # is the spin-``\sigma`` electron number operator for site ``i``. The nearest-neighbor hopping amplitude is ``t`` and ``\mu`` is the
-# chemical potential. The strength of the repulsive Hubbard interaction is controlled by ``U>0``. ``\hat{X}_i \ (\hat{P}_i)``
+# chemical potential.
+# The Zeeman splitting is reflected in the on-site energies taking on spin-resolved values ``\epsilon_\pm = \pm \Delta\epsilon/2``.
+# The strength of the repulsive Hubbard interaction is controlled by ``U>0``. ``\hat{X}_i \ (\hat{P}_i)``
 # is the phonon position (momentum) operator for a dispersionless mode placed on site ``i`` with phonon frequency ``\Omega`` and
 # corresponding ion mass ``M``. The stength of the Holstein electron-phonon is controlled by the parameter ``\alpha``.
 #
 # A short test simulation using the script associated with this example can be run as
 # ```
-# > julia hubbard_holstein_square.jl 0 6.0 0.1 0.1 0.0 4.0 4 1000 5000 50
+# > julia hubbard_holstein_square.jl 0 1.0 0.1 0.1 0.0 4.0 4 1000 5000 50
 # ```
-# which simulates the Hubbard-Holstein model on a ``L = 4`` square lattice, with ``U = 6.0``, ``\Omega = 0.1``, ``\alpha = 0.1``
+# which simulates the Holstein model on a ``L = 4`` square lattice, with ``\Delta\epsilon = 1.0``, ``\Omega = 0.1``, ``\alpha = 0.1``
 # and ``\mu = 0.0`` at an inverse temperature of ``\beta = 4.0``. In this simulation the Hubbard-Stranonovich and phonon fields
 # are thermalized with `N_burnin = 1000` rounds of updates, followed by `N_udpates = 5000` rounds of updates with measurements
 # being made. Bin averaged measurements are written to file `N_bins = 50` during the simulation.
@@ -40,10 +44,10 @@ import SmoQyDQMC.JDQMCFramework    as dqmcf
 import SmoQyDQMC.JDQMCMeasurements as dqmcm
 
 ## Define top-level function for running DQMC simulation
-function run_hubbard_holstein_square_simulation(sID, U, Ω, α, μ, β, L, N_burnin, N_updates, N_bins; filepath = ".")
+function run_holstein_zeeman_square_simulation(sID, Δϵ, Ω, α, μ, β, L, N_burnin, N_updates, N_bins; filepath = ".")
 
     ## Construct the foldername the data will be written to.
-    datafolder_prefix = @sprintf "hubbard_holstein_square_U%.2f_w%.2f_a%.2f_mu%.2f_L%d_b%.2f" U Ω α μ L β
+    datafolder_prefix = @sprintf "holstein_zeeman_square_ez%.2f_w%.2f_a%.2f_mu%.2f_L%d_b%.2f" Δϵ Ω α μ L β
 
     ## Initialize an instance of the SimulationInfo type.
     simulation_info = SimulationInfo(
@@ -98,7 +102,6 @@ function run_hubbard_holstein_square_simulation(sID, U, Ω, α, μ, β, L, N_bur
         "N_updates" => N_updates,
         "N_bins" => N_bins,
         "bin_size" => bin_size,
-        "local_acceptance_rate" => 0.0,
         "hmc_acceptance_rate" => 0.0,
         "reflection_acceptance_rate" => 0.0,
         "n_stab_init" => n_stab,
@@ -158,29 +161,37 @@ function run_hubbard_holstein_square_simulation(sID, U, Ω, α, μ, β, L, N_bur
     ## Add the nearest-neighbor bond in the -y direction.
     bond_ny_id = add_bond!(model_geometry, bond_ny)
 
+#md     ## Next we define the various Hamiltonian parameters for spin-up and spin-down seperately.
+#md     ## Here, only the on-site energy will be different between the two spin species, but in
+#md     ## general any other parameter appearing in the tight-binding model could as well, including
+#md     ## including the mircoscropic interaction constants.
+
     ## Define nearest-neighbor hopping amplitude, setting the energy scale for the system.
     t = 1.0
 
-    ## Define the tight-binding model
-    tight_binding_model = TightBindingModel(
+    ## Define the spin-up tight-binding model
+    tight_binding_model_up = TightBindingModel(
         model_geometry = model_geometry,
-        t_bonds = [bond_px, bond_py], # defines hopping
-        t_mean = [t, t],            # defines corresponding hopping amplitude
-        μ = μ,                      # set chemical potential
-        ϵ_mean = [0.]               # set the (mean) on-site energy
+        t_bonds = [bond_px, bond_py],
+        t_mean = [t, t],
+        μ = μ,
+        ϵ_mean = [+Δϵ]
     )
 
-    ## Initialize the Hubbard interaction in the model.
-    hubbard_model = HubbardModel(
-        shifted = false,
-        U_orbital = [1],
-        U_mean = [U],
+    ## Define the spin-down tight-binding model
+    tight_binding_model_dn = TightBindingModel(
+        model_geometry = model_geometry,
+        t_bonds = [bond_px, bond_py],
+        t_mean = [t, t],
+        μ = μ,
+        ϵ_mean = [-Δϵ]
     )
 
     ## Initialize a null electron-phonon model.
     electron_phonon_model = ElectronPhononModel(
         model_geometry = model_geometry,
-        tight_binding_model = tight_binding_model
+        tight_binding_model_up = tight_binding_model_up,
+        tight_binding_model_dn = tight_binding_model_up
     )
 
     ## Define a dispersionless electron-phonon mode to live on each site in the lattice.
@@ -192,8 +203,16 @@ function run_hubbard_holstein_square_simulation(sID, U, Ω, α, μ, β, L, N_bur
         phonon_mode = phonon
     )
 
-    ## Define a on-site Holstein coupling between the electron and the local dispersionless phonon mode.
-    holstein_coupling = HolsteinCoupling(
+    ## Define a spin-up on-site Holstein coupling between the electron and the local dispersionless phonon mode.
+    holstein_coupling_up = HolsteinCoupling(
+    	model_geometry = model_geometry,
+    	phonon_mode = phonon_id,
+    	bond = lu.Bond(orbitals = (1,1), displacement = [0,0]),
+    	α_mean = α
+    )
+
+    ## Define a spin-down on-site Holstein coupling between the electron and the local dispersionless phonon mode.
+    holstein_coupling_dn = HolsteinCoupling(
     	model_geometry = model_geometry,
     	phonon_mode = phonon_id,
     	bond = lu.Bond(orbitals = (1,1), displacement = [0,0]),
@@ -203,7 +222,8 @@ function run_hubbard_holstein_square_simulation(sID, U, Ω, α, μ, β, L, N_bur
     ## Add the Holstein coupling definition to the model.
     holstein_coupling_id = add_holstein_coupling!(
     	electron_phonon_model = electron_phonon_model,
-    	holstein_coupling = holstein_coupling,
+    	holstein_coupling_up = holstein_coupling_up,
+        holstein_coupling_dn = holstein_coupling_dn,
     	model_geometry = model_geometry
     )
 
@@ -212,33 +232,26 @@ function run_hubbard_holstein_square_simulation(sID, U, Ω, α, μ, β, L, N_bur
         simulation_info = simulation_info,
         β = β, Δτ = Δτ,
         model_geometry = model_geometry,
-        tight_binding_model = tight_binding_model,
-        interactions = (hubbard_model, electron_phonon_model)
+        tight_binding_model_up = tight_binding_model_up,
+        tight_binding_model_dn = tight_binding_model_dn,
+        interactions = (electron_phonon_model,)
     )
 
     #########################################
     ### INITIALIZE FINITE MODEL PARAMETERS ##
     #########################################
 
-    ## Initialize tight-binding parameters.
-    tight_binding_parameters = TightBindingParameters(
-        tight_binding_model = tight_binding_model,
+    ## Initialize spin-up tight-binding parameters.
+    tight_binding_parameters_up = TightBindingParameters(
+        tight_binding_model = tight_binding_model_up,
         model_geometry = model_geometry,
         rng = rng
     )
 
-    ## Initialize Hubbard interaction parameters.
-    hubbard_parameters = HubbardParameters(
+    ## Initialize spin-down tight-binding parameters.
+    tight_binding_parameters_dn = TightBindingParameters(
+        tight_binding_model = tight_binding_model_dn,
         model_geometry = model_geometry,
-        hubbard_model = hubbard_model,
-        rng = rng
-    )
-
-    ## Apply Ising Hubbard-Stranonvich (HS) transformation, and initialize
-    ## corresponding HS fields that will be sampled in DQMC simulation.
-    hubbard_ising_parameters = HubbardIsingHSParameters(
-        β = β, Δτ = Δτ,
-        hubbard_parameters = hubbard_parameters,
         rng = rng
     )
 
@@ -246,7 +259,8 @@ function run_hubbard_holstein_square_simulation(sID, U, Ω, α, μ, β, L, N_bur
     electron_phonon_parameters = ElectronPhononParameters(
         β = β, Δτ = Δτ,
         electron_phonon_model = electron_phonon_model,
-        tight_binding_parameters = tight_binding_parameters,
+        tight_binding_parameters_up = tight_binding_parameters_up,
+        tight_binding_parameters_dn = tight_binding_parameters_dn,
         model_geometry = model_geometry,
         rng = rng
     )
@@ -259,30 +273,30 @@ function run_hubbard_holstein_square_simulation(sID, U, Ω, α, μ, β, L, N_bur
     measurement_container = initialize_measurement_container(model_geometry, β, Δτ)
 
     ## Initialize the tight-binding model related measurements, like the hopping energy.
-    initialize_measurements!(measurement_container, tight_binding_model)
-
-    ## Initialize the Hubbard interaction related measurements.
-    initialize_measurements!(measurement_container, hubbard_model)
+    initialize_measurements!(measurement_container, tight_binding_model_up, tight_binding_model_up)
 
     ## Initialize the electron-phonon interaction related measurements.
     initialize_measurements!(measurement_container, electron_phonon_model)
 
-    ## Initialize the single-particle electron Green's function measurement.
+#md     ## Now we define the various correlation function measurements we would like to make.
+#md     ## Note that relative to the other examples, we include spin-resolved correlation
+#md     ## measurements as the underlying model being simulated is spin-dependent.
+
+    ## Initialize the single-particle spin-up electron Green's function measurement.
     initialize_correlation_measurements!(
         measurement_container = measurement_container,
         model_geometry = model_geometry,
-        correlation = "greens",
+        correlation = "greens_up",
         time_displaced = true,
         pairs = [(1, 1)]
     )
 
-    # measure equal-times green's function for all τ
+    ## Initialize the single-particle spin-down electron Green's function measurement.
     initialize_correlation_measurements!(
         measurement_container = measurement_container,
         model_geometry = model_geometry,
-        correlation = "greens_tautau",
-        time_displaced = false,
-        integrated = true,
+        correlation = "greens_dn",
+        time_displaced = true,
         pairs = [(1, 1)]
     )
 
@@ -295,11 +309,41 @@ function run_hubbard_holstein_square_simulation(sID, U, Ω, α, μ, β, L, N_bur
         pairs = [(1, 1)]
     )
 
-    ## Initialize density correlation function measurement.
+    ## Initialize total density correlation function measurement.
     initialize_correlation_measurements!(
         measurement_container = measurement_container,
         model_geometry = model_geometry,
         correlation = "density",
+        time_displaced = false,
+        integrated = true,
+        pairs = [(1, 1)]
+    )
+
+    ## Initialize spin-up density correlation function measurement.
+    initialize_correlation_measurements!(
+        measurement_container = measurement_container,
+        model_geometry = model_geometry,
+        correlation = "density_upup",
+        time_displaced = false,
+        integrated = true,
+        pairs = [(1, 1)]
+    )
+
+    ## Initialize spin-down density correlation function measurement.
+    initialize_correlation_measurements!(
+        measurement_container = measurement_container,
+        model_geometry = model_geometry,
+        correlation = "density_dndn",
+        time_displaced = false,
+        integrated = true,
+        pairs = [(1, 1)]
+    )
+
+    ## Initialize mixed-spin density correlation function measurement.
+    initialize_correlation_measurements!(
+        measurement_container = measurement_container,
+        model_geometry = model_geometry,
+        correlation = "density_updn",
         time_displaced = false,
         integrated = true,
         pairs = [(1, 1)]
@@ -315,29 +359,7 @@ function run_hubbard_holstein_square_simulation(sID, U, Ω, α, μ, β, L, N_bur
         pairs = [(1, 1)]
     )
 
-#md     ## Measure all possible combinations of bond pairing channels
-#md     ## for the bonds we have defined. We will need each of these
-#md     ## pairs channels measured in order to reconstruct the extended
-#md     ## s-wave and d-wave pair susceptibilities.
-    ## Initialize the pair correlation function measurement.
-    initialize_correlation_measurements!(
-        measurement_container = measurement_container,
-        model_geometry = model_geometry,
-        correlation = "pair",
-        time_displaced = false,
-        integrated = true,
-        pairs = [(1, 1),
-                 (bond_px_id, bond_px_id), (bond_px_id, bond_nx_id),
-                 (bond_nx_id, bond_px_id), (bond_nx_id, bond_nx_id),
-                 (bond_py_id, bond_py_id), (bond_py_id, bond_ny_id),
-                 (bond_ny_id, bond_py_id), (bond_ny_id, bond_ny_id),
-                 (bond_px_id, bond_py_id), (bond_px_id, bond_ny_id),
-                 (bond_nx_id, bond_py_id), (bond_nx_id, bond_ny_id),
-                 (bond_py_id, bond_px_id), (bond_py_id, bond_nx_id),
-                 (bond_ny_id, bond_px_id), (bond_ny_id, bond_nx_id)]
-    )
-
-    ## Initialize the current correlation function measurement
+    ## Initialize the total current correlation function measurement
     initialize_correlation_measurements!(
         measurement_container = measurement_container,
         model_geometry = model_geometry,
@@ -359,12 +381,8 @@ function run_hubbard_holstein_square_simulation(sID, U, Ω, α, μ, β, L, N_bur
     #############################
 
     ## Allocate FermionPathIntegral type for both the spin-up and spin-down electrons.
-    fermion_path_integral_up = FermionPathIntegral(tight_binding_parameters = tight_binding_parameters, β = β, Δτ = Δτ)
-    fermion_path_integral_dn = FermionPathIntegral(tight_binding_parameters = tight_binding_parameters, β = β, Δτ = Δτ)
-
-    ## Initialize the FermionPathIntegral type for both the spin-up and spin-down electrons.
-    initialize!(fermion_path_integral_up, fermion_path_integral_dn, hubbard_parameters)
-    initialize!(fermion_path_integral_up, fermion_path_integral_dn, hubbard_ising_parameters)
+    fermion_path_integral_up = FermionPathIntegral(tight_binding_parameters = tight_binding_parameters_up, β = β, Δτ = Δτ)
+    fermion_path_integral_dn = FermionPathIntegral(tight_binding_parameters = tight_binding_parameters_dn, β = β, Δτ = Δτ)
 
     ## Initialize the fermion path integral type with respect to electron-phonon interaction.
     initialize!(fermion_path_integral_up, fermion_path_integral_dn, electron_phonon_parameters)
@@ -452,20 +470,6 @@ function run_hubbard_holstein_square_simulation(sID, U, Ω, α, μ, β, L, N_bur
 
         ## Record whether the HMC update was accepted or rejected.
         additional_info["hmc_acceptance_rate"] += accepted
-
-        ## Perform a sweep through the lattice, attemping an update to each Ising HS field.
-        (acceptance_rate, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = local_updates!(
-            Gup, logdetGup, sgndetGup, Gdn, logdetGdn, sgndetGdn,
-            hubbard_ising_parameters,
-            fermion_path_integral_up = fermion_path_integral_up,
-            fermion_path_integral_dn = fermion_path_integral_dn,
-            fermion_greens_calculator_up = fermion_greens_calculator_up,
-            fermion_greens_calculator_dn = fermion_greens_calculator_dn,
-            Bup = Bup, Bdn = Bdn, δG_max = δG_max, δG = δG, δθ = δθ, rng = rng
-        )
-
-        ## Record the acceptance rate for the attempted local updates to the HS fields.
-        additional_info["local_acceptance_rate"] += acceptance_rate
     end
 
     ################################
@@ -519,20 +523,6 @@ function run_hubbard_holstein_square_simulation(sID, U, Ω, α, μ, β, L, N_bur
             ## Record whether the HMC update was accepted or rejected.
             additional_info["hmc_acceptance_rate"] += accepted
 
-            ## Perform a sweep through the lattice, attemping an update to each Ising HS field.
-            (acceptance_rate, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = local_updates!(
-                Gup, logdetGup, sgndetGup, Gdn, logdetGdn, sgndetGdn,
-                hubbard_ising_parameters,
-                fermion_path_integral_up = fermion_path_integral_up,
-                fermion_path_integral_dn = fermion_path_integral_dn,
-                fermion_greens_calculator_up = fermion_greens_calculator_up,
-                fermion_greens_calculator_dn = fermion_greens_calculator_dn,
-                Bup = Bup, Bdn = Bdn, δG_max = δG_max, δG = δG, δθ = δθ, rng = rng
-            )
-
-            ## Record the acceptance rate for the attempted local updates to the HS fields.
-            additional_info["local_acceptance_rate"] += acceptance_rate
-
             ## Make measurements, with the results being added to the measurement container.
             (logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = make_measurements!(
                 measurement_container,
@@ -543,8 +533,10 @@ function run_hubbard_holstein_square_simulation(sID, U, Ω, α, μ, β, L, N_bur
                 fermion_greens_calculator_up = fermion_greens_calculator_up,
                 fermion_greens_calculator_dn = fermion_greens_calculator_dn,
                 Bup = Bup, Bdn = Bdn, δG_max = δG_max, δG = δG, δθ = δθ,
-                model_geometry = model_geometry, tight_binding_parameters = tight_binding_parameters,
-                coupling_parameters = (hubbard_parameters, electron_phonon_parameters)
+                model_geometry = model_geometry,
+                tight_binding_parameters_up = tight_binding_parameters_up,
+                tight_binding_parameters_dn = tight_binding_parameters_dn,
+                coupling_parameters = (electron_phonon_parameters,)
             )
         end
 
@@ -562,7 +554,6 @@ function run_hubbard_holstein_square_simulation(sID, U, Ω, α, μ, β, L, N_bur
     ## Calculate acceptance rates.
     additional_info["hmc_acceptance_rate"] /= (N_updates + N_burnin)
     additional_info["reflection_acceptance_rate"] /= (N_updates + N_burnin)
-    additional_info["local_acceptance_rate"] /= (N_updates + N_burnin)
 
     ## Record the final numerical stabilization period that the simulation settled on.
     additional_info["n_stab_final"] = fermion_greens_calculator_up.n_stab
@@ -578,100 +569,6 @@ function run_hubbard_holstein_square_simulation(sID, U, Ω, α, μ, β, L, N_bur
     ## writing final statisitics to CSV files.
     process_measurements(simulation_info.datafolder, N_bins)
 
-#md     ## Here we use the `composite_correlation_stats` to reconstruct the extended
-#md     ## s-wave and d-wave pair susceptibilities. We also subract off the background
-#md     ## signal associated with the zero-momentum transfer charge susceptibility.
-#md     ## Behind the scenes, uses the binning
-#md     ## method to calculate the error bars by calculating both susceptibilities for
-#md     ## each bin of data that was written to file.
-
-    ## Measure the extended s-wave pair susceptibility.
-    Pes, ΔPes = composite_correlation_stat(
-        folder = simulation_info.datafolder,
-        correlations = ["pair", "pair", "pair", "pair",
-                        "pair", "pair", "pair", "pair",
-                        "pair", "pair", "pair", "pair",
-                        "pair", "pair", "pair", "pair"],
-        spaces = ["momentum", "momentum", "momentum", "momentum",
-                  "momentum", "momentum", "momentum", "momentum",
-                  "momentum", "momentum", "momentum", "momentum",
-                  "momentum", "momentum", "momentum", "momentum"],
-        types = ["integrated", "integrated", "integrated", "integrated",
-                 "integrated", "integrated", "integrated", "integrated",
-                 "integrated", "integrated", "integrated", "integrated",
-                 "integrated", "integrated", "integrated", "integrated"],
-        ids = [(bond_px_id, bond_px_id), (bond_nx_id, bond_nx_id), (bond_px_id, bond_nx_id), (bond_nx_id, bond_px_id),
-               (bond_py_id, bond_py_id), (bond_ny_id, bond_ny_id), (bond_py_id, bond_ny_id), (bond_ny_id, bond_py_id),
-               (bond_px_id, bond_py_id), (bond_nx_id, bond_ny_id), (bond_px_id, bond_ny_id), (bond_nx_id, bond_py_id),
-               (bond_py_id, bond_px_id), (bond_ny_id, bond_nx_id), (bond_py_id, bond_nx_id), (bond_ny_id, bond_px_id)],
-        locs = [(0,0), (0,0), (0,0), (0,0),
-                (0,0), (0,0), (0,0), (0,0),
-                (0,0), (0,0), (0,0), (0,0),
-                (0,0), (0,0), (0,0), (0,0)],
-        num_bins = N_bins,
-        f = (P_px_px, P_nx_nx, P_px_nx, P_nx_px,
-             P_py_py, P_ny_ny, P_py_ny, P_ny_py,
-             P_px_py, P_nx_ny, P_px_ny, P_nx_py,
-             P_py_px, P_ny_nx, P_py_nx, P_ny_px) -> (P_px_px + P_nx_nx + P_px_nx + P_nx_px +
-                                                     P_py_py + P_ny_ny + P_py_ny + P_ny_py +
-                                                     P_px_py + P_nx_ny + P_px_ny + P_nx_py +
-                                                     P_py_px + P_ny_nx + P_py_nx + P_ny_px)/4
-    )
-    additional_info["P_ext-s_avg"] = Pes
-    additional_info["P_ext-s_err"] = ΔPes
-
-    ## Measure the d-wave pair susceptibility.
-    Pd, ΔPd = composite_correlation_stat(
-        folder = simulation_info.datafolder,
-        correlations = ["pair", "pair", "pair", "pair",
-                        "pair", "pair", "pair", "pair",
-                        "pair", "pair", "pair", "pair",
-                        "pair", "pair", "pair", "pair"],
-        spaces = ["momentum", "momentum", "momentum", "momentum",
-                  "momentum", "momentum", "momentum", "momentum",
-                  "momentum", "momentum", "momentum", "momentum",
-                  "momentum", "momentum", "momentum", "momentum"],
-        types = ["integrated", "integrated", "integrated", "integrated",
-                 "integrated", "integrated", "integrated", "integrated",
-                 "integrated", "integrated", "integrated", "integrated",
-                 "integrated", "integrated", "integrated", "integrated"],
-        ids = [(bond_px_id, bond_px_id), (bond_nx_id, bond_nx_id), (bond_px_id, bond_nx_id), (bond_nx_id, bond_px_id),
-               (bond_py_id, bond_py_id), (bond_ny_id, bond_ny_id), (bond_py_id, bond_ny_id), (bond_ny_id, bond_py_id),
-               (bond_px_id, bond_py_id), (bond_nx_id, bond_ny_id), (bond_px_id, bond_ny_id), (bond_nx_id, bond_py_id),
-               (bond_py_id, bond_px_id), (bond_ny_id, bond_nx_id), (bond_py_id, bond_nx_id), (bond_ny_id, bond_px_id)],
-        locs = [(0,0), (0,0), (0,0), (0,0),
-                (0,0), (0,0), (0,0), (0,0),
-                (0,0), (0,0), (0,0), (0,0),
-                (0,0), (0,0), (0,0), (0,0)],
-        num_bins = N_bins,
-        f = (P_px_px, P_nx_nx, P_px_nx, P_nx_px,
-             P_py_py, P_ny_ny, P_py_ny, P_ny_py,
-             P_px_py, P_nx_ny, P_px_ny, P_nx_py,
-             P_py_px, P_ny_nx, P_py_nx, P_ny_px) -> (P_px_px + P_nx_nx + P_px_nx + P_nx_px +
-                                                     P_py_py + P_ny_ny + P_py_ny + P_ny_py -
-                                                     P_px_py - P_nx_ny - P_px_ny - P_nx_py -
-                                                     P_py_px - P_ny_nx - P_py_nx - P_ny_px)/4
-    )
-    additional_info["P_d_avg"] = Pd
-    additional_info["P_d_err"] = ΔPd
-
-    ## Calculate the charge susceptibility for zero momentum transfer (q=0)
-    ## with the net charge background signal subtracted off.
-    # calculate the Cu-Cu charge susceptibility at q=0 with the background signal remove
-    C0, ΔC0 = composite_correlation_stat(
-        folder = simulation_info.datafolder,
-        correlations = ["density", "greens_tautau", "greens"],
-        spaces = ["momentum", "position", "position"],
-        types = ["integrated", "integrated", "time-displaced"],
-        ids = [(1,1), (1,1), (1,1)],
-        locs = [(0,0), (0,0), (0,0)],
-        Δls = [0, 0, 0],
-        num_bins = N_bins,
-        f = (x, y, z) -> x - (L^2)*4*(β-y)*(1-z)
-    )
-    additional_info["Chi_C_q0_avg"] = C0
-    additional_info["Chi_C_q0_err"] = ΔC0
-
     ## Write simulation summary TOML file.
     save_simulation_info(simulation_info, additional_info)
 
@@ -684,7 +581,7 @@ if abspath(PROGRAM_FILE) == @__FILE__
 
     ## Read in the command line arguments.
     sID = parse(Int, ARGS[1]) # simulation ID
-    U = parse(Float64, ARGS[2])
+    Δϵ = parse(Float64, ARGS[2])
     Ω = parse(Float64, ARGS[3])
     α = parse(Float64, ARGS[4])
     μ = parse(Float64, ARGS[5])
@@ -695,5 +592,5 @@ if abspath(PROGRAM_FILE) == @__FILE__
     N_bins = parse(Int, ARGS[10])
 
     ## Run the simulation.
-    run_hubbard_holstein_square_simulation(sID, U, Ω, α, μ, β, L, N_burnin, N_updates, N_bins)
+    run_holstein_zeeman_square_simulation(sID, Δϵ, Ω, α, μ, β, L, N_burnin, N_updates, N_bins)
 end

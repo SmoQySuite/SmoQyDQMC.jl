@@ -3,11 +3,17 @@
 ######################################
 
 @doc raw"""
-    initialize_measurement_container(model_geometry::ModelGeometry{D,T,N}, β::T, Δτ::T) where {T<:AbstractFloat, D, N}
+    initialize_measurement_container(
+        model_geometry::ModelGeometry{D,T,N},
+        β::T, Δτ::T
+    ) where {T<:AbstractFloat, D, N}
 
 Initialize and return a measurement container of type `NamedTuple`.
 """
-function initialize_measurement_container(model_geometry::ModelGeometry{D,T,N}, β::T, Δτ::T) where {T<:AbstractFloat, D, N}
+function initialize_measurement_container(
+    model_geometry::ModelGeometry{D,T,N},
+    β::T, Δτ::T
+) where {T<:AbstractFloat, D, N}
 
     lattice   = model_geometry.lattice::Lattice{D}
     unit_cell = model_geometry.unit_cell::UnitCell{D,T,N}
@@ -24,17 +30,21 @@ function initialize_measurement_container(model_geometry::ModelGeometry{D,T,N}, 
 
     # initialize global measurements
     global_measurements = Dict{String, Complex{T}}(
-        "density" => zero(Complex{T}), # average total density ⟨n⟩
-        "double_occ" => zero(Complex{T}),
-        "Nsqrd" => zero(Complex{T}), # total particle number square ⟨N²⟩
-        "sgndetGup" => zero(Complex{T}), # sign(det(Gup))
-        "sgndetGdn" => zero(Complex{T}), # sign(det(Gdn))
-        "sgn" => zero(Complex{T}), # sign(det(Gup))⋅sign(det(Gdn))
+        "density"    => zero(Complex{T}), # average total density ⟨n⟩
+        "density_up" => zero(Complex{T}), # average total spin-dn density ⟨n⟩
+        "density_dn" => zero(Complex{T}), # average total spin-up density ⟨n⟩
+        "double_occ" => zero(Complex{T}), # average double occupancy
+        "Nsqrd"      => zero(Complex{T}), # total particle number square ⟨N²⟩
+        "sgndetGup"  => zero(Complex{T}), # sign(det(Gup))
+        "sgndetGdn"  => zero(Complex{T}), # sign(det(Gdn))
+        "sgn"        => zero(Complex{T}), # sign(det(Gup))⋅sign(det(Gdn))
     )
 
     # initialize local measurement
     local_measurements = Dict{String, Vector{Complex{T}}}(
-        "density" => zeros(Complex{T}, norbitals), # average density for each orbital species
+        "density"    => zeros(Complex{T}, norbitals), # average density for each orbital species
+        "density_up" => zeros(Complex{T}, norbitals), # average density for each orbital species
+        "density_dn" => zeros(Complex{T}, norbitals), # average density for each orbital species
         "double_occ" => zeros(Complex{T}, norbitals), # average double occupancy for each orbital
     )
 
@@ -70,18 +80,43 @@ end
 ############################################################
 
 @doc raw"""
-    initialize_measurements!(measurement_container::NamedTuple,
-                             tight_binding_model::TightBindingModel{T,E}) where {T<:Number, E<:AbstractFloat}
+    initialize_measurements!(
+        measurement_container::NamedTuple,
+        tight_binding_model_up::TightBindingModel{T,E},
+        tight_binding_model_dn::TightBindingModel{T,E},
+    ) where {T<:Number, E<:AbstractFloat}
+
+    initialize_measurements!(
+        measurement_container::NamedTuple,
+        tight_binding_model::TightBindingModel{T,E}
+    ) where {T<:Number, E<:AbstractFloat}
 
 Initialize tight-binding model related measurements.
 
 # Initialized Measurements
 
 - `onsite_energy`: Refer to [`measure_onsite_energy`](@ref).
+- `onsite_energy_up`: Refer to [`measure_onsite_energy`](@ref).
+- `onsite_energy_dn`: Refer to [`measure_onsite_energy`](@ref).
 - `hopping_energy`: Refer to [`measure_hopping_energy`](@ref).
+- `hopping_energy_up`: Refer to [`measure_hopping_energy`](@ref).
+- `hopping_energy_dn`: Refer to [`measure_hopping_energy`](@ref).
 """
-function initialize_measurements!(measurement_container::NamedTuple,
-                                  tight_binding_model::TightBindingModel{T,E}) where {T<:Number, E<:AbstractFloat}
+function initialize_measurements!(
+    measurement_container::NamedTuple,
+    tight_binding_model_up::TightBindingModel{T,E},
+    tight_binding_model_dn::TightBindingModel{T,E},
+) where {T<:Number, E<:AbstractFloat}
+
+    initialize_measurements!(measurement_container, tight_binding_model_up)
+
+    return nothing
+end
+
+function initialize_measurements!(
+    measurement_container::NamedTuple,
+    tight_binding_model::TightBindingModel{T,E}
+) where {T<:Number, E<:AbstractFloat}
 
     (; local_measurements, global_measurements) = measurement_container
 
@@ -95,11 +130,32 @@ function initialize_measurements!(measurement_container::NamedTuple,
     global_measurements["chemical_potential"] = zero(Complex{E})
 
     # initialize on-site energy measurement
-    local_measurements["onsite_energy"] = zeros(Complex{E}, norbital)
+    local_measurements["onsite_energy"]    = zeros(Complex{E}, norbital)
+    local_measurements["onsite_energy_up"] = zeros(Complex{E}, norbital)
+    local_measurements["onsite_energy_dn"] = zeros(Complex{E}, norbital)
 
-    # initialize hopping energy measurement
+    # initialize hopping related measurements
     if nhopping > 0
-        local_measurements["hopping_energy"] = zeros(Complex{E}, nhopping)
+
+        local_measurements["hopping_energy"]           = zeros(Complex{E}, nhopping)
+        local_measurements["hopping_energy_up"]        = zeros(Complex{E}, nhopping)
+        local_measurements["hopping_energy_dn"]        = zeros(Complex{E}, nhopping)
+
+        local_measurements["bare_hopping_energy"]      = zeros(Complex{E}, nhopping)
+        local_measurements["bare_hopping_energy_up"]   = zeros(Complex{E}, nhopping)
+        local_measurements["bare_hopping_energy_dn"]   = zeros(Complex{E}, nhopping)
+
+        local_measurements["hopping_amplitude"]        = zeros(Complex{E}, nhopping)
+        local_measurements["hopping_amplitude_up"]     = zeros(Complex{E}, nhopping)
+        local_measurements["hopping_amplitude_dn"]     = zeros(Complex{E}, nhopping)
+
+        local_measurements["hopping_inversion"]        = zeros(Complex{E}, nhopping)
+        local_measurements["hopping_inversion_up"]     = zeros(Complex{E}, nhopping)
+        local_measurements["hopping_inversion_dn"]     = zeros(Complex{E}, nhopping)
+
+        local_measurements["hopping_inversion_avg"]    = zeros(Complex{E}, nhopping)
+        local_measurements["hopping_inversion_avg_up"] = zeros(Complex{E}, nhopping)
+        local_measurements["hopping_inversion_avg_dn"] = zeros(Complex{E}, nhopping)
     end
 
     return nothing
@@ -107,8 +163,10 @@ end
 
 
 @doc raw"""
-    initialize_measurements!(measurement_container::NamedTuple,
-                             hubbard_model::HubbardModel{T}) where {T<:AbstractFloat}
+    initialize_measurements!(
+        measurement_container::NamedTuple,
+        hubbard_model::HubbardModel{T}
+    ) where {T<:AbstractFloat}
 
 Initialize Hubbard model related measurements.
 
@@ -116,8 +174,10 @@ Initialize Hubbard model related measurements.
 
 - `hubbard_energy`: Refer to [`measure_hopping_energy`](@ref).
 """
-function initialize_measurements!(measurement_container::NamedTuple,
-                                  hubbard_model::HubbardModel{T}) where {T<:AbstractFloat}
+function initialize_measurements!(
+    measurement_container::NamedTuple,
+    hubbard_model::HubbardModel{T}
+) where {T<:AbstractFloat}
 
     (; local_measurements) = measurement_container
 
@@ -131,8 +191,10 @@ function initialize_measurements!(measurement_container::NamedTuple,
 end
 
 @doc raw"""
-    initialize_measurements!(measurement_container::NamedTuple,
-                             electron_phonon_model::ElectronPhononModel{T, E, D}) where {T<:Number, E<:AbstractFloat, D}
+    initialize_measurements!(
+        measurement_container::NamedTuple,
+        electron_phonon_model::ElectronPhononModel{T, E, D}
+    ) where {T<:Number, E<:AbstractFloat, D}
 
 Initialize electron-phonon model related measurements.
 
@@ -145,19 +207,26 @@ Initialize electron-phonon model related measurements.
 - `X3`: Measure ``\langle \hat{X}^3 \rangle``, refer to [`measure_phonon_position_moment`](@ref).
 - `X4`: Measure ``\langle \hat{X}^4 \rangle``, refer to [`measure_phonon_position_moment`](@ref).
 - `holstein_energy`: Refer to [`measure_holstein_energy`](@ref).
+- `holstein_energy_up`: Refer to [`measure_holstein_energy`](@ref).
+- `holstein_energy_dn`: Refer to [`measure_holstein_energy`](@ref).
 - `ssh_energy`: Refer to [`measure_ssh_energy`](@ref).
-- `ssh_sgn_switch`: Refer to [`measure_ssh_sgn_switch`](@ref).
+- `ssh_energy_up`: Refer to [`measure_ssh_energy`](@ref).
+- `ssh_energy_dn`: Refer to [`measure_ssh_energy`](@ref).
+- `ssh_sgn_switch_up`: Refer to [`measure_ssh_sgn_switch`](@ref).
+- `ssh_sgn_switch_dn`: Refer to [`measure_ssh_sgn_switch`](@ref).
 - `dispersion_energy`: Refer to [`measure_dispersion_energy`](@ref).
 """
-function initialize_measurements!(measurement_container::NamedTuple,
-                                  electron_phonon_model::ElectronPhononModel{T, E, D}) where {T<:Number, E<:AbstractFloat, D}
+function initialize_measurements!(
+    measurement_container::NamedTuple,
+    electron_phonon_model::ElectronPhononModel{T, E, D}
+) where {T<:Number, E<:AbstractFloat, D}
 
     (; local_measurements) = measurement_container
-    (; phonon_modes, holstein_couplings, ssh_couplings, phonon_dispersions) = electron_phonon_model
+    (; phonon_modes, holstein_couplings_up, ssh_couplings_up, phonon_dispersions) = electron_phonon_model
 
     _initialize_measurements!(local_measurements, phonon_modes)
-    _initialize_measurements!(local_measurements, holstein_couplings)
-    _initialize_measurements!(local_measurements, ssh_couplings)
+    _initialize_measurements!(local_measurements, holstein_couplings_up)
+    _initialize_measurements!(local_measurements, ssh_couplings_up)
     _initialize_measurements!(local_measurements, phonon_dispersions)
 
     return nothing
@@ -189,7 +258,9 @@ function _initialize_measurements!(local_measurements::Dict{String, Vector{Compl
     n_couplings = length(holstein_couplings)
 
     # add measurements
-    local_measurements["holstein_energy"] = zeros(Complex{T}, n_couplings)
+    local_measurements["holstein_energy"]    = zeros(Complex{T}, n_couplings)
+    local_measurements["holstein_energy_up"] = zeros(Complex{T}, n_couplings)
+    local_measurements["holstein_energy_dn"] = zeros(Complex{T}, n_couplings)
 
     return nothing
 end
@@ -202,8 +273,9 @@ function _initialize_measurements!(local_measurements::Dict{String, Vector{Compl
     n_couplings = length(ssh_couplings)
 
     # add measurements
-    local_measurements["ssh_energy"] = zeros(Complex{E}, n_couplings)
-    local_measurements["ssh_sgn_switch"] = zeros(Complex{E}, n_couplings)
+    local_measurements["ssh_energy"]        = zeros(Complex{E}, n_couplings)
+    local_measurements["ssh_energy_up"]     = zeros(Complex{E}, n_couplings)
+    local_measurements["ssh_energy_dn"]     = zeros(Complex{E}, n_couplings)
 
     return nothing
 end
@@ -227,11 +299,13 @@ end
 #########################################
 
 @doc raw"""
-    initialize_correlation_measurements!(; measurement_container::NamedTuple,
-                                         model_geometry::ModelGeometry{D,T,N},
-                                         correlation::String, pairs::AbstractVector{NTuple{2,Int}},
-                                         time_displaced::Bool,
-                                         integrated::Bool = false)  where {T<:AbstractFloat, D, N}
+    initialize_correlation_measurements!(;
+        measurement_container::NamedTuple,
+        model_geometry::ModelGeometry{D,T,N},
+        correlation::String, pairs::AbstractVector{NTuple{2,Int}},
+        time_displaced::Bool,
+        integrated::Bool = false
+    )  where {T<:AbstractFloat, D, N}
 
 Initialize measurements of `correlation` for all pairs of bond ID's in `pairs`.
 The name `correlation` must appear in `CORRELATION_FUNCTIONS`.
@@ -239,11 +313,13 @@ If `time_displaced = true` then time-displaced and integrated correlation measur
 If `time_displaced = false` and `integrated = false`, then just equal-time correlation measurements are made.
 If `time_displaced = false` and `integrated = true`, then both equal-time and integrated correlation measurements are made.
 """
-function initialize_correlation_measurements!(; measurement_container::NamedTuple,
-                                              model_geometry::ModelGeometry{D,T,N},
-                                              correlation::String, pairs::AbstractVector{NTuple{2,Int}},
-                                              time_displaced::Bool,
-                                              integrated::Bool = false)  where {T<:AbstractFloat, D, N}
+function initialize_correlation_measurements!(;
+    measurement_container::NamedTuple,
+    model_geometry::ModelGeometry{D,T,N},
+    correlation::String, pairs::AbstractVector{NTuple{2,Int}},
+    time_displaced::Bool,
+    integrated::Bool = false
+)  where {T<:AbstractFloat, D, N}
 
     # iterate over all bond/orbial ID pairs
     for pair in pairs
@@ -258,19 +334,7 @@ function initialize_correlation_measurements!(; measurement_container::NamedTupl
     return nothing
 end
 
-# @doc raw"""
-#     initialize_correlation_measurement!(; measurement_container::NamedTuple,
-#                                         model_geometry::ModelGeometry{D,T,N},
-#                                         correlation::String, pair::NTuple{2,Int},
-#                                         time_displaced::Bool,
-#                                         integrated::Bool = false)  where {T<:AbstractFloat, D, N}
-
-# Initialize a measurement of `correlation` between the pair of bond ID's `pair`.
-# The name `correlation` must appear in `CORRELATION_FUNCTIONS`.
-# If `time-displaced = true` then time-displaced and integrated correlation measurements are made.
-# If `time-displaced = false` and `integrated = false`, then just equal-time correlation measurements are made.
-# If `time-displaced = false` and `integrated = true`, then both equal-time and integrated correlation measurements are made.
-# """
+# initialize a single correlation measurement
 function initialize_correlation_measurement!(; measurement_container::NamedTuple,
                                              model_geometry::ModelGeometry{D,T,N},
                                              correlation::String, pair::NTuple{2,Int},
@@ -343,13 +407,17 @@ end
 ################################################
 
 @doc raw"""
-    initialize_measurement_directories(; simulation_info::SimulationInfo,
-                                       measurement_container::NamedTuple)
+    initialize_measurement_directories(;
+        simulation_info::SimulationInfo,
+        measurement_container::NamedTuple
+    )
 
 Initialize the measurement directories for simulation.
 """
-function initialize_measurement_directories(; simulation_info::SimulationInfo,
-                                            measurement_container::NamedTuple)
+function initialize_measurement_directories(;
+    simulation_info::SimulationInfo,
+    measurement_container::NamedTuple
+)
 
     (; datafolder, resuming, pID) = simulation_info
     (; time_displaced_correlations, equaltime_correlations, integrated_correlations) = measurement_container

@@ -19,17 +19,19 @@ function _hmc_update!(Gup::Matrix{T}, logdetGup::E, sgndetGup::T, Gup′::Matrix
                       update_stabilization_frequency::Bool = true) where {T, E, P<:AbstractPropagator{T,E}}
 
     (; β, Lτ, Δτ) = electron_phonon_parameters
-    holstein_parameters = electron_phonon_parameters.holstein_parameters::HolsteinParameters{E}
-    ssh_parameters = electron_phonon_parameters.ssh_parameters::SSHParameters{T}
+    holstein_parameters_up = electron_phonon_parameters.holstein_parameters_up::HolsteinParameters{E}
+    holstein_parameters_dn = electron_phonon_parameters.holstein_parameters_dn::HolsteinParameters{E}
+    ssh_parameters_up = electron_phonon_parameters.ssh_parameters_up::SSHParameters{T}
+    ssh_parameters_dn = electron_phonon_parameters.ssh_parameters_dn::SSHParameters{T}
     phonon_parameters = electron_phonon_parameters.phonon_parameters::PhononParameters{E}
 
     # whether the exponentiated on-site energy matrix needs to be updated with the phonon field,
     # true if there is a non-zero number of holstein couplings Nholstein
-    calculate_exp_V = (holstein_parameters.Nholstein > 0)
+    calculate_exp_V = (holstein_parameters_up.Nholstein > 0)
 
     # whether the exponentiated hopping matrix needs to be updated with the phonon field,
     # true if there is a non-zero number of ssh couplings Nssh
-    calculate_exp_K = (ssh_parameters.Nssh > 0)
+    calculate_exp_K = (ssh_parameters_up.Nssh > 0)
 
     # get the phonon fields
     x = electron_phonon_parameters.x
@@ -50,15 +52,16 @@ function _hmc_update!(Gup::Matrix{T}, logdetGup::E, sgndetGup::T, Gup′::Matrix
         # calculate derivative of fermionic action for spin up
         (logdetGup, sgndetGup, δG, δθ) = fermionic_action_derivative!(dSdx, Gup, logdetGup, sgndetGup, δG, δθ,
                                                                       electron_phonon_parameters,
-                                                                      fermion_greens_calculator_up, Bup)
+                                                                      fermion_greens_calculator_up, Bup, spin = +1)
 
         # calculate derivative of fermionic action for spin down
         (logdetGdn, sgndetGdn, δG, δθ) = fermionic_action_derivative!(dSdx, Gdn, logdetGdn, sgndetGdn, δG, δθ,
                                                                       electron_phonon_parameters,
-                                                                      fermion_greens_calculator_dn, Bdn)
+                                                                      fermion_greens_calculator_dn, Bdn, spin = -1)
 
         # calculate derivative associated with Holstein correction
-        eval_derivative_holstein_action!(dSdx, x, Δτ, holstein_parameters, phonon_parameters)
+        eval_derivative_holstein_action!(dSdx, x, Δτ, holstein_parameters_up, phonon_parameters)
+        eval_derivative_holstein_action!(dSdx, x, Δτ, holstein_parameters_dn, phonon_parameters)
 
         # calculate ∂S̃f/∂x = M⁻¹⋅∂Sf/∂x
         lmul!(fourier_mass_matrix, dSdx, -1.0)
@@ -179,12 +182,12 @@ function _hmc_update!(Gup::Matrix{T}, logdetGup::E, sgndetGup::T, Gup′::Matrix
             # calculate derivative of fermionic action for spin up
             (logdetGup′, sgndetGup′, δGup′, δθ) = fermionic_action_derivative!(dSdx, Gup′, logdetGup′, sgndetGup′, δG′, δθ,
                                                                             electron_phonon_parameters,
-                                                                            fermion_greens_calculator_up_alt, Bup)
+                                                                            fermion_greens_calculator_up_alt, Bup, spin = +1)
 
             # calculate derivative of fermionic action for spin down
             (logdetGdn′, sgndetGdn′, δGdn′, δθ) = fermionic_action_derivative!(dSdx, Gdn′, logdetGdn′, sgndetGdn′, δG′, δθ,
                                                                             electron_phonon_parameters,
-                                                                            fermion_greens_calculator_dn_alt, Bdn)
+                                                                            fermion_greens_calculator_dn_alt, Bdn, spin = -1)
 
             # record max numerical error
             δG′ = max(δG′, δGup′, δGdn′)
@@ -194,7 +197,8 @@ function _hmc_update!(Gup::Matrix{T}, logdetGup::E, sgndetGup::T, Gup′::Matrix
         end
 
         # calculate derivative associated with Holstein correction
-        eval_derivative_holstein_action!(dSdx, x, Δτ, holstein_parameters, phonon_parameters)
+        eval_derivative_holstein_action!(dSdx, x, Δτ, holstein_parameters_up, phonon_parameters)
+        eval_derivative_holstein_action!(dSdx, x, Δτ, holstein_parameters_dn, phonon_parameters)
 
         # if numerical error too large or nan occurs
         if !isfinite(δG′) || !isfinite(logdetGup) || !isfinite(logdetGdn) || δG′ > δG_reject
@@ -309,8 +313,8 @@ function  _hmc_update!(G::Matrix{T}, logdetG::E, sgndetG::T, G′::Matrix{T},
                        update_stabilization_frequency::Bool = true) where {T, E, P<:AbstractPropagator{T,E}}
 
     (; β, Lτ, Δτ) = electron_phonon_parameters
-    holstein_parameters = electron_phonon_parameters.holstein_parameters::HolsteinParameters{E}
-    ssh_parameters = electron_phonon_parameters.ssh_parameters::SSHParameters{T}
+    holstein_parameters = electron_phonon_parameters.holstein_parameters_up::HolsteinParameters{E}
+    ssh_parameters = electron_phonon_parameters.ssh_parameters_up::SSHParameters{T}
     phonon_parameters = electron_phonon_parameters.phonon_parameters::PhononParameters{E}
 
     # whether the exponentiated on-site energy matrix needs to be updated with the phonon field,
@@ -346,7 +350,8 @@ function  _hmc_update!(G::Matrix{T}, logdetG::E, sgndetG::T, G′::Matrix{T},
         @. dSdx = 2 * dSdx
 
         # calculate derivative associated with Holstein correction
-        eval_derivative_holstein_action!(dSdx, x, Δτ, holstein_parameters, phonon_parameters)
+        eval_derivative_holstein_action!(dSdx, x, Δτ, holstein_parameters, phonon_parameters) # spin-up
+        eval_derivative_holstein_action!(dSdx, x, Δτ, holstein_parameters, phonon_parameters) # spin-down
 
         # calculate ∂S̃f/∂x = M⁻¹⋅∂Sf/∂x
         lmul!(fourier_mass_matrix, dSdx, -1.0)
@@ -479,7 +484,8 @@ function  _hmc_update!(G::Matrix{T}, logdetG::E, sgndetG::T, G′::Matrix{T},
         @. dSdx = 2 * dSdx
 
         # calculate derivative associated with Holstein correction
-        eval_derivative_holstein_action!(dSdx, x, Δτ, holstein_parameters, phonon_parameters)
+        eval_derivative_holstein_action!(dSdx, x, Δτ, holstein_parameters, phonon_parameters) # spin-up
+        eval_derivative_holstein_action!(dSdx, x, Δτ, holstein_parameters, phonon_parameters) # spin-down
 
         # calculate ∂S̃f/∂x = M⁻¹⋅∂Sf/∂x
         lmul!(fourier_mass_matrix, dSdx, -1.0)

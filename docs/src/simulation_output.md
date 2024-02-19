@@ -90,6 +90,8 @@ We define each global measurement below.
 - `sgndetGup`: The average spin-up sign ``\mathcal{S}_\uparrow = \langle {\rm sign}(\det G_\uparrow) \rangle``.
 - `sgndetGdn`: The average spin-up sign ``\mathcal{S}_\downarrow = \langle {\rm sign}(\det G_\downarrow) \rangle``.
 - `density`: Average global total charge density ``\langle n \rangle = \langle n_\uparrow \rangle + \langle n_\downarrow \rangle``.
+- `density_up`: Average global spin-up charge density ``\langle n_\uparrow \rangle``.
+- `density_dn`: Average global spin-down charge density ``\langle n_\downarrow \rangle``.
 - `double_occ`: Average global double occupancy ``\langle n_\uparrow n_\downarrow \rangle``.
 - `Nsqrd`: Expectation value for total electron number squared ``\langle N^2 \rangle``, where ``\hat{N} = \sum_{\sigma,\mathbf{i},\nu} \hat{n}_{\sigma, \mathbf{i}, \nu}``.
 - `chemical_potential`: The measured chemical potential ``\mu``.
@@ -105,12 +107,30 @@ the [`model_summary`](@ref) function. The definition for each local measurement 
 including the type of ID it is reported in terms of, is defined below.
 
 - `density`: (`ORBITAL_ID`) The charge density ``\langle n_{\nu} \rangle = \langle n_{\uparrow,\nu} \rangle + \langle n_{\downarrow,\nu} \rangle`` for orbital ``\nu`` in the unit cell.
+- `density_up`: (`ORBITAL_ID`) The spin-up charge density ``\langle n_{\uparrow,\nu} \rangle`` for orbital ``\nu`` in the unit cell.
+- `density_dn`: (`ORBITAL_ID`) The spin-down charge density ``\langle n_{\downarrow,\nu} \rangle`` for orbital ``\nu`` in the unit cell.
 - `double_occ`: (`ORBITAL_ID`) The double-occupance ``\langle n_{\uparrow,\nu} n_{\downarrow,\nu} \rangle`` for orbital ``\nu`` in the unit cell.
 
 ### Local Tight-Binding Measurements
 
-- `onsite_energy`: (`ORBITAL_ID`) The on-site energy ``(\epsilon_\nu - \mu) \langle n_\nu \rangle`` for orbital ``\nu`` in the unit cell.
-- `hopping_energy`: (`HOPPING_ID`) The hopping energy ``-\sum_{\sigma,\mathbf{i}} \langle t_{(\mathbf{i}+\mathbf{r},\nu),(\mathbf{i},\gamma)} c^\dagger_{\sigma,\mathbf{i}+\mathbf{r},\nu} c^{\phantom\dagger}_{\sigma,\mathbf{i},\gamma} + {\rm h.c.} \rangle`` for a hopping connecting orbitals ``\gamma`` and ``\nu`` displaced ``\mathbf{r}`` unit cells, where ``t_{(\mathbf{i}+\mathbf{r},\nu),(\mathbf{i},\gamma)}`` is the bare hopping amplitude.
+- `onsite_energy`: (`ORBITAL_ID`) The total on-site energy ``\sum_\sigma (\epsilon_{\sigma,\nu} - \mu) \langle n_{\sigma,\nu} \rangle`` for orbital ``\nu`` in the unit cell.
+- `onsite_energy_up`: (`ORBITAL_ID`) The spin-up on-site energy ``(\epsilon_{\uparrow,\nu} - \mu) \langle n_{\uparrow,\nu} \rangle`` for orbital ``\nu`` in the unit cell.
+- `onsite_energy_dn`: (`ORBITAL_ID`) The spin-down on-site energy ``(\epsilon_{\downarrow,\nu} - \mu) \langle n_{\downarrow,\nu} \rangle`` for orbital ``\nu`` in the unit cell.
+- `bare_hopping_energy`: (`HOPPING_ID`) The bare hopping energy ``-\sum_{\sigma} \langle t_{\sigma,(\mathbf{i}+\mathbf{r},\nu),(\mathbf{i},\gamma)} c^\dagger_{\sigma,\mathbf{i}+\mathbf{r},\nu} c^{\phantom\dagger}_{\sigma,\mathbf{i},\gamma} + {\rm h.c.} \rangle`` for a hopping connecting orbitals ``\gamma`` and ``\nu`` displaced ``\mathbf{r}`` unit cells, where ``t_{(\mathbf{i}+\mathbf{r},\nu),(\mathbf{i},\gamma)}`` is the bare hopping amplitude.
+- `bare_hopping_energy_up`: (`HOPPING_ID`) The bare spin-up hopping energy ``-\langle t_{\uparrow,(\mathbf{i}+\mathbf{r},\nu),(\mathbf{i},\gamma)} c^\dagger_{\uparrow,\mathbf{i}+\mathbf{r},\nu} c^{\phantom\dagger}_{\uparrow,\mathbf{i},\gamma} + {\rm h.c.} \rangle`` for a hopping connecting orbitals ``\gamma`` and ``\nu`` displaced ``\mathbf{r}`` unit cells, where ``t_{\sigma,(\mathbf{i}+\mathbf{r},\nu),(\mathbf{i},\gamma)}`` is the bare hopping amplitude.
+- `bare_hopping_energy_dn`: (`HOPPING_ID`) The bare spin-up hopping energy ``-\langle t_{\downarrow,(\mathbf{i}+\mathbf{r},\nu),(\mathbf{i},\gamma)} c^\dagger_{\downarrow,\mathbf{i}+\mathbf{r},\nu} c^{\phantom\dagger}_{\downarrow,\mathbf{i},\gamma} + {\rm h.c.} \rangle`` for a hopping connecting orbitals ``\gamma`` and ``\nu`` displaced ``\mathbf{r}`` unit cells, where ``t_{\downarrow,(\mathbf{i}+\mathbf{r},\nu),(\mathbf{i},\gamma)}`` is the bare hopping amplitude.
+- `hopping_energy`: (`HOPPING_ID`) The total hopping energy ``-\sum_{\sigma} \langle t_{l,\sigma,(\mathbf{i}+\mathbf{r},\nu),(\mathbf{i},\gamma)} c^\dagger_{\sigma,\mathbf{i}+\mathbf{r},\nu} c^{\phantom\dagger}_{\sigma,\mathbf{i},\gamma} + {\rm h.c.} \rangle`` for a hopping connecting orbitals ``\gamma`` and ``\nu`` displaced ``\mathbf{r}`` unit cells, where ``t_{l,(\mathbf{i}+\mathbf{r},\nu),(\mathbf{i},\gamma)}`` is the modulated hopping amplitude.
+- `hopping_energy_up`: (`HOPPING_ID`) The spin-up hopping energy ``-\langle t_{l,\uparrow,(\mathbf{i}+\mathbf{r},\nu),(\mathbf{i},\gamma)} c^\dagger_{\uparrow,\mathbf{i}+\mathbf{r},\nu} c^{\phantom\dagger}_{\uparrow,\mathbf{i},\gamma} + {\rm h.c.} \rangle`` for a hopping connecting orbitals ``\gamma`` and ``\nu`` displaced ``\mathbf{r}`` unit cells, where ``t_{l,\sigma,(\mathbf{i}+\mathbf{r},\nu),(\mathbf{i},\gamma)}`` is the modulated hopping amplitude.
+- `hopping_energy_dn`: (`HOPPING_ID`) The spin-up hopping energy ``-\langle t_{l,\downarrow,(\mathbf{i}+\mathbf{r},\nu),(\mathbf{i},\gamma)} c^\dagger_{\downarrow,\mathbf{i}+\mathbf{r},\nu} c^{\phantom\dagger}_{\downarrow,\mathbf{i},\gamma} + {\rm h.c.} \rangle`` for a hopping connecting orbitals ``\gamma`` and ``\nu`` displaced ``\mathbf{r}`` unit cells, where ``t_{l,\downarrow,(\mathbf{i}+\mathbf{r},\nu),(\mathbf{i},\gamma)}`` is the modulated hopping amplitude.
+- `hopping_amplitude`: (`HOPPING_ID`) The average hopping amplitude ``\frac{1}{2 N} \sum_{\sigma,\mathbf{i}} \langle t_{\sigma,(\mathbf{i}+\mathbf{r},\nu),(\mathbf{i},\gamma)}\rangle``.
+- `hopping_amplitude_up`: (`HOPPING_ID`) The average spin-up hopping amplitude ``\frac{1}{N} \sum_{\mathbf{i}} \langle t_{\uparrow,(\mathbf{i}+\mathbf{r},\nu),(\mathbf{i},\gamma)}\rangle``.
+- `hopping_amplitude_dn`: (`HOPPING_ID`) The average spin-down hopping amplitude ``\frac{1}{N} \sum_{\mathbf{i}} \langle t_{\downarrow,(\mathbf{i}+\mathbf{r},\nu),(\mathbf{i},\gamma)}\rangle``.
+- `hopping_inversion`: (`HOPPING_ID`) Fraction of the time the overall sign of the total hopping amplitude is inverted as a result of interactions, without first averaging the hopping amplitude over imaginary time.
+- `hopping_inversion_up`: (`HOPPING_ID`) Fraction of the time the overall sign of the spin-up hopping amplitude is inverted as a result of interactions, without first averaging the hopping amplitude over imaginary time.
+- `hopping_inversion_dn`: (`HOPPING_ID`) Fraction of the time the overall sign of the spin-down hopping amplitude is inverted as a result of interactions, without first averaging the hopping amplitude over imaginary time.
+- `hopping_inversion_avg`: (`HOPPING_ID`) Fraction of the time the overall sign of the total hopping amplitude is inverted as a result of interactions, as calculated after first averaging the hopping amplitude over imaginary time.
+- `hopping_inversion_avg_up`: (`HOPPING_ID`) Fraction of the time the overall sign of the spin-up hopping amplitude is inverted as a result of interactions, as calculated after first averaging the hopping amplitude over imaginary time.
+- `hopping_inversion_avg_dn`: (`HOPPING_ID`) Fraction of the time the overall sign of the spin-down hopping amplitude is inverted as a result of interactions,as calculated after first averaging the hopping amplitude over imaginary time.
 
 ### Local Hubbard Measurements
 
@@ -130,7 +150,6 @@ including the type of ID it is reported in terms of, is defined below.
 
 - `holstein_energy`: (`HOLSTEIN_ID`) The Holstein interaction energy ``\sum_m \tilde{\alpha}_{m,n_{\mathbf{i},\nu},(\mathbf{i}+\mathbf{r},\gamma)} \langle X_{n_{\mathbf{i},\nu}}^m (n_{\mathbf{i}+\mathbf{r},\gamma} - 1) \rangle`` between a phonon mode ``n_{\mathbf{i},\nu}`` and total charge density on orbital ``\gamma`` displaced ``\mathbf{r}`` unit cells away.
 - `ssh_energy`: (`SSH_ID`) The SSH interaction enery ``\langle \mathcal{K}_{{\rm ssh},(n_{\mathbf{i},\nu},n_{\mathbf{i}+\mathbf{r},\gamma})}\rangle`` between phonon modes ``n_\nu`` and ``n_\gamma`` displaced ``\mathbf{r}`` unit cells from eachother.
-- `ssh_sgn_switch`: (`SSH_ID`) The fequency with which a specified SSH interaction results in the overall sign of a hopping amplitude changing. Note that this fraction is calculated without first averaging over the imaginary-time axis. Also, if multiple SSH couplings modulate a single hopping amplitude, this measurement only reports whether the single SSH coupling corresponding to the specified `SSH_ID` modulates the hopping amplitude enough to change the overall sign of the hopping amplitude.
 
 ## Correlation Function Measurements
 
