@@ -55,6 +55,10 @@ update_stabalization_frequency!
 - [`TightBindingParameters`](@ref)
 - [`measure_onsite_energy`](@ref)
 - [`measure_hopping_energy`](@ref)
+- [`measure_bare_hopping_energy`](@ref)
+- [`measure_hopping_amplitude`](@ref)
+- [`measure_hopping_inversion`](@ref)
+- [`measure_hopping_inversion_avg`](@ref)
 
 ```@docs
 TightBindingModel
@@ -63,6 +67,10 @@ TightBindingParameters
 TightBindingParameters(;)
 measure_onsite_energy
 measure_hopping_energy
+measure_bare_hopping_energy
+measure_hopping_amplitude
+measure_hopping_inversion
+measure_hopping_inversion_avg
 ```
 
 ## Hubbard Model

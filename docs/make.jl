@@ -79,7 +79,9 @@ makedocs(;
         prettyurls=get(ENV, "CI", "false") == "true",
         canonical="https://smoqysuite.github.io/SmoQyDQMC.jl/stable/",
         edit_link="main",
-        assets=String[]
+        assets=String[],
+        size_threshold_warn = 200*1024, # 200KB -- library.html gets quite large
+        size_threshold      = 300*2024, # 300KB
     ),
     pages=[
         "Home" => "index.md",

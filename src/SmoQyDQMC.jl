@@ -141,7 +141,8 @@ export model_summary
 
 # implement tight-bding Hamiltonian measurements
 include("tight_binding_measurements.jl")
-export measure_onsite_energy, measure_hopping_energy
+export measure_onsite_energy, measure_hopping_energy, measure_bare_hopping_energy
+export measure_hopping_amplitude, measure_hopping_inversion, measure_hopping_inversion_avg
 
 # relevant hubbard specific measurements
 include("Hubbard/hubbard_model_measurements.jl")

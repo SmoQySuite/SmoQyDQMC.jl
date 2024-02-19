@@ -46,54 +46,55 @@ Next we trace out the phonon degrees of freedom
 The electron kinetic energy is decomposed as
 ```math
 \begin{align*}
-    \hat{\mathcal{K}} = \hat{\mathcal{K}}_0 + \hat{\mathcal{K}}_{\rm ssh},
+    \hat{\mathcal{K}} = \sum_{\sigma=\uparrow,\downarrow} \left[ \hat{\mathcal{K}}_{\sigma,0} + \hat{\mathcal{K}}_{\sigma,{\rm ssh}} \right],
 \end{align*}
 ```
 where
 ```math
 \begin{align*}
-    \hat{\mathcal{K}}_0 =& -\sum_\sigma\sum_{\substack{\mathbf{i},\nu \\ \mathbf{j},\gamma}}
+    \hat{\mathcal{K}}_{\sigma,0} =& -\sum_{\substack{\mathbf{i},\nu \\ \mathbf{j},\gamma}}
         \left[
-            t_{(\mathbf{i},\nu),(\mathbf{j},\gamma)} \hat{c}^\dagger_{\sigma,\mathbf{i},\nu}\hat{c}_{\sigma,\mathbf{j},\gamma} + {\rm h.c.}
+            t_{\sigma,(\mathbf{i},\nu),(\mathbf{j},\gamma)} \hat{c}^\dagger_{\sigma,\mathbf{i},\nu}\hat{c}_{\sigma,\mathbf{j},\gamma} + {\rm h.c.}
         \right]
 \end{align*}
 ```
-is the non-interacting electron kinetic energy, and
+is the non-interacting spin-``\sigma`` electron kinetic energy, and
 ```math
 \begin{align*}
-    \hat{\mathcal{K}}_{\rm ssh} =& \sum_\sigma\sum_{\substack{\mathbf{i},\nu \\ \mathbf{j},\gamma}}\sum_{\substack{n_{\mathbf{i},\nu} \\ n_{\mathbf{j},\gamma}}}\sum_{m=1}^4
+    \hat{\mathcal{K}}_{\sigma,{\rm ssh}} =& \sum_{\substack{\mathbf{i},\nu \\ \mathbf{j},\gamma}}\sum_{\substack{n_{\mathbf{i},\nu} \\ n_{\mathbf{j},\gamma}}}\sum_{m=1}^4
         (\hat{X}_{n_{\mathbf{i},\nu}}-\hat{X}_{n_{\mathbf{j},\gamma}})^m\left[
-            \alpha_{m,n_{\mathbf{i},\nu},n_{\mathbf{j},\gamma}} \hat{c}^\dagger_{\sigma,\mathbf{i},\nu}\hat{c}_{\sigma,\mathbf{j},\gamma} + {\rm h.c.}
+            \alpha_{\sigma,m,n_{\mathbf{i},\nu},n_{\mathbf{j},\gamma}} \hat{c}^\dagger_{\sigma,\mathbf{i},\nu}\hat{c}_{\sigma,\mathbf{j},\gamma} + {\rm h.c.}
         \right]
 \end{align*}
 ```
-is describes the interaction between the lattice degrees of freedom and the electron kinetic energy via a Su-Schrieffer-Heeger (SSH)-like coupling mechanism. The hopping integral between from orbital ``\gamma`` in unit cell ``\mathbf{j}`` to orbital ``\nu`` in unit cell ``\mathbf{i}`` is given by ``t_{(\mathbf{i},\nu),(\mathbf{j},\gamma)}``, and may in general be complex. The modulations to this hopping integral are controlled by the parameters ``\alpha_{m,(\mathbf{i},\nu),(\mathbf{j},\gamma)}``, where ``m\in [1,4]`` specifies the order of the difference in the phonon positions that modulates the hopping integral.
+is describes the interaction between the lattice degrees of freedom and the spin-``\sigma`` electron kinetic energy via a Su-Schrieffer-Heeger (SSH)-like coupling mechanism. The hopping integral between from orbital ``\gamma`` in unit cell ``\mathbf{j}`` to orbital ``\nu`` in unit cell ``\mathbf{i}`` is given by ``t_{(\mathbf{i},\nu),(\mathbf{j},\gamma)}``, and may in general be complex. The modulations to this hopping integral are controlled by the parameters ``\alpha_{m,(\mathbf{i},\nu),(\mathbf{j},\gamma)}``, where ``m\in [1,4]`` specifies the order of the difference in the phonon positions that modulates the hopping integral.
 
 Lastly, the electron potential energy is broken down into the three terms
 ```math
 \begin{align*}
-    \hat{\mathcal{V}} = \hat{\mathcal{V}}_0 + \hat{\mathcal{V}}_{\rm hol} + \hat{\mathcal{V}}_{\rm hub},
+    \hat{\mathcal{V}} = \sum_{\sigma=\uparrow,\downarrow} \left[ \hat{\mathcal{V}}_{\sigma,0} + \hat{\mathcal{V}}_{\sigma,{\rm hol}} \right] + \hat{\mathcal{V}}_{\rm hub},
 \end{align*}
 ```
 where
 ```math
 \begin{align*}
-    \hat{\mathcal{V}}_0 =& \sum_\sigma\sum_{\mathbf{i},\nu}
+    \hat{\mathcal{V}}_{\sigma,0} =& \sum_{\mathbf{i},\nu}
         \left[
-            (\epsilon_{\mathbf{i},\nu} - \mu) \hat{n}_{\sigma,\mathbf{i},\nu}
+            (\epsilon_{\sigma,\mathbf{i},\nu} - \mu) \hat{n}_{\sigma,\mathbf{i},\nu}
         \right]
 \end{align*}
 ```
-is the non-interacting electron potential energy,
+is the non-interacting spin-``\sigma`` electron potential energy,
 ```math
 \begin{align*}
-    \hat{\mathcal{V}}_{\rm hol} =& \sum_\sigma\sum_{\substack{\mathbf{i},\nu \\ \mathbf{j},\gamma}}\sum_{n_{\mathbf{i},\nu}}\sum_{m=1}^4
-        \hat{X}^m_{n_{\mathbf{i},\nu}} \left[
-            \tilde{\alpha}_{m,n_{\mathbf{i},\nu},(\mathbf{j},\gamma)} (\hat{n}_{\sigma,\mathbf{j},\gamma}-\tfrac{1}{2})
-        \right]
+    \hat{\mathcal{V}}_{\sigma,{\rm hol}} =&
+    \begin{cases}
+        \sum_{\mathbf{i},\nu} \sum{\mathbf{j},\gamma} \sum_{n_{\mathbf{i},\nu}} \left[\sum_{m=1,3}\tilde{\alpha}_{\sigma,m,n_{\mathbf{i},\nu},(\mathbf{j},\gamma)} \ \hat{X}^m_{n_{\mathbf{i},\nu}}(\hat{n}_{\sigma,\mathbf{j},\gamma} - \tfrac{1}{2}) + \sum_{m=2,4}\tilde{\alpha}_{\sigma,m,n_{\mathbf{i},\nu},(\mathbf{j},\gamma)} \ \hat{X}^m_{n_{\mathbf{i},\nu}}\hat{n}_{\sigma,\mathbf{j},\gamma}\right] \\
+        \sum_{\mathbf{i},\nu} \sum{\mathbf{j},\gamma} \sum_{n_{\mathbf{i},\nu}} \sum_{m=1}^4 \tilde{\alpha}_{\sigma,m,n_{\mathbf{i},\nu},(\mathbf{j},\gamma)} \ \hat{X}^m_{n_{\mathbf{i},\nu}} \hat{n}_{\sigma,\mathbf{j},\gamma}
+    \end{cases}
 \end{align*}
 ```
-is the contribution to the electron potential energy that results from a Holstein-like coupling to the lattice degrees of freedom, and
+is the contribution to the spin-``\sigma`` electron potential energy that results from a Holstein-like coupling to the lattice degrees of freedom, and
 ```math
 \begin{align*}
     \hat{\mathcal{V}}_{{\rm hub}}=&
@@ -103,4 +104,5 @@ is the contribution to the electron potential energy that results from a Holstei
     \end{cases}
 \end{align*}
 ```
-is the on-site Hubbard interaction contribution to the electron potential energy. In ``\hat{\mathcal{V}}_0`` the chemical potential is given by ``\mu``, and ``\epsilon_{\mathbf{i},\nu}`` is the on-site energy, the parameter ``\tilde{\alpha}_{m,n_{\mathbf{i},\nu},(\mathbf{j},\gamma)}`` controls the strength of the Holstein-like coupling in ``\hat{\mathcal{V}}_{\rm ph}``, and ``U_{\mathbf{i},\nu}`` is the on-site Hubbard interaction strength in ``\hat{\mathcal{V}}_{\rm hub}``. Note that either functional form for ``V_{\rm hub}`` can used in the code.
+is the on-site Hubbard interaction contribution to the electron potential energy. In ``\hat{\mathcal{V}}_0`` the chemical potential is given by ``\mu``, and ``\epsilon_{\mathbf{i},\nu}`` is the on-site energy, the parameter ``\tilde{\alpha}_{m,n_{\mathbf{i},\nu},(\mathbf{j},\gamma)}`` controls the strength of the Holstein-like coupling in ``\hat{\mathcal{V}}_{\rm ph}``, and ``U_{\mathbf{i},\nu}`` is the on-site Hubbard interaction strength in ``\hat{\mathcal{V}}_{\rm hub}``.
+Note that either functional form for ``\hat{\mathcal{V}}_{\rm hub}`` and ``\hat{\mathcal{V}}_{\sigma, {\rm hub}}`` can be used in the code.
