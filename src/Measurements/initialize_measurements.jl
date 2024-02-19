@@ -82,6 +82,12 @@ end
 @doc raw"""
     initialize_measurements!(
         measurement_container::NamedTuple,
+        tight_binding_model_up::TightBindingModel{T,E},
+        tight_binding_model_dn::TightBindingModel{T,E},
+    ) where {T<:Number, E<:AbstractFloat}
+
+    initialize_measurements!(
+        measurement_container::NamedTuple,
         tight_binding_model::TightBindingModel{T,E}
     ) where {T<:Number, E<:AbstractFloat}
 
@@ -89,13 +95,24 @@ Initialize tight-binding model related measurements.
 
 # Initialized Measurements
 
-- `onsite_energy_`: Refer to [`measure_onsite_energy`](@ref).
+- `onsite_energy`: Refer to [`measure_onsite_energy`](@ref).
 - `onsite_energy_up`: Refer to [`measure_onsite_energy`](@ref).
 - `onsite_energy_dn`: Refer to [`measure_onsite_energy`](@ref).
 - `hopping_energy`: Refer to [`measure_hopping_energy`](@ref).
 - `hopping_energy_up`: Refer to [`measure_hopping_energy`](@ref).
 - `hopping_energy_dn`: Refer to [`measure_hopping_energy`](@ref).
 """
+function initialize_measurements!(
+    measurement_container::NamedTuple,
+    tight_binding_model_up::TightBindingModel{T,E},
+    tight_binding_model_dn::TightBindingModel{T,E},
+) where {T<:Number, E<:AbstractFloat}
+
+    initialize_measurements!(measurement_container, tight_binding_model_up)
+
+    return nothing
+end
+
 function initialize_measurements!(
     measurement_container::NamedTuple,
     tight_binding_model::TightBindingModel{T,E}

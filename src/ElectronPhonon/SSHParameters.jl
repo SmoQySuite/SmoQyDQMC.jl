@@ -136,8 +136,8 @@ function SSHParameters(;
         ssh_counter = 0 # ssh coupling counter
         for sc in 1:nssh
             # get the ssh coupling definition
-            ssh_coupling_up = electron_phonon_model.ssh_couplings_up[sc]::SSHCoupling{T,E,D}
-            ssh_coupling_dn = electron_phonon_model.ssh_couplings_dn[sc]::SSHCoupling{T,E,D}
+            ssh_coupling_up = ssh_couplings_up[sc]
+            ssh_coupling_dn = ssh_couplings_dn[sc]
             # get the pair of phonon mode definitions assoicated with ssh coupling
             phonon_mode_i = ssh_coupling_up.phonon_modes[1]
             phonon_mode_f = ssh_coupling_up.phonon_modes[2]

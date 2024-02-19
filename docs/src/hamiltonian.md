@@ -106,3 +106,4 @@ is the contribution to the spin-``\sigma`` electron potential energy that result
 ```
 is the on-site Hubbard interaction contribution to the electron potential energy. In ``\hat{\mathcal{V}}_0`` the chemical potential is given by ``\mu``, and ``\epsilon_{\mathbf{i},\nu}`` is the on-site energy, the parameter ``\tilde{\alpha}_{m,n_{\mathbf{i},\nu},(\mathbf{j},\gamma)}`` controls the strength of the Holstein-like coupling in ``\hat{\mathcal{V}}_{\rm ph}``, and ``U_{\mathbf{i},\nu}`` is the on-site Hubbard interaction strength in ``\hat{\mathcal{V}}_{\rm hub}``.
 Note that either functional form for ``\hat{\mathcal{V}}_{\rm hub}`` and ``\hat{\mathcal{V}}_{\sigma, {\rm hub}}`` can be used in the code.
+Note that the two possible parameterizations for ``\hat{\mathcal{V}}_{\sigma, {\rm hub}}`` are inequivalent! 

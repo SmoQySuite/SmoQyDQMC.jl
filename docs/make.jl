@@ -64,7 +64,7 @@ DocMeta.setdocmeta!(SmoQyDQMC, :DocTestSetup, :(using SmoQyDQMC); recursive=true
 
 examples = ["hubbard_chain", "hubbard_chain_mpi", "hubbard_chain_checkpoint", "holstein_chain",
             "ossh_chain", "bssh_chain", "hubbard_holstein_square", "hubbard_threeband",
-            "holstein_kagome", "hubbard_honeycomb"]
+            "holstein_kagome", "hubbard_honeycomb", "holstein_zeeman_square"]
 example_sources = [joinpath(pkgdir(SmoQyDQMC, "examples"), example*".jl") for example in examples]
 example_mds = build_examples(example_sources, "examples")
 
