@@ -8,16 +8,17 @@
         logdetGup::E, sgndetGup::T, Gup::AbstractMatrix{T},
         Gup_ττ::AbstractMatrix{T}, Gup_τ0::AbstractMatrix{T}, Gup_0τ::AbstractMatrix{T},
         logdetGdn::E, sgndetGdn::T, Gdn::AbstractMatrix{T},
-        # Keyword Arguments Start Here
         Gdn_ττ::AbstractMatrix{T}, Gdn_τ0::AbstractMatrix{T}, Gdn_0τ::AbstractMatrix{T};
+        # Keyword Arguments Start Here
         fermion_path_integral_up::FermionPathIntegral{T,E},
         fermion_path_integral_dn::FermionPathIntegral{T,E},
         fermion_greens_calculator_up::FermionGreensCalculator{T,E},
         fermion_greens_calculator_dn::FermionGreensCalculator{T,E},
         Bup::Vector{P}, Bdn::Vector{P}, δG_max::E, δG::E, δθ::E,
         model_geometry::ModelGeometry{D,E,N},
-        tight_binding_parameters::TightBindingParameters{T,E},
-        tight_binding_parameters_dn::TightBindingParameters{T,E} = tight_binding_parameters,
+        tight_binding_parameters::Union{Nothing, TightBindingParameters{T,E}} = nothing,
+        tight_binding_parameters_up::Union{Nothing, TightBindingParameters{T,E}} = nothing,
+        tight_binding_parameters_dn::Union{Nothing, TightBindingParameters{T,E}} = nothing,
         coupling_parameters::Tuple
     ) where {T<:Number, E<:AbstractFloat, D, N, P<:AbstractPropagator{T,E}}
 
