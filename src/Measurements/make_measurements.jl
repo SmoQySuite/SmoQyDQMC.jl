@@ -63,8 +63,11 @@ function make_measurements!(
     global_measurements = measurement_container.global_measurements
     make_global_measurements!(
         global_measurements,
-        tight_binding_parameters_up, tight_binding_parameters_dn,
-        sgndetGup, sgndetGdn, Gup, Gdn
+        tight_binding_parameters_up,
+        tight_binding_parameters_dn,
+        coupling_parameters,
+        Gup, logdetGup, sgndetGup,
+        Gdn, logdetGdn, sgndetGdn
     )
 
     # make local measurements
@@ -200,8 +203,11 @@ function make_measurements!(
     global_measurements = measurement_container.global_measurements
     make_global_measurements!(
         global_measurements,
-        tight_binding_parameters, tight_binding_parameters,
-        sgndetG, sgndetG, G, G
+        tight_binding_parameters,
+        tight_binding_parameters,
+        coupling_parameters,
+        G, logdetG, sgndetG,
+        G, logdetG, sgndetG
     )
 
     # make local measurements
@@ -291,8 +297,9 @@ function make_global_measurements!(
     global_measurements::Dict{String, Complex{E}},
     tight_binding_parameters_up::TightBindingParameters{T,E},
     tight_binding_parameters_dn::TightBindingParameters{T,E},
-    sgndetGup::T, sgndetGdn::T,
-    Gup::AbstractMatrix{T}, Gdn::AbstractMatrix{T}
+    coupling_parameters::Tuple,
+    Gup::AbstractMatrix{T}, logdetGup::T, sgndetGup::T,
+    Gdn::AbstractMatrix{T}, logdetGdn::T, sgndetGdn::T,
 ) where {T<:Number, E<:AbstractFloat}
 
     # number of orbitals in lattice
@@ -303,9 +310,28 @@ function make_global_measurements!(
     sgn /= abs(sgn) # normalize just to be cautious
     global_measurements["sgn"] += sgn
 
-    # record the spin resolved sign
+    # measure the spin resolved sign
     global_measurements["sgndetGup"] += sgndetGup
     global_measurements["sgndetGdn"] += sgndetGdn
+
+    # measure log|det(G)|
+    global_measurements["logdetGup"] += logdetGup
+    global_measurements["logdetGdn"] += logdetGdn
+
+    # measure fermionic action
+    Sf = logdetGup + logdetGdn
+    global_measurements["action_fermionic"] += Sf
+
+    # measure bosonic action
+    Sb = zero(E)
+    for i in eachindex(coupling_parameters)
+        Sb += bosonic_action(coupling_parameters[i])
+    end
+    global_measurements["action_bosonic"] += Sb
+
+    # measure total action
+    S = Sb + Sf
+    global_measurements["action_total"] += S
 
     # measure average density
     nup = measure_n(Gup)
@@ -539,6 +565,18 @@ function make_local_measurements!(
     return nothing
 end
 
+# null local measurements to undefined parameters types
+function make_local_measurements!(
+    local_measurements::Dict{String, Vector{Complex{E}}},
+    Gup::AbstractMatrix{T}, Gdn::AbstractMatrix{T}, sgn::T,
+    model_geometry::ModelGeometry{D,E,N},
+    some_model_parameters,
+    tight_binding_parameters_up::TightBindingParameters{T,E},
+    tight_binding_parameters_dn::TightBindingParameters{T,E}
+) where {T<:Number, E<:AbstractFloat, D, N}
+
+    return nothing
+end
 
 ############################################
 ## MAKE CORRELATION FUNCTION MEASUREMENTS ##

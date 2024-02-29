@@ -145,3 +145,38 @@ const LOCAL_MEASUREMENTS = Base.ImmutableDict(
     "ssh_energy_dn"            => "SSH_ID",
     "dispersion_energy"        => "DISPERSION_ID"
 )
+
+@doc raw"""
+    const GLOBAL_MEASUREMENTS = (
+        "logdetGup",
+        "logdetGdn",
+        "sgndetGup",
+        "sgndetGdn",
+        "sgn",
+        "action_total",
+        "action_bosonic",
+        "action_fermionic",
+        "density",
+        "density_up",
+        "density_dn",
+        "double_occ",
+        "Nsqrd"
+    )
+
+List of all the global measurements that are made.
+"""
+const GLOBAL_MEASUREMENTS = (
+    "logdetGup",
+    "logdetGdn",
+    "sgndetGup",
+    "sgndetGdn",
+    "sgn",
+    "action_total",
+    "action_bosonic",
+    "action_fermionic",
+    "density",
+    "density_up",
+    "density_dn",
+    "double_occ",
+    "Nsqrd"
+)

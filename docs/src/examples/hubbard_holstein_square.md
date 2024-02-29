@@ -554,7 +554,11 @@ measure equal-times green's function for all τ
                 fermion_greens_calculator_dn = fermion_greens_calculator_dn,
                 Bup = Bup, Bdn = Bdn, δG_max = δG_max, δG = δG, δθ = δθ,
                 model_geometry = model_geometry, tight_binding_parameters = tight_binding_parameters,
-                coupling_parameters = (hubbard_parameters, electron_phonon_parameters)
+                coupling_parameters = (
+                    hubbard_parameters,
+                    hubbard_ising_parameters,
+                    electron_phonon_parameters
+                )
             )
         end
 
