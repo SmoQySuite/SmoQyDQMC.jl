@@ -282,11 +282,8 @@ function run_hubbard_holstein_square_simulation(sID, U, Ω, α, μ, β, L, N_bur
         time_displaced = true,
         pairs = [(1, 1)]
     )
-````
 
-measure equal-times green's function for all τ
-
-````@example hubbard_holstein_square
+    # measure equal-times green's function for all τ
     initialize_correlation_measurements!(
         measurement_container = measurement_container,
         model_geometry = model_geometry,
@@ -671,11 +668,8 @@ measure equal-times green's function for all τ
 
     # Calculate the charge susceptibility for zero momentum transfer (q=0)
     # with the net charge background signal subtracted off.
-````
 
-calculate the Cu-Cu charge susceptibility at q=0 with the background signal remove
-
-````@example hubbard_holstein_square
+    # Calculate the Cu-Cu charge susceptibility at q=0 with the background signal removed.
     C0, ΔC0 = composite_correlation_stat(
         folder = simulation_info.datafolder,
         correlations = ["density", "greens_tautau", "greens"],
