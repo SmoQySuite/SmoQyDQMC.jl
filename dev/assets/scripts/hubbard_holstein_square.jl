@@ -241,6 +241,7 @@ function run_hubbard_holstein_square_simulation(sID, U, Ω, α, μ, β, L, N_bur
         pairs = [(1, 1)]
     )
 
+    # measure equal-times green's function for all τ
     initialize_correlation_measurements!(
         measurement_container = measurement_container,
         model_geometry = model_geometry,
@@ -578,7 +579,6 @@ function run_hubbard_holstein_square_simulation(sID, U, Ω, α, μ, β, L, N_bur
     additional_info["P_ext-s_avg"] = Pes
     additional_info["P_ext-s_err"] = ΔPes
 
-    # Measure the d-wave pair susceptibility.
     Pd, ΔPd = composite_correlation_stat(
         folder = simulation_info.datafolder,
         correlations = ["pair", "pair", "pair", "pair",
@@ -613,9 +613,8 @@ function run_hubbard_holstein_square_simulation(sID, U, Ω, α, μ, β, L, N_bur
     additional_info["P_d_avg"] = Pd
     additional_info["P_d_err"] = ΔPd
 
-    # Calculate the charge susceptibility for zero momentum transfer (q=0)
-    # with the net charge background signal subtracted off.
 
+    # Calculate the Cu-Cu charge susceptibility at q=0 with the background signal removed.
     C0, ΔC0 = composite_correlation_stat(
         folder = simulation_info.datafolder,
         correlations = ["density", "greens_tautau", "greens"],
