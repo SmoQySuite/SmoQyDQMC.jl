@@ -80,8 +80,8 @@ makedocs(;
         canonical="https://smoqysuite.github.io/SmoQyDQMC.jl/stable/",
         edit_link="main",
         assets=String[],
-        size_threshold_warn = 200*1024, # 200KB -- library.html gets quite large
-        size_threshold      = 300*2024, # 300KB
+        size_threshold_warn = 1000*1024, # 200KB -- library.html gets quite large
+        size_threshold      = 2000*2024, # 300KB
     ),
     pages=[
         "Home" => "index.md",
@@ -90,7 +90,7 @@ makedocs(;
         "API" => "api.md",
         "Examples" => example_mds,
     ],
-    draft = true
+    draft = false
 )
 
 deploydocs(;
