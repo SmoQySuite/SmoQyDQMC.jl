@@ -90,7 +90,7 @@ makedocs(;
         "API" => "api.md",
         "Examples" => example_mds,
     ],
-    draft = false
+    draft = true
 )
 
 deploydocs(;
