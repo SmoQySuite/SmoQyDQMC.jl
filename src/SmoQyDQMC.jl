@@ -10,7 +10,6 @@ using StaticArrays
 using OffsetArrays
 using JLD2
 using FastLapackInterface
-using BinningAnalysis
 using Reexport
 using PkgVersion
 using TOML

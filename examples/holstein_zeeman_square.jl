@@ -90,10 +90,10 @@ function run_holstein_zeeman_square_simulation(sID, Δϵ, Ω, α, μ, β, L, N_b
     bin_size = div(N_updates, N_bins)
 
     ## Number of fermionic time-steps in HMC update.
-    Nt = 4
+    Nt = 2
 
     ## Fermionic time-step used in HMC update.
-    Δt = π/(Nt*Ω)
+    Δt = π/(2*Ω)/Nt
 
     ## Initialize a dictionary to store additional information about the simulation.
     additional_info = Dict(
