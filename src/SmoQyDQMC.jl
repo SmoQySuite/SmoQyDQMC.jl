@@ -10,7 +10,6 @@ using StaticArrays
 using OffsetArrays
 using JLD2
 using FastLapackInterface
-using BinningAnalysis
 using Reexport
 using PkgVersion
 using TOML
@@ -153,9 +152,9 @@ include("ElectronPhonon/hmc_update.jl")
 include("ElectronPhonon/HMCUpdater.jl")
 export HMCUpdater
 
-# defines LMC (langevin Monte Carlo) updater struct and public API for performing LMC updates to phonon fields
-include("ElectronPhonon/LMCUpdater.jl")
-export LMCUpdater
+# defines Exact Fourier Acceleration HMC update method
+include("ElectronPhonon/EFAHMCUpdater.jl")
+export EFAHMCUpdater
 
 # impelment reflection and swap updates for phonon fields
 include("ElectronPhonon/reflection_update.jl")
@@ -172,7 +171,8 @@ export model_summary
 
 # implement tight-bding Hamiltonian measurements
 include("tight_binding_measurements.jl")
-export measure_onsite_energy, measure_hopping_energy
+export measure_onsite_energy, measure_hopping_energy, measure_bare_hopping_energy
+export measure_hopping_amplitude, measure_hopping_inversion, measure_hopping_inversion_avg
 
 # relevant hubbard specific measurements
 include("Hubbard/hubbard_model_measurements.jl")
@@ -197,7 +197,8 @@ export measure_dispersion_energy
 # defines dictionaries as global variables that contain the names of all
 # local measurements and correlation measurements that can be made, and the
 # type ID type they are reported in terms of
-include("Measurements/measurement_name_dicts.jl")
+include("Measurements/measurement_names.jl")
+export GLOBAL_MEASUREMENTS
 export LOCAL_MEASUREMENTS
 export CORRELATION_FUNCTIONS
 

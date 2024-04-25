@@ -108,12 +108,7 @@ function _reverse_partially_wrap_greens(G::Matrix{T}, B::AsymChkbrdPropagator{T,
     return nothing
 end
 
-
-# @doc raw"""
-#     swap!(a::AbstractArray{T}, b::AbstractArray{T}) where {T}
-
 # Swap the contents of the two arrays `a` and `b`.
-# """
 function swap!(a::AbstractArray{T}, b::AbstractArray{T}) where {T}
 
     @fastmath @inbounds for i in eachindex(a)
@@ -125,9 +120,5 @@ function swap!(a::AbstractArray{T}, b::AbstractArray{T}) where {T}
     return nothing
 end
 
-@doc raw"""
-    heaviside(x::Real)
-
-Evaluate the Heaviside step function given the arugment `x`.
-"""
-heaviside(x::Real) = (1+sign(x))/2
+# default bosonic action evaluation method
+bosonic_action(some_model_parameters) = 0.0

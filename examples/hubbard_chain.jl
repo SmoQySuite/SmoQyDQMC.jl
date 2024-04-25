@@ -15,11 +15,9 @@
 # Lastly, we consider the case that the system is half-filled and particle-hole symmetric,
 # which occurs when when the chemical potential is zero, ``\mu = 0.0``.
 #
-# The script [`example_scripts/hubbard_chain.jl`](https://github.com/SmoQySuite/SmoQyDQMC.jl/blob/main/example_scripts/hubbard_chain.jl)
-# found in the repository simulates this Hamiltonian.
 # Suppose we want to simulate a half-filled Hubbard chain ``(\mu = 0.0)`` of length ``L=16`` with ``U=8.0``
 # at an inverse temperature of ``\beta = 8.0``.
-# This is accomplished with the command
+# This is accomplished by running the script associated with this example using the command
 # ```
 # > julia hubbard_chain.jl 1 6.0 0.0 8.0 16 2000 10000 50
 # ```
@@ -404,7 +402,7 @@ function run_hubbard_chain_simulation(sID, U, μ, β, L, N_burnin, N_updates, N_
                 fermion_greens_calculator_dn = fermion_greens_calculator_dn,
                 Bup = Bup, Bdn = Bdn, δG_max = δG_max, δG = δG, δθ = δθ,
                 model_geometry = model_geometry, tight_binding_parameters = tight_binding_parameters,
-                coupling_parameters = (hubbard_parameters,)
+                coupling_parameters = (hubbard_parameters, hubbard_ising_parameters)
             )
         end
 

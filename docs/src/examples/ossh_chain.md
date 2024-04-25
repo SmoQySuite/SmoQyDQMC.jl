@@ -1,3 +1,41 @@
+```@meta
+EditURL = "../../../examples/ossh_chain.jl"
+```
+
+Download this example as a [Julia script](../assets/scripts/ossh_chain.jl).
+
+# Optical Su-Schrieffer-Heeger Chain
+
+In this example we simulate the optical Su-Schrieffer-Heeger (OSSH) model on a 1D chain,
+with a Hamiltonian given by
+```math
+\begin{align*}
+\hat{H} = \sum_i \left( \frac{1}{2M}\hat{P}_i^2 + \frac{1}{2}M\Omega^2\hat{X}_i^2 \right)
+          - \sum_{\sigma,i} [t-\alpha(\hat{X}_{i+1}-\hat{X}_{i})] (\hat{c}^{\dagger}_{\sigma,i+1}, \hat{c}^{\phantom \dagger}_{\sigma,i} + {\rm h.c.})
+          - \mu \sum_{\sigma,i} \hat{n}_{\sigma,i},
+\end{align*}
+```
+in which the fluctuations in the position of dispersionless phonon modes placed on each site in the lattice modulate the
+hopping amplitude between neighboring sites.
+In the above expression ``\hat{c}^\dagger_{\sigma,i} \ (\hat{c}^{\phantom \dagger}_{\sigma,i})`` creation (annihilation) operator
+a spin ``\sigma`` electron on site ``i`` in the lattice, and ``\hat{n}_{\sigma,i} = \hat{c}^\dagger_{\sigma,i} \hat{c}^{\phantom \dagger}_{\sigma,i}``
+is corresponding electron number operator. The phonon position (momentum) operator for the dispersionless phonon mode on site ``i``
+is given by ``\hat{X}_i \ (\hat{P}_i)``, where ``\Omega`` and ``M`` are the phonon frequency and associated ion mass respectively.
+Lastly, the strength of the electron-phonon coupling is controlled by the parameter ``\alpha``.
+
+A short test simulation using the script associated with this example can be run as
+```
+> julia ossh_chain.jl 0 1.0 0.5 0.0 4.0 16 1000 5000 20
+```
+which simulates an ``L=16`` chain with ``\Omega = 1.0``, ``\alpha = 0.5`` at half-filling ``(\mu = 0.0)`` and
+an inverse temperature of ``\beta = 4.0``. In this example `N_burnin = 1000` HMC thermalization updates are performed,
+followed an additional `N_updates = 5000` HMC updates, after each of which measurements are made.
+Bin averaged measurements are then written to file `N_bins = 20` during the simulation.
+
+Below you will find the source code from the julia script linked at the top of this page,
+but with additional comments giving more detailed explanations for what certain parts of the code are doing.
+
+````@example ossh_chain
 using LinearAlgebra
 using Random
 using Printf
@@ -30,11 +68,18 @@ function run_ossh_chain_simulation(sID, Ω, α, μ, β, L, N_burnin, N_updates, 
     # Set the discretization in imaginary time for the DQMC simulation.
     Δτ = 0.05
 
+    # For performance reasons it is important that we represent the exponentiated hopping
+    # matrix with the checkerboard approximation when simulating an SSH model, where the
+    # phonons modulate the hopping amplitudes. Without the checkerboard approximation,
+    # each time a phonon field is updated the kinetic energy matrix would need to be diagonalized
+    # to calculate its exponential, which is very computationally expensive.
 
     # This flag indicates whether or not to use the checkboard approximation to
     # represent the exponentiated hopping matrix exp(-Δτ⋅K)
     checkerboard = true
 
+    # As we are using the checkboard approximation, using a symmetric definition for the propagator
+    # matrices is important as it significantly improves the accuracy of approximation.
 
     # Whether the propagator matrices should be represented using the
     # symmetric form B = exp(-Δτ⋅K/2)⋅exp(-Δτ⋅V)⋅exp(-Δτ⋅K/2)
@@ -52,17 +97,11 @@ function run_ossh_chain_simulation(sID, Ω, α, μ, β, L, N_burnin, N_updates, 
     # Calculate the bin size.
     bin_size = div(N_updates, N_bins)
 
-    # Fermionic time-step used in HMC update.
-    Δt = 1/(10*Ω)
-
     # Number of fermionic time-steps in HMC update.
-    Nt = 10
+    Nt = 2
 
-    # Number of bosonic time-steps per fermionic time-step in HMC udpate.
-    nt = 10
-
-    # Regularizaton parameter for fourier acceleration mass matrix used in HMC dyanmics.
-    reg = 1.0
+    # Fermionic time-step used in HMC update.
+    Δt = π/(2*Ω)/Nt
 
     # Initialize a dictionary to store additional information about the simulation.
     additional_info = Dict(
@@ -77,8 +116,7 @@ function run_ossh_chain_simulation(sID, Ω, α, μ, β, L, N_burnin, N_updates, 
         "symmetric" => symmetric,
         "checkerboard" => checkerboard,
         "Nt" => Nt,
-        "nt" => nt,
-        "reg" => reg,
+        "dt" => Δt,
         "seed" => seed,
     )
 
@@ -132,6 +170,7 @@ function run_ossh_chain_simulation(sID, Ω, α, μ, β, L, N_burnin, N_updates, 
     )
 
     # Define optical SSH coupling.
+    # Defines total effective hopping amplitude given by t_eff = t-α⋅(Xᵢ₊₁-Xᵢ).
     ossh_coupling = SSHCoupling(
         model_geometry = model_geometry,
         tight_binding_model = tight_binding_model,
@@ -299,9 +338,9 @@ function run_ossh_chain_simulation(sID, Ω, α, μ, β, L, N_burnin, N_updates, 
     δθ = zero(typeof(sgndetG))
 
     # Initialize Hamitlonian/Hybrid monte carlo (HMC) updater.
-    hmc_updater = HMCUpdater(
+    hmc_updater = EFAHMCUpdater(
         electron_phonon_parameters = electron_phonon_parameters,
-        G = G, Nt = Nt, Δt = Δt, nt = nt, reg = reg
+        G = G, Nt = Nt, Δt = Δt
     )
 
     ####################################
@@ -312,6 +351,8 @@ function run_ossh_chain_simulation(sID, Ω, α, μ, β, L, N_burnin, N_updates, 
     for n in 1:N_burnin
 
         # Perform a swap update.
+        # In a swap update, to phonon modes are randomly selected in the lattice
+        # and their phonon fields are exchanged for all imaginary time slices.
         (accepted, logdetG, sgndetG) = swap_update!(
             G, logdetG, sgndetG, electron_phonon_parameters,
             fermion_path_integral = fermion_path_integral,
@@ -329,7 +370,7 @@ function run_ossh_chain_simulation(sID, Ω, α, μ, β, L, N_burnin, N_updates, 
             fermion_path_integral = fermion_path_integral,
             fermion_greens_calculator = fermion_greens_calculator,
             fermion_greens_calculator_alt = fermion_greens_calculator_alt,
-            B = B, δG_max = δG_max, δG = δG, δθ = δθ, rng = rng, initialize_force = true
+            B = B, δG_max = δG_max, δG = δG, δθ = δθ, rng = rng
         )
 
         # Record whether the HMC update was accepted or rejected.
@@ -369,7 +410,7 @@ function run_ossh_chain_simulation(sID, Ω, α, μ, β, L, N_burnin, N_updates, 
                 fermion_path_integral = fermion_path_integral,
                 fermion_greens_calculator = fermion_greens_calculator,
                 fermion_greens_calculator_alt = fermion_greens_calculator_alt,
-                B = B, δG_max = δG_max, δG = δG, δθ = δθ, rng = rng, initialize_force = true
+                B = B, δG_max = δG_max, δG = δG, δθ = δθ, rng = rng
             )
 
             # Record whether the HMC update was accepted or rejected.
@@ -441,5 +482,5 @@ if abspath(PROGRAM_FILE) == @__FILE__
     # Run the simulation.
     run_ossh_chain_simulation(sID, Ω, α, μ, β, L, N_burnin, N_updates, N_bins)
 end
+````
 
-# This file was generated using Literate.jl, https://github.com/fredrikekre/Literate.jl

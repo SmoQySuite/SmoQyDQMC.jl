@@ -21,17 +21,17 @@ function load_model_summary(folder::String)
     Lτ = model_summary["L_tau"]
 
     # lattice geometry info table
-    geometry_info = model_summary["geometry"]
+    geometry_info = model_summary["Geometry"]
 
     # construct unit cell
-    unit_cell_info = geometry_info["unit_cell"]
+    unit_cell_info = geometry_info["UnitCell"]
     unit_cell = UnitCell(
-        lattice_vecs = collect(unit_cell_info["lattice_vectors"][key] for key in keys(unit_cell_info["lattice_vectors"])),
-        basis_vecs = collect(basis_vec_dict["r"] for basis_vec_dict in unit_cell_info["basis_vector"]),
+        lattice_vecs = collect(unit_cell_info["LatticeVectors"][key] for key in keys(unit_cell_info["LatticeVectors"])),
+        basis_vecs = collect(basis_vec_dict["r"] for basis_vec_dict in unit_cell_info["BasisVectors"]),
     )
 
     # construct lattice
-    lattice_info = geometry_info["lattice"]
+    lattice_info = geometry_info["Lattice"]
     lattice = Lattice(
         L = lattice_info["L"],
         periodic = lattice_info["periodic"]
@@ -41,7 +41,7 @@ function load_model_summary(folder::String)
     model_geometry = ModelGeometry(unit_cell, lattice)
 
     # add all bond definitions to model geometry
-    for bond_info in geometry_info["bond"]
+    for bond_info in geometry_info["Bond"]
 
         # define bond
         bond = Bond(

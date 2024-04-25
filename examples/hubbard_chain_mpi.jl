@@ -1,55 +1,58 @@
-# # Honeycomb Hubbard model
+# # Hubbard Chain with MPI
 #
-# In this script we simulate the Hubbard model on a Honeycomb lattice, with a Hamiltonian given by
-# ```math
-# \begin{align*}
-# \hat{H} = & -t \sum_{\sigma,\langle i, j \rangle} (\hat{c}^{\dagger}_{\sigma,i}, \hat{c}^{\phantom \dagger}_{\sigma,j} + {\rm h.c.})
-#             -\mu \sum_{\sigma,i}\hat{n}_{\sigma,i}\\
-#           & + U \sum_{i} (\hat{n}_{\uparrow,i}-\tfrac{1}{2})(\hat{n}_{\downarrow,i}-\tfrac{1}{2}),
-# \end{align*}
+# In this example we simulate the same system as in example 1, the half-filled Hubbard chain.
+# However, in this example we use MPI, via the [`MPI.jl`](https://github.com/JuliaParallel/MPI.jl.git),
+# to perform multiple simulations in parallel, with the results getting automatically averaged over
+# at the end of the simulation.
+# A short test simulation using the script associated with this example can be run as
 # ```
-# where ``\hat{c}^\dagger_{\sigma,i} \ (\hat{c}^{\phantom \dagger}_{\sigma,i})`` creates (annihilates) a spin ``\sigma``
-# electron on site ``i`` in the lattice, and ``\hat{n}_{\sigma,i} = \hat{c}^\dagger_{\sigma,i} \hat{c}^{\phantom \dagger}_{\sigma,i}``
-# is the spin-``\sigma`` electron number operator for site ``i``. The nearest-neighbor hopping amplitude is ``t`` and ``\mu`` is the
-# chemical potential. The strength of the repulsive Hubbard interaction is controlled by ``U>0``.
+# > mpiexecjl -n 8 julia hubbard_chain_mpi.jl 1 6.0 0.0 8.0 16 2000 10000 50
+# ```
+# This would result in `8` identical simulations being run in parallel.
+# It possible that this command may need to be modified slightly depending on how MPI is set up on your system.
+# For more information I recommend you refer to the
+# [`MPI.jl documenation`](https://juliaparallel.org/MPI.jl/stable/).
 #
-# The example script to simulate this sytem is
-# [`example_scripts/hubbard_honeycomb.jl`](https://github.com/SmoQySuite/SmoQyDQMC.jl/blob/main/example_scripts/hubbard_honeycomb.jl).
-# A short test simulation using this script that only takes a few minutes on most personal computers is
-# ```
-# > julia hubbard_honeycomb.jl 0 6.0 0.0 4.0 3 2000 10000 50
-# ```
-# This simulates a half-filled ``(\mu = 0.0)`` Hubabrd model on a ``3 \times 3`` unit cell honeycomb lattice, with
-# a Hubbard interaction of ``U = 6.0``, at inverse temperature ``\beta = 4.0``.
-#
-# Below you will find a more heavily commented version
-# of the [`example_scripts/hubbard_honeycomb.jl`](https://github.com/SmoQySuite/SmoQyDQMC.jl/blob/main/example_scripts/hubbard_honeycomb.jl)
-# script that includes additional exposition on what each part of the code is doing.
+# Below you will find the source code from the julia script linked at the top of this page,
+# but with additional comments giving more detailed explanations for what certain parts of the code are doing.
 
 using LinearAlgebra
 using Random
 using Printf
+using MPI
 
 using SmoQyDQMC
 import SmoQyDQMC.LatticeUtilities  as lu
 import SmoQyDQMC.JDQMCFramework    as dqmcf
 import SmoQyDQMC.JDQMCMeasurements as dqmcm
 
-## Define top-level function for running DQMC simulation.
+## initialize MPI
+MPI.Init()
+
+## Define top-level function for running DQMC simulation
 function run_hubbard_chain_simulation(sID, U, μ, β, L, N_burnin, N_updates, N_bins; filepath = ".")
 
+    ## Initialize the MPI communicator.
+    comm = MPI.COMM_WORLD
+
     ## Construct the foldername the data will be written to.
-    datafolder_prefix = @sprintf "hubbard_honeycomb_U%.2f_mu%.2f_L%d_b%.2f" U μ L β
+    datafolder_prefix = @sprintf "hubbard_chain_U%.2f_mu%.2f_L%d_b%.2f" U μ L β
+
+    ## Get the MPI comm rank, which fixes the process ID (pID).
+    pID = MPI.Comm_rank(comm)
 
     ## Initialize an instance of the SimulationInfo type.
     simulation_info = SimulationInfo(
-        filepath = filepath,                     
+        filepath = filepath,
         datafolder_prefix = datafolder_prefix,
-        sID = sID
+        sID = sID,
+        pID = pID
     )
 
-    ## Initialize the directory the data will be written to.
-    initialize_datafolder(simulation_info)
+    ## Synchronize all the MPI processes.
+#md     ## Here we need to make sure the data folder is initialized before letting
+#md     ## all the various processes move beyond this point.
+    MPI.Barrier(comm)
 
     ## Initialize a random number generator that will be used throughout the simulation.
     seed = abs(rand(Int))
@@ -89,6 +92,7 @@ function run_hubbard_chain_simulation(sID, U, μ, β, L, N_burnin, N_updates, N_
         "N_bins" => N_bins,
         "bin_size" => bin_size,
         "local_acceptance_rate" => 0.0,
+        "reflection_acceptance_rate" => 0.0,
         "n_stab_init" => n_stab,
         "symmetric" => symmetric,
         "checkerboard" => checkerboard,
@@ -100,39 +104,23 @@ function run_hubbard_chain_simulation(sID, U, μ, β, L, N_burnin, N_updates, N_
     #######################
 
     ## Initialize an instance of the type UnitCell.
-    unit_cell = lu.UnitCell(
-        lattice_vecs = [[3/2,√3/2],
-                        [3/2,-√3/2]],
-        basis_vecs   = [[0.,0.],
-                        [1.,0.]]
-    )
+    unit_cell = lu.UnitCell(lattice_vecs = [[1.0]],
+                            basis_vecs   = [[0.0]])
 
     ## Initialize an instance of the type Lattice.
     lattice = lu.Lattice(
-        L = [L, L],
-        periodic = [true, true]
+        L = [L],
+        periodic = [true]
     )
 
     ## Initialize an instance of the ModelGeometry type.
     model_geometry = ModelGeometry(unit_cell, lattice)
 
-    ## Define the first nearest-neighbor bond in a honeycomb lattice.
-    bond_1 = lu.Bond(orbitals = (1,2), displacement = [0,0])
+    ## Define the nearest-neighbor bond for a 1D chain.
+    bond = lu.Bond(orbitals = (1,1), displacement = [1])
 
-    ## Add the first nearest-neighbor bond in a honeycomb lattice to the model.
-    bond_1_id = add_bond!(model_geometry, bond_1)
-
-    ## Define the second nearest-neighbor bond in a honeycomb lattice.
-    bond_2 = lu.Bond(orbitals = (1,2), displacement = [-1,0])
-
-    ## Add the second nearest-neighbor bond in a honeycomb lattice to the model.
-    bond_2_id = add_bond!(model_geometry, bond_2)
-
-    ## Define the third nearest-neighbor bond in a honeycomb lattice.
-    bond_3 = lu.Bond(orbitals = (1,2), displacement = [0,-1])
-
-    ## Add the third nearest-neighbor bond in a honeycomb lattice to the model.
-    bond_3_id = add_bond!(model_geometry, bond_3)
+    ## Add this bond to the model, by adding it to the ModelGeometry type.
+    bond_id = add_bond!(model_geometry, bond)
 
     ## Define nearest-neighbor hopping amplitude, setting the energy scale for the system.
     t = 1.0
@@ -140,18 +128,21 @@ function run_hubbard_chain_simulation(sID, U, μ, β, L, N_burnin, N_updates, N_
     ## Define the tight-binding model
     tight_binding_model = TightBindingModel(
         model_geometry = model_geometry,
-        t_bonds        = [bond_1, bond_2, bond_3], # defines hopping
-        t_mean         = [t, t, t], # defines corresponding hopping amplitude
-        μ              = μ, # set chemical potential
-        ϵ_mean         = [0.0, 0.0] # set the (mean) on-site energy
+        t_bonds = [bond], # defines hopping
+        t_mean = [t],     # defines corresponding hopping amplitude
+        μ = μ,            # set chemical potential
+        ϵ_mean = [0.]     # set the (mean) on-site energy
     )
 
     ## Initialize the Hubbard interaction in the model.
     hubbard_model = HubbardModel(
-        shifted   = false, # If true, Hubbard interaction instead parameterized as U⋅nup⋅ndn
-        U_orbital = [1, 2],
-        U_mean    = [U, U],
+        shifted = false, # If true, Hubbard interaction instead parameterized as U⋅nup⋅ndn
+        U_orbital = [1],
+        U_mean = [U],
     )
+
+    ## Initialize the directory the data will be written to.
+    initialize_datafolder(simulation_info)
 
     ## Write the model summary to file.
     model_summary(
@@ -165,6 +156,7 @@ function run_hubbard_chain_simulation(sID, U, μ, β, L, N_burnin, N_updates, N_
     #########################################
     ### INITIALIZE FINITE MODEL PARAMETERS ##
     #########################################
+
 
     ## Initialize tight-binding parameters.
     tight_binding_parameters = TightBindingParameters(
@@ -207,7 +199,7 @@ function run_hubbard_chain_simulation(sID, U, μ, β, L, N_burnin, N_updates, N_
         model_geometry = model_geometry,
         correlation = "greens",
         time_displaced = true,
-        pairs = [(1, 1), (2, 2), (1, 2)]
+        pairs = [(1, 1)]
     )
 
     ## Initialize density correlation function measurement.
@@ -217,7 +209,7 @@ function run_hubbard_chain_simulation(sID, U, μ, β, L, N_burnin, N_updates, N_
         correlation = "density",
         time_displaced = false,
         integrated = true,
-        pairs = [(1, 1), (2, 2), (1, 2)]
+        pairs = [(1, 1)]
     )
 
     ## Initialize the pair correlation function measurement.
@@ -227,7 +219,7 @@ function run_hubbard_chain_simulation(sID, U, μ, β, L, N_burnin, N_updates, N_
         correlation = "pair",
         time_displaced = false,
         integrated = true,
-        pairs = [(1, 1), (2, 2), (1, 2)]
+        pairs = [(1, 1)]
     )
 
     ## Initialize the spin-z correlation function measurement.
@@ -237,7 +229,7 @@ function run_hubbard_chain_simulation(sID, U, μ, β, L, N_burnin, N_updates, N_
         correlation = "spin_z",
         time_displaced = false,
         integrated = true,
-        pairs = [(1, 1), (2, 2), (1, 2)]
+        pairs = [(1, 1)]
     )
 
     ## Initialize the sub-directories to which the various measurements will be written.
@@ -246,10 +238,15 @@ function run_hubbard_chain_simulation(sID, U, μ, β, L, N_burnin, N_updates, N_
         measurement_container = measurement_container
     )
 
+    ## Synchronize all the MPI processes.
+#md     ## We need to ensure the sub-directories the measurements will be written are created
+#md     ## prior to letting any of the processes move beyond this point.
+    MPI.Barrier(comm)
 
     #############################
     ### SET-UP DQMC SIMULATION ##
     #############################
+
 
     ## Allocate FermionPathIntegral type for both the spin-up and spin-down electrons.
     fermion_path_integral_up = FermionPathIntegral(tight_binding_parameters = tight_binding_parameters, β = β, Δτ = Δτ)
@@ -352,7 +349,7 @@ function run_hubbard_chain_simulation(sID, U, μ, β, L, N_burnin, N_updates, N_
                 fermion_greens_calculator_dn = fermion_greens_calculator_dn,
                 Bup = Bup, Bdn = Bdn, δG_max = δG_max, δG = δG, δθ = δθ,
                 model_geometry = model_geometry, tight_binding_parameters = tight_binding_parameters,
-                coupling_parameters = (hubbard_parameters,)
+                coupling_parameters = (hubbard_parameters, hubbard_ising_parameters)
             )
         end
 
@@ -383,15 +380,23 @@ function run_hubbard_chain_simulation(sID, U, μ, β, L, N_burnin, N_updates, N_
     ### PROCESS SIMULATION RESULTS ##
     #################################
 
-    ## Process the simulation results, calculating final error bars for all measurements,
+    ## Synchronize all the MPI processes.
+#md     ## Before we prcoess the binned data to get the final averages and error bars
+#md     ## we need to make sure all the simulations running in parallel have run to
+#md     ## completion.
+    MPI.Barrier(comm)
+
+    ## Have the primary MPI process calculate the final error bars for all measurements,
     ## writing final statisitics to CSV files.
-    process_measurements(simulation_info.datafolder, N_bins)
+    if iszero(simulation_info.pID)
+        process_measurements(simulation_info.datafolder, N_bins)
+    end
 
     return nothing
 end
 
 
-## Only excute if the script is run directly from the command line.
+## Only excute if script is run directly from the command line.
 if abspath(PROGRAM_FILE) == @__FILE__
 
     ## Read in the command line arguments.
@@ -406,4 +411,8 @@ if abspath(PROGRAM_FILE) == @__FILE__
 
     ## Run the simulation.
     run_hubbard_chain_simulation(sID, U, μ, β, L, N_burnin, N_updates, N_bins)
+
+    ## Finalize MPI (not strictly required).
+    MPI.Finalize()
 end
+

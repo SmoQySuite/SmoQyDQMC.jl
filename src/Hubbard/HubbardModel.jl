@@ -39,13 +39,21 @@ struct HubbardModel{T<:AbstractFloat}
 end
 
 @doc raw"""
-    HubbardModel(; shifted::Bool, U_orbital::AbstractVector{Int}, U_mean::AbstractVector{T},
-                 U_std::AbstractVector{T} = zeros(eltype(U_mean), length(U_mean))) where {T<:AbstractFloat}
+    HubbardModel(;
+        shifted::Bool,
+        U_orbital::AbstractVector{Int},
+        U_mean::AbstractVector{T},
+        U_std::AbstractVector{T} = zero(U_mean)
+    ) where {T<:AbstractFloat}
 
 Initialize and return an instance of the type [`HubbardModel`](@ref).
 """
-function HubbardModel(; shifted::Bool, U_orbital::AbstractVector{Int}, U_mean::AbstractVector{T},
-                      U_std::AbstractVector{T} = zeros(eltype(U_mean), length(U_mean))) where {T<:AbstractFloat}
+function HubbardModel(;
+    shifted::Bool,
+    U_orbital::AbstractVector{Int},
+    U_mean::AbstractVector{T},
+    U_std::AbstractVector{T} = zero(U_mean)
+) where {T<:AbstractFloat}
     
     return HubbardModel(shifted, U_orbital, U_mean, U_std)
 end
@@ -94,15 +102,19 @@ struct HubbardParameters{T<:AbstractFloat}
 end
 
 @doc raw"""
-    HubbardParameters(; hubbard_model::HubbardModel{T},
-                      model_geometry::ModelGeometry{D,T},
-                      rng::AbstractRNG) where {D,T<:AbstractFloat}
+    HubbardParameters(;
+        hubbard_model::HubbardModel{T},
+        model_geometry::ModelGeometry{D,T},
+        rng::AbstractRNG
+    ) where {D, T<:AbstractFloat}
 
 Initialize an instance of [`HubbardParameters`](@ref).
 """
-function HubbardParameters(; hubbard_model::HubbardModel{T},
-                           model_geometry::ModelGeometry{D,T},
-                           rng::AbstractRNG) where {D, T<:AbstractFloat}
+function HubbardParameters(;
+    hubbard_model::HubbardModel{T},
+    model_geometry::ModelGeometry{D,T},
+    rng::AbstractRNG
+) where {D, T<:AbstractFloat}
 
     (; U_orbital, U_mean, U_std, shifted) = hubbard_model
     (; lattice, unit_cell) = model_geometry
@@ -140,18 +152,24 @@ end
 
 
 @doc raw"""
-    initialize!(fermion_path_integral_up::FermionPathIntegral{T,E},
-                fermion_path_integral_dn::FermionPathIntegral{T,E},
-                hubbard_parameters::HubbardParameters{E}) where {T,E}
+    initialize!(
+        fermion_path_integral_up::FermionPathIntegral{T,E},
+        fermion_path_integral_dn::FermionPathIntegral{T,E},
+        hubbard_parameters::HubbardParameters{E}
+    ) where {T,E}
 
-    initialize!(fermion_path_integral::FermionPathIntegral{T,E},
-                hubbard_parameters::HubbardParameters{E}) where {T,E}
+    initialize!(
+        fermion_path_integral::FermionPathIntegral{T,E},
+        hubbard_parameters::HubbardParameters{E}
+    ) where {T,E}
 
 Initialize the contribution from the Hubbard interaction to a [`FermionPathIntegral`](@ref) instance.
 """
-function initialize!(fermion_path_integral_up::FermionPathIntegral{T,E},
-                     fermion_path_integral_dn::FermionPathIntegral{T,E},
-                     hubbard_parameters::HubbardParameters{E}) where {T,E}
+function initialize!(
+    fermion_path_integral_up::FermionPathIntegral{T,E},
+    fermion_path_integral_dn::FermionPathIntegral{T,E},
+    hubbard_parameters::HubbardParameters{E}
+) where {T,E}
 
     initialize!(fermion_path_integral_up, hubbard_parameters)
     initialize!(fermion_path_integral_dn, hubbard_parameters)
@@ -159,8 +177,10 @@ function initialize!(fermion_path_integral_up::FermionPathIntegral{T,E},
     return nothing
 end
 
-function initialize!(fermion_path_integral::FermionPathIntegral{T,E},
-                     hubbard_parameters::HubbardParameters{E}) where {T,E}
+function initialize!(
+    fermion_path_integral::FermionPathIntegral{T,E},
+    hubbard_parameters::HubbardParameters{E}
+) where {T,E}
 
     (; shifted, U, sites) = hubbard_parameters
     (; V) = fermion_path_integral

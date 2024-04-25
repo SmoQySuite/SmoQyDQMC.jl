@@ -1,7 +1,7 @@
 # integration test that runs a DQMC simulation of a Hubbard Chain at half-filling
 @testitem "Holstein Chain" begin
     
-    include("../literate_scripts/holstein_chain.jl")
+    include("../examples/holstein_chain.jl")
     sID = 1
     Ω = 1.0
     α = 1.0

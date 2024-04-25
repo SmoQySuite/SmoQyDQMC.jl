@@ -1,7 +1,7 @@
 # integration test that runs a DQMC simulation of a Hubbard-Holstein model on a square lattice.
 @testitem "Hubbard-Holstein Square" begin
     
-    include("../literate_scripts/hubbard_holstein_square.jl")
+    include("../examples/hubbard_holstein_square.jl")
     sID = 1
     U = 4.0
     Ω = 1.0

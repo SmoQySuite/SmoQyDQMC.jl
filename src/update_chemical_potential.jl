@@ -1,29 +1,46 @@
 @doc raw"""
-    update_chemical_potential!(Gup::Matrix{T}, logdetGup::E, sgndetGup::T,
-                               Gdn::Matrix{T}, logdetGdn::E, sgndetGdn::T;
-                               chemical_potential_tuner::MuTunerLogger{E,T},
-                               tight_binding_parameters::TightBindingParameters{T,E},
-                               fermion_path_integral_up::FermionPathIntegral{T,E},
-                               fermion_path_integral_dn::FermionPathIntegral{T,E},
-                               fermion_greens_calculator_up::FermionGreensCalculator{T,E},
-                               fermion_greens_calculator_dn::FermionGreensCalculator{T,E},
-                               Bup::Vector{P}, Bdn::Vector{P}) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
+    update_chemical_potential!(
+        Gup::Matrix{T}, logdetGup::E, sgndetGup::T,
+        Gdn::Matrix{T}, logdetGdn::E, sgndetGdn::T;
+        chemical_potential_tuner::MuTunerLogger{E,T},
+        tight_binding_parameters::Union{TightBindingParameters{T,E}, Nothing} = nothing,
+        tight_binding_parameters_up::Union{TightBindingParameters{T,E}, Nothing} = nothing,
+        tight_binding_parameters_dn::Union{TightBindingParameters{T,E}, Nothing} = nothing,
+        fermion_path_integral_up::FermionPathIntegral{T,E},
+        fermion_path_integral_dn::FermionPathIntegral{T,E},
+        fermion_greens_calculator_up::FermionGreensCalculator{T,E},
+        fermion_greens_calculator_dn::FermionGreensCalculator{T,E},
+        Bup::Vector{P}, Bdn::Vector{P}
+    ) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
 
 Update the chemical potential ``\mu`` in the simulation to approach the target density/filling.
 This method returns the new values for `(logdetGup, sgndetGup, logdetGup, sgndetGup)`.
+Note that either the keywork `tight_binding_parameters` needs to be specified, or
+`tight_binding_parameters_up` and `tight_binding_parameters_dn` both need to be specified.
 """
-function update_chemical_potential!(Gup::Matrix{T}, logdetGup::E, sgndetGup::T,
-                                    Gdn::Matrix{T}, logdetGdn::E, sgndetGdn::T;
-                                    chemical_potential_tuner::MuTunerLogger{E,T},
-                                    tight_binding_parameters::TightBindingParameters{T,E},
-                                    fermion_path_integral_up::FermionPathIntegral{T,E},
-                                    fermion_path_integral_dn::FermionPathIntegral{T,E},
-                                    fermion_greens_calculator_up::FermionGreensCalculator{T,E},
-                                    fermion_greens_calculator_dn::FermionGreensCalculator{T,E},
-                                    Bup::Vector{P}, Bdn::Vector{P}) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
+function update_chemical_potential!(
+    Gup::Matrix{T}, logdetGup::E, sgndetGup::T,
+    Gdn::Matrix{T}, logdetGdn::E, sgndetGdn::T;
+    chemical_potential_tuner::MuTunerLogger{E,T},
+    tight_binding_parameters::Union{TightBindingParameters{T,E}, Nothing} = nothing,
+    tight_binding_parameters_up::Union{TightBindingParameters{T,E}, Nothing} = nothing,
+    tight_binding_parameters_dn::Union{TightBindingParameters{T,E}, Nothing} = nothing,
+    fermion_path_integral_up::FermionPathIntegral{T,E},
+    fermion_path_integral_dn::FermionPathIntegral{T,E},
+    fermion_greens_calculator_up::FermionGreensCalculator{T,E},
+    fermion_greens_calculator_dn::FermionGreensCalculator{T,E},
+    Bup::Vector{P}, Bdn::Vector{P}
+) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
+
+    # set up and down tight binding parameters if symmetric
+    if !isnothing(tight_binding_parameters)
+        tight_binding_parameters_up = tight_binding_parameters
+        tight_binding_parameters_dn = tight_binding_parameters
+    end
 
     # record the initial chemical potential
-    μ′ = tight_binding_parameters.μ
+    @assert tight_binding_parameters_up.μ == tight_binding_parameters_dn.μ
+    μ′ = tight_binding_parameters_up.μ
 
     # calculate sign
     sgn = sgndetGup * sgndetGdn
@@ -40,7 +57,8 @@ function update_chemical_potential!(Gup::Matrix{T}, logdetGup::E, sgndetGup::T,
     μ = MuTuner.update!(μtuner=chemical_potential_tuner, n=n, N²=N², s=sgn)
 
     # update tight binding parameter chemical potential
-    tight_binding_parameters.μ = μ
+    tight_binding_parameters_up.μ = μ
+    tight_binding_parameters_dn.μ = μ
 
     # update fermion path integrals
     Vup = fermion_path_integral_up.V
@@ -60,22 +78,26 @@ function update_chemical_potential!(Gup::Matrix{T}, logdetGup::E, sgndetGup::T,
 end
 
 @doc raw"""
-    update_chemical_potential!(G::Matrix{T}, logdetG::E, sgndetG::T;
-                               chemical_potential_tuner::MuTunerLogger{E,T},
-                               tight_binding_parameters::TightBindingParameters{T,E},
-                               fermion_path_integral::FermionPathIntegral{T,E},
-                               fermion_greens_calculator::FermionGreensCalculator{T,E},
-                               B::Vector{P}) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
+    update_chemical_potential!(
+        G::Matrix{T}, logdetG::E, sgndetG::T;
+        chemical_potential_tuner::MuTunerLogger{E,T},
+        tight_binding_parameters::TightBindingParameters{T,E},
+        fermion_path_integral::FermionPathIntegral{T,E},
+        fermion_greens_calculator::FermionGreensCalculator{T,E},
+        B::Vector{P}
+    ) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
 
 Update the chemical potential ``\mu`` in the simulation to approach the target density/filling.
 This method returns the new values for `(logdetG, sgndetG)`.
 """
-function update_chemical_potential!(G::Matrix{T}, logdetG::E, sgndetG::T;
-                                    chemical_potential_tuner::MuTunerLogger{E,T},
-                                    tight_binding_parameters::TightBindingParameters{T,E},
-                                    fermion_path_integral::FermionPathIntegral{T,E},
-                                    fermion_greens_calculator::FermionGreensCalculator{T,E},
-                                    B::Vector{P}) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
+function update_chemical_potential!(
+    G::Matrix{T}, logdetG::E, sgndetG::T;
+    chemical_potential_tuner::MuTunerLogger{E,T},
+    tight_binding_parameters::TightBindingParameters{T,E},
+    fermion_path_integral::FermionPathIntegral{T,E},
+    fermion_greens_calculator::FermionGreensCalculator{T,E},
+    B::Vector{P}
+) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
 
     # record the initial chemical potential
     μ′ = tight_binding_parameters.μ

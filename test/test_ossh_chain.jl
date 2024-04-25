@@ -1,7 +1,7 @@
 # integration test that runs a DQMC simulation of a Hubbard Chain at half-filling
 @testitem "Optical SSH Chain" begin
     
-    include("../literate_scripts/ossh_chain.jl")
+    include("../examples/ossh_chain.jl")
     sID = 1
     Ω = 1.0
     α = 1.0

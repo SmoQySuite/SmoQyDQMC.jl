@@ -17,9 +17,7 @@
 # where ``\Omega`` and ``M`` are the phonon frequency and associated ion mass respectively.
 # Lastly, the strength of the electron-phonon coupling is controlled by the parameter ``\alpha``.
 #
-# The example script to simulate this sytem is
-# [`example_scripts/bssh_chain.jl`](https://github.com/SmoQySuite/SmoQyDQMC.jl/blob/main/example_scripts/bssh_chain.jl).
-# A short test simulation using this script that only takes a few minutes on most personal computers is
+# A short test simulation using the script associated with this example can be run as
 # ```
 # > julia bssh_chain.jl 0 1.0 0.5 0.0 4.0 16 1000 5000 20
 # ```
@@ -28,9 +26,8 @@
 # followed an additional `N_updates = 5000` HMC updates, after each of which measurements are made.
 # Bin averaged measurements are then written to file `N_bins = 20` during the simulation.
 #
-# Below you will find the source code in the script
-# [`example_scripts/bssh_chain.jl`](https://github.com/SmoQySuite/SmoQyDQMC.jl/blob/main/example_scripts/bssh_chain.jl),
-# with additional comments giving more detailed explanations for what certain parts of the code are doing.
+# Below you will find the source code from the julia script linked at the top of this page,
+# but with additional comments giving more detailed explanations for what certain parts of the code are doing.
 
 using LinearAlgebra
 using Random
@@ -93,17 +90,11 @@ function run_bssh_chain_simulation(sID, Ω, α, μ, β, L, N_burnin, N_updates, 
     ## Calculate the bin size.
     bin_size = div(N_updates, N_bins)
 
-    ## Fermionic time-step used in HMC update.
-    Δt = 1/(10*Ω)
-
     ## Number of fermionic time-steps in HMC update.
-    Nt = 10
+    Nt = 2
 
-    ## Number of bosonic time-steps per fermionic time-step in HMC udpate.
-    nt = 10
-
-    ## Regularizaton parameter for fourier acceleration mass matrix used in HMC dyanmics.
-    reg = 1.0
+    ## Fermionic time-step used in HMC update.
+    Δt = π/(2*Ω)/Nt
 
     ## Initialize a dictionary to store additional information about the simulation.
     additional_info = Dict(
@@ -118,8 +109,7 @@ function run_bssh_chain_simulation(sID, Ω, α, μ, β, L, N_burnin, N_updates, 
         "symmetric" => symmetric,
         "checkerboard" => checkerboard,
         "Nt" => Nt,
-        "nt" => nt,
-        "reg" => reg,
+        "dt" => Δt,
         "seed" => seed,
     )
 
@@ -358,9 +348,9 @@ function run_bssh_chain_simulation(sID, Ω, α, μ, β, L, N_burnin, N_updates, 
     δθ = zero(typeof(sgndetG))
 
     ## Initialize Hamitlonian/Hybrid monte carlo (HMC) updater.
-    hmc_updater = HMCUpdater(
+    hmc_updater = EFAHMCUpdater(
         electron_phonon_parameters = electron_phonon_parameters,
-        G = G, Nt = Nt, Δt = Δt, nt = nt, reg = reg
+        G = G, Nt = Nt, Δt = Δt
     )
 
     ####################################
@@ -390,7 +380,7 @@ function run_bssh_chain_simulation(sID, Ω, α, μ, β, L, N_burnin, N_updates, 
             fermion_path_integral = fermion_path_integral,
             fermion_greens_calculator = fermion_greens_calculator,
             fermion_greens_calculator_alt = fermion_greens_calculator_alt,
-            B = B, δG_max = δG_max, δG = δG, δθ = δθ, rng = rng, initialize_force = true
+            B = B, δG_max = δG_max, δG = δG, δθ = δθ, rng = rng
         )
 
         ## Record whether the HMC update was accepted or rejected.
@@ -430,7 +420,7 @@ function run_bssh_chain_simulation(sID, Ω, α, μ, β, L, N_burnin, N_updates, 
                 fermion_path_integral = fermion_path_integral,
                 fermion_greens_calculator = fermion_greens_calculator,
                 fermion_greens_calculator_alt = fermion_greens_calculator_alt,
-                B = B, δG_max = δG_max, δG = δG, δθ = δθ, rng = rng, initialize_force = true
+                B = B, δG_max = δG_max, δG = δG, δθ = δθ, rng = rng
             )
 
             ## Record whether the HMC update was accepted or rejected.

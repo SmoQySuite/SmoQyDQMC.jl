@@ -1,3 +1,41 @@
+```@meta
+EditURL = "../../../examples/bssh_chain.jl"
+```
+
+Download this example as a [Julia script](../assets/scripts/bssh_chain.jl).
+
+# Bond Su-Schrieffer-Heeger Chain
+
+In this example we simulate the bond Su-Schrieffer-Heeger (BSSH) model on a 1D chain,
+with a Hamiltonian given by
+```math
+\begin{align*}
+\hat{H} = \sum_i \left( \frac{1}{2M}\hat{P}_{\langle i+1, i \rangle}^2 + \frac{1}{2}M\Omega^2\hat{X}_{\langle i+1, i \rangle}^2 \right)
+          - \sum_{\sigma,i} [t-\alpha \hat{X}_{\langle i+1, i \rangle}] (\hat{c}^{\dagger}_{\sigma,i+1}, \hat{c}^{\phantom \dagger}_{\sigma,i} + {\rm h.c.})
+          - \mu \sum_{\sigma,i} \hat{n}_{\sigma,i},
+\end{align*}
+```
+in which dispersionless phonon modes are placed on each *bond*, and their positions modulates only that single corresponding hopping amplitude.
+In the above expression ``\hat{c}^\dagger_{\sigma,i} \ (\hat{c}^{\phantom \dagger}_{\sigma,i})`` creation (annihilation) operator
+a spin ``\sigma`` electron on site ``i`` in the lattice, and ``\hat{n}_{\sigma,i} = \hat{c}^\dagger_{\sigma,i} \hat{c}^{\phantom \dagger}_{\sigma,i}``
+is corresponding electron number operator. The phonon position (momentum) operator for the dispersionless phonon mode on the
+bond connecting sites ``i`` and ``i+1`` is given by ``\hat{X}_{\langle i+1, i \rangle} \ (\hat{P}_{\langle i+1, i \rangle})``,
+where ``\Omega`` and ``M`` are the phonon frequency and associated ion mass respectively.
+Lastly, the strength of the electron-phonon coupling is controlled by the parameter ``\alpha``.
+
+A short test simulation using the script associated with this example can be run as
+```
+> julia bssh_chain.jl 0 1.0 0.5 0.0 4.0 16 1000 5000 20
+```
+which simulates an ``L=16`` chain with ``\Omega = 1.0``, ``\alpha = 0.5`` at half-filling ``(\mu = 0.0)`` and
+an inverse temperature of ``\beta = 4.0``. In this example `N_burnin = 1000` HMC thermalization updates are performed,
+followed an additional `N_updates = 5000` HMC updates, after each of which measurements are made.
+Bin averaged measurements are then written to file `N_bins = 20` during the simulation.
+
+Below you will find the source code from the julia script linked at the top of this page,
+but with additional comments giving more detailed explanations for what certain parts of the code are doing.
+
+````@example bssh_chain
 using LinearAlgebra
 using Random
 using Printf
@@ -6,13 +44,12 @@ using SmoQyDQMC
 import SmoQyDQMC.LatticeUtilities  as lu
 import SmoQyDQMC.JDQMCFramework    as dqmcf
 import SmoQyDQMC.JDQMCMeasurements as dqmcm
-import SmoQyDQMC.MuTuner           as mt
 
 # Define top-level function for running the DQMC simulation.
-function run_holstein_chain_simulation(sID, Ω, α, n, μ, β, L, N_burnin, N_updates, N_bins; filepath = ".")
+function run_bssh_chain_simulation(sID, Ω, α, μ, β, L, N_burnin, N_updates, N_bins; filepath = ".")
 
     # Construct the foldername the data will be written to.
-    datafolder_prefix = @sprintf "holstein_chain_w%.2f_a%.2f_n%.2f_L%d_b%.2f" Ω α n L β
+    datafolder_prefix = @sprintf "bssh_chain_w%.2f_a%.2f_mu%.2f_L%d_b%.2f" Ω α μ L β
 
     # Initialize an instance of the SimulationInfo type.
     simulation_info = SimulationInfo(
@@ -31,14 +68,23 @@ function run_holstein_chain_simulation(sID, Ω, α, n, μ, β, L, N_burnin, N_up
     # Set the discretization in imaginary time for the DQMC simulation.
     Δτ = 0.05
 
+    # For performance reasons it is important that we represent the exponentiated hopping
+    # matrix with the checkerboard approximation when simulating an SSH model, where the
+    # phonons modulate the hopping amplitudes. Without the checkerboard approximation,
+    # each time a phonon field is updated the kinetic energy matrix would need to be diagonalized
+    # to calculate its exponential, which is very computationally expensive.
+
     # This flag indicates whether or not to use the checkboard approximation to
     # represent the exponentiated hopping matrix exp(-Δτ⋅K)
-    checkerboard = false
+    checkerboard = true
+
+    # As we are using the checkboard approximation, using a symmetric definition for the propagator
+    # matrices is important as it significantly improves the accuracy of approximation.
 
     # Whether the propagator matrices should be represented using the
     # symmetric form B = exp(-Δτ⋅K/2)⋅exp(-Δτ⋅V)⋅exp(-Δτ⋅K/2)
     # or the asymetric form B = exp(-Δτ⋅V)⋅exp(-Δτ⋅K)
-    symmetric = false
+    symmetric = true
 
     # Set the initial period in imaginary time slices with which the Green's function matrices
     # will be recomputed using a numerically stable procedure.
@@ -51,18 +97,11 @@ function run_holstein_chain_simulation(sID, Ω, α, n, μ, β, L, N_burnin, N_up
     # Calculate the bin size.
     bin_size = div(N_updates, N_bins)
 
+    # Number of fermionic time-steps in HMC update.
+    Nt = 2
 
     # Fermionic time-step used in HMC update.
-    Δt = 1/(10*Ω)
-
-    # Number of fermionic time-steps in HMC update.
-    Nt = 10
-
-    # Number of bosonic time-steps per fermionic time-step in HMC udpate.
-    nt = 10
-
-    # Regularizaton parameter for fourier acceleration mass matrix used in HMC dyanmics.
-    reg = 1.0
+    Δt = π/(2*Ω)/Nt
 
     # Initialize a dictionary to store additional information about the simulation.
     additional_info = Dict(
@@ -72,20 +111,14 @@ function run_holstein_chain_simulation(sID, Ω, α, n, μ, β, L, N_burnin, N_up
         "N_bins" => N_bins,
         "bin_size" => bin_size,
         "hmc_acceptance_rate" => 0.0,
-        "reflection_acceptance_rate" => 0.0,
+        "swap_acceptance_rate" => 0.0,
         "n_stab_init" => n_stab,
         "symmetric" => symmetric,
         "checkerboard" => checkerboard,
-        "dt" => Δt,
         "Nt" => Nt,
-        "nt" => nt,
-        "reg" => reg,
+        "dt" => Δt,
         "seed" => seed,
     )
-
-    #######################
-    ### DEFINE THE MODEL ##
-    #######################
 
     # Initialize an instance of the type UnitCell.
     unit_cell = lu.UnitCell(lattice_vecs = [[1.0]],
@@ -127,28 +160,47 @@ function run_holstein_chain_simulation(sID, Ω, α, n, μ, β, L, N_burnin, N_up
         tight_binding_model = tight_binding_model
     )
 
-    # Define a dispersionless electron-phonon mode to live on each site in the lattice.
-    phonon = PhononMode(orbital = 1, Ω_mean = Ω)
+    # Unlike in the optical SSH model in the previous example, here we need to
+    # introduce two types of phonon modes. One of these phonon modes will have
+    # infinite ion mass, resulting in the associated phonon fields remaining
+    # pinned at zero. The means that when we couple these two types of phonon
+    # modes to the electrons with a SSH-like coupling mechanism, this effectively
+    # results in defining a phonon modes associated with a single bond/hopping
+    # in the lattice.
 
-    # Add the phonon mode definition to the electron-phonon model.
+    # Define a dispersionless electron-phonon mode to live on each site in the lattice.
+    phonon = PhononMode(orbital = 1, Ω_mean = Ω, M = 1.0)
+
+    # Add optical ssh phonon to electron-phonon model.
     phonon_id = add_phonon_mode!(
         electron_phonon_model = electron_phonon_model,
         phonon_mode = phonon
     )
 
-    # Define a on-site Holstein coupling between the electron and the local dispersionless phonon mode.
-    holstein_coupling = HolsteinCoupling(
-    	model_geometry = model_geometry,
-    	phonon_mode = phonon_id,
-    	bond = lu.Bond(orbitals = (1,1), displacement = [0]),
-    	α_mean = α
+    # Define a frozen phonon mode.
+    frozen_phonon = PhononMode(orbital = 1, Ω_mean = Ω, M = Inf)
+
+    # Add frozen phonon mode to electron-phonon model.
+    frozen_phonon_id = add_phonon_mode!(
+        electron_phonon_model = electron_phonon_model,
+        phonon_mode = frozen_phonon
     )
 
-    # Add the Holstein coupling definition to the model.
-    holstein_coupling_id = add_holstein_coupling!(
-    	electron_phonon_model = electron_phonon_model,
-    	holstein_coupling = holstein_coupling,
-    	model_geometry = model_geometry
+    # Define bond SSH coupling.
+    # Defines total effective hopping amplitude given by t_eff = t-α⋅X(i+1,i).
+    bssh_coupling = SSHCoupling(
+        model_geometry = model_geometry,
+        tight_binding_model = tight_binding_model,
+        phonon_modes = (frozen_phonon_id, phonon_id),
+        bond = bond,
+        α_mean = α
+    )
+
+    # Add bond SSH coupling to the electron-phonon model.
+    bssh_coupling_id = add_ssh_coupling!(
+        electron_phonon_model = electron_phonon_model,
+        ssh_coupling = bssh_coupling,
+        tight_binding_model = tight_binding_model
     )
 
     # Write a model summary to file.
@@ -184,16 +236,16 @@ function run_holstein_chain_simulation(sID, Ω, α, n, μ, β, L, N_burnin, N_up
     ### INITIALIZE MEASUREMENTS ##
     ##############################
 
-    # Initialize the container that measurements will be accumulated into.
+    # Initialize the measurement container.
     measurement_container = initialize_measurement_container(model_geometry, β, Δτ)
 
-    # Initialize the tight-binding model related measurements, like the hopping energy.
+    # Initialize the measurements associated with the tight-binding model.
     initialize_measurements!(measurement_container, tight_binding_model)
 
-    # Initialize the electron-phonon interaction related measurements.
+    # Initialize the measurements associated with the electron-phonon model.
     initialize_measurements!(measurement_container, electron_phonon_model)
 
-    # Initialize the single-particle electron Green's function measurement.
+    # Initialize time-displaced Green's function measurement.
     initialize_correlation_measurements!(
         measurement_container = measurement_container,
         model_geometry = model_geometry,
@@ -211,21 +263,11 @@ function run_holstein_chain_simulation(sID, Ω, α, n, μ, β, L, N_burnin, N_up
         pairs = [(phonon_id, phonon_id)]
     )
 
-    # Initialize density correlation function measurement.
+    # Initialize the density correlation function measurement.
     initialize_correlation_measurements!(
         measurement_container = measurement_container,
         model_geometry = model_geometry,
         correlation = "density",
-        time_displaced = false,
-        integrated = true,
-        pairs = [(1, 1)]
-    )
-
-    # Initialize the pair correlation function measurement.
-    initialize_correlation_measurements!(
-        measurement_container = measurement_container,
-        model_geometry = model_geometry,
-        correlation = "pair",
         time_displaced = false,
         integrated = true,
         pairs = [(1, 1)]
@@ -241,7 +283,37 @@ function run_holstein_chain_simulation(sID, Ω, α, n, μ, β, L, N_burnin, N_up
         pairs = [(1, 1)]
     )
 
-    # Initialize the sub-directories to which the various measurements will be written.
+    # Initialize the pair correlation function measurements.
+    initialize_correlation_measurements!(
+        measurement_container = measurement_container,
+        model_geometry = model_geometry,
+        correlation = "pair",
+        time_displaced = false,
+        integrated = true,
+        pairs = [(1, 1), (bond_id, bond_id)]
+    )
+
+    # Initialize the bond correlation function measurement.
+    initialize_correlation_measurements!(
+        measurement_container = measurement_container,
+        model_geometry = model_geometry,
+        correlation = "bond",
+        time_displaced = false,
+        integrated = true,
+        pairs = [(bond_id, bond_id)]
+    )
+
+    # Initialize current-current correlation function measurement.
+    initialize_correlation_measurements!(
+        measurement_container = measurement_container,
+        model_geometry = model_geometry,
+        correlation = "current",
+        time_displaced = false,
+        integrated = true,
+        pairs = [(1, 1)] # Hopping ID pair.
+    )
+
+    # Initialize the sub-directories the various measurements will be written to.
     initialize_measurement_directories(
         simulation_info = simulation_info,
         measurement_container = measurement_container
@@ -251,11 +323,10 @@ function run_holstein_chain_simulation(sID, Ω, α, n, μ, β, L, N_burnin, N_up
     ### SET-UP DQMC SIMULATION ##
     #############################
 
-
-    # Allocate fermion path integral type.
+    # Allocate FermionPathIntegral type.
     fermion_path_integral = FermionPathIntegral(tight_binding_parameters = tight_binding_parameters, β = β, Δτ = Δτ)
 
-    # Initialize the fermion path integral type with respect to electron-phonon interaction.
+    # Initialize the FermionPathIntegral type
     initialize!(fermion_path_integral, electron_phonon_parameters)
 
     # Allocate and initialize propagators for each imaginary time slice.
@@ -284,13 +355,10 @@ function run_holstein_chain_simulation(sID, Ω, α, n, μ, β, L, N_burnin, N_up
     δθ = zero(typeof(sgndetG))
 
     # Initialize Hamitlonian/Hybrid monte carlo (HMC) updater.
-    hmc_updater = HMCUpdater(
+    hmc_updater = EFAHMCUpdater(
         electron_phonon_parameters = electron_phonon_parameters,
-        G = G, Nt = Nt, Δt = Δt, nt = nt, reg = reg
+        G = G, Nt = Nt, Δt = Δt
     )
-
-    # Initialize the density/chemical potential tuner.
-    chemical_potential_tuner = mt.MuTunerLogger(n₀ = n, β = β, V = N, u₀ = 1.0, μ₀ = μ, c = 0.5)
 
     ####################################
     ### BURNIN/THERMALIZATION UPDATES ##
@@ -299,17 +367,19 @@ function run_holstein_chain_simulation(sID, Ω, α, n, μ, β, L, N_burnin, N_up
     # Iterate over burnin/thermalization updates.
     for n in 1:N_burnin
 
-        # Perform a reflection update.
-        (accepted, logdetG, sgndetG) = reflection_update!(
+        # Perform a swap update.
+        # In a swap update, two phonon modes are randomly selected in the lattice
+        # and their phonon fields are exchanged for all imaginary time slices.
+        (accepted, logdetG, sgndetG) = swap_update!(
             G, logdetG, sgndetG, electron_phonon_parameters,
             fermion_path_integral = fermion_path_integral,
             fermion_greens_calculator = fermion_greens_calculator,
             fermion_greens_calculator_alt = fermion_greens_calculator_alt,
-            B = B, rng = rng, phonon_types = (phonon_id,)
+            B = B, rng = rng, phonon_type_pairs = ((phonon_id, phonon_id),)
         )
 
-        # Record whether the reflection update was accepted or rejected.
-        additional_info["reflection_acceptance_rate"] += accepted
+        # Record whether the swap update was accepted or rejected.
+        additional_info["swap_acceptance_rate"] += accepted
 
         # Perform an HMC update.
         (accepted, logdetG, sgndetG, δG, δθ) = hmc_update!(
@@ -317,21 +387,11 @@ function run_holstein_chain_simulation(sID, Ω, α, n, μ, β, L, N_burnin, N_up
             fermion_path_integral = fermion_path_integral,
             fermion_greens_calculator = fermion_greens_calculator,
             fermion_greens_calculator_alt = fermion_greens_calculator_alt,
-            B = B, δG_max = δG_max, δG = δG, δθ = δθ, rng = rng, initialize_force = true
+            B = B, δG_max = δG_max, δG = δG, δθ = δθ, rng = rng
         )
 
         # Record whether the HMC update was accepted or rejected.
         additional_info["hmc_acceptance_rate"] += accepted
-
-        # Update the chemical potential.
-        logdetG, sgndetG = update_chemical_potential!(
-            G, logdetG, sgndetG,
-            chemical_potential_tuner = chemical_potential_tuner,
-            tight_binding_parameters = tight_binding_parameters,
-            fermion_path_integral = fermion_path_integral,
-            fermion_greens_calculator = fermion_greens_calculator,
-            B = B
-        )
     end
 
     ################################
@@ -349,17 +409,17 @@ function run_holstein_chain_simulation(sID, Ω, α, n, μ, β, L, N_burnin, N_up
         # Iterate over the number of updates and measurements performed in the current bin.
         for n in 1:bin_size
 
-            # Perform a reflection update.
-            (accepted, logdetG, sgndetG) = reflection_update!(
+            # Perform a swap update..
+            (accepted, logdetG, sgndetG) = swap_update!(
                 G, logdetG, sgndetG, electron_phonon_parameters,
                 fermion_path_integral = fermion_path_integral,
                 fermion_greens_calculator = fermion_greens_calculator,
                 fermion_greens_calculator_alt = fermion_greens_calculator_alt,
-                B = B, rng = rng, phonon_types = (phonon_id,)
+                B = B, rng = rng, phonon_type_pairs = ((phonon_id, phonon_id),)
             )
 
-            # Record whether the reflection update was accepted or rejected.
-            additional_info["reflection_acceptance_rate"] += accepted
+            # Record whether the swap update was accepted or rejected.
+            additional_info["swap_acceptance_rate"] += accepted
 
             # Perform an HMC update.
             (accepted, logdetG, sgndetG, δG, δθ) = hmc_update!(
@@ -367,7 +427,7 @@ function run_holstein_chain_simulation(sID, Ω, α, n, μ, β, L, N_burnin, N_up
                 fermion_path_integral = fermion_path_integral,
                 fermion_greens_calculator = fermion_greens_calculator,
                 fermion_greens_calculator_alt = fermion_greens_calculator_alt,
-                B = B, δG_max = δG_max, δG = δG, δθ = δθ, rng = rng, initialize_force = true
+                B = B, δG_max = δG_max, δG = δG, δθ = δθ, rng = rng
             )
 
             # Record whether the HMC update was accepted or rejected.
@@ -382,16 +442,6 @@ function run_holstein_chain_simulation(sID, Ω, α, n, μ, β, L, N_burnin, N_up
                 B = B, δG_max = δG_max, δG = δG, δθ = δθ,
                 model_geometry = model_geometry, tight_binding_parameters = tight_binding_parameters,
                 coupling_parameters = (electron_phonon_parameters,)
-            )
-
-            # Update the chemical potential.
-            logdetG, sgndetG = update_chemical_potential!(
-                G, logdetG, sgndetG,
-                chemical_potential_tuner = chemical_potential_tuner,
-                tight_binding_parameters = tight_binding_parameters,
-                fermion_path_integral = fermion_path_integral,
-                fermion_greens_calculator = fermion_greens_calculator,
-                B = B
             )
         end
 
@@ -409,17 +459,14 @@ function run_holstein_chain_simulation(sID, Ω, α, n, μ, β, L, N_burnin, N_up
     # Calculate HMC acceptance rate.
     additional_info["hmc_acceptance_rate"] /= (N_updates + N_burnin)
 
-    # Calculate reflection update acceptance rate.
-    additional_info["reflection_acceptance_rate"] /= (N_updates + N_burnin)
+    # Calculate swap update acceptance rate.
+    additional_info["swap_acceptance_rate"] /= (N_updates + N_burnin)
 
     # Record the final numerical stabilization period that the simulation settled on.
     additional_info["n_stab_final"] = fermion_greens_calculator.n_stab
 
     # Record the maximum numerical error corrected by numerical stablization.
     additional_info["dG"] = δG
-
-    # Save the density tuning profile.
-    save_density_tuning_profile(simulation_info, chemical_potential_tuner)
 
     # Write simulation summary TOML file.
     save_simulation_info(simulation_info, additional_info)
@@ -442,16 +489,15 @@ if abspath(PROGRAM_FILE) == @__FILE__
     sID = parse(Int, ARGS[1]) # simulation ID
     Ω = parse(Float64, ARGS[2])
     α = parse(Float64, ARGS[3])
-    n = parse(Float64, ARGS[4]) # target electorn density
-    μ = parse(Float64, ARGS[5]) # intial chemical potential
-    β = parse(Float64, ARGS[6])
-    L = parse(Int, ARGS[7])
-    N_burnin = parse(Int, ARGS[8])
-    N_updates = parse(Int, ARGS[9])
-    N_bins = parse(Int, ARGS[10])
+    μ = parse(Float64, ARGS[4])
+    β = parse(Float64, ARGS[5])
+    L = parse(Int, ARGS[6])
+    N_burnin = parse(Int, ARGS[7])
+    N_updates = parse(Int, ARGS[8])
+    N_bins = parse(Int, ARGS[9])
 
     # Run the simulation.
-    run_holstein_chain_simulation(sID, Ω, α, n, μ, β, L, N_burnin, N_updates, N_bins)
+    run_bssh_chain_simulation(sID, Ω, α, μ, β, L, N_burnin, N_updates, N_bins)
 end
+````
 
-# This file was generated using Literate.jl, https://github.com/fredrikekre/Literate.jl

@@ -25,9 +25,7 @@
 # and ``\mu`` is the global chemical potential. Finally, ``U_d`` and ``U_p`` are the on-site Hubbard interactions for the
 # Cu-``3d_{x^2-y^2}`` and O-``2p_\alpha`` orbitals respectively.
 #
-# The example script to simulate this sytem is
-# [`example_scripts/hubbard_threeband.jl`](https://github.com/SmoQySuite/SmoQyDQMC.jl/blob/main/example_scripts/hubbard_threeband.jl).
-# A short test simulation using this script that only takes a few minutes on most personal computers is
+# A short test simulation using the script associated with this example can be run as
 # ```
 # > julia hubbard_threeband.jl 0 8.5 4.1 1.13 0.49 0.0 3.24 0.0 4.0 8 2 2000 10000 50
 # ```
@@ -41,9 +39,8 @@
 # followed by `N_udpates = 10000` sweeps, after each of which measurements are made. Bin averaged measurements are written to file
 # `N_bins = 50` times during the simulation.
 #
-# Below you will find a more heavily commented version
-# of the [`example_scripts/hubbard_threeband.jl`](https://github.com/SmoQySuite/SmoQyDQMC.jl/blob/main/example_scripts/hubbard_threeband.jl)
-# script that includes additional exposition on what each part of the code is doing.
+# Below you will find the source code from the julia script linked at the top of this page,
+# but with additional comments giving more detailed explanations for what certain parts of the code are doing.
 
 using LinearAlgebra
 using Random
@@ -440,7 +437,7 @@ function run_hubbard_threeband_simulation(sID, Ud, Up, tpd, tpp, ϵd, ϵp, μ, �
                 fermion_greens_calculator_dn = fermion_greens_calculator_dn,
                 Bup = Bup, Bdn = Bdn, δG_max = δG_max, δG = δG, δθ = δθ,
                 model_geometry = model_geometry, tight_binding_parameters = tight_binding_parameters,
-                coupling_parameters = (hubbard_parameters,)
+                coupling_parameters = (hubbard_parameters, hubbard_ising_parameters)
             )
         end
 

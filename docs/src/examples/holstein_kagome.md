@@ -1,3 +1,40 @@
+```@meta
+EditURL = "../../../examples/holstein_kagome.jl"
+```
+
+Download this example as a [Julia script](../assets/scripts/holstein_kagome.jl).
+
+# Kagome Holstein Model with Density Tuning
+
+In this script we simulate the Holstein model on the Kagome lattice, with a Hamiltonian given by
+```math
+\begin{align*}
+\hat{H} = & -t \sum_{\sigma,\langle i, j \rangle} (\hat{c}^{\dagger}_{\sigma,i}, \hat{c}^{\phantom \dagger}_{\sigma,j} + {\rm h.c.})
+            -\mu \sum_{\sigma,i}\hat{n}_{\sigma,i} + \alpha \sum_{\sigma,i} \hat{X}_i (\hat{n}_{\sigma,i} - \tfrac{1}{2})\\
+          & + \sum_i \left( \frac{1}{2M}\hat{P}_i^2 + \frac{1}{2}M\Omega^2\hat{X}_i^2 \right)
+\end{align*}
+```
+where ``\hat{c}^\dagger_{\sigma,i} \ (\hat{c}^{\phantom \dagger}_{\sigma,i})`` creates (annihilates) a spin ``\sigma``
+electron on site ``i`` in the lattice, and ``\hat{n}_{\sigma,i} = \hat{c}^\dagger_{\sigma,i} \hat{c}^{\phantom \dagger}_{\sigma,i}``
+is the spin-``\sigma`` electron number operator for site ``i``. The nearest-neighbor hopping amplitude is ``t`` and ``\mu`` is the
+chemical potential. The phonon position (momentum) operators ``\hat{X}_i \ (\hat{P}_i)``
+describe a dispersionless mode placed on site ``i`` with phonon frequency ``\Omega`` and
+corresponding ion mass ``M``. The stength of the Holstein electron-phonon is controlled by the parameter ``\alpha``.
+
+A short test simulation using the script associated with this example can be run as
+```
+> julia holstein_chain.jl 0 0.1 0.1 0.667 0.0 4.0 3 2000 10000 50
+```
+Here the Holstein model on a ``3 \times 3`` unit cell Kagome lattice is simulated with ``\Omega = 0.1``, ``\alpha = 0.1`` and inverse temperature ``\beta = 4.0``.
+The chemical potential is initialized to ``\mu = 0.0``, and then tuned to achieve are target electron density of ``\langle n \rangle = 0.667``.
+In this example `N_burnin = 2000` thermalizatoin HMC and refleciton updates are performed, followed by an additional `N_updates = 10000`
+such updates, during which time an equivalent number of measurements are made. Bin averaged measurements are written to
+file `N_bins = 50` during the simulation.
+
+Below you will find the source code from the julia script linked at the top of this page,
+but with additional comments giving more detailed explanations for what certain parts of the code are doing.
+
+````@example holstein_kagome
 using LinearAlgebra
 using Random
 using Printf
@@ -6,6 +43,7 @@ using SmoQyDQMC
 import SmoQyDQMC.LatticeUtilities  as lu
 import SmoQyDQMC.JDQMCFramework    as dqmcf
 import SmoQyDQMC.JDQMCMeasurements as dqmcm
+# Import the MuTuner module that implements the chemical potential tuning algorithm.
 import SmoQyDQMC.MuTuner           as mt
 
 # Define top-level function for running the DQMC simulation.
@@ -51,18 +89,15 @@ function run_holstein_chain_simulation(sID, Ω, α, n, μ, β, L, N_burnin, N_up
     # Calculate the bin size.
     bin_size = div(N_updates, N_bins)
 
-
-    # Fermionic time-step used in HMC update.
-    Δt = 1/(10*Ω)
+    # To update the phonon degrees of freedom in this code we primarily perform
+    # hybrid/hamiltonian Monte Carlo (HMC) updates. Below we specify some of the
+    # parameters associated with these HMC updates.
 
     # Number of fermionic time-steps in HMC update.
-    Nt = 10
+    Nt = 2
 
-    # Number of bosonic time-steps per fermionic time-step in HMC udpate.
-    nt = 10
-
-    # Regularizaton parameter for fourier acceleration mass matrix used in HMC dyanmics.
-    reg = 1.0
+    # Fermionic time-step used in HMC update.
+    Δt = π/(2*Ω)/Nt
 
     # Initialize a dictionary to store additional information about the simulation.
     additional_info = Dict(
@@ -76,10 +111,8 @@ function run_holstein_chain_simulation(sID, Ω, α, n, μ, β, L, N_burnin, N_up
         "n_stab_init" => n_stab,
         "symmetric" => symmetric,
         "checkerboard" => checkerboard,
-        "dt" => Δt,
         "Nt" => Nt,
-        "nt" => nt,
-        "reg" => reg,
+        "dt" => Δt,
         "seed" => seed,
     )
 
@@ -338,6 +371,9 @@ function run_holstein_chain_simulation(sID, Ω, α, n, μ, β, L, N_burnin, N_up
     ### SET-UP DQMC SIMULATION ##
     #############################
 
+    # Note that the spin-up and spin-down electron sectors are equivalent in the Holstein model
+    # without Hubbard interaction. Therefore, there is only a single Fermion determinant
+    # that needs to be calculated. This fact is reflected in the code below.
 
     # Allocate fermion path integral type.
     fermion_path_integral = FermionPathIntegral(tight_binding_parameters = tight_binding_parameters, β = β, Δτ = Δτ)
@@ -377,6 +413,8 @@ function run_holstein_chain_simulation(sID, Ω, α, n, μ, β, L, N_burnin, N_up
     )
 
     # Initialize the density/chemical potential tuner.
+    # This type facilitates the tuning of the chemical potential to achieve
+    # at target electron density.
     chemical_potential_tuner = mt.MuTunerLogger(n₀ = n, β = β, V = N, u₀ = 1.0, μ₀ = μ, c = 0.5)
 
     ####################################
@@ -387,6 +425,10 @@ function run_holstein_chain_simulation(sID, Ω, α, n, μ, β, L, N_burnin, N_up
     for n in 1:N_burnin
 
         # Perform a reflection update.
+        # This update randomly selects a phonon mode in the lattice and reflects
+        # all the associated phonon about the origin, (xᵢ → -xᵢ).
+        # This updates all the phonon fields to cross the on-site energy barrier
+        # associated with bipolaron formation, helping reduce autocorrelation times.
         (accepted, logdetG, sgndetG) = reflection_update!(
             G, logdetG, sgndetG, electron_phonon_parameters,
             fermion_path_integral = fermion_path_integral,
@@ -404,7 +446,7 @@ function run_holstein_chain_simulation(sID, Ω, α, n, μ, β, L, N_burnin, N_up
             fermion_path_integral = fermion_path_integral,
             fermion_greens_calculator = fermion_greens_calculator,
             fermion_greens_calculator_alt = fermion_greens_calculator_alt,
-            B = B, δG_max = δG_max, δG = δG, δθ = δθ, rng = rng, initialize_force = true
+            B = B, δG_max = δG_max, δG = δG, δθ = δθ, rng = rng
         )
 
         # Record whether the HMC update was accepted or rejected.
@@ -454,7 +496,7 @@ function run_holstein_chain_simulation(sID, Ω, α, n, μ, β, L, N_burnin, N_up
                 fermion_path_integral = fermion_path_integral,
                 fermion_greens_calculator = fermion_greens_calculator,
                 fermion_greens_calculator_alt = fermion_greens_calculator_alt,
-                B = B, δG_max = δG_max, δG = δG, δθ = δθ, rng = rng, initialize_force = true
+                B = B, δG_max = δG_max, δG = δG, δθ = δθ, rng = rng
             )
 
             # Record whether the HMC update was accepted or rejected.
@@ -540,5 +582,5 @@ if abspath(PROGRAM_FILE) == @__FILE__
     # Run the simulation.
     run_holstein_chain_simulation(sID, Ω, α, n, μ, β, L, N_burnin, N_updates, N_bins)
 end
+````
 
-# This file was generated using Literate.jl, https://github.com/fredrikekre/Literate.jl

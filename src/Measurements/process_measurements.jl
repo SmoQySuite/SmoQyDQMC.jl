@@ -4,13 +4,18 @@
 
 @doc raw"""
     process_measurements(
-        folder::String, N_bins::Int, pIDs::Union{Vector{Int},Int} = Int[];
-        time_displaced::Bool = false,
+        folder::String,
+        N_bins::Int,
+        pIDs::Union{Vector{Int},Int} = Int[];
+        time_displaced::Bool = false
     )
 
     process_measurements(
-        comm::MPI.Comm, folder::String, N_bins::Int, pIDs::Union{Vector{Int},Int} = Int[];
-        time_displaced::Bool = false,
+        comm::MPI.Comm,
+        folder::String,
+        N_bins::Int,
+        pIDs::Union{Vector{Int},Int} = Int[];
+        time_displaced::Bool = false
     )
 
 Process the measurements recorded in the simulation directory `folder`, where `N_bins` is the number of bins the data is grouped into for calculating error bars.
@@ -19,7 +24,12 @@ The boolean flag `time_displaced` determines whether or not to calculate error b
 as this can take a non-negligible amount of time for large system, especially when many simulations were run in parallel.
 Note that using `pIDs` argument you can filter which MPI walker to use when calculting the statistics.
 """
-function process_measurements(folder::String, N_bins::Int, pIDs::Union{Vector{Int},Int} = Int[]; time_displaced::Bool = false)
+function process_measurements(
+    folder::String,
+    N_bins::Int,
+    pIDs::Union{Vector{Int},Int} = Int[];
+    time_displaced::Bool = false
+)
 
     # set the walkers to iterate over
     if isempty(pIDs)
@@ -54,7 +64,13 @@ function process_measurements(folder::String, N_bins::Int, pIDs::Union{Vector{In
 end
 
 # same as above, but parallelizes data processing with MPI
-function process_measurements(comm::MPI.Comm, folder::String, N_bins::Int, pIDs::Union{Vector{Int},Int} = Int[]; time_displaced::Bool = false)
+function process_measurements(
+    comm::MPI.Comm,
+    folder::String,
+    N_bins::Int,
+    pIDs::Union{Vector{Int},Int} = Int[];
+    time_displaced::Bool = false
+)
 
     # set the walkers to iterate over
     if isempty(pIDs)

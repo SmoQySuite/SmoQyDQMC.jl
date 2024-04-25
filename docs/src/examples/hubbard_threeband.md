@@ -1,3 +1,54 @@
+```@meta
+EditURL = "../../../examples/hubbard_threeband.jl"
+```
+
+Download this example as a [Julia script](../assets/scripts/hubbard_threeband.jl).
+
+# Three-Band Hubbard Model
+
+In this example we simulate an effective two-dimensional 3-band Hubbard model
+meant to represent a copper-oxide plane in the superconducting cuprates, with a Hamiltonian
+written in hole language given by
+```math
+\begin{align*}
+\hat{H}= & \sum_{\sigma,\langle i,j,\alpha\rangle}t_{pd}^{i,j,\alpha}(\hat{d}_{\sigma,i}^{\dagger}\hat{p}_{\sigma,j,\alpha}^{\phantom{\dagger}}+{\rm h.c.})
+           + \sum_{\sigma,\langle i,\alpha,j,\alpha'\rangle}t_{pp}^{i,\alpha',j,\alpha}(\hat{p}_{\sigma,i,\alpha'}^{\dagger}\hat{p}_{\sigma,j,\alpha}^{\phantom{\dagger}}+{\rm h.c.})\\
+         & +(\epsilon_{d}-\mu)\sum_{\sigma,i}\hat{n}_{\uparrow,i}^{d}+(\epsilon_{p}-\mu)\sum_{\sigma,j}\hat{n}_{\sigma,j,\alpha}^{p}\\
+         & +U_{d}\sum_{i}\hat{n}_{\uparrow,i}^{d}\hat{n}_{\downarrow,i}^{d}+U_{p}\sum_{j,\alpha}\hat{n}_{\uparrow,j,\alpha}^{p}\hat{n}_{\downarrow,j,\alpha}^{p}.
+\end{align*}
+```
+The operator ``\hat{d}^{\dagger}_{\sigma, i} \ (\hat{d}^{\phantom \dagger}_{\sigma, i})`` creates (annihilates) a spin-``\sigma`` hole on a Cu-``3d_{x^2-y^2}``
+orbital in unit ``i`` in the lattice.
+The ``\hat{p}^{\dagger}_{\sigma,i,\alpha} \ (\hat{p}^{\phantom \dagger}_{\sigma,i,\alpha})`` operator creates (annihilates) a spin-``\sigma`` hole on a
+O-``2p_\alpha`` orbital in unit cell ``i``, where ``\alpha = x \ {\rm or} \ y.`` The corresponding spin-``\sigma`` hole number operators for the
+Cu-``3d_{x^2-y^2}`` and O-``2p_\alpha`` orbitals in unit cell ``i`` are ``\hat{n}^d_{\sigma,i}`` and ``\hat{n}^p_{\sigma,i,\alpha}``.
+The hopping integrals between the Cu-``3d_{x^2-y^2}`` orbitals and nearest-neighbor O-``2p_\alpha`` are parameterized as
+``t_{pd}^{i,j,\alpha} = P_{pd}^{i,j,\alpha} t_{pd}`` where `` P_{pd}^{i,j,\alpha} = \pm 1`` is a overall phase factor.
+Similarly, the hopping integral between nearest-neighbor O-``2p_x`` and O-``2p_y`` orbitals is parameterized as
+``t_{pp}^{i,\alpha',j,\alpha} = P_{pp}^{i,\alpha',j,\alpha} t_{pp}``, where again ``P_{pp}^{i,\alpha',j,\alpha} t_{pp} = \pm 1`` is an overall phase factor.
+Refer to Fig. 1 in [`PhysRevB.103.144514`](https://journals.aps.org/prb/abstract/10.1103/PhysRevB.103.144514) to see a figure detailing these phase factor conventions.
+The on-site energies ``\epsilon_d`` and ``\epsilon_p`` are for the Cu-``3d_{x^2-y^2}`` and O-``2p_\alpha`` orbitals respectively,
+and ``\mu`` is the global chemical potential. Finally, ``U_d`` and ``U_p`` are the on-site Hubbard interactions for the
+Cu-``3d_{x^2-y^2}`` and O-``2p_\alpha`` orbitals respectively.
+
+A short test simulation using the script associated with this example can be run as
+```
+> julia hubbard_threeband.jl 0 8.5 4.1 1.13 0.49 0.0 3.24 0.0 4.0 8 2 2000 10000 50
+```
+In this example we are simulating the three-band Hubbard model on a ``8 \times 2`` unit cell finite lattice at inverse temperature ``\beta = 4.0``.
+The on-site Hubbard interaction on the Cu-``3d_{x^2-y^2}`` and O-``2p_\alpha`` is ``U_d = 8.5`` and ``U_p = 4.1`` respectively.
+The nearest-neighbor hopping integral amplitude between the Cu-``3d_{x^2-y^2}`` and O-``2p_\alpha`` orbitals is ``t_{pd} = 1.13``,
+while it is ``t_{pp} = 0.49`` between the nearest-neighbor O-``2p_x`` and O-``2p_y`` orbitals.
+The on-site energy for the Cu-``3d_{x^2-y^2}`` and O-``2p_\alpha`` orbitals ``\epsilon_d = 0.0`` and ``\epsilon_p = 3.25``.
+Lastly, the global chemical potential is set to ``\mu = 0.0``.
+In this simulation `N_burnin = 2000` sweeps through the lattice updating the Hubbard-Stratonovich fields are performed to thermalize the system,
+followed by `N_udpates = 10000` sweeps, after each of which measurements are made. Bin averaged measurements are written to file
+`N_bins = 50` times during the simulation.
+
+Below you will find the source code from the julia script linked at the top of this page,
+but with additional comments giving more detailed explanations for what certain parts of the code are doing.
+
+````@example hubbard_threeband
 using LinearAlgebra
 using Random
 using Printf
@@ -123,6 +174,8 @@ function run_hubbard_threeband_simulation(sID, Ud, Up, tpd, tpp, ϵd, ϵp, μ, �
     bond_2px_2py_pxny = lu.Bond(orbitals = (O_2px, O_2py), displacement = [1,-1])
     bond_2px_2py_pxny_id = add_bond!(model_geometry, bond_2px_2py_pxny)
 
+    # These nexts bonds are needed to measuring a pairing channel needed to
+    # reconstruct the d-wave pair susceptibility.
 
     # Define bond going from Cu-3d to Cu-3d in +x direction.
     bond_3d_3d_px = lu.Bond(orbitals = (Cu_3d, Cu_3d), displacement = [1, 0])
@@ -257,6 +310,10 @@ function run_hubbard_threeband_simulation(sID, Ud, Up, tpd, tpp, ϵd, ϵp, μ, �
                  (Cu_3d, O_2px), (Cu_3d, O_2py), (O_2px, O_2py)]
     )
 
+    # Measure all possible combinations of bond pairing channels
+    # for the bonds we have defined. We will need each of these
+    # pairs channels measured in order to reconstruct the extended
+    # s-wave and d-wave pair susceptibilities.
     # Initialize the pair correlation function measurement.
     initialize_correlation_measurements!(
         measurement_container = measurement_container,
@@ -387,7 +444,7 @@ function run_hubbard_threeband_simulation(sID, Ud, Up, tpd, tpp, ϵd, ϵp, μ, �
                 fermion_greens_calculator_dn = fermion_greens_calculator_dn,
                 Bup = Bup, Bdn = Bdn, δG_max = δG_max, δG = δG, δθ = δθ,
                 model_geometry = model_geometry, tight_binding_parameters = tight_binding_parameters,
-                coupling_parameters = (hubbard_parameters,)
+                coupling_parameters = (hubbard_parameters, hubbard_ising_parameters)
             )
         end
 
@@ -495,5 +552,5 @@ if abspath(PROGRAM_FILE) == @__FILE__
     # Run the simulation.
     run_hubbard_threeband_simulation(sID, Ud, Up, tpd, tpp, ϵd, ϵp, μ, β, Lx, Ly, N_burnin, N_updates, N_bins)
 end
+````
 
-# This file was generated using Literate.jl, https://github.com/fredrikekre/Literate.jl
