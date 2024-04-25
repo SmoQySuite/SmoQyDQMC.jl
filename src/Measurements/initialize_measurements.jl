@@ -29,16 +29,7 @@ function initialize_measurement_container(
     L = lattice.L
 
     # initialize global measurements
-    global_measurements = Dict{String, Complex{T}}(
-        "density"    => zero(Complex{T}), # average total density ⟨n⟩
-        "density_up" => zero(Complex{T}), # average total spin-dn density ⟨n⟩
-        "density_dn" => zero(Complex{T}), # average total spin-up density ⟨n⟩
-        "double_occ" => zero(Complex{T}), # average double occupancy
-        "Nsqrd"      => zero(Complex{T}), # total particle number square ⟨N²⟩
-        "sgndetGup"  => zero(Complex{T}), # sign(det(Gup))
-        "sgndetGdn"  => zero(Complex{T}), # sign(det(Gdn))
-        "sgn"        => zero(Complex{T}), # sign(det(Gup))⋅sign(det(Gdn))
-    )
+    global_measurements = Dict{String, Complex{T}}(k => zero(Complex{T}) for k in GLOBAL_MEASUREMENTS)
 
     # initialize local measurement
     local_measurements = Dict{String, Vector{Complex{T}}}(

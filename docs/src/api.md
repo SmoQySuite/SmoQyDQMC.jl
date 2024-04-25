@@ -240,6 +240,7 @@ save_density_tuning_profile
 
 ## Measurement Methods
 
+- [`GLOBAL_MEASUREMENTS`](@ref)
 - [`LOCAL_MEASUREMENTS`](@ref)
 - [`CORRELATION_FUNCTIONS`](@ref)
 
@@ -269,6 +270,7 @@ save_density_tuning_profile
 - [`correlation_bins_to_csv`](@ref)
 
 ```@docs
+GLOBAL_MEASUREMENTS
 LOCAL_MEASUREMENTS
 CORRELATION_FUNCTIONS
 ```

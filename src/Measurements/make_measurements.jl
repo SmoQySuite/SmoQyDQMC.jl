@@ -8,21 +8,24 @@
         logdetGup::E, sgndetGup::T, Gup::AbstractMatrix{T},
         Gup_ττ::AbstractMatrix{T}, Gup_τ0::AbstractMatrix{T}, Gup_0τ::AbstractMatrix{T},
         logdetGdn::E, sgndetGdn::T, Gdn::AbstractMatrix{T},
-        # Keyword Arguments Start Here
         Gdn_ττ::AbstractMatrix{T}, Gdn_τ0::AbstractMatrix{T}, Gdn_0τ::AbstractMatrix{T};
+        # Keyword Arguments Start Here
         fermion_path_integral_up::FermionPathIntegral{T,E},
         fermion_path_integral_dn::FermionPathIntegral{T,E},
         fermion_greens_calculator_up::FermionGreensCalculator{T,E},
         fermion_greens_calculator_dn::FermionGreensCalculator{T,E},
         Bup::Vector{P}, Bdn::Vector{P}, δG_max::E, δG::E, δθ::E,
         model_geometry::ModelGeometry{D,E,N},
-        tight_binding_parameters::TightBindingParameters{T,E},
-        tight_binding_parameters_dn::TightBindingParameters{T,E} = tight_binding_parameters,
+        tight_binding_parameters::Union{Nothing, TightBindingParameters{T,E}} = nothing,
+        tight_binding_parameters_up::Union{Nothing, TightBindingParameters{T,E}} = nothing,
+        tight_binding_parameters_dn::Union{Nothing, TightBindingParameters{T,E}} = nothing,
         coupling_parameters::Tuple
     ) where {T<:Number, E<:AbstractFloat, D, N, P<:AbstractPropagator{T,E}}
 
 Make measurements, including time-displaced correlation and zero Matsubara frequency measurements.
 This method also returns `(logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ)`.
+Note that either the keywork `tight_binding_parameters` needs to be specified, or
+`tight_binding_parameters_up` and `tight_binding_parameters_dn` both need to be specified.
 """
 function make_measurements!(
     measurement_container::NamedTuple,
@@ -60,8 +63,11 @@ function make_measurements!(
     global_measurements = measurement_container.global_measurements
     make_global_measurements!(
         global_measurements,
-        tight_binding_parameters_up, tight_binding_parameters_dn,
-        sgndetGup, sgndetGdn, Gup, Gdn
+        tight_binding_parameters_up,
+        tight_binding_parameters_dn,
+        coupling_parameters,
+        Gup, logdetGup, sgndetGup,
+        Gdn, logdetGdn, sgndetGdn
     )
 
     # make local measurements
@@ -197,8 +203,11 @@ function make_measurements!(
     global_measurements = measurement_container.global_measurements
     make_global_measurements!(
         global_measurements,
-        tight_binding_parameters, tight_binding_parameters,
-        sgndetG, sgndetG, G, G
+        tight_binding_parameters,
+        tight_binding_parameters,
+        coupling_parameters,
+        G, logdetG, sgndetG,
+        G, logdetG, sgndetG
     )
 
     # make local measurements
@@ -288,8 +297,9 @@ function make_global_measurements!(
     global_measurements::Dict{String, Complex{E}},
     tight_binding_parameters_up::TightBindingParameters{T,E},
     tight_binding_parameters_dn::TightBindingParameters{T,E},
-    sgndetGup::T, sgndetGdn::T,
-    Gup::AbstractMatrix{T}, Gdn::AbstractMatrix{T}
+    coupling_parameters::Tuple,
+    Gup::AbstractMatrix{T}, logdetGup::T, sgndetGup::T,
+    Gdn::AbstractMatrix{T}, logdetGdn::T, sgndetGdn::T,
 ) where {T<:Number, E<:AbstractFloat}
 
     # number of orbitals in lattice
@@ -300,9 +310,28 @@ function make_global_measurements!(
     sgn /= abs(sgn) # normalize just to be cautious
     global_measurements["sgn"] += sgn
 
-    # record the spin resolved sign
+    # measure the spin resolved sign
     global_measurements["sgndetGup"] += sgndetGup
     global_measurements["sgndetGdn"] += sgndetGdn
+
+    # measure log|det(G)|
+    global_measurements["logdetGup"] += logdetGup
+    global_measurements["logdetGdn"] += logdetGdn
+
+    # measure fermionic action
+    Sf = logdetGup + logdetGdn
+    global_measurements["action_fermionic"] += Sf
+
+    # measure bosonic action
+    Sb = zero(E)
+    for i in eachindex(coupling_parameters)
+        Sb += bosonic_action(coupling_parameters[i])
+    end
+    global_measurements["action_bosonic"] += Sb
+
+    # measure total action
+    S = Sb + Sf
+    global_measurements["action_total"] += S
 
     # measure average density
     nup = measure_n(Gup)
@@ -536,6 +565,18 @@ function make_local_measurements!(
     return nothing
 end
 
+# null local measurements to undefined parameters types
+function make_local_measurements!(
+    local_measurements::Dict{String, Vector{Complex{E}}},
+    Gup::AbstractMatrix{T}, Gdn::AbstractMatrix{T}, sgn::T,
+    model_geometry::ModelGeometry{D,E,N},
+    some_model_parameters,
+    tight_binding_parameters_up::TightBindingParameters{T,E},
+    tight_binding_parameters_dn::TightBindingParameters{T,E}
+) where {T<:Number, E<:AbstractFloat, D, N}
+
+    return nothing
+end
 
 ############################################
 ## MAKE CORRELATION FUNCTION MEASUREMENTS ##

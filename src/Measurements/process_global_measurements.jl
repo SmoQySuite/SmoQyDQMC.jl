@@ -289,7 +289,12 @@ function analyze_global_measurements(
     # iterate over measurements
     for key in keys(binned_global_measurements)
 
-        if startswith(key, "sgn") || key == "chemical_potential"
+        if ( 
+               startswith(key, "sgn")
+            || startswith(key, "log")
+            || startswith(key, "action")
+            || isequal(key, "chemical_potential")
+        )
 
             # calculate mean and error of measurement
             global_measurements_avg[key] = mean(binned_global_measurements[key])

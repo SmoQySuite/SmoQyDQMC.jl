@@ -241,7 +241,7 @@ function local_updates!(Gup::Matrix{T}, logdetGup::E, sgndetGup::T,
 
             # calculate the change in the bosonic action, only non-zero for attractive hubbard interactions
             if U[i] < 0.0
-                ΔSb_il = -2 * α[i] * s[i,l]
+                ΔSb_il = -2 * α[i] * s[i,l] # (α⋅[-s]) - (α⋅[s])
             else
                 ΔSb_il = 0.0
             end
@@ -391,7 +391,7 @@ function local_updates!(G::Matrix{T}, logdetG::E, sgndetG::T,
             proposed_spin_flips += 1
 
             # calculate the change in the bosonic action, only non-zero for attractive hubbard interactions
-            ΔSb_il = -2 * α[i] * s[i,l]
+            ΔSb_il = -2 * α[i] * s[i,l] # (α⋅[-s]) - (α⋅[s])
 
             # get the site index associated with the current Hubbard interaction
             site = sites[i]
@@ -764,15 +764,15 @@ function swap_update!(Gup::Matrix{T}, logdetGup::E, sgndetGup::T,
     Vdn_j = @view fermion_path_integral_dn.V[site_j, :]
 
     # calculate the initial bosonic action
-    Sb  = U[i] > zero(E) ? zero(E) : 2 * α[i] * sum(s_i)
-    Sb += U[j] > zero(E) ? zero(E) : 2 * α[j] * sum(s_j)
+    Sb  = U[i] > zero(E) ? zero(E) : α[i] * sum(s_i)
+    Sb += U[j] > zero(E) ? zero(E) : α[j] * sum(s_j)
 
     # swap the HS fields
     swap!(s_i, s_j)
 
     # calculate the final bosonic action
-    Sb′  = U[i] > zero(E) ? zero(E) : 2 * α[i] * sum(s_i)
-    Sb′ += U[j] > zero(E) ? zero(E) : 2 * α[j] * sum(s_j)
+    Sb′  = U[i] > zero(E) ? zero(E) : α[i] * sum(s_i)
+    Sb′ += U[j] > zero(E) ? zero(E) : α[j] * sum(s_j)
 
     # calculate the change in the bosonic action
     ΔSb = Sb′ - Sb
@@ -899,15 +899,15 @@ function swap_update!(G::Matrix{T}, logdetG::E, sgndetG::T,
     V_j = @view fermion_path_integral.V[site_j, :]
 
     # calculate the initial bosonic action
-    Sb  = U[i] > zero(E) ? zero(E) : 2 * α[i] * sum(s_i)
-    Sb += U[j] > zero(E) ? zero(E) : 2 * α[j] * sum(s_j)
+    Sb  = U[i] > zero(E) ? zero(E) : α[i] * sum(s_i)
+    Sb += U[j] > zero(E) ? zero(E) : α[j] * sum(s_j)
 
     # swap the HS fields
     swap!(s_i, s_j)
 
     # calculate the final bosonic action
-    Sb′  = U[i] > zero(E) ? zero(E) : 2 * α[i] * sum(s_i)
-    Sb′ += U[j] > zero(E) ? zero(E) : 2 * α[j] * sum(s_j)
+    Sb′  = U[i] > zero(E) ? zero(E) : α[i] * sum(s_i)
+    Sb′ += U[j] > zero(E) ? zero(E) : α[j] * sum(s_j)
 
     # calculate the change in the bosonic action
     ΔSb = Sb′ - Sb
@@ -957,4 +957,27 @@ function swap_update!(G::Matrix{T}, logdetG::E, sgndetG::T,
     end
 
     return (accepted, logdetG, sgndetG)
+end
+
+# caluclate hubbard interaction contribution to total bosonic action
+function bosonic_action(
+    hubbard_ising_parameters::HubbardIsingHSParameters{E}
+) where {E <: AbstractFloat}
+
+    (; s, α, U) = hubbard_ising_parameters
+
+    # initialize bosonic action to zero
+    Sb = zero(E)
+
+    # iterate of time slices
+    for l in axes(s,2)
+        # iterate of sites
+        for i in axes(s,1)
+            # incremement the bosonic action
+            Sb += U[i] > 0 ? 0.0 : α[i] * s[i,l]
+        end
+    end
+
+
+    return Sb
 end

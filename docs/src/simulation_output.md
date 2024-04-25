@@ -148,8 +148,12 @@ including the type of ID it is reported in terms of, is defined below.
 
 ### Local Electron-Phonon Interaction Measurements
 
-- `holstein_energy`: (`HOLSTEIN_ID`) The Holstein interaction energy ``\sum_m \tilde{\alpha}_{m,n_{\mathbf{i},\nu},(\mathbf{i}+\mathbf{r},\gamma)} \langle X_{n_{\mathbf{i},\nu}}^m (n_{\mathbf{i}+\mathbf{r},\gamma} - 1) \rangle`` between a phonon mode ``n_{\mathbf{i},\nu}`` and total charge density on orbital ``\gamma`` displaced ``\mathbf{r}`` unit cells away.
-- `ssh_energy`: (`SSH_ID`) The SSH interaction enery ``\langle \mathcal{K}_{{\rm ssh},(n_{\mathbf{i},\nu},n_{\mathbf{i}+\mathbf{r},\gamma})}\rangle`` between phonon modes ``n_\nu`` and ``n_\gamma`` displaced ``\mathbf{r}`` unit cells from eachother.
+- `holstein_energy`: (`HOLSTEIN_ID`) The total Holstein interaction energy ``\langle \hat{\mathcal{V}}_{{\rm hol}, n_{\mathbf{i},\nu}, (\mathbf{i}+\mathbf{r},\gamma)} \rangle`` between a phonon mode ``n_{\mathbf{i},\nu}`` and total charge density on orbital ``\gamma`` displaced ``\mathbf{r}`` unit cells away.
+- `holstein_energy_up`: (`HOLSTEIN_ID`) The spin-up Holstein interaction energy ``\langle \hat{\mathcal{V}}_{{\rm hol}, \uparrow, n_{\mathbf{i},\nu}, (\mathbf{i}+\mathbf{r},\gamma)} \rangle`` between a phonon mode ``n_{\mathbf{i},\nu}`` and the spin-``\uparrow`` density on orbital ``\gamma`` displaced ``\mathbf{r}`` unit cells away.
+- `holstein_energy_dn`: (`HOLSTEIN_ID`) The spin-down Holstein interaction energy ``\langle \hat{\mathcal{V}}_{{\rm hol}, \downarrow, n_{\mathbf{i},\nu}, (\mathbf{i}+\mathbf{r},\gamma)} \rangle`` between a phonon mode ``n_{\mathbf{i},\nu}`` and the spin-``\downarrow`` on orbital ``\gamma`` displaced ``\mathbf{r}`` unit cells away.
+- `ssh_energy`: (`SSH_ID`) The total SSH interaction enery ``\langle \mathcal{K}_{{\rm ssh},(n_{\mathbf{i},\nu},n_{\mathbf{i}+\mathbf{r},\gamma})}\rangle`` between phonon modes ``n_\nu`` and ``n_\gamma`` displaced ``\mathbf{r}`` unit cells from eachother.
+- `ssh_energy_up`: (`SSH_ID`) The spin-up SSH interaction enery ``\langle \mathcal{K}_{{\rm ssh},\uparrow,(n_{\mathbf{i},\nu},n_{\mathbf{i}+\mathbf{r},\gamma})}\rangle`` between phonon modes ``n_\nu`` and ``n_\gamma`` displaced ``\mathbf{r}`` unit cells from eachother.
+- `ssh_energy_dn`: (`SSH_ID`) The spin-down SSH interaction enery ``\langle \mathcal{K}_{{\rm ssh},\downarrow,(n_{\mathbf{i},\nu},n_{\mathbf{i}+\mathbf{r},\gamma})}\rangle`` between phonon modes ``n_\nu`` and ``n_\gamma`` displaced ``\mathbf{r}`` unit cells from eachother.
 
 ## Correlation Function Measurements
 

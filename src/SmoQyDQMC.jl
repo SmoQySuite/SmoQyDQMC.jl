@@ -10,7 +10,6 @@ using StaticArrays
 using OffsetArrays
 using JLD2
 using FastLapackInterface
-using BinningAnalysis
 using Reexport
 using PkgVersion
 using TOML
@@ -167,7 +166,8 @@ export measure_dispersion_energy
 # defines dictionaries as global variables that contain the names of all
 # local measurements and correlation measurements that can be made, and the
 # type ID type they are reported in terms of
-include("Measurements/measurement_name_dicts.jl")
+include("Measurements/measurement_names.jl")
+export GLOBAL_MEASUREMENTS
 export LOCAL_MEASUREMENTS
 export CORRELATION_FUNCTIONS
 
