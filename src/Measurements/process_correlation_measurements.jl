@@ -278,7 +278,7 @@ function _process_correlation_measurement(
 
     # pre-allocate arrays for jackknife
     jackknife_samples = (zeros(Complex{T}, N_bins), zeros(Complex{T}, N_bins))
-    jackknife_g = zeros(zerom(Complex{T}), N_bins)
+    jackknife_g = zeros(Complex{T}, N_bins)
 
     # get correlation ID pairs
     pairs = JLD2.load(joinpath(read_folder, @sprintf("bin-1_pID-%d.jld2", pIDs[1])), "id_pairs")
