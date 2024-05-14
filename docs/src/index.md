@@ -57,7 +57,6 @@ the [`Reexport.jl`](https://github.com/simonster/Reexport.jl.git) package in ord
 - [`StableLinearAlgebra.jl`](https://github.com/SmoQySuite/StableLinearAlgebra.jl.git): Implements optimized numerical stabilizaiton methods required by DQMC simulations.
 - [`Checkerboard.jl`](https://github.com/SmoQySuite/Checkerboard.jl.git): Implements and exports the checkerboard method for approximating exponentiated hopping matrices by a sparse matrix.
 - [`JLD2.jl`](https://github.com/JuliaIO/JLD2.jl.git): Package used to write data to binary files in an HDF5 compatible format. It is also recommended this package be used at the scripting level to implement checkpointing in a simulation.
-- [`BinningAnalysis.jl`](https://github.com/carstenbauer/BinningAnalysis.jl.git): Export method impelementing the jackknife algorithm for calculating error bars.
 
 ## Citation
 
