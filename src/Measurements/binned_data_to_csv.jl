@@ -1,9 +1,16 @@
 @doc raw"""
-    global_measurement_bins_to_csv(folder::String)
+    global_measurement_bins_to_csv(
+        folder::String,
+        pID::Int = -1
+    )
 
-Write the binned global measurements to file.
+Write the binned global measurements to file corresponding to process ID `pID`.
+If `pID = -1`, then write binned global measurements for all processes to file.
 """
-function global_measurement_bins_to_csv(folder::String)
+function global_measurement_bins_to_csv(
+    folder::String,
+    pID::Int = -1
+)
 
     # get the number of processes that ran during simulation
     N_process = get_num_walkers(folder)
@@ -18,13 +25,24 @@ function global_measurement_bins_to_csv(folder::String)
     global_folder = joinpath(folder, "global")
 
     # filename for global data
-    filename = joinpath(folder, "global_bins.csv")
+    if pID == -1
+        filename = joinpath(folder, "global_bins.csv")
+    else
+        filename = joinpath(folder, "global_pID-$(pID)_bins.csv")
+    end
 
     # load sample global measurement
     sample_global_measurements = JLD2.load(joinpath(global_folder, "bin-1_pID-0.jld2"))
 
     # get the measurements
     measurements = sort(collect(keys(sample_global_measurements)))
+
+    # get pID's to iterate over
+    if pID == -1
+        pIDs = 0:N_process-1
+    else
+        pIDs = pID:pID
+    end
 
     # open csv file
     open(filename, "w") do fout
@@ -40,7 +58,7 @@ function global_measurement_bins_to_csv(folder::String)
         for bin in 1:N_bins
 
             # iterate over processes
-            for pID in 0:N_process-1
+            for pID in pIDs
 
                 # write global measurement to file
                 _write_global_measurements(fout, global_folder, measurements, bin, pID)
@@ -71,11 +89,20 @@ end
 
 
 @doc raw"""
-    local_measurement_bins_to_csv(folder::String, measurement::String)
+    local_measurement_bins_to_csv(
+        folder::String,
+        measurement::String,
+        pID::Int = -1
+    )
 
-Write the binned values for the local measurement `measurement` to a CSV file.
+Write the binned values for the local measurement `measurement` to a CSV file for process ID `pID`.
+If `pID = -1`, then write it to file for all process IDs.
 """
-function local_measurement_bins_to_csv(folder::String, measurement::String)
+function local_measurement_bins_to_csv(
+    folder::String,
+    measurement::String,
+    pID::Int = -1
+)
 
     # directory where binned global data is located
     global_folder = joinpath(folder, "global")
@@ -96,7 +123,18 @@ function local_measurement_bins_to_csv(folder::String, measurement::String)
     N_id = length( JLD2.load(joinpath(local_folder, "bin-1_pID-0.jld2"), measurement) )
 
     # filename for global data
-    filename = joinpath(folder, @sprintf("%s_bins.csv", measurement))
+    if pID == -1
+        filename = joinpath(folder, @sprintf("%s_bins.csv", measurement))
+    else
+        filename = joinpath(folder, @sprintf("%s_pID-%d_bins.csv", measurement, pID))
+    end
+
+    # get pID's to iterate over
+    if pID == -1
+        pIDs = 0:N_process-1
+    else
+        pIDs = pID:pID
+    end
 
     # open csv file
     open(filename, "w") do fout
@@ -111,7 +149,7 @@ function local_measurement_bins_to_csv(folder::String, measurement::String)
         for bin in 1:N_bins
 
             # iterate over processes
-            for pID in 0:N_process-1
+            for pID in pIDs
 
                 # write local measurement
                 _write_local_measurement(fout, global_folder, local_folder, measurement, bin, pID, N_id)
@@ -143,7 +181,8 @@ end
 
 
 @doc raw"""
-    correlation_bins_to_csv(;
+    correlation_bins_to_csv(
+        pID::Int = -1;
         folder::String,
         correlation::String,
         type::String,
@@ -151,11 +190,13 @@ end
         write_index_key::Bool = true
     )
 
-Write binned correlation data for `correlation` to a CSV file.
+Write binned `correlation` data for `pID` to a CSV file.
 The field `type` must be set equal to `"equal-time"`, `"time-displaced"` or `"integrated"`,
 and the field `space` but bet set to either `"position"` or `"momentum"`.
+If `pID = -1`, then write binned data for all walkers to file.
 """
-function correlation_bins_to_csv(;
+function correlation_bins_to_csv(
+    pID::Int = -1;
     folder::String,
     correlation::String,
     type::String,
@@ -180,8 +221,12 @@ function correlation_bins_to_csv(;
     # global measurement direcotry
     global_folder = joinpath(folder, "global")
 
-    # key filename
-    filename = @sprintf "%s_%s_%s_bins.csv" correlation space type
+    # correlation filename
+    if pID == -1
+        filename = @sprintf "%s_%s_%s_pID-%d_bins.csv" correlation space type pID
+    else
+        filename = @sprintf "%s_%s_%s_bins.csv" correlation space type
+    end
 
     # get the number of processes that ran during simulation
     N_process = get_num_walkers(folder)
@@ -191,6 +236,13 @@ function correlation_bins_to_csv(;
 
     # get the number of bins
     N_bins = div(N_files, N_process)
+
+    # get pID's to iterate over
+    if pID == -1
+        pIDs = 0:N_process-1
+    else
+        pIDs = pID:pID
+    end
 
     # open csv file
     open(joinpath(correlation_folder, filename), "w") do fout
@@ -202,7 +254,7 @@ function correlation_bins_to_csv(;
         for bin in 1:N_bins
 
             # iterate over processes
-            for pID in 0:N_process-1
+            for pID in pIDs
 
                 # write correlation measurement to csv
                 _write_correlations_to_csv(fout, space_folder, global_folder, bin, pID)
@@ -305,7 +357,6 @@ function _write_correlations_to_csv(fout::IO, correlation_folder::String, global
     for i in eachindex(pairs)
 
         # get the ID pair and corresponding correlations
-        pair = pairs[i]
         correlation = correlations[i]
 
         # iterate over correlation elements
@@ -315,50 +366,10 @@ function _write_correlations_to_csv(fout::IO, correlation_folder::String, global
             index += 1
 
             # write the specific correlation value to file
-            _write_correlation_to_csv(fout, bin, pID, index, pair, c.I, correlation[c], sgn)
+            val = correlation[c]
+            @printf(fout, "%d %d %d%.8f %.8f %.8f %.8f\n", bin, pID, index, real(val), imag(val), real(sgn), imag(sgn))
         end
     end
-
-    return nothing
-end
-
-# write specific correlaiton to file
-function _write_correlation_to_csv(fout::IO, bin::Int, pID::Int, index::Int,
-                                   pair::NTuple{2,Int}, loc::NTuple{1,Int},
-                                   val::Complex{T}, sgn::Complex{T}) where {T<:AbstractFloat}
-
-    @printf(fout, "%d %d %d%.8f %.8f %.8f %.8f\n",
-            bin, pID, index, real(val), imag(val), real(sgn), imag(sgn))
-
-    return nothing
-end
-
-function _write_correlation_to_csv(fout::IO, bin::Int, pID::Int, index::Int,
-                                   pair::NTuple{2,Int}, loc::NTuple{2,Int},
-                                   val::Complex{T}, sgn::Complex{T}) where {T<:AbstractFloat}
-
-    @printf(fout, "%d %d %d %.8f %.8f %.8f %.8f\n",
-            bin, pID, index, real(val), imag(val), real(sgn), imag(sgn))
-
-    return nothing
-end
-
-function _write_correlation_to_csv(fout::IO, bin::Int, pID::Int, index::Int,
-                                   pair::NTuple{2,Int}, loc::NTuple{3,Int},
-                                   val::Complex{T}, sgn::Complex{T}) where {T<:AbstractFloat}
-
-    @printf(fout, "%d %d %d %.8f %.8f %.8f %.8f\n",
-            bin, pID, index, real(val), imag(val), real(sgn), imag(sgn))
-
-    return nothing
-end
-
-function _write_correlation_to_csv(fout::IO, bin::Int, pID::Int, index::Int,
-                                   pair::NTuple{2,Int}, loc::NTuple{4,Int},
-                                   val::Complex{T}, sgn::Complex{T}) where {T<:AbstractFloat}
-
-    @printf(fout, "%d %d %d %.8f %.8f %.8f %.8f\n",
-            bin, pID, index, real(val), imag(val), real(sgn), imag(sgn))
 
     return nothing
 end
