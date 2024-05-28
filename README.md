@@ -64,14 +64,15 @@ the [Reexport.jl](https://github.com/simonster/Reexport.jl.git) package in order
 If you found this library to be useful in the course of academic work, please consider citing us:
 
 ```bibtex
-@misc{SmoQyDQMC,
-      title={SmoQyDQMC.jl: A flexible implementation of determinant quantum Monte Carlo for Hubbard and electron-phonon interactions}, 
-      author={Benjamin Cohen-Stead and Sohan Malkaruge Costa and James Neuhaus and Andy Tanjaroon Ly and Yutan Zhang and Richard Scalettar and Kipton Barros and Steven Johnston},
-      year={2023},
-      eprint={2311.09395},
-      archivePrefix={arXiv},
-      primaryClass={cond-mat.str-el},
-      url={https://arxiv.org/abs/2311.09395}
+@Article{SmoQyDQMC.jl,
+	title={{SmoQyDQMC.jl: A flexible implementation of determinant quantum Monte Carlo for Hubbard and electron-phonon interactions}},
+	author={Benjamin Cohen-Stead and Sohan Malkaruge Costa and James Neuhaus and Andy Tanjaroon Ly and Yutan Zhang and Richard Scalettar and Kipton Barros and Steven Johnston},
+	journal={SciPost Phys. Codebases},
+	pages={29},
+	year={2024},
+	publisher={SciPost},
+	doi={10.21468/SciPostPhysCodeb.29},
+	url={https://scipost.org/10.21468/SciPostPhysCodeb.29},
 }
 ```
 
