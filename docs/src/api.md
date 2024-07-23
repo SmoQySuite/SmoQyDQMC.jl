@@ -268,6 +268,8 @@ save_density_tuning_profile
 - [`global_measurement_bins_to_csv`](@ref)
 - [`local_measurement_bins_to_csv`](@ref)
 - [`correlation_bins_to_csv`](@ref)
+- [`compress_jld2_bins`](@ref)
+- [`decompress_jld2_bins`](@ref)
 
 ```@docs
 GLOBAL_MEASUREMENTS
@@ -308,4 +310,6 @@ composite_correlation_stat
 global_measurement_bins_to_csv
 local_measurement_bins_to_csv
 correlation_bins_to_csv
+compress_jld2_bins
+decompress_jld2_bins
 ```
