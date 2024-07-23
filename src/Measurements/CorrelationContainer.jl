@@ -30,7 +30,8 @@ function save(fn::String, correlation_container::CorrelationContainer{D,T}) wher
             id_pairs = correlation_container.id_pairs,
             bond_id_pairs = correlation_container.bond_id_pairs,
             correlations = correlation_container.correlations,
-            time_displaced = correlation_container.time_displaced)
+            time_displaced = correlation_container.time_displaced
+    )
 
     return nothing
 end

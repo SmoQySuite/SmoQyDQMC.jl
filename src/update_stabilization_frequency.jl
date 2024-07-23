@@ -6,7 +6,7 @@
                                     Bup::Vector{P}, Bdn::Vector{P}, δG::E, δθ::E, n_stab::Int,
                                     δG_max::E) where {E<:AbstractFloat, T<:Number, P<:AbstractPropagator{T,E}}
 
-If the corrected error in the Green's funciton matrix is too large, `δG > δG_max`, then increase the frequency of
+If the corrected error in the Green's function matrix is too large, `δG > δG_max`, then increase the frequency of
 numerical stablization by decrementing `n_stab` such that it is updated to `n_stab = max(n_stab - 1, 1)`,
 and update the equal-time Green's function matrices and all related variables and types.
 If the frequency of stabilization is udpated, then `δG` and `δθ` are reset to zero.
@@ -71,7 +71,7 @@ end
                                     B::Vector{P}, δG::E, δθ::E, n_stab::Int,
                                     δG_max::E) where {E<:AbstractFloat, T<:Number, P<:AbstractPropagator{T,E}}
 
-If the corrected error in the Green's funciton matrix is too large, `δG > δG_max`, then increase the frequency of
+If the corrected error in the Green's function matrix is too large, `δG > δG_max`, then increase the frequency of
 numerical stablization by decrementing `n_stab` such that it is updated to `n_stab = max(n_stab - 1, 1)`,
 and update the equal-time Green's function matrices and all related variables and types.
 If the frequency of stabilization is udpated, then `δG` and `δθ` are reset to zero.

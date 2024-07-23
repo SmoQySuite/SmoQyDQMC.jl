@@ -212,6 +212,10 @@ export composite_correlation_stat
 include("Measurements/binned_data_to_csv.jl")
 export global_measurement_bins_to_csv, local_measurement_bins_to_csv, correlation_bins_to_csv
 
+# functions to compress & decompress JLD2 binary files
+include("Measurements/compress_decompress_bins.jl")
+export compress_jld2_bins, decompress_jld2_bins
+
 ############################
 ## PACKAGE INITIALIZATION ##
 ############################
