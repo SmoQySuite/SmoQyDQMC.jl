@@ -298,8 +298,9 @@ end
         integrated::Bool = false
     )  where {T<:AbstractFloat, D, N}
 
-Initialize measurements of `correlation` for all pairs of bond ID's in `pairs`.
-The name `correlation` must appear in `CORRELATION_FUNCTIONS`.
+Initialize measurements of `correlation` for all ID pairs; refer to [`CORRELATION_FUNCTIONS`](@ref) for ID type associated
+with each correlation measurement.
+The name `correlation` must therefore also appear in [`CORRELATION_FUNCTIONS`]@ref.
 If `time_displaced = true` then time-displaced and integrated correlation measurements are made.
 If `time_displaced = false` and `integrated = false`, then just equal-time correlation measurements are made.
 If `time_displaced = false` and `integrated = true`, then both equal-time and integrated correlation measurements are made.
@@ -403,9 +404,23 @@ end
         measurement_container::NamedTuple
     )
 
+    initialize_measurement_directories(;
+        # Keyword Arguments
+        simulation_info::SimulationInfo,
+        measurement_container::NamedTuple
+    )
+
 Initialize the measurement directories for simulation.
 """
 function initialize_measurement_directories(;
+    simulation_info::SimulationInfo,
+    measurement_container::NamedTuple
+)
+    initialize_measurement_directories(simulation_info, measurement_container)
+    return nothing
+end
+
+function initialize_measurement_directories(
     simulation_info::SimulationInfo,
     measurement_container::NamedTuple
 )

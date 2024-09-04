@@ -86,20 +86,11 @@ function compress_jld2_bins(;
         _load_correlation_bins(fout, folder, "integrated", pID)
     end
 
-    # delete global binned binary files
-    _delete_bins(joinpath(folder, "global"), pID)
-
-    # delete local binned binary files
-    _delete_bins(joinpath(folder, "local"), pID)
-
-    # delte equal-time correlation bins
-    _delete_correlation_bins(folder, "equal-time", pID)
-
-    # delte time-displaced correlation bins
-    _delete_correlation_bins(folder, "time-displaced", pID)
-
-    # delte integrate correlation bins
-    _delete_correlation_bins(folder, "integrated", pID)
+    # delete all binary files
+    delete_jld2_bins(
+        folder = folder,
+        pID = pID
+    )
 
     return nothing
 end
@@ -130,27 +121,66 @@ function decompress_jld2_bins(;
         filename = joinpath(folder, "binned_data.jld2")
     end
 
-    # open compressed jld2 file
-    jldopen(filename, "r") do fin
+    # check if file exists
+    if isfile(filename)
 
-        # write global bins to file
-        _write_bins(fin, folder, "global")
+        # open compressed jld2 file
+        jldopen(filename, "r") do fin
 
-        # write local bins to file
-        _write_bins(fin, folder, "local")
+            # write global bins to file
+            _write_bins(fin, folder, "global")
 
-        # write equal-time correlation bins to file
-        _write_correlation_bins(fin, folder, "equal-time")
+            # write local bins to file
+            _write_bins(fin, folder, "local")
 
-        # write time-displaced correlation bins to file
-        _write_correlation_bins(fin, folder, "time-displaced")
+            # write equal-time correlation bins to file
+            _write_correlation_bins(fin, folder, "equal-time")
 
-        # write integrated correlation bins to file
-        _write_correlation_bins(fin, folder, "integrated")
+            # write time-displaced correlation bins to file
+            _write_correlation_bins(fin, folder, "time-displaced")
+
+            # write integrated correlation bins to file
+            _write_correlation_bins(fin, folder, "integrated")
+        end
+
+        # delete binary file
+        rm(filename)
     end
 
-    # delete binary file
-    rm(filename)
+    return nothing
+end
+
+
+@doc raw"""
+    delete_jld2_bins(;
+        # KEYWORD ARGUMENTS
+        folder::String,
+        pID::Int = -1
+    )
+
+Go through and delete all the binary files in the data folder directory.
+Please be cautious, once done this operation cannot be undone, data will be lost permanently!
+"""
+function delete_jld2_bins(;
+    # KEYWORD ARGUMENTS
+    folder::String,
+    pID::Int = -1
+)
+
+    # delete global binned binary files
+    _delete_bins(joinpath(folder, "global"), pID)
+
+    # delete local binned binary files
+    _delete_bins(joinpath(folder, "local"), pID)
+
+    # delte equal-time correlation bins
+    _delete_correlation_bins(folder, "equal-time", pID)
+
+    # delte time-displaced correlation bins
+    _delete_correlation_bins(folder, "time-displaced", pID)
+
+    # delte integrate correlation bins
+    _delete_correlation_bins(folder, "integrated", pID)
 
     return nothing
 end

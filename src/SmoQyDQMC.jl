@@ -9,6 +9,7 @@ using Printf
 using StaticArrays
 using OffsetArrays
 using JLD2
+using CodecZlib
 using FastLapackInterface
 using Reexport
 using PkgVersion
@@ -121,6 +122,10 @@ include("ElectronPhonon/hmc_update.jl")
 include("ElectronPhonon/HMCUpdater.jl")
 export HMCUpdater, hmc_update!
 
+# implement exact fourier acceleration integration of
+# equation of motion
+include("ElectronPhonon/ExactFourierAccelerator.jl")
+
 # defines Exact Fourier Acceleration HMC update method
 include("ElectronPhonon/EFAHMCUpdater.jl")
 export EFAHMCUpdater
@@ -214,7 +219,7 @@ export global_measurement_bins_to_csv, local_measurement_bins_to_csv, correlatio
 
 # functions to compress & decompress JLD2 binary files
 include("Measurements/compress_decompress_bins.jl")
-export compress_jld2_bins, decompress_jld2_bins
+export compress_jld2_bins, decompress_jld2_bins, delete_jld2_bins
 
 ############################
 ## PACKAGE INITIALIZATION ##

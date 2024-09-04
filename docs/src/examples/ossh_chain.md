@@ -2,7 +2,7 @@
 EditURL = "../../../examples/ossh_chain.jl"
 ```
 
-Download this example as a [Julia script](../assets/scripts/ossh_chain.jl).
+Download this example as a [Julia script](../assets/scripts/examples/ossh_chain.jl).
 
 # Optical Su-Schrieffer-Heeger Chain
 
@@ -35,7 +35,7 @@ Bin averaged measurements are then written to file `N_bins = 20` during the simu
 Below you will find the source code from the julia script linked at the top of this page,
 but with additional comments giving more detailed explanations for what certain parts of the code are doing.
 
-````@example ossh_chain
+````julia
 using LinearAlgebra
 using Random
 using Printf

@@ -184,7 +184,7 @@ function eval_tr_dΛdx_invΛ_A!(dSdx::AbstractVector{E}, x::AbstractVector{E},
         for c in 1:Nholstein
             # get the phonon associated with the coupling
             p = coupling_to_phonon[c]
-            # det the orbital whose density is getting coupled to
+            # get the orbital whose density is getting coupled to
             i = neighbor_table[2,c]
             # calculate the non-zero matrix element ∂Λ/∂x[i,i] associated with current holstein coupling,
             # recalling that Λ = exp(-Δτ⋅V), where V is the diagonal on-site energy matrix.
@@ -253,11 +253,12 @@ function eval_tr_dΓdx_invΓ_A!(dSdx::AbstractVector{E}, x::AbstractVector{E},
 
     # check if there are a finite number of ssh couplings
     if Nssh > 0
+        # copy original matrix
+        copyto!(A′, A)
+        # determine the order to iterate over the checkerboard colors in
+        color_order = Γ.transposed ? (1:Ncolors) : (Ncolors:-1:1)
         # iterate over checkerboard colors
-        for color in 1:Ncolors
-            # apply appropriate checkerboard transformation for the current checkerboard color
-            copyto!(A′, A)
-            cyclic_checkerboard_transformation!(A′, Γ, color)
+        for color in color_order
             # iterate over bounds for current color
             start = color_bounds[1,color]
             stop  = color_bounds[2,color]
@@ -294,6 +295,11 @@ function eval_tr_dΓdx_invΓ_A!(dSdx::AbstractVector{E}, x::AbstractVector{E},
                         end
                     end
                 end
+            end
+            # apply the wrapping transformation A′ := Γₙ⁻¹⋅A′⋅Γₙ
+            if color != last(color_order)
+                ldiv!(Γ, A′, color)
+                rmul!(A′, Γ, color)
             end
         end
     end

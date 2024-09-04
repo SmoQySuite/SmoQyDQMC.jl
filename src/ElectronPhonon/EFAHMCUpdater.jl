@@ -8,20 +8,13 @@ for the phonon degrees of freedom.
 
 - `Nt::Int`: Number of time-steps in HMC trajectory.
 - `Δt::E`: Average time-step size used in HMC update.
-- `reg::E`: Mass regularization.
 - `δ::E`: Time-step used in EFA-HMC update is jittered by an amount `Δt = Δt * (1 + δ*(2*rand(rng)-1))`.
-- `ω::Matrix{E}`: Harmonic frequency associated fourier mode in the non-interacting quantum Harmonic oscillator action.
-- `m::Matrix{E}`: Mass associated with quantum Harmonic oscillator fourier mode equations of motion.
 - `x::Matrix{E}`: Records initial phonon configuration in position space.
 - `p::Matrix{E}`: Conjugate momentum in HMC dynamics.
-- `x̃::Matrix{Complex{E}}`: Phonon configuration in frequency space.
-- `p̃::Matrix{Complex{E}}`: Momentum in frequency space.
-- `u::Matrix{Complex{E}}`: Temporary storage array.
 - `dSdx::Matrix{E}`: Stores the derivative of the action.
 - `Gup′::Matrix{T}`: Intermediate spin-up Green's function matrix during HMC trajectory.
 - `Gdn′::Matrix{T}`: Intermediate spin-down Green's function matrix during HMC trajectory.
-- `pfft::PFFT`: FFT plan to transform form imaginary time to frequency space.
-- `pifft::PIFFT`: Inverse FFT plan to trasform from frequency space back to imaginary time.
+- `efa::ExactFourierAccelerator{E,PFFT,TFFT}`: Type to perform exact integration of equations of motion of quantum harmonic oscillator. 
 """
 struct EFAHMCUpdater{T<:Number, E<:AbstractFloat, PFFT, PIFFT}
 
@@ -31,17 +24,8 @@ struct EFAHMCUpdater{T<:Number, E<:AbstractFloat, PFFT, PIFFT}
     # Time-step
     Δt::E
 
-    # Mass regularization
-    reg::E
-
     # Amount of disorder in HMC time-step.
     δ::E
-
-    # fourier harmonic frequencies
-    ω::Matrix{E}
-
-    # mass in equation of motion
-    m::Matrix{E}
 
     # position space phonon field configuration
     x::Matrix{E}
@@ -55,9 +39,6 @@ struct EFAHMCUpdater{T<:Number, E<:AbstractFloat, PFFT, PIFFT}
     # fourier space momentum
     p̃::Matrix{Complex{E}}
 
-    # temporary storage space
-    u::Matrix{Complex{E}}
-
     # action derivatives
     dSdx::Matrix{E}
 
@@ -67,11 +48,8 @@ struct EFAHMCUpdater{T<:Number, E<:AbstractFloat, PFFT, PIFFT}
     # matrix to contain intermediate spin down Green's function matrices
     Gdn′::Matrix{T}
 
-    # forward FFT plan
-    pfft::PFFT
-
-    # reverse FFT plan
-    pifft::PIFFT
+    # exact fourier accelerator
+    efa::ExactFourierAccelerator{E,PFFT,TFFT}
 end
 
 @doc raw"""
@@ -104,48 +82,18 @@ function EFAHMCUpdater(;
     δ::E = 0.05
 ) where {T<:Number, E<:AbstractFloat}
 
-    (; Δτ, phonon_parameters) = electron_phonon_parameters
+    (; Δτ, phonon_parameters, x) = electron_phonon_parameters
     (; Ω, M) = phonon_parameters
-    ω = zero(electron_phonon_parameters.x)
-    m = zero(ω)
-    x = zero(ω)
-    p = zero(ω)
-    x̃ = zeros(Complex{E}, size(ω))
-    p̃ = zeros(Complex{E}, size(ω))
-    u = zeros(Complex{E}, size(ω))
+    x0 = zero(x)
+    p = zero(x)
     dSdx = zero(x)
     Gup′ = zero(G)
     Gdn′ = zero(G)
-    pfft = plan_fft(x̃, (2,), flags=FFTW.PATIENT)
-    pifft = plan_ifft(x̃, (2,), flags=FFTW.PATIENT)
 
-    # length of imaginary time axis
-    Lτ = size(x, 2)
+    # allocate and initialize ExactFourierAccelerator
+    efa = ExactFourierAccelerator(Ω, M, β, Δτ, reg)
 
-    # iterate over fourier modes
-    for n in axes(x, 2)
-        # iterate over phonon modes
-        for i in axes(x, 1)
-            # if phonon mass is infinite
-            if isinf(M[i])
-                # set dynamical mass to infinity
-                m[i,n] = Inf
-                # set dynamical frequency to zero
-                ω[i,n] = 0.0
-            # if finite phonon mass
-            else
-                # calculate the spring constant
-                k = Δτ*M[i]*Ω[i]^2 + 4*M[i]*sin(π*(n-1)/Lτ)^2/Δτ
-                # calculate fourier mode mass
-                Ω′ = iszero(Ω[i]) ? reg : sqrt((1+reg^2) * Ω[i]^2)
-                m[i,n] = isinf(reg) ? Δτ*M[i] : Δτ*M[i] * (Ω′^2 + 4/Δτ^2*sin(π*(n-1)/Lτ)^2) / Ω′^2
-                # calculate fourier mode frequency
-                ω[i,n] = sqrt(k/m[i,n])
-            end
-        end
-    end
-
-    return EFAHMCUpdater(Nt, Δt, reg, δ, ω, m, x, p, x̃, p̃, u, dSdx, Gup′, Gdn′, pfft, pifft)
+    return EFAHMCUpdater(Nt, Δt, δ, x0, p, u, dSdx, Gup′, Gdn′, efa)
 end
 
 @doc raw"""
