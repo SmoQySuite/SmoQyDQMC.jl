@@ -8,20 +8,13 @@ for the phonon degrees of freedom.
 
 - `Nt::Int`: Number of time-steps in HMC trajectory.
 - `Δt::E`: Average time-step size used in HMC update.
-- `reg::E`: Mass regularization.
 - `δ::E`: Time-step used in EFA-HMC update is jittered by an amount `Δt = Δt * (1 + δ*(2*rand(rng)-1))`.
-- `ω::Matrix{E}`: Harmonic frequency associated fourier mode in the non-interacting quantum Harmonic oscillator action.
-- `m::Matrix{E}`: Mass associated with quantum Harmonic oscillator fourier mode equations of motion.
 - `x::Matrix{E}`: Records initial phonon configuration in position space.
 - `p::Matrix{E}`: Conjugate momentum in HMC dynamics.
-- `x̃::Matrix{Complex{E}}`: Phonon configuration in frequency space.
-- `p̃::Matrix{Complex{E}}`: Momentum in frequency space.
-- `u::Matrix{Complex{E}}`: Temporary storage array.
 - `dSdx::Matrix{E}`: Stores the derivative of the action.
 - `Gup′::Matrix{T}`: Intermediate spin-up Green's function matrix during HMC trajectory.
 - `Gdn′::Matrix{T}`: Intermediate spin-down Green's function matrix during HMC trajectory.
-- `pfft::PFFT`: FFT plan to transform form imaginary time to frequency space.
-- `pifft::PIFFT`: Inverse FFT plan to trasform from frequency space back to imaginary time.
+- `efa::ExactFourierAccelerator{E,PFFT,PIFFT}`: Type to perform exact integration of equations of motion of quantum harmonic oscillator. 
 """
 struct EFAHMCUpdater{T<:Number, E<:AbstractFloat, PFFT, PIFFT}
 
@@ -31,32 +24,14 @@ struct EFAHMCUpdater{T<:Number, E<:AbstractFloat, PFFT, PIFFT}
     # Time-step
     Δt::E
 
-    # Mass regularization
-    reg::E
-
     # Amount of disorder in HMC time-step.
     δ::E
-
-    # fourier harmonic frequencies
-    ω::Matrix{E}
-
-    # mass in equation of motion
-    m::Matrix{E}
 
     # position space phonon field configuration
     x::Matrix{E}
 
     # momentum
     p::Matrix{E}
-
-    # fourier space phonon config
-    x̃::Matrix{Complex{E}}
-
-    # fourier space momentum
-    p̃::Matrix{Complex{E}}
-
-    # temporary storage space
-    u::Matrix{Complex{E}}
 
     # action derivatives
     dSdx::Matrix{E}
@@ -67,11 +42,8 @@ struct EFAHMCUpdater{T<:Number, E<:AbstractFloat, PFFT, PIFFT}
     # matrix to contain intermediate spin down Green's function matrices
     Gdn′::Matrix{T}
 
-    # forward FFT plan
-    pfft::PFFT
-
-    # reverse FFT plan
-    pifft::PIFFT
+    # exact fourier accelerator
+    efa::ExactFourierAccelerator{E,PFFT,PIFFT}
 end
 
 @doc raw"""
@@ -104,48 +76,18 @@ function EFAHMCUpdater(;
     δ::E = 0.05
 ) where {T<:Number, E<:AbstractFloat}
 
-    (; Δτ, phonon_parameters) = electron_phonon_parameters
+    (; β, Δτ, phonon_parameters, x) = electron_phonon_parameters
     (; Ω, M) = phonon_parameters
-    ω = zero(electron_phonon_parameters.x)
-    m = zero(ω)
-    x = zero(ω)
-    p = zero(ω)
-    x̃ = zeros(Complex{E}, size(ω))
-    p̃ = zeros(Complex{E}, size(ω))
-    u = zeros(Complex{E}, size(ω))
+    x0 = zero(x)
+    p = zero(x)
     dSdx = zero(x)
     Gup′ = zero(G)
     Gdn′ = zero(G)
-    pfft = plan_fft(x̃, (2,), flags=FFTW.PATIENT)
-    pifft = plan_ifft(x̃, (2,), flags=FFTW.PATIENT)
 
-    # length of imaginary time axis
-    Lτ = size(x, 2)
+    # allocate and initialize ExactFourierAccelerator
+    efa = ExactFourierAccelerator(Ω, M, β, Δτ, reg)
 
-    # iterate over fourier modes
-    for n in axes(x, 2)
-        # iterate over phonon modes
-        for i in axes(x, 1)
-            # if phonon mass is infinite
-            if isinf(M[i])
-                # set dynamical mass to infinity
-                m[i,n] = Inf
-                # set dynamical frequency to zero
-                ω[i,n] = 0.0
-            # if finite phonon mass
-            else
-                # calculate the spring constant
-                k = Δτ*M[i]*Ω[i]^2 + 4*M[i]*sin(π*(n-1)/Lτ)^2/Δτ
-                # calculate fourier mode mass
-                Ω′ = iszero(Ω[i]) ? reg : sqrt((1+reg^2) * Ω[i]^2)
-                m[i,n] = isinf(reg) ? Δτ*M[i] : Δτ*M[i] * (Ω′^2 + 4/Δτ^2*sin(π*(n-1)/Lτ)^2) / Ω′^2
-                # calculate fourier mode frequency
-                ω[i,n] = sqrt(k/m[i,n])
-            end
-        end
-    end
-
-    return EFAHMCUpdater(Nt, Δt, reg, δ, ω, m, x, p, x̃, p̃, u, dSdx, Gup′, Gdn′, pfft, pifft)
+    return EFAHMCUpdater(Nt, Δt, δ, x0, p, dSdx, Gup′, Gdn′, efa)
 end
 
 @doc raw"""
@@ -197,7 +139,7 @@ function hmc_update!(
     δ::E = hmc_updater.δ
 ) where {T, E, P<:AbstractPropagator{T,E}}
 
-    (; reg, pfft, pifft, m, p, dSdx, Gup′, Gdn′) = hmc_updater
+    (; p, dSdx, Gup′, Gdn′, efa) = hmc_updater
 
     Δτ = electron_phonon_parameters.Δτ::E
     holstein_parameters_up = electron_phonon_parameters.holstein_parameters_up::HolsteinParameters{E}
@@ -235,7 +177,7 @@ function hmc_update!(
     sgndetGdn′ = sgndetGdn
 
     # initialize momentum and calculate initial kinetic energy
-    K = kinetic_energy(p, hmc_updater, rng, initialize_momentum = true)
+    K = initialize_momentum!(p, efa, rng)
 
     # calculate initial bosonic action
     Sb = bosonic_action(electron_phonon_parameters)
@@ -257,7 +199,7 @@ function hmc_update!(
     # fermion path integrals to reflect the change in the phonon fields
     update!(fermion_path_integral_up, electron_phonon_parameters, x, -1, spin = +1)
     update!(fermion_path_integral_dn, electron_phonon_parameters, x, -1, spin = -1)
-    evolve_qho_action!(x, p, Δt/2, hmc_updater)
+    evolve_eom!(x, p, Δt/2, efa)
     recenter!(x)
     update!(fermion_path_integral_up, electron_phonon_parameters, x, +1, spin = +1)
     update!(fermion_path_integral_dn, electron_phonon_parameters, x, +1, spin = -1)
@@ -347,7 +289,7 @@ function hmc_update!(
         update!(fermion_path_integral_up, electron_phonon_parameters, x, -1, spin = +1)
         update!(fermion_path_integral_dn, electron_phonon_parameters, x, -1, spin = -1)
         Δt′ = (t==Nt) ? Δt/2 : Δt
-        evolve_qho_action!(x, p, Δt′, hmc_updater)
+        evolve_eom!(x, p, Δt′, efa)
         recenter!(x)
         update!(fermion_path_integral_up, electron_phonon_parameters, x, +1, spin = +1)
         update!(fermion_path_integral_dn, electron_phonon_parameters, x, +1, spin = -1)
@@ -378,7 +320,7 @@ function hmc_update!(
     if numerically_stable
 
         # calculate final kinetic energy
-        K′ = kinetic_energy(p, hmc_updater, rng, initialize_momentum = false)
+        K′ = kinetic_energy(p, efa)
 
         # calculate final bosonic action
         Sb′ = bosonic_action(electron_phonon_parameters)
@@ -504,7 +446,7 @@ function hmc_update!(
     δ::E = hmc_updater.δ
 ) where {T, E, P<:AbstractPropagator{T,E}}
 
-    (; m, p, dSdx) = hmc_updater
+    (; p, dSdx, efa) = hmc_updater
     G′ = hmc_updater.Gup′
 
     Δτ = electron_phonon_parameters.Δτ::E
@@ -541,7 +483,7 @@ function hmc_update!(
     sgndetG′ = sgndetG
 
     # initialize momentum and calculate initial kinetic energy
-    K = kinetic_energy(p, hmc_updater, rng, initialize_momentum = true)
+    K = initialize_momentum!(p, efa, rng)
 
     # calculate initial bosonic action
     Sb = bosonic_action(electron_phonon_parameters)
@@ -562,7 +504,7 @@ function hmc_update!(
     # evolve momentum and phonon fields according to bosonic action and update the
     # fermion path integrals to reflect the change in the phonon fields
     update!(fermion_path_integral, electron_phonon_parameters, x, -1)
-    evolve_qho_action!(x, p, Δt/2, hmc_updater)
+    evolve_eom!(x, p, Δt/2, efa)
     recenter!(x)
     update!(fermion_path_integral, electron_phonon_parameters, x, +1)
 
@@ -635,7 +577,7 @@ function hmc_update!(
         # fermion path integrals to reflect the change in the phonon fields
         update!(fermion_path_integral, electron_phonon_parameters, x, -1)
         Δt′ = (t==Nt) ? Δt/2 : Δt
-        evolve_qho_action!(x, p, Δt′, hmc_updater)
+        evolve_eom!(x, p, Δt′, efa)
         recenter!(x)
         update!(fermion_path_integral, electron_phonon_parameters, x, +1)
     end
@@ -659,7 +601,7 @@ function hmc_update!(
     if numerically_stable
 
         # calculate final kinetic energy
-        K′ = kinetic_energy(p, hmc_updater, rng, initialize_momentum = false)
+        K′ = kinetic_energy(p, efa)
 
         # calculate final bosonic action
         Sb′ = bosonic_action(electron_phonon_parameters)
@@ -733,136 +675,4 @@ function hmc_update!(
     end
 
     return (accepted, logdetG, sgndetG, δG, δθ)
-end
-
-
-# analytically evolve quantum harmonic oscillator action
-function evolve_qho_action!(
-    x::Matrix{E}, p::Matrix{E}, Δt::E,
-    hmc_updater::EFAHMCUpdater{T, E, PFFT, PIFFT}
-) where {T<:Number, E<:AbstractFloat, PFFT, PIFFT}
-
-    (; m, ω, x̃, p̃, u, pfft, pifft) = hmc_updater
-
-    # length of imaginary time axis
-    Lτ = size(x,2)
-
-    # fourier transform phonon fields from imaginary time to fourier space
-    @. u = x / sqrt(Lτ)
-    mul!(x̃, pfft, u)
-
-    # fourier transform momentum from imaginary time to fourier space
-    @. u = p / sqrt(Lτ)
-    mul!(p̃, pfft, u)
-
-    # iterate over fourier modes
-    @simd for n in axes(ω,2)
-        # iterate over phonon modes
-        for i in axes(ω,1)
-            # get relevant frequency
-            ωₙ = ω[i,n]
-            # get the relevant mass
-            mᵢ = m[i,n]
-            # make sure mass if finite
-            if isfinite(mᵢ)
-                # get initial position and momentum
-                x̃′ = x̃[i,n]
-                p̃′ = p̃[i,n]
-                # if finite frequency
-                if ωₙ > 1e-10
-                    # update position analytically
-                    x̃[i,n] = x̃′*cos(ωₙ*Δt) + p̃′/(ωₙ*mᵢ) * sin(ωₙ*Δt)
-                # if frequency is very near zero
-                elseif abs(ωₙ) ≤ 1e-10
-                    # update position numerically using taylor expansion of analytic expression
-                    x̃[i,n] = x̃′ + (Δt - Δt^3*ωₙ^2/6 + Δt^5*ωₙ^4/120) * p̃[i,n]/mᵢ
-                end
-                # update momentum
-                p̃[i,n] = p̃′*cos(ωₙ*Δt) - x̃′*(ωₙ*mᵢ) * sin(ωₙ*Δt)
-            end
-        end
-    end
-
-    # fourier transform phonon fields from fourier space to imaginary time
-    mul!(u, pifft, x̃)
-    @. x = real(u) * sqrt(Lτ)
-
-    # fourier transform momentum from fourier space to imaginary time
-    mul!(u, pifft, p̃)
-    @. p = real(u) * sqrt(Lτ)
-
-    return nothing
-end
-
-# calculate kinetic energy
-function kinetic_energy(
-    p::Matrix{E},
-    hmc_updater::EFAHMCUpdater{T, E, PFFT, PIFFT},
-    rng::AbstractRNG;
-    initialize_momentum::Bool = false
-) where {T<:Number, E<:AbstractFloat, PFFT, PIFFT}
-
-    (; m, p̃, reg, pfft, pifft, u) = hmc_updater
-
-    # length of imaginary time axis
-    Lτ = size(p, 2)
-
-    # if initializing momentum
-    if initialize_momentum
-
-        # sample random normal number
-        randn!(rng, p)
-    end
-
-    # initialize kinetic energy to zero
-    K = zero(E)
-
-    # if regularization is infinte
-    if isinf(reg)
-
-        # if initializing momentum
-        if initialize_momentum
-            # iterate over momentum
-            for i in eachindex(p)
-                # initialize momentum
-                p[i] = isinf(m[i]) ? 0.0 : sqrt(m[i]) * p[i]
-            end
-        end
-
-        # iterate over each momentum
-        for i in eachindex(p)
-            # calculate contribution to kinetic energy
-            K += isinf(m[i]) ? 0.0 : abs2(p[i])/(2*m[i])
-        end
-
-    # if finite regularization
-    else
-
-        # fourier transform momentum from imaginary time to fourier space
-        @. u = p / sqrt(Lτ)
-        mul!(p̃, pfft, u)
-
-        # if initializing momentum
-        if initialize_momentum
-            # iterate over momentum
-            for i in eachindex(p)
-                # initialize momentum
-                p̃[i] = isinf(m[i]) ? 0.0 : sqrt(m[i]) * p̃[i]
-            end
-        end
-
-        # iterate over each momentum
-        for i in eachindex(p)
-            # calculate contribution to kinetic energy
-            K += isinf(m[i]) ? 0.0 : abs2(p̃[i])/(2*m[i])
-        end
-
-        # fourier transform momentum from fourier space to imaginary time
-        if initialize_momentum
-            mul!(u, pifft, p̃)
-            @. p = real(u) * sqrt(Lτ)
-        end
-    end
-
-    return K
 end

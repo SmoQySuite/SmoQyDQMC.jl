@@ -184,7 +184,7 @@ function eval_tr_dΛdx_invΛ_A!(dSdx::AbstractVector{E}, x::AbstractVector{E},
         for c in 1:Nholstein
             # get the phonon associated with the coupling
             p = coupling_to_phonon[c]
-            # det the orbital whose density is getting coupled to
+            # get the orbital whose density is getting coupled to
             i = neighbor_table[2,c]
             # calculate the non-zero matrix element ∂Λ/∂x[i,i] associated with current holstein coupling,
             # recalling that Λ = exp(-Δτ⋅V), where V is the diagonal on-site energy matrix.
@@ -240,7 +240,6 @@ function eval_tr_dΓdx_invΓ_A!(dSdx::AbstractVector{E}, x::AbstractVector{E},
     return nothing
 end
 
-
 # evaluate ∂S/∂x += Tr[(∂Γ/∂x)⋅Γ⁻¹⋅A]
 function eval_tr_dΓdx_invΓ_A!(dSdx::AbstractVector{E}, x::AbstractVector{E},
                               Δτ::E, sgndetG::T, A::Matrix{T},
@@ -253,11 +252,12 @@ function eval_tr_dΓdx_invΓ_A!(dSdx::AbstractVector{E}, x::AbstractVector{E},
 
     # check if there are a finite number of ssh couplings
     if Nssh > 0
+        # copy original matrix
+        copyto!(A′, A)
+        # determine the order to iterate over the checkerboard colors in
+        color_order = Γ.transposed ? (1:Ncolors) : (Ncolors:-1:1)
         # iterate over checkerboard colors
-        for color in 1:Ncolors
-            # apply appropriate checkerboard transformation for the current checkerboard color
-            copyto!(A′, A)
-            cyclic_checkerboard_transformation!(A′, Γ, color)
+        for color in color_order
             # iterate over bounds for current color
             start = color_bounds[1,color]
             stop  = color_bounds[2,color]
@@ -295,6 +295,11 @@ function eval_tr_dΓdx_invΓ_A!(dSdx::AbstractVector{E}, x::AbstractVector{E},
                     end
                 end
             end
+            # apply the wrapping transformation A′ := Γₙ⁻¹⋅A′⋅Γₙ
+            if color != last(color_order)
+                ldiv!(Γ, A′, color)
+                rmul!(A′, Γ, color)
+            end
         end
     end
 
@@ -302,49 +307,109 @@ function eval_tr_dΓdx_invΓ_A!(dSdx::AbstractVector{E}, x::AbstractVector{E},
 end
 
 
-# apply cyclic checkerboard transformation
-function cyclic_checkerboard_transformation!(A::Matrix{T}, Γ::CheckerboardMatrix{T}, color::Int) where {T}
-
-    # note: Γₙ = exp(-Δτ⋅Kₙ) where Γₙ is checkerboard color matrix for color = n
-
-    # example Ncolors = 4, color = 2, transposed = false
-    # calculate A′ for
-    # Tr[(Γ₄⋅Γ₃⋅∂Γ₂/∂x⋅Γ₁)⋅(Γ₁⁻¹⋅Γ₂⁻¹⋅Γ₃⁻¹⋅Γ₄⁻¹)⋅A]
-    # = -Δτ⋅Tr[(Γ₄⋅Γ₃⋅∂K₂/∂x⋅Γ₂⋅Γ₁)⋅(Γ₁⁻¹⋅Γ₂⁻¹⋅Γ₃⁻¹⋅Γ₄⁻¹)⋅A]
-    # = -Δτ⋅Tr[Γ₄⋅Γ₃⋅∂K₂/∂x⋅Γ₃⁻¹⋅Γ₄⁻¹⋅A]
-    # = -Δτ⋅Tr[∂K₂/∂x⋅Γ₃⁻¹⋅Γ₄⁻¹⋅A⋅Γ₄⋅Γ₃]
-    # = -Δτ⋅Tr[∂K₂/∂x⋅A′], where A′ = Γ₃⁻¹⋅Γ₄⁻¹⋅A⋅Γ₄⋅Γ₃
-
-    # example Ncolors = 4, color = 3, transposed = true
-    # calculate A′ for
-    # Tr[(Γ₁⋅Γ₂⋅∂Γ₃/∂x⋅Γ₄)⋅(Γ₄⁻¹⋅Γ₃⁻¹⋅Γ₂⁻¹⋅Γ₁⁻¹)⋅A]
-    # = -Δτ⋅Tr[(Γ₁⋅Γ₂⋅∂K₃/∂x⋅Γ₃⋅Γ₄)⋅(Γ₄⁻¹⋅Γ₃⁻¹⋅Γ₂⁻¹⋅Γ₁⁻¹)⋅A]
-    # = -Δτ⋅Tr[Γ₁⋅Γ₂⋅∂K₃/∂x⋅Γ₂⁻¹⋅Γ₁⁻¹⋅A]
-    # = -Δτ⋅Tr[∂K₃/∂x⋅Γ₂⁻¹⋅Γ₁⁻¹⋅A⋅Γ₁⋅Γ₂]
-    # = -Δτ⋅Tr[∂K₃/∂x⋅A′] where A′ = Γ₂⁻¹⋅Γ₁⁻¹⋅A⋅Γ₁⋅Γ₂
-
-    # whether the checkerboard matrix is transposed
-    transposed = Γ.transposed::Bool
-
-    # total number of colors
-    Ncolors = Γ.Ncolors::Int
-
-    # checkerboard colors to iterate over and their order
-    colors = transposed ? (1:color-1) : (Ncolors:-1:(color+1))
-
-    # perform checkerboard transformation
-    for c in colors
-        # calculate A := Γₙ⁻¹⋅A⋅Γₙ
-        ldiv!(Γ, A, c)
-        rmul!(A, Γ, c)
-    end
-
-    return nothing
-end
-
-
 # return the inverse of the exponentiated hopping matrix for a propagator
-get_inv_exp_K(B::SymExactPropagator)   = B.exppΔτKo2
-get_inv_exp_K(B::AsymExactPropagator)  = B.exppΔτK
-get_inv_exp_K(B::SymChkbrdPropagator)  = inv(B.expmΔτKo2)
+get_inv_exp_K(B::SymExactPropagator) = B.exppΔτKo2
+get_inv_exp_K(B::AsymExactPropagator) = B.exppΔτK
+get_inv_exp_K(B::SymChkbrdPropagator) = inv(B.expmΔτKo2)
 get_inv_exp_K(B::AsymChkbrdPropagator) = inv(B.expmΔτK)
+
+
+# # evaluate ∂S/∂x += Tr[(∂Γ/∂x)⋅Γ⁻¹⋅A]
+# function eval_tr_dΓdx_invΓ_A!(dSdx::AbstractVector{E}, x::AbstractVector{E},
+#                               Δτ::E, sgndetG::T, A::Matrix{T},
+#                               ssh_parameters::SSHParameters{T},
+#                               Γ::CheckerboardMatrix{T}, M::Vector{E}, A′::Matrix{T}) where {T,E}
+
+#     (; Nssh, α, α2, α3, α4, coupling_to_phonon, hopping_to_couplings) = ssh_parameters
+#     (; Ncolors, perm, neighbor_table) = Γ
+#     color_bounds = Γ.colors
+
+#     # check if there are a finite number of ssh couplings
+#     if Nssh > 0
+#         # iterate over checkerboard colors
+#         for color in 1:Ncolors
+#             # apply appropriate checkerboard transformation for the current checkerboard color
+#             copyto!(A′, A)
+#             cyclic_checkerboard_transformation!(A′, Γ, color)
+#             # iterate over bounds for current color
+#             start = color_bounds[1,color]
+#             stop  = color_bounds[2,color]
+#             for n in start:stop
+#                 # get the hopping ID associated with the 2x2 checkerboard matrix
+#                 h = perm[n]
+#                 # get ssh coupling
+#                 h_to_c = hopping_to_couplings[h]
+#                 # if there is an ssh coupling associated with the hopping
+#                 if !isempty(h_to_c)
+#                     # iterate over ssh coupling associated with hopping
+#                     for c in h_to_c
+#                         # get the pair of phonons getting coupled
+#                         p  = coupling_to_phonon[1,c]
+#                         p′ = coupling_to_phonon[2,c]
+#                         # get the pair of orbitals that the coupled phonons live on
+#                         i = neighbor_table[1,n]
+#                         j = neighbor_table[2,n]
+#                         # calculate the difference in phonon position
+#                         Δx = x[p′] - x[p]
+#                         # if mass of initial phonon is finite
+#                         if isfinite(M[p])
+#                             # get off-diagonal matrix element of -Δτ⋅∂K/∂x
+#                             nΔτdKdx_ji = -Δτ * (-α[c] - 2*α2[c]*Δx - 3*α3[c]*Δx^2 - 4*α4[c]*Δx^3)
+#                             # evaluate Tr[(∂Γ/∂x)⋅A] = Tr[-Δτ⋅∂K/∂x⋅A′]
+#                             dSdx[p] += real(nΔτdKdx_ji * A′[i,j] + conj(nΔτdKdx_ji) * A′[j,i])
+#                         end
+#                         # if mass of final phonon is finite
+#                         if isfinite(M[p′])
+#                             # get off-diagonal matrix element of -Δτ⋅∂K/∂x
+#                             nΔτdKdx_ji = -Δτ * (α[c] + 2*α2[c]*Δx + 3*α3[c]*Δx^2 + 4*α4[c]*Δx^3)
+#                             # evaluate Tr[(∂Γ/∂x)⋅A] = Tr[-Δτ⋅∂K/∂x⋅A′]
+#                             dSdx[p′] += real(nΔτdKdx_ji * A′[i,j] + conj(nΔτdKdx_ji) * A′[j,i])
+#                         end
+#                     end
+#                 end
+#             end
+#         end
+#     end
+
+#     return nothing
+# end
+
+# # apply cyclic checkerboard transformation
+# function cyclic_checkerboard_transformation!(A::Matrix{T}, Γ::CheckerboardMatrix{T}, color::Int) where {T}
+
+#     # note: Γₙ = exp(-Δτ⋅Kₙ) where Γₙ is checkerboard color matrix for color = n
+
+#     # example Ncolors = 4, color = 2, transposed = false
+#     # calculate A′ for
+#     # Tr[(Γ₄⋅Γ₃⋅∂Γ₂/∂x⋅Γ₁)⋅(Γ₁⁻¹⋅Γ₂⁻¹⋅Γ₃⁻¹⋅Γ₄⁻¹)⋅A]
+#     # = -Δτ⋅Tr[(Γ₄⋅Γ₃⋅∂K₂/∂x⋅Γ₂⋅Γ₁)⋅(Γ₁⁻¹⋅Γ₂⁻¹⋅Γ₃⁻¹⋅Γ₄⁻¹)⋅A]
+#     # = -Δτ⋅Tr[Γ₄⋅Γ₃⋅∂K₂/∂x⋅Γ₃⁻¹⋅Γ₄⁻¹⋅A]
+#     # = -Δτ⋅Tr[∂K₂/∂x⋅Γ₃⁻¹⋅Γ₄⁻¹⋅A⋅Γ₄⋅Γ₃]
+#     # = -Δτ⋅Tr[∂K₂/∂x⋅A′], where A′ = Γ₃⁻¹⋅Γ₄⁻¹⋅A⋅Γ₄⋅Γ₃
+
+#     # example Ncolors = 4, color = 3, transposed = true
+#     # calculate A′ for
+#     # Tr[(Γ₁⋅Γ₂⋅∂Γ₃/∂x⋅Γ₄)⋅(Γ₄⁻¹⋅Γ₃⁻¹⋅Γ₂⁻¹⋅Γ₁⁻¹)⋅A]
+#     # = -Δτ⋅Tr[(Γ₁⋅Γ₂⋅∂K₃/∂x⋅Γ₃⋅Γ₄)⋅(Γ₄⁻¹⋅Γ₃⁻¹⋅Γ₂⁻¹⋅Γ₁⁻¹)⋅A]
+#     # = -Δτ⋅Tr[Γ₁⋅Γ₂⋅∂K₃/∂x⋅Γ₂⁻¹⋅Γ₁⁻¹⋅A]
+#     # = -Δτ⋅Tr[∂K₃/∂x⋅Γ₂⁻¹⋅Γ₁⁻¹⋅A⋅Γ₁⋅Γ₂]
+#     # = -Δτ⋅Tr[∂K₃/∂x⋅A′] where A′ = Γ₂⁻¹⋅Γ₁⁻¹⋅A⋅Γ₁⋅Γ₂
+
+#     # whether the checkerboard matrix is transposed
+#     transposed = Γ.transposed::Bool
+
+#     # total number of colors
+#     Ncolors = Γ.Ncolors::Int
+
+#     # checkerboard colors to iterate over and their order
+#     colors = transposed ? (1:color-1) : (Ncolors:-1:(color+1))
+
+#     # perform checkerboard transformation
+#     for c in colors
+#         # calculate A := Γₙ⁻¹⋅A⋅Γₙ
+#         ldiv!(Γ, A, c)
+#         rmul!(A, Γ, c)
+#     end
+
+#     return nothing
+# end

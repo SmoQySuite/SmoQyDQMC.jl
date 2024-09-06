@@ -4,17 +4,21 @@
 
 @doc raw"""
     process_measurements(
+        # ARGUMENTS
         folder::String,
         N_bins::Int,
         pIDs::Union{Vector{Int},Int} = Int[];
+        # KEYWORD ARGUMENTS
         time_displaced::Bool = false
     )
 
     process_measurements(
+        # ARGUMENTS
         comm::MPI.Comm,
         folder::String,
         N_bins::Int,
         pIDs::Union{Vector{Int},Int} = Int[];
+        # KEYWORD ARGUMENTS
         time_displaced::Bool = false
     )
 
@@ -25,9 +29,11 @@ as this can take a non-negligible amount of time for large system, especially wh
 Note that using `pIDs` argument you can filter which MPI walker to use when calculting the statistics.
 """
 function process_measurements(
+    # ARGUMENTS
     folder::String,
     N_bins::Int,
     pIDs::Union{Vector{Int},Int} = Int[];
+    # KEYWORD ARGUMENTS
     time_displaced::Bool = false
 )
 
@@ -65,10 +71,12 @@ end
 
 # same as above, but parallelizes data processing with MPI
 function process_measurements(
+    # ARGUMENTS
     comm::MPI.Comm,
     folder::String,
     N_bins::Int,
     pIDs::Union{Vector{Int},Int} = Int[];
+    # KEYWORD ARGUMENTS
     time_displaced::Bool = false
 )
 

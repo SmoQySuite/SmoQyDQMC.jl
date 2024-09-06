@@ -2,7 +2,7 @@
 EditURL = "../../../examples/holstein_chain.jl"
 ```
 
-Download this example as a [Julia script](../assets/scripts/holstein_chain.jl).
+Download this example as a [Julia script](../assets/scripts/examples/holstein_chain.jl).
 
 # Holstein Chain with Density Tuning
 
@@ -49,7 +49,7 @@ file `N_bins = 20` during the simulation.
 Below you will find the source code from the julia script linked at the top of this page,
 but with additional comments giving more detailed explanations for what certain parts of the code are doing.
 
-````@example holstein_chain
+````julia
 using LinearAlgebra
 using Random
 using Printf
