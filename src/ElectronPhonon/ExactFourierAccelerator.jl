@@ -1,5 +1,6 @@
 struct ExactFourierAccelerator{T<:AbstractFloat, PFFT, PIFFT}
 
+    η::T
     ω::Matrix{T}
     m::Matrix{T}
     x̃::Matrix{Complex{T}}
@@ -31,9 +32,9 @@ function ExactFourierAccelerator(
     u = zeros(Complex{T}, Nph, Lτ)
 
     # iterate over fourier modes
-    for n in axes(x, 2)
+    for n in axes(ω, 2)
         # iterate over phonon modes
-        for i in axes(x, 1)
+        for i in axes(ω, 1)
             # if phonon mass is infinite
             if isinf(M[i])
                 # set dynamical mass to infinity
@@ -57,7 +58,7 @@ function ExactFourierAccelerator(
     pfft = plan_fft(x̃, (2,), flags=FFTW.PATIENT)
     pifft = plan_ifft(x̃, (2,), flags=FFTW.PATIENT)
 
-    return ExactFourierAccelerator(ω, m, x̃, p̃, u, pfft, pifft)
+    return ExactFourierAccelerator(η, ω, m, x̃, p̃, u, pfft, pifft)
 end
 
 # function to exactly evolve the equation of motion of the harmonic bosonic action
@@ -126,7 +127,7 @@ function kinetic_energy(
     efa::ExactFourierAccelerator{T, PFFT, PIFFT},
 )::T where {T, PFFT, PIFFT}
 
-    (; η, u, pfft) = efa
+    (; p̃, m, η, u, pfft) = efa
     Lτ = size(p, 2)
 
     # if finite regularization, then transform to frequency space to calculate kinetic energy
@@ -141,7 +142,7 @@ function kinetic_energy(
     # calculate kinetic energy, setting terms with infinite mass to zero
     K = zero(T)
     for i in eachindex(p′)
-        K[i] += isinf(m[i]) ? 0.0 : abs2(p[i])/(2*m[i])
+        K += isinf(m[i]) ? 0.0 : abs2(p′[i])/(2*m[i])
     end
     
     return K
@@ -154,7 +155,7 @@ function initialize_momentum!(
     rng::AbstractRNG
 )::T where {T, PFFT, PIFFT}
 
-    (; η, u, pfft, pifft) = efa
+    (; p̃, m, η, u, pfft, pifft) = efa
     Lτ = size(p, 2)
 
     # sample vector of random normal numbers
@@ -177,7 +178,7 @@ function initialize_momentum!(
     # calculate kinetic energy, setting terms with infinite mass to zero
     K = zero(T)
     for i in eachindex(p′)
-        K[i] += isinf(m[i]) ? 0.0 : abs2(p′[i])/(2*m[i])
+        K += isinf(m[i]) ? 0.0 : abs2(p′[i])/(2*m[i])
     end
 
     # if finite regularization, then transform back to imaginary time

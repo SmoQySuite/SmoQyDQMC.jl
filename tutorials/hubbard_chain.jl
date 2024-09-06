@@ -62,11 +62,11 @@ function run_simulation(;
 
 # ## Initialize simulation
 # In this first part of the script we name and initialize our simulation, creating the data folder our simulation results will be written to.
-# We then initialize an instances [`SimulationInfo`](@ref) type as well as an `additional_info` dictionary where we will store useful metadata about the simulation.
-# Finally, the integer `seed` is used to initialize the number generator `rng` that will be used to generate random numbers throughout the rest of the simulation.
+# This is done by initializing an instances of the [`SimulationInfo`](@ref) type, as well as an `additional_info` dictionary where we will store useful metadata about the simulation.
+# Finally, the integer `seed` is used to initialize the random number generator `rng` that will be used to generate random numbers throughout the rest of the simulation.
 
-# Next we record the simulation parameters about the simulation in the `additional_info` dictionary.
-# Think of `additional_info` as a place to record any additional information during the simulation that will not otherwise be automatically recorded and written to file.
+# Next we record relevant simulation parameters to the `additional_info` dictionary.
+# Think of the `additional_info` dictionary as a place to record any additional information during the simulation that will not otherwise be automatically recorded and written to file.
 
 ## Construct the foldername the data will be written to.
 datafolder_prefix = @sprintf "hubbard_chain_U%.2f_mu%.2f_L%d_b%.2f" U μ L β
@@ -100,21 +100,21 @@ additional_info["seed"] = seed
 # In the above, `sID` stands for simulation ID, which is used to distinguish simulations that would otherwise be identical i.e. to
 # distinguish simulations that use the same parameters and are only different in the random seed used to initialize the simulation.
 # A valid `sID` is any positive integer greater than zero, and is used when naming the data folder the simulation results will be written to.
-# Specifically, the the actual data folder created above will be `$(filepath)/$(datafolder_prefix)-$(sID)`.
-# Note that if you set `sID = 0`, then it will instead be assigned smallest previously unused integer value. For instance, suppose the direcotry
-# `$(filepath)/$(datafolder_prefix)-1` already exits. Then if you pass `sID = 0` to [`SimulationInfo`](@ref), then the simulation ID
-# `sID = 2` will be used instead, and a directory `$(filepath)/$(datafolder_prefix)-2` will be created.
+# Specifically, the the actual data folder created above will be `"$(filepath)/$(datafolder_prefix)-$(sID)"`.
+# Note that if you set `sID = 0`, then it will instead be assigned smallest previously unused integer value. For instance, suppose the directory
+# `"$(filepath)/$(datafolder_prefix)-1"` already exits. Then if you pass `sID = 0` to [`SimulationInfo`](@ref), then the simulation ID
+# `sID = 2` will be used instead, and a directory `"$(filepath)/$(datafolder_prefix)-2"` will be created.
 
 # Another useful resource in the documentation is the [Simulation Output Overview](@ref) page, which describes the output written to the
 # data folder generated during a [SmoQyDQMC](https://github.com/SmoQySuite/SmoQyDQMC.jl.git) simulation.
 
 # ## Initialize model
 # The next step is define the model we wish to simulate.
-# In this example the relevant model parameters are the Hubbard interaction strength `U`, chemical potential `μ`, and lattice size `L`.
+# In this example the relevant model parameters are the Hubbard interaction strength ``U`` (`U`), chemical potential ``\mu`` (`μ`), and lattice size ``L`` (`L`).
 
 # First we define the lattice geometry for our model, relying on the
 # [LatticeUtilities](https://github.com/SmoQySuite/LatticeUtilities.jl.git) package to do so.
-# We define a the unit cell and size of our finite lattice using the [`UnitCell`](https://smoqysuite.github.io/LatticeUtilities.jl/stable/api/#LatticeUtilities.UnitCell) type,
+# We define a the unit cell and size of our finite lattice using the [`UnitCell`](https://smoqysuite.github.io/LatticeUtilities.jl/stable/api/#LatticeUtilities.UnitCell)
 # and [`Lattice`](https://smoqysuite.github.io/LatticeUtilities.jl/stable/api/#LatticeUtilities.Lattice) types, respectively.
 # Lastly, we define an instance of the [`Bond`](https://smoqysuite.github.io/LatticeUtilities.jl/stable/api/#LatticeUtilities.Bond) type to represent the
 # nearest-neighbor bond.
@@ -148,7 +148,7 @@ bond = lu.Bond(
 ## Add this bond definition to the model, by adding it the model_geometry.
 bond_id = add_bond!(model_geometry, bond)
 
-# Next we specify the non-interacting tight-binding term in our model with the [`TightBindingModel`](@ref) type.
+# Next we specify the non-interacting tight-binding term in our Hamiltonian with the [`TightBindingModel`](@ref) type.
 
 ## Define the non-interacting tight-binding model.
 tight_binding_model = TightBindingModel(
@@ -173,11 +173,11 @@ hubbard_model = HubbardModel(
 
 # Note that most terms in our model can support random disorder.
 # However, we have suppressed this behavior by setting all relevant standard deviations in model values to zero.
-# If these standard devaitions were not specified they would have also defaulted to zero; we explicitly set
-# them to zero here to highlitght the presence of this additional functionality that we will not be using.
+# If these standard devaitions were not specified they would have also defaulted to zero
+# We explicitly set them to zero here to simply highlight the presence of this functionality even though we are not using it.
 
-# Lastly, the [`model_summary`](@ref) function writes a `model_summary.toml` file
-# that completely describes the Hamiltonian being simulated.
+# Lastly, the [`model_summary`](@ref) function is used to write a `model_summary.toml` file,
+# completely specifying the Hamiltonian that will be simulated.
 
 ## Write model summary TOML file specifying Hamiltonian that will be simulated.
 model_summary(
@@ -224,7 +224,7 @@ hubbard_stratonovich_params = HubbardIsingHSParameters(
 # containing the HS fields that will be sampled during the DQMC simulation.
 
 # ## Initialize meuasurements
-# Having initialized both our model and correspond model parameters,
+# Having initialized both our model and the corresponding model parameters,
 # the next step is to initialize the various measurements we want to make during our DQMC simulation.
 # This includes defining the various types of correlation measurements that will be made, which is done
 # using the [`initialize_correlation_measurements!`](@ref) function. The [`initialize_measurement_directories`](@ref)
@@ -232,7 +232,7 @@ hubbard_stratonovich_params = HubbardIsingHSParameters(
 # written to. Again, for more information refer to the [Simulation Output Overview](@ref) page.
 
 # Here the arguments `β` and `Δτ` correspond to the inverse temperature and imaginary-time axis discretization constant,
-# which were passed as arguments with default values to the `run_simulation` function.
+# which were passed as arguments to the `run_simulation` function.
 
 ## Initialize the container that measurements will be accumulated into.
 measurement_container = initialize_measurement_container(model_geometry, β, Δτ)
@@ -289,7 +289,7 @@ initialize_measurement_directories(simulation_info, measurement_container)
 # This section of the code sets up the DQMC simulation by allocating the initializing the relevant types and arrays we will need in the simulation.
 
 # This section of code is perhaps the most opaque and difficult to understand, and will be discussed in more detail once written.
-# That said, you do not need to fully comprehend everything that goes on in this sction as most of it is fairly boilerplate,
+# That said, you do not need to fully comprehend everything that goes on in this section as most of it is fairly boilerplate,
 # and will not need to be changed much once written.
 # This is true even if you want to modify this script to perform a DQMC simulation for a different Hamiltonian.
 
@@ -333,7 +333,7 @@ Gdn_0τ = similar(Gdn) # Gdn(0,τ)
 δG = zero(logdetGup)
 δθ = zero(sgndetGup)
 
-# At the start of this section of the code two [`FermionPathIntegral`](@ref) type were allocated, one for each electron spin species.
+# At the start of this section, two instances of the [`FermionPathIntegral`](@ref) type are allocated, one for each electron spin species.
 # Recall that after performing a HS transformation to decouple the Hubbard interaction, the resulting
 # Hamiltonian is quadratic in fermion creation and annihilation operators, but fluctuates in imaginary-time as a result of introducing the HS fields.
 # Therefore, this Hamiltonian may be expressed as
@@ -362,11 +362,11 @@ Gdn_0τ = similar(Gdn) # Gdn(0,τ)
 # If `checkerboard = true`, then the exponentiated kinetic energy matrices ``e^{-\Delta\tau K_{\sigma,l}} \ \left( \text{ or } e^{-\Delta\tau K_{\sigma,l}/2} \right)``
 # are represented using the sparse checkerboard approximation, otherwise they are computed exactly.
 
-# Next two instances of the [`FermionGreensCalculator`](https://smoqysuite.github.io/JDQMCFramework.jl/stable/api/#JDQMCFramework.FermionGreensCalculator)
+# Next, two instances of the [`FermionGreensCalculator`](https://smoqysuite.github.io/JDQMCFramework.jl/stable/api/#JDQMCFramework.FermionGreensCalculator)
 # type are initialized, which are used to take care of numerical stabilization behind the scenes in the DQMC simulation.
 # Here `n_stab` is the period in imaginary-time with which numerical stabilization is performed, and is typically on the order of ``n_{\rm stab} \sim 10.``
 
-# Next we allocate and initialize the the equal-time Green's function matrix ``G_\sigma(0,0)`` for both spin species (`Gup` and `Gdn`).
+# Now we allocate and initialize the the equal-time Green's function matrix ``G_\sigma(0,0)`` for both spin species (`Gup` and `Gdn`).
 # The initiliazation process also returns ``\log | \det G_\sigma(0,0) |`` (`logdetGup` and `logdetGdn`) and ``{\rm sgn} \det G_\sigma(0,0)`` (`sgndetGup` and `sgndetGdn`).
 
 # Finally, we allocate matrices to represent the equal-time and time-displaced Green's function matrices ``G_\sigma(\tau,\tau)`` (`Gup_ττ` and `Gdn_ττ`),
@@ -384,15 +384,15 @@ Gdn_0τ = similar(Gdn) # Gdn(0,τ)
 
 # ## Thermalize system
 # The next section of code performs updates to thermalize the system prior to beginning measurements.
-# The structure of this function should be fairly inuitive, mainly consisting of a loop inside of which a sweep
-# through all imaginary-time slices and orbitals is performed, and an update to each HS field is attempted.
-# The first argument to the function is `N_therm`, the number of thermalization sweeps we want to perform.
+# The structure of this function should be fairly inuitive, mainly consisting of a loop inside of which the [`local_updates!`](@ref) function
+# is called to sweep through all imaginary-time slices and orbitals, attempting an update to each HS field.
+# Here, `N_therm` the number of thermalization sweeps that will be performed.
 
 # Lastly, if the [`local_updates!`](@ref) argument `update_stabilization_frequency = true`, then the `δG_max` parameter acts a maximum threshold for `δG`.
 # If `δG` exceeds `δG_max`, then `n_stab` is decrimented by one (the frequency of numerical stabilization is increased) and `δG` is reset to zero.
 # In the case `update_stabilization_frequency = false`,
 # then `δG_max` doesn't do anything and `n_stab` remains unchanged during the simulation,
-# with `δG` simply reporting the maximum observed numerical error during the simulation.
+# with `δG` is simply reporting the maximum observed numerical error during the simulation.
 
 ## Initialize average acceptance rate variable.
 avg_acceptance_rate = 0.0
@@ -418,12 +418,12 @@ end
 
 # ## Make measurements
 # In this next section of code we continue to sample the HS field with [`local_updates!`](@ref) function, but begin making measurements as well.
-# Here `N_updates` refers to the number of time [`local_updates!`](@ref),
+# Here, `N_updates` refers to the number of times [`local_updates!`](@ref) is called,
 # as well as the number of times measurements are made using the [`make_measurements!`](@ref) function.
-# The parameter `N_bins` controls the number of times bin-averaged measurements are written to file as binary
+# The parameter `N_bins` then controls the number of times bin-averaged measurements are written to binary
 # [JLD2](https://github.com/JuliaIO/JLD2.jl.git) files, subject to the constraint that `(N_updates % N_bins) == 0`.
 # Therefore, the number of measurements that are averaged over per bin is given by `bin_size = N_updates ÷ N_bins`.
-# The bin-averaged measurements are then written to file once `bin_size` measurements are accumulated using the [`write_measurements!`](@ref) function.
+# The bin-averaged measurements are written to file once `bin_size` measurements are accumulated using the [`write_measurements!`](@ref) function.
 
 ## Reset diagonostic parameters used to monitor numerical stability to zero.
 δG = zero(logdetGup)
@@ -492,7 +492,7 @@ avg_acceptance_rate /=  (N_therm + N_updates)
 # Lastly, it is worth mentioning that running many DQMC simulations will generate many seperate binary files, which can eventually exceed the file quota limit on the system.
 # To help prevent this problem from arising, we can use the function [`compress_jld2_bins`](@ref)
 # to merge all the seperate [JLD2](https://github.com/JuliaIO/JLD2.jl.git) binary files into a single compressed one.
-# However, to go back and reanalyze the binned binary data  in the future, it will first need to be decompressed using the [`decompress_jld2_bins`](@ref).
+# However, to go back and reanalyze the binned binary data  in the future, it will first need to be decompressed using the [`decompress_jld2_bins`](@ref) method.
 # Alternately, if storage space becomes an issue and you are certain that you no longer need binary binned data, you can delete it using the [`delete_jld2_bins`](@ref) function.
 # Keep in mind though, once the binned binary data is deleted it cannot be recovered!
 
@@ -510,7 +510,7 @@ return nothing
 end # end of run_simulation function
 
 # ## Execute script
-# Typically, DQMC simulations are typically run from the command line as jobs on a computing cluster.
+# DQMC simulations are typically run from the command line as jobs on a computing cluster.
 # With this in mind, the following block of code only executes if the Julia script is run from the command line,
 # also reading in additional command line arguments.
 
@@ -535,7 +535,7 @@ end
 # > julia hubbard_chain.jl 1 4.0 0.0 16 5.0 2500 10000 100
 # ```
 # runs a DQMC simulation of a ``L = 16`` site Hubbard chain at half-filling ``(\mu = 0),`` with interaction strength ``U = 4,``
-# at inverse temperature ``\beta = 5``. In the DQMC simulation ``2500`` sweeps through the
-# lattice would be performed to thermalize the system. Then an additional ``10,000`` sweeps would be performed,
-# after each of which measurements would be made. During the simulation bin-averaged measurements would be
-# written to file ``100`` times, where each bin records the average of ``10,000/100 = 100`` sequential measurements.
+# at inverse temperature ``\beta = 5``. In the DQMC simulation, ``2500`` sweeps through the
+# lattice are be performed to thermalize the system. Then an additional ``10,000`` sweeps are performed,
+# after each of which measurements are be made. During the simulation, bin-averaged measurements are
+# written to file ``100`` times, with each bin of data containing the average of ``10,000/100 = 100`` sequential measurements.
