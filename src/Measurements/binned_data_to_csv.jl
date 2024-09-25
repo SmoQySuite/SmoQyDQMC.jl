@@ -367,7 +367,7 @@ function _write_correlations_to_csv(fout::IO, correlation_folder::String, global
 
             # write the specific correlation value to file
             val = correlation[c]
-            @printf(fout, "%d %d %d%.8f %.8f %.8f %.8f\n", bin, pID, index, real(val), imag(val), real(sgn), imag(sgn))
+            @printf(fout, "%d %d %d %.8f %.8f %.8f %.8f\n", bin, pID, index, real(val), imag(val), real(sgn), imag(sgn))
         end
     end
 
