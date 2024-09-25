@@ -48,13 +48,25 @@ function initialize_measurement_container(
     # initialize integrated correlation measurement dictionary
     integrated_correlations = Dict{String, CorrelationContainer{D,T}}()
 
+    # initialize time displaced correlation measurement dictionary
+    equaltime_composite_correlations = Dict{String, CompositeCorrelationContainer{D,T}}()
+
+    # initialize time displaced correlation measurement dictionary
+    time_displaced_composite_correlations = Dict{String, CompositeCorrelationContainer{D+1,T}}()
+
+    # initialize integrated correlation measurement dictionary
+    integrated_composite_correlations = Dict{String, CompositeCorrelationContainer{D,T}}()
+
     # initialize measurement container
     measurement_container = (
-        global_measurements         = global_measurements,
-        local_measurements          = local_measurements,
-        equaltime_correlations      = equaltime_correlations,
-        time_displaced_correlations = time_displaced_correlations,
-        integrated_correlations     = integrated_correlations,
+        global_measurements                   = global_measurements,
+        local_measurements                    = local_measurements,
+        equaltime_correlations                = equaltime_correlations,
+        time_displaced_correlations           = time_displaced_correlations,
+        integrated_correlations               = integrated_correlations,
+        equaltime_composite_correlations      = equaltime_composite_correlations,
+        time_displaced_composite_correlations = time_displaced_composite_correlations,
+        integrated_composite_correlations     = integrated_composite_correlations,
         L                           = L,
         Lτ                          = Lτ,
         a                           = zeros(Complex{T}, L..., Lτ),
@@ -293,7 +305,8 @@ end
     initialize_correlation_measurements!(;
         measurement_container::NamedTuple,
         model_geometry::ModelGeometry{D,T,N},
-        correlation::String, pairs::AbstractVector{NTuple{2,Int}},
+        correlation::String,
+        pairs::AbstractVector{NTuple{2,Int}},
         time_displaced::Bool,
         integrated::Bool = false
     )  where {T<:AbstractFloat, D, N}
@@ -308,30 +321,36 @@ If `time_displaced = false` and `integrated = true`, then both equal-time and in
 function initialize_correlation_measurements!(;
     measurement_container::NamedTuple,
     model_geometry::ModelGeometry{D,T,N},
-    correlation::String, pairs::AbstractVector{NTuple{2,Int}},
+    correlation::String,
+    pairs::AbstractVector{NTuple{2,Int}},
     time_displaced::Bool,
     integrated::Bool = false
 )  where {T<:AbstractFloat, D, N}
 
     # iterate over all bond/orbial ID pairs
     for pair in pairs
-        initialize_correlation_measurement!(measurement_container = measurement_container,
-                                            model_geometry = model_geometry,
-                                            correlation = correlation,
-                                            pair = pair,
-                                            time_displaced = time_displaced,
-                                            integrated = integrated)
+        initialize_correlation_measurement!(
+            measurement_container = measurement_container,
+            model_geometry = model_geometry,
+            correlation = correlation,
+            pair = pair,
+            time_displaced = time_displaced,
+            integrated = integrated
+        )
     end
 
     return nothing
 end
 
 # initialize a single correlation measurement
-function initialize_correlation_measurement!(; measurement_container::NamedTuple,
-                                             model_geometry::ModelGeometry{D,T,N},
-                                             correlation::String, pair::NTuple{2,Int},
-                                             time_displaced::Bool,
-                                             integrated::Bool = false)  where {T<:AbstractFloat, D, N}
+function initialize_correlation_measurement!(;
+    measurement_container::NamedTuple,
+    model_geometry::ModelGeometry{D,T,N},
+    correlation::String,
+    pair::NTuple{2,Int},
+    time_displaced::Bool,
+    integrated::Bool = false
+)  where {T<:AbstractFloat, D, N}
 
     (; time_displaced_correlations, integrated_correlations, equaltime_correlations) = measurement_container
 
@@ -393,6 +412,47 @@ function initialize_correlation_measurement!(; measurement_container::NamedTuple
     return nothing
 end
 
+
+###################################################
+## INITIALIZE COMPOSITE CORRELATION MEASUREMENTS ##
+###################################################
+
+function initialize_composite_correlation_measurement!(;
+    measurement_container::NamedTuple,
+    model_geometry::ModelGeometry{D,T,N},
+    name::String,
+    correlation::String,
+    ids,
+    coefficients,
+    time_displaced::Bool,
+    integrated::Bool = false
+)  where {T<:AbstractFloat, D, N}
+
+    (; time_displaced_composite_correlations,
+       integrated_composite_correlations,
+       equaltime_composite_correlations
+    ) = measurement_container
+
+    @assert correlation in keys(CORRELATION_FUNCTIONS)
+    @assert length(ids) == length(coefficients)
+
+    # extent of lattice in unit cells
+    L = measurement_container.L
+
+    # length of imaginary time axis
+    Lτ = measurement_container.Lτ
+
+    # if time displaced or integrated measurement should be made
+    if time_displaced || integrated
+        time_displaced_composite_correlations[name] = CompositeCorrelationContainer(T, Lτ, L, correlation, ids, coefficients, time_displaced)
+        integrated_composite_correlations[name] = CompositeCorrelationContainer(T, L, correlation, ids, coefficients)
+    # if equal-time measurement should be made
+    else
+        equaltime_composite_correlations[name] = CompositeCorrelationContainer(T, L, correlation, ids, coefficients)
+    end
+
+    return nothing
+end
 
 ################################################
 ## INITIALIZE MEASUREMENT DIRECTORY STRUCTURE ##

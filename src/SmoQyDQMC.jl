@@ -179,6 +179,9 @@ export CORRELATION_FUNCTIONS
 # Define CorrelationContainer struct to store correlation measurements in.
 include("Measurements/CorrelationContainer.jl")
 
+# Define CompositeCorrelationContainer struct to store composite correlation measurements
+include("Measurements/CompositeCorrelationContainer.jl")
+
 # initialize measurement container
 include("Measurements/initialize_measurements.jl")
 export initialize_measurement_container

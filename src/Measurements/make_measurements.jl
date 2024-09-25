@@ -578,9 +578,9 @@ function make_local_measurements!(
     return nothing
 end
 
-############################################
-## MAKE CORRELATION FUNCTION MEASUREMENTS ##
-############################################
+#######################################################
+## MAKE EQUAL-TIME CORRELATION FUNCTION MEASUREMENTS ##
+#######################################################
 
 # make purely electronic equal-time correlation measurements
 function make_equaltime_measurements!(
@@ -616,58 +616,51 @@ function make_equaltime_measurements!(
 
             for i in eachindex(id_pairs)
                 pair = id_pairs[i]
-                correlation = correlations[i]
-                greens!(correlation, pair[2], pair[1], unit_cell, lattice, Gup_τ0, sgn/2)
-                greens!(correlation, pair[2], pair[1], unit_cell, lattice, Gdn_τ0, sgn/2)
+                greens!(correlations[i], pair[2], pair[1], unit_cell, lattice, Gup_τ0, sgn/2)
+                greens!(correlations[i], pair[2], pair[1], unit_cell, lattice, Gdn_τ0, sgn/2)
             end
 
         elseif correlation == "greens_up"
 
             for i in eachindex(id_pairs)
                 pair = id_pairs[i]
-                correlation = correlations[i]
-                greens!(correlation, pair[2], pair[1], unit_cell, lattice, Gup_τ0, sgn)
+                greens!(correlations[i], pair[2], pair[1], unit_cell, lattice, Gup_τ0, sgn)
             end
 
         elseif correlation == "greens_dn"
 
             for i in eachindex(id_pairs)
                 pair = id_pairs[i]
-                correlation = correlations[i]
-                greens!(correlation, pair[2], pair[1], unit_cell, lattice, Gdn_τ0, sgn)
+                greens!(correlations[i], pair[2], pair[1], unit_cell, lattice, Gdn_τ0, sgn)
             end
 
         elseif correlation == "greens_tautau"
 
             for i in eachindex(id_pairs)
                 pair = id_pairs[i]
-                correlation = correlations[i]
-                greens!(correlation, pair[2], pair[1], unit_cell, lattice, Gup_τ0, sgn/2)
-                greens!(correlation, pair[2], pair[1], unit_cell, lattice, Gdn_τ0, sgn/2)
+                greens!(correlations[i], pair[2], pair[1], unit_cell, lattice, Gup_τ0, sgn/2)
+                greens!(correlations[i], pair[2], pair[1], unit_cell, lattice, Gdn_τ0, sgn/2)
             end
 
         elseif correlation == "greens_tautau_up"
 
             for i in eachindex(id_pairs)
                 pair = id_pairs[i]
-                correlation = correlations[i]
-                greens!(correlation, pair[2], pair[1], unit_cell, lattice, Gup_τ0, sgn)
+                greens!(correlations[i], pair[2], pair[1], unit_cell, lattice, Gup_τ0, sgn)
             end
 
         elseif correlation == "greens_tautau_dn"
 
             for i in eachindex(id_pairs)
                 pair = id_pairs[i]
-                correlation = correlations[i]
-                greens!(correlation, pair[2], pair[1], unit_cell, lattice, Gdn_τ0, sgn)
+                greens!(correlations[i], pair[2], pair[1], unit_cell, lattice, Gdn_τ0, sgn)
             end    
 
         elseif correlation == "density_upup"
 
             for i in eachindex(id_pairs)
                 pair = id_pairs[i]
-                correlation = correlations[i]
-                density_correlation!(correlation, pair[2], pair[1], unit_cell, lattice,
+                density_correlation!(correlations[i], pair[2], pair[1], unit_cell, lattice,
                                      Gup_τ0, Gup_0τ, Gup_ττ, Gup, +1, +1, sgn)
             end
 
@@ -675,8 +668,7 @@ function make_equaltime_measurements!(
 
             for i in eachindex(id_pairs)
                 pair = id_pairs[i]
-                correlation = correlations[i]
-                density_correlation!(correlation, pair[2], pair[1], unit_cell, lattice,
+                density_correlation!(correlations[i], pair[2], pair[1], unit_cell, lattice,
                                      Gdn_τ0, Gdn_0τ, Gdn_ττ, Gdn, -1, -1, sgn)
             end
 
@@ -684,8 +676,7 @@ function make_equaltime_measurements!(
 
             for i in eachindex(id_pairs)
                 pair = id_pairs[i]
-                correlation = correlations[i]
-                density_correlation!(correlation, pair[2], pair[1], unit_cell, lattice,
+                density_correlation!(correlations[i], pair[2], pair[1], unit_cell, lattice,
                                      Gup_τ0, Gup_0τ, Gup_ττ, Gdn, +1, -1, sgn)
             end
 
@@ -693,8 +684,7 @@ function make_equaltime_measurements!(
 
             for i in eachindex(id_pairs)
                 pair = id_pairs[i]
-                correlation = correlations[i]
-                density_correlation!(correlation, pair[2], pair[1], unit_cell, lattice,
+                density_correlation!(correlations[i], pair[2], pair[1], unit_cell, lattice,
                                      Gdn_τ0, Gdn_0τ, Gdn_ττ, Gup, -1, +1, sgn)
             end
 
@@ -702,8 +692,7 @@ function make_equaltime_measurements!(
 
             for i in eachindex(id_pairs)
                 pair = id_pairs[i]
-                correlation = correlations[i]
-                density_correlation!(correlation, pair[2], pair[1], unit_cell, lattice,
+                density_correlation!(correlations[i], pair[2], pair[1], unit_cell, lattice,
                                      Gup_τ0, Gup_0τ, Gup_ττ, Gup, Gdn_τ0, Gdn_0τ, Gdn_ττ, Gdn, sgn)
             end
 
@@ -711,8 +700,7 @@ function make_equaltime_measurements!(
 
             for i in eachindex(id_pairs)
                 pair = id_pairs[i]
-                correlation = correlations[i]
-                pair_correlation!(correlation, bonds[pair[2]], bonds[pair[1]], unit_cell, lattice,
+                pair_correlation!(correlations[i], bonds[pair[2]], bonds[pair[1]], unit_cell, lattice,
                                   Gup_τ0, Gdn_τ0, sgn)
             end
 
@@ -720,8 +708,7 @@ function make_equaltime_measurements!(
 
             for i in eachindex(id_pairs)
                 pair = id_pairs[i]
-                correlation = correlations[i]
-                spin_x_correlation!(correlation, pair[2], pair[1], unit_cell, lattice,
+                spin_x_correlation!(correlations[i], pair[2], pair[1], unit_cell, lattice,
                                     Gup_τ0, Gup_0τ, Gdn_τ0, Gdn_0τ, sgn)
             end
 
@@ -729,8 +716,7 @@ function make_equaltime_measurements!(
 
             for i in eachindex(id_pairs)
                 pair = id_pairs[i]
-                correlation = correlations[i]
-                spin_z_correlation!(correlation, pair[2], pair[1], unit_cell, lattice,
+                spin_z_correlation!(correlations[i], pair[2], pair[1], unit_cell, lattice,
                                     Gup_τ0, Gup_0τ, Gup_ττ, Gup, Gdn_τ0, Gdn_0τ, Gdn_ττ, Gdn, sgn)
             end
 
@@ -738,8 +724,7 @@ function make_equaltime_measurements!(
 
             for i in eachindex(id_pairs)
                 pair = id_pairs[i]
-                correlation = correlations[i]
-                bond_correlation!(correlation, bonds[pair[2]], bonds[pair[1]], unit_cell, lattice,
+                bond_correlation!(correlations[i], bonds[pair[2]], bonds[pair[1]], unit_cell, lattice,
                                   Gup_τ0, Gup_0τ, Gup_ττ, Gup, +1, +1, sgn)
             end
 
@@ -747,8 +732,7 @@ function make_equaltime_measurements!(
 
             for i in eachindex(id_pairs)
                 pair = id_pairs[i]
-                correlation = correlations[i]
-                bond_correlation!(correlation, bonds[pair[2]], bonds[pair[1]], unit_cell, lattice,
+                bond_correlation!(correlations[i], bonds[pair[2]], bonds[pair[1]], unit_cell, lattice,
                                   Gdn_τ0, Gdn_0τ, Gdn_ττ, Gdn, -1, -1, sgn)
             end
 
@@ -756,8 +740,7 @@ function make_equaltime_measurements!(
 
             for i in eachindex(id_pairs)
                 pair = id_pairs[i]
-                correlation = correlations[i]
-                bond_correlation!(correlation, bonds[pair[2]], bonds[pair[1]], unit_cell, lattice,
+                bond_correlation!(correlations[i], bonds[pair[2]], bonds[pair[1]], unit_cell, lattice,
                                   Gup_τ0, Gup_0τ, Gup_ττ, Gdn, +1, -1, sgn)
             end
 
@@ -765,8 +748,7 @@ function make_equaltime_measurements!(
 
             for i in eachindex(id_pairs)
                 pair = id_pairs[i]
-                correlation = correlations[i]
-                bond_correlation!(correlation, bonds[pair[2]], bonds[pair[1]], unit_cell, lattice,
+                bond_correlation!(correlations[i], bonds[pair[2]], bonds[pair[1]], unit_cell, lattice,
                                   Gdn_τ0, Gdn_0τ, Gdn_ττ, Gup, -1, +1, sgn)
             end
 
@@ -774,8 +756,7 @@ function make_equaltime_measurements!(
 
             for i in eachindex(id_pairs)
                 pair = id_pairs[i]
-                correlation = correlations[i]
-                bond_correlation!(correlation, bonds[pair[2]], bonds[pair[1]], unit_cell, lattice,
+                bond_correlation!(correlations[i], bonds[pair[2]], bonds[pair[1]], unit_cell, lattice,
                                   Gup_τ0, Gup_0τ, Gup_ττ, Gup, Gdn_τ0, Gdn_0τ, Gdn_ττ, Gdn, sgn)
             end
 
@@ -805,8 +786,7 @@ function make_equaltime_measurements!(
                 tup1 = @view tup[bond_slices[hopping_id_1], Lτ]
                 tup1′ = reshape(tup1, lattice.L...)
                 # measure the current-current correlation
-                correlation = correlations[i]
-                current_correlation!(correlation, bond_1, bond_0, tup1′, tup0′, unit_cell, lattice,
+                current_correlation!(correlations[i], bond_1, bond_0, tup1′, tup0′, unit_cell, lattice,
                                      Gup_τ0, Gup_0τ, Gup_ττ, Gup, +1, +1, sgn)
             end
 
@@ -836,8 +816,7 @@ function make_equaltime_measurements!(
                 tdn1 = @view tdn[bond_slices[hopping_id_1], Lτ]
                 tdn1′ = reshape(tdn1, lattice.L...)
                 # measure the current-current correlation
-                correlation = correlations[i]
-                current_correlation!(correlation, bond_1, bond_0, tdn1′, tdn0′, unit_cell, lattice,
+                current_correlation!(correlations[i], bond_1, bond_0, tdn1′, tdn0′, unit_cell, lattice,
                                      Gdn_τ0, Gdn_0τ, Gdn_ττ, Gdn, -1, -1, sgn)
             end
 
@@ -868,8 +847,7 @@ function make_equaltime_measurements!(
                 tdn0 = @view tdn[bond_slices[hopping_id_0], Lτ]
                 tdn0′ = reshape(tdn0, lattice.L...)
                 # measure the current-current correlation
-                correlation = correlations[i]
-                current_correlation!(correlation, bond_1, bond_0, tup1′, tdn0′, unit_cell, lattice,
+                current_correlation!(correlations[i], bond_1, bond_0, tup1′, tdn0′, unit_cell, lattice,
                                     Gup_τ0, Gup_0τ, Gup_ττ, Gdn, +1, -1, sgn)
             end
 
@@ -900,8 +878,7 @@ function make_equaltime_measurements!(
                 tdn1 = @view tdn[bond_slices[hopping_id_1], Lτ]
                 tdn1′ = reshape(tdn1, lattice.L...)
                 # measure the current-current correlation
-                correlation = correlations[i]
-                current_correlation!(correlation, bond_1, bond_0, tdn1′, tup0′, unit_cell, lattice,
+                current_correlation!(correlations[i], bond_1, bond_0, tdn1′, tup0′, unit_cell, lattice,
                                      Gdn_τ0, Gdn_0τ, Gdn_ττ, Gup, -1, +1, sgn)
             end
 
@@ -936,8 +913,357 @@ function make_equaltime_measurements!(
                 tdn1 = @view tdn[bond_slices[hopping_id_1], Lτ]
                 tdn1′ = reshape(tdn1, lattice.L...)
                 # measure the current-current correlation
-                correlation = correlations[i]
-                current_correlation!(correlation, bond_1, bond_0, tup1′, tup0′, tdn1′, tdn0′, unit_cell, lattice,
+                current_correlation!(correlations[i], bond_1, bond_0, tup1′, tup0′, tdn1′, tdn0′, unit_cell, lattice,
+                                     Gup_τ0, Gup_0τ, Gup_ττ, Gup, Gdn_τ0, Gdn_0τ, Gdn_ττ, Gdn, sgn)
+            end
+        end
+    end
+
+    return nothing
+end
+
+#################################################################
+## MAKE EQUAL-TIME COMPOSITE CORRELATION FUNCTION MEASUREMENTS ##
+#################################################################
+
+# make purely electronic equal-time composite correlation measurements
+function make_equaltime_composite_measurements!(
+    equaltime_composite_correlations::Dict{String, CompositeCorrelationContainer{D,E}}, sgn::T,
+    Gup::AbstractMatrix{T}, Gup_ττ::AbstractMatrix{T}, Gup_τ0::AbstractMatrix{T}, Gup_0τ::AbstractMatrix{T},
+    Gdn::AbstractMatrix{T}, Gdn_ττ::AbstractMatrix{T}, Gdn_τ0::AbstractMatrix{T}, Gdn_0τ::AbstractMatrix{T},
+    model_geometry::ModelGeometry{D,E,N},
+    tight_binding_parameters_up::TightBindingParameters{T,E},
+    tight_binding_parameters_dn::TightBindingParameters{T,E},
+    fermion_path_integral_up::FermionPathIntegral{T,E},
+    fermion_path_integral_dn::FermionPathIntegral{T,E}
+) where {T<:Number, E<:AbstractFloat, D, N}
+
+    Lτ = fermion_path_integral_up.Lτ::Int
+    unit_cell = model_geometry.unit_cell::UnitCell{D,E,N}
+    lattice = model_geometry.lattice::Lattice{D}
+    bonds = model_geometry.bonds::Vector{Bond{D}}
+
+    # note that for equal-time measurements:
+    # Gup_τ0 = Gup and Gdn_τ0 = Gdn
+    # Gup_ττ = Gup and Gdn_ττ = Gdn
+    # Gup_0τ = Gup-I and Gdn_0τ = Gdn-I
+
+    # iterate over equal-time correlation function getting measured
+    for name in keys(equaltime_composite_correlations)
+        
+        composite_correlation_container = equaltime_correlations[name]::CorrelationContainer{D,E}
+        correlation = composite_correlation_container.correlation::String
+        ids = composite_correlation_container.ids
+        bond_ids = composite_correlation_container.bond_ids
+        coefficients = composite_correlation_container.coefficients
+
+
+        id_pairs = correlation_container.id_pairs::Vector{NTuple{2,Int}}
+        bond_id_pairs = correlation_container.bond_id_pairs::Vector{NTuple{2,Int}}
+        correlations = correlation_container.correlations::Vector{Array{Complex{E}, D}}
+
+        if correlation == "greens"
+
+            for i in eachindex(id_pairs)
+                pair = id_pairs[i]
+                greens!(correlations[i], pair[2], pair[1], unit_cell, lattice, Gup_τ0, sgn/2)
+                greens!(correlations[i], pair[2], pair[1], unit_cell, lattice, Gdn_τ0, sgn/2)
+            end
+
+        elseif correlation == "greens_up"
+
+            for i in eachindex(id_pairs)
+                pair = id_pairs[i]
+                greens!(correlations[i], pair[2], pair[1], unit_cell, lattice, Gup_τ0, sgn)
+            end
+
+        elseif correlation == "greens_dn"
+
+            for i in eachindex(id_pairs)
+                pair = id_pairs[i]
+                greens!(correlations[i], pair[2], pair[1], unit_cell, lattice, Gdn_τ0, sgn)
+            end
+
+        elseif correlation == "greens_tautau"
+
+            for i in eachindex(id_pairs)
+                pair = id_pairs[i]
+                greens!(correlations[i], pair[2], pair[1], unit_cell, lattice, Gup_τ0, sgn/2)
+                greens!(correlations[i], pair[2], pair[1], unit_cell, lattice, Gdn_τ0, sgn/2)
+            end
+
+        elseif correlation == "greens_tautau_up"
+
+            for i in eachindex(id_pairs)
+                pair = id_pairs[i]
+                greens!(correlations[i], pair[2], pair[1], unit_cell, lattice, Gup_τ0, sgn)
+            end
+
+        elseif correlation == "greens_tautau_dn"
+
+            for i in eachindex(id_pairs)
+                pair = id_pairs[i]
+                greens!(correlations[i], pair[2], pair[1], unit_cell, lattice, Gdn_τ0, sgn)
+            end    
+
+        elseif correlation == "density_upup"
+
+            for i in eachindex(id_pairs)
+                pair = id_pairs[i]
+                density_correlation!(correlations[i], pair[2], pair[1], unit_cell, lattice,
+                                     Gup_τ0, Gup_0τ, Gup_ττ, Gup, +1, +1, sgn)
+            end
+
+        elseif correlation == "density_dndn"
+
+            for i in eachindex(id_pairs)
+                pair = id_pairs[i]
+                density_correlation!(correlations[i], pair[2], pair[1], unit_cell, lattice,
+                                     Gdn_τ0, Gdn_0τ, Gdn_ττ, Gdn, -1, -1, sgn)
+            end
+
+        elseif correlation == "density_updn"
+
+            for i in eachindex(id_pairs)
+                pair = id_pairs[i]
+                density_correlation!(correlations[i], pair[2], pair[1], unit_cell, lattice,
+                                     Gup_τ0, Gup_0τ, Gup_ττ, Gdn, +1, -1, sgn)
+            end
+
+        elseif correlation == "density_dnup"
+
+            for i in eachindex(id_pairs)
+                pair = id_pairs[i]
+                density_correlation!(correlations[i], pair[2], pair[1], unit_cell, lattice,
+                                     Gdn_τ0, Gdn_0τ, Gdn_ττ, Gup, -1, +1, sgn)
+            end
+
+        elseif correlation == "density"
+
+            for i in eachindex(id_pairs)
+                pair = id_pairs[i]
+                density_correlation!(correlations[i], pair[2], pair[1], unit_cell, lattice,
+                                     Gup_τ0, Gup_0τ, Gup_ττ, Gup, Gdn_τ0, Gdn_0τ, Gdn_ττ, Gdn, sgn)
+            end
+
+        elseif correlation == "pair"
+
+            for i in eachindex(id_pairs)
+                pair = id_pairs[i]
+                pair_correlation!(correlations[i], bonds[pair[2]], bonds[pair[1]], unit_cell, lattice,
+                                  Gup_τ0, Gdn_τ0, sgn)
+            end
+
+        elseif correlation == "spin_x"
+
+            for i in eachindex(id_pairs)
+                pair = id_pairs[i]
+                spin_x_correlation!(correlations[i], pair[2], pair[1], unit_cell, lattice,
+                                    Gup_τ0, Gup_0τ, Gdn_τ0, Gdn_0τ, sgn)
+            end
+
+        elseif correlation == "spin_z"
+
+            for i in eachindex(id_pairs)
+                pair = id_pairs[i]
+                spin_z_correlation!(correlations[i], pair[2], pair[1], unit_cell, lattice,
+                                    Gup_τ0, Gup_0τ, Gup_ττ, Gup, Gdn_τ0, Gdn_0τ, Gdn_ττ, Gdn, sgn)
+            end
+
+        elseif correlation == "bond_upup"
+
+            for i in eachindex(id_pairs)
+                pair = id_pairs[i]
+                bond_correlation!(correlations[i], bonds[pair[2]], bonds[pair[1]], unit_cell, lattice,
+                                  Gup_τ0, Gup_0τ, Gup_ττ, Gup, +1, +1, sgn)
+            end
+
+        elseif correlation == "bond_dndn"
+
+            for i in eachindex(id_pairs)
+                pair = id_pairs[i]
+                bond_correlation!(correlations[i], bonds[pair[2]], bonds[pair[1]], unit_cell, lattice,
+                                  Gdn_τ0, Gdn_0τ, Gdn_ττ, Gdn, -1, -1, sgn)
+            end
+
+        elseif correlation == "bond_updn"
+
+            for i in eachindex(id_pairs)
+                pair = id_pairs[i]
+                bond_correlation!(correlations[i], bonds[pair[2]], bonds[pair[1]], unit_cell, lattice,
+                                  Gup_τ0, Gup_0τ, Gup_ττ, Gdn, +1, -1, sgn)
+            end
+
+        elseif correlation == "bond_dnup"
+
+            for i in eachindex(id_pairs)
+                pair = id_pairs[i]
+                bond_correlation!(correlations[i], bonds[pair[2]], bonds[pair[1]], unit_cell, lattice,
+                                  Gdn_τ0, Gdn_0τ, Gdn_ττ, Gup, -1, +1, sgn)
+            end
+
+        elseif correlation == "bond"
+
+            for i in eachindex(id_pairs)
+                pair = id_pairs[i]
+                bond_correlation!(correlations[i], bonds[pair[2]], bonds[pair[1]], unit_cell, lattice,
+                                  Gup_τ0, Gup_0τ, Gup_ττ, Gup, Gdn_τ0, Gdn_0τ, Gdn_ττ, Gdn, sgn)
+            end
+
+        elseif correlation == "current_upup"
+
+            (; bond_ids, bond_slices) = tight_binding_parameters_up
+            tup = fermion_path_integral_up.t
+
+            for i in eachindex(id_pairs)
+                # get the hopping IDs associated with current operators
+                id_pair = id_pairs[1]
+                hopping_id_0 = id_pair[1]
+                hopping_id_1 = id_pair[2]
+                # get the bond IDs associated with the hopping IDs
+                bond_id_0 = bond_ids[hopping_id_0]
+                bond_id_1 = bond_ids[hopping_id_1]
+                # record bond id pair for current correlation measurement if not already recorded
+                if (bond_id_pairs[i][1] == 0) && (bond_id_pairs[i][2] == 0)
+                    bond_id_pairs[i] = (bond_id_0, bond_id_1)
+                end
+                # get the bond definitions
+                bond_0 = bonds[bond_id_0]
+                bond_1 = bonds[bond_id_1]
+                # get the effective hopping amptlitudes for each of the two hopping ID's in question
+                tup0 = @view tup[bond_slices[hopping_id_0], Lτ]
+                tup0′ = reshape(tup0, lattice.L...)
+                tup1 = @view tup[bond_slices[hopping_id_1], Lτ]
+                tup1′ = reshape(tup1, lattice.L...)
+                # measure the current-current correlation
+                current_correlation!(correlations[i], bond_1, bond_0, tup1′, tup0′, unit_cell, lattice,
+                                     Gup_τ0, Gup_0τ, Gup_ττ, Gup, +1, +1, sgn)
+            end
+
+        elseif correlation == "current_dndn"
+
+            (; bond_ids, bond_slices) = tight_binding_parameters_dn
+            tdn = fermion_path_integral_dn.t
+
+            for i in eachindex(id_pairs)
+                # get the hopping IDs associated with current operators
+                id_pair = id_pairs[1]
+                hopping_id_0 = id_pair[1]
+                hopping_id_1 = id_pair[2]
+                # get the bond IDs associated with the hopping IDs
+                bond_id_0 = bond_ids[hopping_id_0]
+                bond_id_1 = bond_ids[hopping_id_1]
+                # record bond id pair for current correlation measurement if not already recorded
+                if (bond_id_pairs[i][1] == 0) && (bond_id_pairs[i][2] == 0)
+                    bond_id_pairs[i] = (bond_id_0, bond_id_1)
+                end
+                # get the bond definitions
+                bond_0 = bonds[bond_id_0]
+                bond_1 = bonds[bond_id_1]
+                # get the effective hopping amptlitudes for each of the two hopping ID's in question
+                tdn0 = @view tdn[bond_slices[hopping_id_0], Lτ]
+                tdn0′ = reshape(tdn0, lattice.L...)
+                tdn1 = @view tdn[bond_slices[hopping_id_1], Lτ]
+                tdn1′ = reshape(tdn1, lattice.L...)
+                # measure the current-current correlation
+                current_correlation!(correlations[i], bond_1, bond_0, tdn1′, tdn0′, unit_cell, lattice,
+                                     Gdn_τ0, Gdn_0τ, Gdn_ττ, Gdn, -1, -1, sgn)
+            end
+
+        elseif correlation == "current_updn"
+
+            (; bond_ids, bond_slices) = tight_binding_parameters_up
+            tup = fermion_path_integral_up.t
+            tdn = fermion_path_integral_dn.t
+
+            for i in eachindex(id_pairs)
+                # get the hopping IDs associated with current operators
+                id_pair = id_pairs[1]
+                hopping_id_0 = id_pair[1]
+                hopping_id_1 = id_pair[2]
+                # get the bond IDs associated with the hopping IDs
+                bond_id_0 = bond_ids[hopping_id_0]
+                bond_id_1 = bond_ids[hopping_id_1]
+                # record bond id pair for current correlation measurement if not already recorded
+                if (bond_id_pairs[i][1] == 0) && (bond_id_pairs[i][2] == 0)
+                    bond_id_pairs[i] = (bond_id_0, bond_id_1)
+                end
+                # get the bond definitions
+                bond_0 = bonds[bond_id_0]
+                bond_1 = bonds[bond_id_1]
+                # get the effective hopping amptlitudes for each of the two hopping ID's in question
+                tup1 = @view tup[bond_slices[hopping_id_1], Lτ]
+                tup1′ = reshape(tup1, lattice.L...)
+                tdn0 = @view tdn[bond_slices[hopping_id_0], Lτ]
+                tdn0′ = reshape(tdn0, lattice.L...)
+                # measure the current-current correlation
+                current_correlation!(correlations[i], bond_1, bond_0, tup1′, tdn0′, unit_cell, lattice,
+                                    Gup_τ0, Gup_0τ, Gup_ττ, Gdn, +1, -1, sgn)
+            end
+
+        elseif correlation == "current_dnup"
+
+            (; bond_ids, bond_slices) = tight_binding_parameters_up
+            tup = fermion_path_integral_up.t
+            tdn = fermion_path_integral_dn.t
+
+            for i in eachindex(id_pairs)
+                # get the hopping IDs associated with current operators
+                id_pair = id_pairs[1]
+                hopping_id_0 = id_pair[1]
+                hopping_id_1 = id_pair[2]
+                # get the bond IDs associated with the hopping IDs
+                bond_id_0 = bond_ids[hopping_id_0]
+                bond_id_1 = bond_ids[hopping_id_1]
+                # record bond id pair for current correlation measurement if not already recorded
+                if (bond_id_pairs[i][1] == 0) && (bond_id_pairs[i][2] == 0)
+                    bond_id_pairs[i] = (bond_id_0, bond_id_1)
+                end
+                # get the bond definitions
+                bond_0 = bonds[bond_id_0]
+                bond_1 = bonds[bond_id_1]
+                # get the effective hopping amptlitudes for each of the two hopping ID's in question
+                tup0 = @view tup[bond_slices[hopping_id_0], Lτ]
+                tup0′ = reshape(tup0, lattice.L...)
+                tdn1 = @view tdn[bond_slices[hopping_id_1], Lτ]
+                tdn1′ = reshape(tdn1, lattice.L...)
+                # measure the current-current correlation
+                current_correlation!(correlations[i], bond_1, bond_0, tdn1′, tup0′, unit_cell, lattice,
+                                     Gdn_τ0, Gdn_0τ, Gdn_ττ, Gup, -1, +1, sgn)
+            end
+
+        elseif correlation == "current"
+
+            (; bond_ids, bond_slices) = tight_binding_parameters_up
+            tup = fermion_path_integral_up.t
+            tdn = fermion_path_integral_dn.t
+
+            for i in eachindex(id_pairs)
+                # get the hopping IDs associated with current operators
+                id_pair = id_pairs[1]
+                hopping_id_0 = id_pair[1]
+                hopping_id_1 = id_pair[2]
+                # get the bond IDs associated with the hopping IDs
+                bond_id_0 = bond_ids[hopping_id_0]
+                bond_id_1 = bond_ids[hopping_id_1]
+                # record bond id pair for current correlation measurement if not already recorded
+                if (bond_id_pairs[i][1] == 0) && (bond_id_pairs[i][2] == 0)
+                    bond_id_pairs[i] = (bond_id_0, bond_id_1)
+                end
+                # get the bond definitions
+                bond_0 = bonds[bond_id_0]
+                bond_1 = bonds[bond_id_1]
+                # get the effective hopping amptlitudes for each of the two hopping ID's in question
+                tup0 = @view tup[bond_slices[hopping_id_0], Lτ]
+                tup0′ = reshape(tup0, lattice.L...)
+                tup1 = @view tup[bond_slices[hopping_id_1], Lτ]
+                tup1′ = reshape(tup1, lattice.L...)
+                tdn0 = @view tdn[bond_slices[hopping_id_0], Lτ]
+                tdn0′ = reshape(tdn0, lattice.L...)
+                tdn1 = @view tdn[bond_slices[hopping_id_1], Lτ]
+                tdn1′ = reshape(tdn1, lattice.L...)
+                # measure the current-current correlation
+                current_correlation!(correlations[i], bond_1, bond_0, tup1′, tup0′, tdn1′, tdn0′, unit_cell, lattice,
                                      Gup_τ0, Gup_0τ, Gup_ττ, Gup, Gdn_τ0, Gdn_0τ, Gdn_ττ, Gdn, sgn)
             end
         end
@@ -978,58 +1304,58 @@ function make_time_displaced_measurements!(time_displaced_correlations::Dict{Str
 
             for i in eachindex(id_pairs)
                 pair = id_pairs[i]
-                correlation = selectdim(correlations[i], D+1, l+1)
-                greens!(correlation, pair[2], pair[1], unit_cell, lattice, Gup_τ0, sgn/2)
-                greens!(correlation, pair[2], pair[1], unit_cell, lattice, Gdn_τ0, sgn/2)
+                correlation_array = selectdim(correlations[i], D+1, l+1)
+                greens!(correlation_array, pair[2], pair[1], unit_cell, lattice, Gup_τ0, sgn/2)
+                greens!(correlation_array, pair[2], pair[1], unit_cell, lattice, Gdn_τ0, sgn/2)
             end
 
         elseif correlation == "greens_up"
 
             for i in eachindex(id_pairs)
                 pair = id_pairs[i]
-                correlation = selectdim(correlations[i], D+1, l+1)
-                greens!(correlation, pair[2], pair[1], unit_cell, lattice, Gup_τ0, sgn)
+                correlation_array = selectdim(correlations[i], D+1, l+1)
+                greens!(correlation_array, pair[2], pair[1], unit_cell, lattice, Gup_τ0, sgn)
             end
 
         elseif correlation == "greens_dn"
 
             for i in eachindex(id_pairs)
                 pair = id_pairs[i]
-                correlation = selectdim(correlations[i], D+1, l+1)
-                greens!(correlation, pair[2], pair[1], unit_cell, lattice, Gdn_τ0, sgn)
+                correlation_array = selectdim(correlations[i], D+1, l+1)
+                greens!(correlation_array, pair[2], pair[1], unit_cell, lattice, Gdn_τ0, sgn)
             end
 
         elseif correlation == "greens_tautau"
 
             for i in eachindex(id_pairs)
                 pair = id_pairs[i]
-                correlation = selectdim(correlations[i], D+1, l+1)
-                greens!(correlation, pair[2], pair[1], unit_cell, lattice, Gup_ττ, sgn/2)
-                greens!(correlation, pair[2], pair[1], unit_cell, lattice, Gdn_ττ, sgn/2)
+                correlation_array = selectdim(correlations[i], D+1, l+1)
+                greens!(correlation_array, pair[2], pair[1], unit_cell, lattice, Gup_ττ, sgn/2)
+                greens!(correlation_array, pair[2], pair[1], unit_cell, lattice, Gdn_ττ, sgn/2)
             end
 
         elseif correlation == "greens_tautau_up"
 
             for i in eachindex(id_pairs)
                 pair = id_pairs[i]
-                correlation = selectdim(correlations[i], D+1, l+1)
-                greens!(correlation, pair[2], pair[1], unit_cell, lattice, Gup_ττ, sgn)
+                correlation_array = selectdim(correlations[i], D+1, l+1)
+                greens!(correlation_array, pair[2], pair[1], unit_cell, lattice, Gup_ττ, sgn)
             end
 
         elseif correlation == "greens_tautau_dn"
 
             for i in eachindex(id_pairs)
                 pair = id_pairs[i]
-                correlation = selectdim(correlations[i], D+1, l+1)
-                greens!(correlation, pair[2], pair[1], unit_cell, lattice, Gdn_ττ, sgn)
+                correlation_array = selectdim(correlations[i], D+1, l+1)
+                greens!(correlation_array, pair[2], pair[1], unit_cell, lattice, Gdn_ττ, sgn)
             end
 
         elseif correlation == "density_upup"
 
             for i in eachindex(id_pairs)
                 pair = id_pairs[i]
-                correlation = selectdim(correlations[i], D+1, l+1)
-                density_correlation!(correlation, pair[2], pair[1], unit_cell, lattice,
+                correlation_array = selectdim(correlations[i], D+1, l+1)
+                density_correlation!(correlation_array, pair[2], pair[1], unit_cell, lattice,
                                      Gup_τ0, Gup_0τ, Gup_ττ, Gup, +1, +1, sgn)
             end
 
@@ -1037,8 +1363,8 @@ function make_time_displaced_measurements!(time_displaced_correlations::Dict{Str
 
             for i in eachindex(id_pairs)
                 pair = id_pairs[i]
-                correlation = selectdim(correlations[i], D+1, l+1)
-                density_correlation!(correlation, pair[2], pair[1], unit_cell, lattice,
+                correlation_array = selectdim(correlations[i], D+1, l+1)
+                density_correlation!(correlation_array, pair[2], pair[1], unit_cell, lattice,
                                      Gdn_τ0, Gdn_0τ, Gdn_ττ, Gdn, -1, -1, sgn)
             end
 
@@ -1046,8 +1372,8 @@ function make_time_displaced_measurements!(time_displaced_correlations::Dict{Str
 
             for i in eachindex(id_pairs)
                 pair = id_pairs[i]
-                correlation = selectdim(correlations[i], D+1, l+1)
-                density_correlation!(correlation, pair[2], pair[1], unit_cell, lattice,
+                correlation_array = selectdim(correlations[i], D+1, l+1)
+                density_correlation!(correlation_array, pair[2], pair[1], unit_cell, lattice,
                                      Gup_τ0, Gup_0τ, Gup_ττ, Gdn, +1, -1, sgn)
             end
 
@@ -1055,8 +1381,8 @@ function make_time_displaced_measurements!(time_displaced_correlations::Dict{Str
 
             for i in eachindex(id_pairs)
                 pair = id_pairs[i]
-                correlation = selectdim(correlations[i], D+1, l+1)
-                density_correlation!(correlation, pair[2], pair[1], unit_cell, lattice,
+                correlation_array = selectdim(correlations[i], D+1, l+1)
+                density_correlation!(correlation_array, pair[2], pair[1], unit_cell, lattice,
                                      Gdn_τ0, Gdn_0τ, Gdn_ττ, Gup, -1, +1, sgn)
             end
 
@@ -1064,8 +1390,8 @@ function make_time_displaced_measurements!(time_displaced_correlations::Dict{Str
 
             for i in eachindex(id_pairs)
                 pair = id_pairs[i]
-                correlation = selectdim(correlations[i], D+1, l+1)
-                density_correlation!(correlation, pair[2], pair[1], unit_cell, lattice,
+                correlation_array = selectdim(correlations[i], D+1, l+1)
+                density_correlation!(correlation_array, pair[2], pair[1], unit_cell, lattice,
                                      Gup_τ0, Gup_0τ, Gup_ττ, Gup, Gdn_τ0, Gdn_0τ, Gdn_ττ, Gdn, sgn)
             end
 
@@ -1073,8 +1399,8 @@ function make_time_displaced_measurements!(time_displaced_correlations::Dict{Str
 
             for i in eachindex(id_pairs)
                 pair = id_pairs[i]
-                correlation = selectdim(correlations[i], D+1, l+1)
-                pair_correlation!(correlation, bonds[pair[2]], bonds[pair[1]], unit_cell, lattice,
+                correlation_array = selectdim(correlations[i], D+1, l+1)
+                pair_correlation!(correlation_array, bonds[pair[2]], bonds[pair[1]], unit_cell, lattice,
                                   Gup_τ0, Gdn_τ0, sgn)
             end
 
@@ -1082,8 +1408,8 @@ function make_time_displaced_measurements!(time_displaced_correlations::Dict{Str
 
             for i in eachindex(id_pairs)
                 pair = id_pairs[i]
-                correlation = selectdim(correlations[i], D+1, l+1)
-                spin_x_correlation!(correlation, pair[2], pair[1], unit_cell, lattice,
+                correlation_array = selectdim(correlations[i], D+1, l+1)
+                spin_x_correlation!(correlation_array, pair[2], pair[1], unit_cell, lattice,
                                     Gup_τ0, Gup_0τ, Gdn_τ0, Gdn_0τ, sgn)
             end
 
@@ -1091,8 +1417,8 @@ function make_time_displaced_measurements!(time_displaced_correlations::Dict{Str
 
             for i in eachindex(id_pairs)
                 pair = id_pairs[i]
-                correlation = selectdim(correlations[i], D+1, l+1)
-                spin_z_correlation!(correlation, pair[2], pair[1], unit_cell, lattice,
+                correlation_array = selectdim(correlations[i], D+1, l+1)
+                spin_z_correlation!(correlation_array, pair[2], pair[1], unit_cell, lattice,
                                     Gup_τ0, Gup_0τ, Gup_ττ, Gup, Gdn_τ0, Gdn_0τ, Gdn_ττ, Gdn, sgn)
             end
 
@@ -1100,8 +1426,8 @@ function make_time_displaced_measurements!(time_displaced_correlations::Dict{Str
 
             for i in eachindex(id_pairs)
                 pair = id_pairs[i]
-                correlation = selectdim(correlations[i], D+1, l+1)
-                bond_correlation!(correlation, bonds[pair[2]], bonds[pair[1]], unit_cell, lattice,
+                correlation_array = selectdim(correlations[i], D+1, l+1)
+                bond_correlation!(correlation_array, bonds[pair[2]], bonds[pair[1]], unit_cell, lattice,
                                   Gup_τ0, Gup_0τ, Gup_ττ, Gup, +1, +1, sgn)
             end
 
@@ -1109,8 +1435,8 @@ function make_time_displaced_measurements!(time_displaced_correlations::Dict{Str
 
             for i in eachindex(id_pairs)
                 pair = id_pairs[i]
-                correlation = selectdim(correlations[i], D+1, l+1)
-                bond_correlation!(correlation, bonds[pair[2]], bonds[pair[1]], unit_cell, lattice,
+                correlation_array = selectdim(correlations[i], D+1, l+1)
+                bond_correlation!(correlation_array, bonds[pair[2]], bonds[pair[1]], unit_cell, lattice,
                                   Gdn_τ0, Gdn_0τ, Gdn_ττ, Gdn, -1, -1, sgn)
             end
 
@@ -1118,8 +1444,8 @@ function make_time_displaced_measurements!(time_displaced_correlations::Dict{Str
 
             for i in eachindex(id_pairs)
                 pair = id_pairs[i]
-                correlation = selectdim(correlations[i], D+1, l+1)
-                bond_correlation!(correlation, bonds[pair[2]], bonds[pair[1]], unit_cell, lattice,
+                correlation_array = selectdim(correlations[i], D+1, l+1)
+                bond_correlation!(correlation_array, bonds[pair[2]], bonds[pair[1]], unit_cell, lattice,
                                   Gup_τ0, Gup_0τ, Gup_ττ, Gdn, +1, -1, sgn)
             end
 
@@ -1127,8 +1453,8 @@ function make_time_displaced_measurements!(time_displaced_correlations::Dict{Str
 
             for i in eachindex(id_pairs)
                 pair = id_pairs[i]
-                correlation = selectdim(correlations[i], D+1, l+1)
-                bond_correlation!(correlation, bonds[pair[2]], bonds[pair[1]], unit_cell, lattice,
+                correlation_array = selectdim(correlations[i], D+1, l+1)
+                bond_correlation!(correlation_array, bonds[pair[2]], bonds[pair[1]], unit_cell, lattice,
                                   Gdn_τ0, Gdn_0τ, Gdn_ττ, Gup, -1, +1, sgn)
             end
 
@@ -1136,8 +1462,8 @@ function make_time_displaced_measurements!(time_displaced_correlations::Dict{Str
 
             for i in eachindex(id_pairs)
                 pair = id_pairs[i]
-                correlation = selectdim(correlations[i], D+1, l+1)
-                bond_correlation!(correlation, bonds[pair[2]], bonds[pair[1]], unit_cell, lattice,
+                correlation_array = selectdim(correlations[i], D+1, l+1)
+                bond_correlation!(correlation_array, bonds[pair[2]], bonds[pair[1]], unit_cell, lattice,
                                   Gup_τ0, Gup_0τ, Gup_ττ, Gup, Gdn_τ0, Gdn_0τ, Gdn_ττ, Gdn, sgn)
             end
         
@@ -1167,8 +1493,8 @@ function make_time_displaced_measurements!(time_displaced_correlations::Dict{Str
                 tup1 = @view tup[bond_slices[hopping_id_1], mod1(l,Lτ)]
                 tup1′ = reshape(tup1, lattice.L...)
                 # measure the current-current correlation
-                correlation = selectdim(correlations[i], D+1, l+1)
-                current_correlation!(correlation, bond_1, bond_0, tup1′, tup0′, unit_cell, lattice,
+                correlation_array = selectdim(correlations[i], D+1, l+1)
+                current_correlation!(correlation_array, bond_1, bond_0, tup1′, tup0′, unit_cell, lattice,
                                      Gup_τ0, Gup_0τ, Gup_ττ, Gup, +1, +1, sgn)
             end
 
@@ -1198,8 +1524,8 @@ function make_time_displaced_measurements!(time_displaced_correlations::Dict{Str
                 tdn1 = @view tdn[bond_slices[hopping_id_1], mod1(l,Lτ)]
                 tdn1′ = reshape(tdn1, lattice.L...)
                 # measure the current-current correlation
-                correlation = selectdim(correlations[i], D+1, l+1)
-                current_correlation!(correlation, bond_1, bond_0, tdn1′, tdn0′, unit_cell, lattice,
+                correlation_array = selectdim(correlations[i], D+1, l+1)
+                current_correlation!(correlation_array, bond_1, bond_0, tdn1′, tdn0′, unit_cell, lattice,
                                      Gdn_τ0, Gdn_0τ, Gdn_ττ, Gdn, -1, -1, sgn)
             end
 
@@ -1230,8 +1556,8 @@ function make_time_displaced_measurements!(time_displaced_correlations::Dict{Str
                 tdn1 = @view tdn[bond_slices[hopping_id_1], mod1(l,Lτ)]
                 tdn1′ = reshape(tdn1, lattice.L...)
                 # measure the current-current correlation
-                correlation = selectdim(correlations[i], D+1, l+1)
-                current_correlation!(correlation, bond_1, bond_0, tup1′, tdn0′, unit_cell, lattice,
+                correlation_array = selectdim(correlations[i], D+1, l+1)
+                current_correlation!(correlation_array, bond_1, bond_0, tup1′, tdn0′, unit_cell, lattice,
                                      Gup_τ0, Gup_0τ, Gup_ττ, Gdn, +1, -1, sgn)
             end
 
@@ -1262,8 +1588,8 @@ function make_time_displaced_measurements!(time_displaced_correlations::Dict{Str
                 tup1 = @view tup[bond_slices[hopping_id_1], mod1(l,Lτ)]
                 tup1′ = reshape(tup1, lattice.L...)
                 # measure the current-current correlation
-                correlation = selectdim(correlations[i], D+1, l+1)
-                current_correlation!(correlation, bond_1, bond_0, tdn1′, tup0′, unit_cell, lattice,
+                correlation_array = selectdim(correlations[i], D+1, l+1)
+                current_correlation!(correlation_array, bond_1, bond_0, tdn1′, tup0′, unit_cell, lattice,
                                      Gdn_τ0, Gdn_0τ, Gdn_ττ, Gup, -1, +1, sgn)
             end
 
@@ -1298,8 +1624,8 @@ function make_time_displaced_measurements!(time_displaced_correlations::Dict{Str
                 tdn1 = @view tdn[bond_slices[hopping_id_1], mod1(l,Lτ)]
                 tdn1′ = reshape(tdn1, lattice.L...)
                 # measure the current-current correlation
-                correlation = selectdim(correlations[i], D+1, l+1)
-                current_correlation!(correlation, bond_1, bond_0, tup1′, tup0′, tdn1′, tdn0′, unit_cell, lattice,
+                correlation_array = selectdim(correlations[i], D+1, l+1)
+                current_correlation!(correlation_array, bond_1, bond_0, tup1′, tup0′, tdn1′, tdn0′, unit_cell, lattice,
                                      Gup_τ0, Gup_0τ, Gup_ττ, Gup, Gdn_τ0, Gdn_0τ, Gdn_ττ, Gdn, sgn)
             end
         end

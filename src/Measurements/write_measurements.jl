@@ -64,7 +64,7 @@ function write_measurements!(; measurement_container::NamedTuple,
         save(joinpath(datafolder, "equal-time", correlation, "position", fn), correlation_container)
 
         # fourier transform correlations to momentum space
-        for i in eachindex(pairs)
+        for i in eachindex(correlations)
             # get the pair of orbitals associated with the correlation
             pair = pairs[i]
             a = bonds[pair[1]].orbitals[1]
@@ -100,7 +100,7 @@ function write_measurements!(; measurement_container::NamedTuple,
         susceptibilities = susceptibility_container.correlations::Vector{Array{Complex{E}, D}}
 
         # calculate position space susceptibilies/integrated correlations
-        for i in eachindex(pairs)
+        for i in eachindex(correlations)
             # calculate susceptibility
             susceptibility!(susceptibilities[i], correlations[i], Δτ, D+1)
         end
@@ -109,7 +109,7 @@ function write_measurements!(; measurement_container::NamedTuple,
         save(joinpath(datafolder, "integrated", correlation, "position", fn), susceptibility_container)
 
         # fourier transform correlations to momentum space
-        for i in eachindex(pairs)
+        for i in eachindex(correlations)
             # get the pair of orbitals associated with the correlation
             pair = pairs[i]
             a = bonds[pair[1]].orbitals[1]
@@ -124,7 +124,7 @@ function write_measurements!(; measurement_container::NamedTuple,
         end
 
         # calculate momentum space susceptibilies/integrated correlations
-        for i in eachindex(pairs)
+        for i in eachindex(correlations)
             # calculate susceptibility
             susceptibility!(susceptibilities[i], correlations[i], Δτ, D+1)
         end
