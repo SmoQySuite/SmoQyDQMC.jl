@@ -51,13 +51,17 @@ function write_measurements!(; measurement_container::NamedTuple,
         fill!(local_measurements[measurement], zero(Complex{E}))
     end
 
+    # get hopping and phonon to bond ID mappings
+    hopping_to_bond_id = measurement_container.hopping_to_bond_id::Vector{Int}
+    phonon_to_bond_id = measurement_container.phonon_to_bond_id::Vector{Int}
+
     # iterate over equal-time measurements
     equaltime_correlations = measurement_container.equaltime_correlations
     for correlation in keys(equaltime_correlations)
 
         # get the correlation container
         correlation_container = equaltime_correlations[correlation]
-        pairs = correlation_container.bond_id_pairs::Vector{NTuple{2,Int}}
+        pairs = correlation_container.id_pairs::Vector{NTuple{2,Int}}
         correlations = correlation_container.correlations::Vector{Array{Complex{E}, D}}
 
         # write position space equal-time correlation to file
@@ -66,9 +70,19 @@ function write_measurements!(; measurement_container::NamedTuple,
         # fourier transform correlations to momentum space
         for i in eachindex(correlations)
             # get the pair of orbitals associated with the correlation
-            pair = pairs[i]
-            a = bonds[pair[1]].orbitals[1]
-            b = bonds[pair[2]].orbitals[1]
+            if CORRELATION_FUNCTIONS[correlation] == "ORBITAL_ID"
+                bond_a_id, bond_b_id = pairs[i]
+            elseif CORRELATION_FUNCTIONS[correlation] == "HOPPING_ID"
+                hopping_a_id, hopping_b_id = pairs[i]
+                bond_a_id = hopping_to_bond_id[hopping_a_id]
+                bond_b_id = hopping_to_bond_id[hopping_b_id]
+            elseif CORRELATION_FUNCTIONS[correlation] == "PHONON_ID"
+                phonon_a_id, phonon_b_id = pairs[i]
+                bond_a_id = phonon_to_bond_id[phonon_a_id]
+                bond_b_id = phonon_to_bond_id[phonon_b_id]
+            end
+            a = bonds[bond_a_id].orbitals[1]
+            b = bonds[bond_b_id].orbitals[1]
             # perform fourier transform
             fourier_transform!(correlations[i], a, b, unit_cell, lattice)
         end
@@ -87,7 +101,7 @@ function write_measurements!(; measurement_container::NamedTuple,
 
         # get the correlation container
         correlation_container = time_displaced_correlations[correlation]
-        pairs = correlation_container.bond_id_pairs::Vector{NTuple{2,Int}}
+        pairs = correlation_container.id_pairs::Vector{NTuple{2,Int}}
         correlations = correlation_container.correlations::Vector{Array{Complex{E}, D+1}}
 
         # write position space time-displaced correlation to file
@@ -111,9 +125,19 @@ function write_measurements!(; measurement_container::NamedTuple,
         # fourier transform correlations to momentum space
         for i in eachindex(correlations)
             # get the pair of orbitals associated with the correlation
-            pair = pairs[i]
-            a = bonds[pair[1]].orbitals[1]
-            b = bonds[pair[2]].orbitals[1]
+            if CORRELATION_FUNCTIONS[correlation] == "ORBITAL_ID"
+                bond_a_id, bond_b_id = pairs[i]
+            elseif CORRELATION_FUNCTIONS[correlation] == "HOPPING_ID"
+                hopping_a_id, hopping_b_id = pairs[i]
+                bond_a_id = hopping_to_bond_id[hopping_a_id]
+                bond_b_id = hopping_to_bond_id[hopping_b_id]
+            elseif CORRELATION_FUNCTIONS[correlation] == "PHONON_ID"
+                phonon_a_id, phonon_b_id = pairs[i]
+                bond_a_id = phonon_to_bond_id[phonon_a_id]
+                bond_b_id = phonon_to_bond_id[phonon_b_id]
+            end
+            a = bonds[bond_a_id].orbitals[1]
+            b = bonds[bond_b_id].orbitals[1]
             # perform fourier transform
             fourier_transform!(correlations[i], a, b, D+1, unit_cell, lattice)
         end

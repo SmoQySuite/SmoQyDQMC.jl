@@ -249,6 +249,7 @@ save_density_tuning_profile
 - [`initialize_measurement_container`](@ref)
 - [`initialize_measurements!`](@ref)
 - [`initialize_correlation_measurements!`](@ref)
+- [`initialize_composite_correlation_measurement!`](@ref)
 - [`initialize_measurement_directories`](@ref)
 
 **Make Measurements**
@@ -284,6 +285,7 @@ CORRELATION_FUNCTIONS
 initialize_measurement_container
 initialize_measurements!
 initialize_correlation_measurements!
+initialize_composite_correlation_measurement!
 initialize_measurement_directories
 ```
 

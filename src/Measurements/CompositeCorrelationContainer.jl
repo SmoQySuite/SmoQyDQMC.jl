@@ -7,9 +7,6 @@ struct CompositeCorrelationContainer{D, T<:AbstractFloat}
     # IDs of operatators appearing appearing in composite correlation measurement
     ids::Vector{Int}
 
-    # corresponding bond IDs
-    bond_ids::Vector{Int}
-
     # coefficients of operators appearing in correlation measurement
     coefficients::Vector{Complex{T}}
 
@@ -34,7 +31,6 @@ function CompositeCorrelationContainer(
     return CompositeCorrelationContainer(
         correlation, 
         Vector{Int}[ids...],
-        Int[], 
         Vector{Complex{T}}[coefficients...], 
         zeros(Complex{T}, L..., Lτ), 
         time_displaced
@@ -52,7 +48,6 @@ function CompositeCorrelationContainer(
     return CompositeCorrelationContainer(
         correlation, 
         Vector{Int}[ids...],
-        Int[], 
         Vector{Complex{T}}[coefficients...], 
         zeros(Complex{T}, L...), 
         false
@@ -60,11 +55,11 @@ function CompositeCorrelationContainer(
 end
 
 # Write correlation_container to a file with the name fn using the JLD2.jl package.
-function save(fn::String, composite_correlation_container::CorrelationContainer{D,T}) where {D, T<:AbstractFloat}
+function save(fn::String, composite_correlation_container::CompositeCorrelationContainer{D,T}) where {D, T<:AbstractFloat}
 
     jldsave(fn;
+            correlation = composite_correlation_container.correlation,
             ids = composite_correlation_container.ids,
-            bond_ids = composite_correlation_container.bond_ids,
             coefficients = composite_correlation_container.coefficients,
             composite_correlations = composite_correlation_container.composite_correlations,
             time_displaced = composite_correlation_container.time_displaced
@@ -74,7 +69,7 @@ function save(fn::String, composite_correlation_container::CorrelationContainer{
 end
 
 # Reset the correlation data stored in correlaiton_container to zero.
-function reset!(composite_correlation_container::CorrelationContainer{D,T}) where {D,T<:AbstractFloat}
+function reset!(composite_correlation_container::CompositeCorrelationContainer{D,T}) where {D,T<:AbstractFloat}
 
     fill!(composite_correlation_container.composite_correlations, zero(Complex{T}))
 

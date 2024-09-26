@@ -187,6 +187,7 @@ include("Measurements/initialize_measurements.jl")
 export initialize_measurement_container
 export initialize_measurements!
 export initialize_correlation_measurement!, initialize_correlation_measurements!
+export initialize_composite_correlation_measurement!
 export initialize_measurement_directories
 
 # make measurements

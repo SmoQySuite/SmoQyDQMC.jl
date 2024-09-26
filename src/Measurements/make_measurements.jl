@@ -47,7 +47,13 @@ function make_measurements!(
 ) where {T<:Number, E<:AbstractFloat, D, N, P<:AbstractPropagator{T,E}}
 
     # extract temporary storage vectors
-    (; time_displaced_correlations, equaltime_correlations, a, a′, a″) = measurement_container
+    (; 
+        time_displaced_correlations,
+        equaltime_correlations,
+        equaltime_composite_correlations,
+        time_displaced_composite_correlations,
+        a, a′, a″
+    ) = measurement_container
 
     # assign spin-up and spin-down tight-binding parameters if necessary
     if !isnothing(tight_binding_parameters)
@@ -94,12 +100,29 @@ function make_measurements!(
         fermion_path_integral_up, fermion_path_integral_dn
     )
 
+    # make equal-time composite correlation measurements
+    make_equaltime_composite_measurements!(
+        equaltime_composite_correlations, sgn,
+        Gup, Gup_ττ, Gup_τ0, Gup_0τ,
+        Gdn, Gdn_ττ, Gdn_τ0, Gdn_0τ,
+        model_geometry, tight_binding_parameters_up, tight_binding_parameters_dn,
+        fermion_path_integral_up, fermion_path_integral_dn
+    )
+
     # if there are time-displaced measurements to make
     if length(time_displaced_correlations) > 0
 
-        # make time-displaced measuresurements for τ = l⋅Δτ = 0
+        # make time-displaced correlation measuresurements for τ = l⋅Δτ = 0
         make_time_displaced_measurements!(
             time_displaced_correlations, 0, sgn,
+            Gup, Gup_ττ, Gup_τ0, Gup_0τ, Gdn, Gdn_ττ, Gdn_τ0, Gdn_0τ,
+            model_geometry, tight_binding_parameters_up, tight_binding_parameters_dn,
+            fermion_path_integral_up, fermion_path_integral_dn
+        )
+
+        # make time-displaced composite correlation measuresurements for τ = l⋅Δτ = 0
+        make_time_displaced_composite_measurements!(
+            time_displaced_composite_correlations, 0, sgn,
             Gup, Gup_ττ, Gup_τ0, Gup_0τ, Gdn, Gdn_ττ, Gdn_τ0, Gdn_0τ,
             model_geometry, tight_binding_parameters_up, tight_binding_parameters_dn,
             fermion_path_integral_up, fermion_path_integral_dn
@@ -112,9 +135,17 @@ function make_measurements!(
             propagate_unequaltime_greens!(Gup_τ0, Gup_0τ, Gup_ττ, fermion_greens_calculator_up, Bup)
             propagate_unequaltime_greens!(Gdn_τ0, Gdn_0τ, Gdn_ττ, fermion_greens_calculator_dn, Bdn)
 
-            # make time-displaced measuresurements for τ = l⋅Δτ
+            # make time-displaced correlation measuresurements for τ = l⋅Δτ
             make_time_displaced_measurements!(
                 time_displaced_correlations, l, sgn,
+                Gup, Gup_ττ, Gup_τ0, Gup_0τ, Gdn, Gdn_ττ, Gdn_τ0, Gdn_0τ,
+                model_geometry, tight_binding_parameters_up, tight_binding_parameters_dn,
+                fermion_path_integral_up, fermion_path_integral_dn
+            )
+
+            # make time-displaced correlation measuresurements for τ = l⋅Δτ
+            make_time_displaced_composite_measurements!(
+                time_displaced_composite_correlations, l, sgn,
                 Gup, Gup_ττ, Gup_τ0, Gup_0τ, Gdn, Gdn_ττ, Gdn_τ0, Gdn_0τ,
                 model_geometry, tight_binding_parameters_up, tight_binding_parameters_dn,
                 fermion_path_integral_up, fermion_path_integral_dn
@@ -193,7 +224,13 @@ function make_measurements!(
 ) where {T<:Number, E<:AbstractFloat, D, N, P<:AbstractPropagator{T,E}}
 
     # extract temporary storage vectors
-    (; time_displaced_correlations, equaltime_correlations, a, a′, a″) = measurement_container
+    (;
+        time_displaced_correlations,
+        equaltime_correlations,
+        time_displaced_composite_correlations,
+        equaltime_composite_correlations,
+        a, a′, a″
+    ) = measurement_container
 
     # calculate sign
     sgn = sgndetG^2
@@ -231,12 +268,28 @@ function make_measurements!(
         fermion_path_integral, fermion_path_integral
     )
 
+    # make equal-time composite correlation measurements
+    make_equaltime_composite_measurements!(
+        equaltime_composite_correlations, sgn,
+        G, G_ττ, G_τ0, G_0τ, G, G_ττ, G_τ0, G_0τ,
+        model_geometry, tight_binding_parameters, tight_binding_parameters,
+        fermion_path_integral, fermion_path_integral
+    )
+
     # if there are time-displaced measurements to make
     if length(time_displaced_correlations) > 0
 
-        # make time-displaced measuresurements of τ = 0
+        # make time-displaced correlation measuresurements of τ = 0
         make_time_displaced_measurements!(
             time_displaced_correlations, 0, sgn,
+            G, G_ττ, G_τ0, G_0τ, G, G_ττ, G_τ0, G_0τ,
+            model_geometry, tight_binding_parameters, tight_binding_parameters,
+            fermion_path_integral, fermion_path_integral
+        )
+
+        # make time-displaced composite correlation measuresurements of τ = 0
+        make_time_displaced_composite_measurements!(
+            time_displaced_composite_correlations, 0, sgn,
             G, G_ττ, G_τ0, G_0τ, G, G_ττ, G_τ0, G_0τ,
             model_geometry, tight_binding_parameters, tight_binding_parameters,
             fermion_path_integral, fermion_path_integral
@@ -248,9 +301,17 @@ function make_measurements!(
             # Propagate Green's function matrices to current imaginary time slice
             propagate_unequaltime_greens!(G_τ0, G_0τ, G_ττ, fermion_greens_calculator, B)
 
-            # make time-displaced measuresurements of τ = l⋅Δτ
+            # make time-displaced correlation measuresurements of τ = l⋅Δτ
             make_time_displaced_measurements!(
                 time_displaced_correlations, l, sgn,
+                G, G_ττ, G_τ0, G_0τ, G, G_ττ, G_τ0, G_0τ,
+                model_geometry, tight_binding_parameters, tight_binding_parameters,
+                fermion_path_integral, fermion_path_integral
+            )
+
+            # make time-displaced composite correlation measuresurements of τ = l⋅Δτ
+            make_time_displaced_measurements!(
+                time_displaced_composite_correlations, l, sgn,
                 G, G_ττ, G_τ0, G_0τ, G, G_ττ, G_τ0, G_0τ,
                 model_geometry, tight_binding_parameters, tight_binding_parameters,
                 fermion_path_integral, fermion_path_integral
@@ -609,7 +670,6 @@ function make_equaltime_measurements!(
         
         correlation_container = equaltime_correlations[correlation]::CorrelationContainer{D,E}
         id_pairs = correlation_container.id_pairs::Vector{NTuple{2,Int}}
-        bond_id_pairs = correlation_container.bond_id_pairs::Vector{NTuple{2,Int}}
         correlations = correlation_container.correlations::Vector{Array{Complex{E}, D}}
 
         if correlation == "greens"
@@ -773,10 +833,6 @@ function make_equaltime_measurements!(
                 # get the bond IDs associated with the hopping IDs
                 bond_id_0 = bond_ids[hopping_id_0]
                 bond_id_1 = bond_ids[hopping_id_1]
-                # record bond id pair for current correlation measurement if not already recorded
-                if (bond_id_pairs[i][1] == 0) && (bond_id_pairs[i][2] == 0)
-                    bond_id_pairs[i] = (bond_id_0, bond_id_1)
-                end
                 # get the bond definitions
                 bond_0 = bonds[bond_id_0]
                 bond_1 = bonds[bond_id_1]
@@ -803,10 +859,6 @@ function make_equaltime_measurements!(
                 # get the bond IDs associated with the hopping IDs
                 bond_id_0 = bond_ids[hopping_id_0]
                 bond_id_1 = bond_ids[hopping_id_1]
-                # record bond id pair for current correlation measurement if not already recorded
-                if (bond_id_pairs[i][1] == 0) && (bond_id_pairs[i][2] == 0)
-                    bond_id_pairs[i] = (bond_id_0, bond_id_1)
-                end
                 # get the bond definitions
                 bond_0 = bonds[bond_id_0]
                 bond_1 = bonds[bond_id_1]
@@ -834,10 +886,6 @@ function make_equaltime_measurements!(
                 # get the bond IDs associated with the hopping IDs
                 bond_id_0 = bond_ids[hopping_id_0]
                 bond_id_1 = bond_ids[hopping_id_1]
-                # record bond id pair for current correlation measurement if not already recorded
-                if (bond_id_pairs[i][1] == 0) && (bond_id_pairs[i][2] == 0)
-                    bond_id_pairs[i] = (bond_id_0, bond_id_1)
-                end
                 # get the bond definitions
                 bond_0 = bonds[bond_id_0]
                 bond_1 = bonds[bond_id_1]
@@ -865,10 +913,6 @@ function make_equaltime_measurements!(
                 # get the bond IDs associated with the hopping IDs
                 bond_id_0 = bond_ids[hopping_id_0]
                 bond_id_1 = bond_ids[hopping_id_1]
-                # record bond id pair for current correlation measurement if not already recorded
-                if (bond_id_pairs[i][1] == 0) && (bond_id_pairs[i][2] == 0)
-                    bond_id_pairs[i] = (bond_id_0, bond_id_1)
-                end
                 # get the bond definitions
                 bond_0 = bonds[bond_id_0]
                 bond_1 = bonds[bond_id_1]
@@ -896,10 +940,6 @@ function make_equaltime_measurements!(
                 # get the bond IDs associated with the hopping IDs
                 bond_id_0 = bond_ids[hopping_id_0]
                 bond_id_1 = bond_ids[hopping_id_1]
-                # record bond id pair for current correlation measurement if not already recorded
-                if (bond_id_pairs[i][1] == 0) && (bond_id_pairs[i][2] == 0)
-                    bond_id_pairs[i] = (bond_id_0, bond_id_1)
-                end
                 # get the bond definitions
                 bond_0 = bonds[bond_id_0]
                 bond_1 = bonds[bond_id_1]
@@ -921,6 +961,7 @@ function make_equaltime_measurements!(
 
     return nothing
 end
+
 
 #################################################################
 ## MAKE EQUAL-TIME COMPOSITE CORRELATION FUNCTION MEASUREMENTS ##
@@ -951,163 +992,222 @@ function make_equaltime_composite_measurements!(
     # iterate over equal-time correlation function getting measured
     for name in keys(equaltime_composite_correlations)
         
-        composite_correlation_container = equaltime_correlations[name]::CorrelationContainer{D,E}
-        correlation = composite_correlation_container.correlation::String
-        ids = composite_correlation_container.ids
-        bond_ids = composite_correlation_container.bond_ids
-        coefficients = composite_correlation_container.coefficients
-
-
-        id_pairs = correlation_container.id_pairs::Vector{NTuple{2,Int}}
-        bond_id_pairs = correlation_container.bond_id_pairs::Vector{NTuple{2,Int}}
-        correlations = correlation_container.correlations::Vector{Array{Complex{E}, D}}
+        correlation_container = equaltime_composite_correlations[name]::CorrelationContainer{D,E}
+        correlation = correlation_container.correlation
+        ids = correlation_container.ids::Vector{Int}
+        coefficients = correlation_container.coefficients::Vector{Complex{E}}
+        correlations = correlation_container.composite_correlations::Array{Complex{E}, D}
 
         if correlation == "greens"
 
-            for i in eachindex(id_pairs)
-                pair = id_pairs[i]
-                greens!(correlations[i], pair[2], pair[1], unit_cell, lattice, Gup_τ0, sgn/2)
-                greens!(correlations[i], pair[2], pair[1], unit_cell, lattice, Gdn_τ0, sgn/2)
+            for j in eachindex(ids)
+                for i in eachindex(ids)
+                    coef = conj(coefficients[i]) * coefficients[j]
+                    greens!(correlations, ids[i], ids[j], unit_cell, lattice, Gup_τ0, coef*sgn/2)
+                    greens!(correlations, ids[i], ids[j], unit_cell, lattice, Gdn_τ0, coef*sgn/2)
+                end
             end
 
         elseif correlation == "greens_up"
 
-            for i in eachindex(id_pairs)
-                pair = id_pairs[i]
-                greens!(correlations[i], pair[2], pair[1], unit_cell, lattice, Gup_τ0, sgn)
+            for j in eachindex(ids)
+                for i in eachindex(ids)
+                    coef = conj(coefficients[i]) * coefficients[j]
+                    greens!(correlations, ids[i], ids[j], unit_cell, lattice, Gup_τ0, coef*sgn)
+                end
             end
 
         elseif correlation == "greens_dn"
 
-            for i in eachindex(id_pairs)
-                pair = id_pairs[i]
-                greens!(correlations[i], pair[2], pair[1], unit_cell, lattice, Gdn_τ0, sgn)
+            for j in eachindex(ids)
+                for i in eachindex(ids)
+                    coef = conj(coefficients[i]) * coefficients[j]
+                    greens!(correlations, ids[i], ids[j], unit_cell, lattice, Gdn_τ0, coef*sgn)
+                end
             end
 
         elseif correlation == "greens_tautau"
 
-            for i in eachindex(id_pairs)
-                pair = id_pairs[i]
-                greens!(correlations[i], pair[2], pair[1], unit_cell, lattice, Gup_τ0, sgn/2)
-                greens!(correlations[i], pair[2], pair[1], unit_cell, lattice, Gdn_τ0, sgn/2)
+            for j in eachindex(ids)
+                for i in eachindex(ids)
+                    coef = conj(coefficients[i]) * coefficients[j]
+                    greens!(correlations, ids[i], ids[j], unit_cell, lattice, Gup_τ0, coef*sgn/2)
+                    greens!(correlations, ids[i], ids[j], unit_cell, lattice, Gdn_τ0, coef*sgn/2)
+                end
             end
 
         elseif correlation == "greens_tautau_up"
 
-            for i in eachindex(id_pairs)
-                pair = id_pairs[i]
-                greens!(correlations[i], pair[2], pair[1], unit_cell, lattice, Gup_τ0, sgn)
+            for j in eachindex(ids)
+                for i in eachindex(ids)
+                    coef = conj(coefficients[i]) * coefficients[j]
+                    greens!(correlations, ids[i], ids[j], unit_cell, lattice, Gup_τ0, coef*sgn)
+                end
             end
 
         elseif correlation == "greens_tautau_dn"
 
-            for i in eachindex(id_pairs)
-                pair = id_pairs[i]
-                greens!(correlations[i], pair[2], pair[1], unit_cell, lattice, Gdn_τ0, sgn)
+            for j in eachindex(ids)
+                for i in eachindex(ids)
+                    coef = conj(coefficients[i]) * coefficients[j]
+                    greens!(correlations, ids[i], ids[j], unit_cell, lattice, Gdn_τ0, coef*sgn)
+                end
             end    
 
         elseif correlation == "density_upup"
 
-            for i in eachindex(id_pairs)
-                pair = id_pairs[i]
-                density_correlation!(correlations[i], pair[2], pair[1], unit_cell, lattice,
-                                     Gup_τ0, Gup_0τ, Gup_ττ, Gup, +1, +1, sgn)
+            for j in eachindex(ids)
+                for i in eachindex(ids)
+                    coef = conj(coefficients[i]) * coefficients[j]
+                    density_correlation!(
+                        correlations, ids[i], ids[j], unit_cell, lattice,
+                        Gup_τ0, Gup_0τ, Gup_ττ, Gup, +1, +1, coef*sgn
+                    )
+                end
             end
 
         elseif correlation == "density_dndn"
 
-            for i in eachindex(id_pairs)
-                pair = id_pairs[i]
-                density_correlation!(correlations[i], pair[2], pair[1], unit_cell, lattice,
-                                     Gdn_τ0, Gdn_0τ, Gdn_ττ, Gdn, -1, -1, sgn)
+            for j in eachindex(ids)
+                for i in eachindex(ids)
+                    coef = conj(coefficients[i]) * coefficients[j]
+                    density_correlation!(
+                        correlations, ids[i], ids[j], unit_cell, lattice,
+                        Gdn_τ0, Gdn_0τ, Gdn_ττ, Gdn, -1, -1, coef*sgn
+                    )
+                end
             end
 
         elseif correlation == "density_updn"
 
-            for i in eachindex(id_pairs)
-                pair = id_pairs[i]
-                density_correlation!(correlations[i], pair[2], pair[1], unit_cell, lattice,
-                                     Gup_τ0, Gup_0τ, Gup_ττ, Gdn, +1, -1, sgn)
+            for j in eachindex(ids)
+                for i in eachindex(ids)
+                    coef = conj(coefficients[i]) * coefficients[j]
+                    density_correlation!(
+                        correlations, ids[i], ids[j], unit_cell, lattice,
+                        Gup_τ0, Gup_0τ, Gup_ττ, Gdn, +1, -1, coef*sgn
+                    )
+                end
             end
 
         elseif correlation == "density_dnup"
 
-            for i in eachindex(id_pairs)
-                pair = id_pairs[i]
-                density_correlation!(correlations[i], pair[2], pair[1], unit_cell, lattice,
-                                     Gdn_τ0, Gdn_0τ, Gdn_ττ, Gup, -1, +1, sgn)
+            for j in eachindex(ids)
+                for i in eachindex(ids)
+                    coef = conj(coefficients[i]) * coefficients[j]
+                    density_correlation!(
+                        correlations, ids[i], ids[j], unit_cell, lattice,
+                        Gdn_τ0, Gdn_0τ, Gdn_ττ, Gup, -1, +1, coef*sgn
+                    )
+                end
             end
 
         elseif correlation == "density"
 
-            for i in eachindex(id_pairs)
-                pair = id_pairs[i]
-                density_correlation!(correlations[i], pair[2], pair[1], unit_cell, lattice,
-                                     Gup_τ0, Gup_0τ, Gup_ττ, Gup, Gdn_τ0, Gdn_0τ, Gdn_ττ, Gdn, sgn)
+            for j in eachindex(ids)
+                for i in eachindex(ids)
+                    coef = conj(coefficients[i]) * coefficients[j]
+                    density_correlation!(
+                        correlations, ids[i], ids[j], unit_cell, lattice,
+                        Gup_τ0, Gup_0τ, Gup_ττ, Gup, Gdn_τ0, Gdn_0τ, Gdn_ττ, Gdn, coef*sgn
+                    )
+                end
             end
 
         elseif correlation == "pair"
 
-            for i in eachindex(id_pairs)
-                pair = id_pairs[i]
-                pair_correlation!(correlations[i], bonds[pair[2]], bonds[pair[1]], unit_cell, lattice,
-                                  Gup_τ0, Gdn_τ0, sgn)
+            for j in eachindex(ids)
+                for i in eachindex(ids)
+                    coef = conj(coefficients[i]) * coefficients[j]
+                    pair_correlation!(
+                        correlations, bonds[ids[j]], bonds[ids[i]], unit_cell, lattice,
+                        Gup_τ0, Gdn_τ0, coef*sgn
+                    )
+                end
             end
 
         elseif correlation == "spin_x"
 
-            for i in eachindex(id_pairs)
-                pair = id_pairs[i]
-                spin_x_correlation!(correlations[i], pair[2], pair[1], unit_cell, lattice,
-                                    Gup_τ0, Gup_0τ, Gdn_τ0, Gdn_0τ, sgn)
+            for j in eachindex(ids)
+                for i in eachindex(ids)
+                    coef = conj(coefficients[i]) * coefficients[j]
+                    spin_x_correlation!(
+                        correlations, ids[i], ids[j], unit_cell, lattice,
+                        Gup_τ0, Gup_0τ, Gdn_τ0, Gdn_0τ, coef*sgn
+                    )
+                end
             end
 
         elseif correlation == "spin_z"
 
-            for i in eachindex(id_pairs)
-                pair = id_pairs[i]
-                spin_z_correlation!(correlations[i], pair[2], pair[1], unit_cell, lattice,
-                                    Gup_τ0, Gup_0τ, Gup_ττ, Gup, Gdn_τ0, Gdn_0τ, Gdn_ττ, Gdn, sgn)
+            for j in eachindex(ids)
+                for i in eachindex(ids)
+                    coef = conj(coefficients[i]) * coefficients[j]
+                    spin_z_correlation!(
+                        correlations, ids[i], ids[j], unit_cell, lattice,
+                        Gup_τ0, Gup_0τ, Gup_ττ, Gup, Gdn_τ0, Gdn_0τ, Gdn_ττ, Gdn, coef*sgn
+                    )
+                end
             end
 
         elseif correlation == "bond_upup"
 
-            for i in eachindex(id_pairs)
-                pair = id_pairs[i]
-                bond_correlation!(correlations[i], bonds[pair[2]], bonds[pair[1]], unit_cell, lattice,
-                                  Gup_τ0, Gup_0τ, Gup_ττ, Gup, +1, +1, sgn)
+            for j in eachindex(ids)
+                for i in eachindex(ids)
+                    coef = conj(coefficients[i]) * coefficients[j]
+                    bond_correlation!(
+                        correlations, bonds[ids[i]], bonds[ids[j]], unit_cell, lattice,
+                        Gup_τ0, Gup_0τ, Gup_ττ, Gup, +1, +1, coef*sgn
+                    )
+                end
             end
 
         elseif correlation == "bond_dndn"
 
-            for i in eachindex(id_pairs)
-                pair = id_pairs[i]
-                bond_correlation!(correlations[i], bonds[pair[2]], bonds[pair[1]], unit_cell, lattice,
-                                  Gdn_τ0, Gdn_0τ, Gdn_ττ, Gdn, -1, -1, sgn)
+            for j in eachindex(ids)
+                for i in eachindex(ids)
+                    coef = conj(coefficients[i]) * coefficients[j]
+                    bond_correlation!(
+                        correlations, bonds[ids[i]], bonds[ids[j]], unit_cell, lattice,
+                        Gdn_τ0, Gdn_0τ, Gdn_ττ, Gdn, -1, -1, coef*sgn
+                    )
+                end
             end
 
         elseif correlation == "bond_updn"
 
-            for i in eachindex(id_pairs)
-                pair = id_pairs[i]
-                bond_correlation!(correlations[i], bonds[pair[2]], bonds[pair[1]], unit_cell, lattice,
-                                  Gup_τ0, Gup_0τ, Gup_ττ, Gdn, +1, -1, sgn)
+            for j in eachindex(ids)
+                for i in eachindex(ids)
+                    coef = conj(coefficients[i]) * coefficients[j]
+                    bond_correlation!(
+                        correlations, bonds[ids[i]], bonds[ids[j]], unit_cell, lattice,
+                        Gup_τ0, Gup_0τ, Gup_ττ, Gdn, +1, -1, coef*sgn
+                    )
+                end
             end
 
         elseif correlation == "bond_dnup"
 
-            for i in eachindex(id_pairs)
-                pair = id_pairs[i]
-                bond_correlation!(correlations[i], bonds[pair[2]], bonds[pair[1]], unit_cell, lattice,
-                                  Gdn_τ0, Gdn_0τ, Gdn_ττ, Gup, -1, +1, sgn)
+            for j in eachindex(ids)
+                for i in eachindex(ids)
+                    coef = conj(coefficients[i]) * coefficients[j]
+                    bond_correlation!(
+                        correlations, bonds[ids[i]], bonds[ids[j]], unit_cell, lattice,
+                        Gdn_τ0, Gdn_0τ, Gdn_ττ, Gup, -1, +1, coef*sgn
+                    )
+                end
             end
 
         elseif correlation == "bond"
 
-            for i in eachindex(id_pairs)
-                pair = id_pairs[i]
-                bond_correlation!(correlations[i], bonds[pair[2]], bonds[pair[1]], unit_cell, lattice,
-                                  Gup_τ0, Gup_0τ, Gup_ττ, Gup, Gdn_τ0, Gdn_0τ, Gdn_ττ, Gdn, sgn)
+            for j in eachindex(ids)
+                for i in eachindex(ids)
+                    coef = conj(coefficients[i]) * coefficients[j]
+                    bond_correlation!(
+                        correlations, bonds[ids[i]], bonds[ids[j]], unit_cell, lattice,
+                        Gup_τ0, Gup_0τ, Gup_ττ, Gup, Gdn_τ0, Gdn_0τ, Gdn_ττ, Gdn, coef*sgn
+                    )
+                end
             end
 
         elseif correlation == "current_upup"
@@ -1115,29 +1215,29 @@ function make_equaltime_composite_measurements!(
             (; bond_ids, bond_slices) = tight_binding_parameters_up
             tup = fermion_path_integral_up.t
 
-            for i in eachindex(id_pairs)
-                # get the hopping IDs associated with current operators
-                id_pair = id_pairs[1]
-                hopping_id_0 = id_pair[1]
-                hopping_id_1 = id_pair[2]
-                # get the bond IDs associated with the hopping IDs
-                bond_id_0 = bond_ids[hopping_id_0]
-                bond_id_1 = bond_ids[hopping_id_1]
-                # record bond id pair for current correlation measurement if not already recorded
-                if (bond_id_pairs[i][1] == 0) && (bond_id_pairs[i][2] == 0)
-                    bond_id_pairs[i] = (bond_id_0, bond_id_1)
+            for j in eachindex(ids)
+                for i in eachindex(ids)
+                    coef = conj(coefficients[i]) * coefficients[j]
+                    # get the hopping IDs associated with current operators
+                    hopping_id_0 = ids[j]
+                    hopping_id_1 = ids[i]
+                    # get the bond IDs associated with the hopping IDs
+                    bond_id_0 = bond_ids[hopping_id_0]
+                    bond_id_1 = bond_ids[hopping_id_1]
+                    # get the bond definitions
+                    bond_0 = bonds[bond_id_0]
+                    bond_1 = bonds[bond_id_1]
+                    # get the effective hopping amptlitudes for each of the two hopping ID's in question
+                    tup0 = @view tup[bond_slices[hopping_id_0], Lτ]
+                    tup0′ = reshape(tup0, lattice.L...)
+                    tup1 = @view tup[bond_slices[hopping_id_1], Lτ]
+                    tup1′ = reshape(tup1, lattice.L...)
+                    # measure the current-current correlation
+                    current_correlation!(
+                        correlations, bond_1, bond_0, tup1′, tup0′, unit_cell, lattice,
+                        Gup_τ0, Gup_0τ, Gup_ττ, Gup, +1, +1, coef*sgn
+                    )
                 end
-                # get the bond definitions
-                bond_0 = bonds[bond_id_0]
-                bond_1 = bonds[bond_id_1]
-                # get the effective hopping amptlitudes for each of the two hopping ID's in question
-                tup0 = @view tup[bond_slices[hopping_id_0], Lτ]
-                tup0′ = reshape(tup0, lattice.L...)
-                tup1 = @view tup[bond_slices[hopping_id_1], Lτ]
-                tup1′ = reshape(tup1, lattice.L...)
-                # measure the current-current correlation
-                current_correlation!(correlations[i], bond_1, bond_0, tup1′, tup0′, unit_cell, lattice,
-                                     Gup_τ0, Gup_0τ, Gup_ττ, Gup, +1, +1, sgn)
             end
 
         elseif correlation == "current_dndn"
@@ -1145,29 +1245,29 @@ function make_equaltime_composite_measurements!(
             (; bond_ids, bond_slices) = tight_binding_parameters_dn
             tdn = fermion_path_integral_dn.t
 
-            for i in eachindex(id_pairs)
-                # get the hopping IDs associated with current operators
-                id_pair = id_pairs[1]
-                hopping_id_0 = id_pair[1]
-                hopping_id_1 = id_pair[2]
-                # get the bond IDs associated with the hopping IDs
-                bond_id_0 = bond_ids[hopping_id_0]
-                bond_id_1 = bond_ids[hopping_id_1]
-                # record bond id pair for current correlation measurement if not already recorded
-                if (bond_id_pairs[i][1] == 0) && (bond_id_pairs[i][2] == 0)
-                    bond_id_pairs[i] = (bond_id_0, bond_id_1)
+            for j in eachindex(ids)
+                for i in eachindex(ids)
+                    coef = conj(coefficients[i]) * coefficients[j]
+                    # get the hopping IDs associated with current operators
+                    hopping_id_0 = ids[j]
+                    hopping_id_1 = ids[i]
+                    # get the bond IDs associated with the hopping IDs
+                    bond_id_0 = bond_ids[hopping_id_0]
+                    bond_id_1 = bond_ids[hopping_id_1]
+                    # get the bond definitions
+                    bond_0 = bonds[bond_id_0]
+                    bond_1 = bonds[bond_id_1]
+                    # get the effective hopping amptlitudes for each of the two hopping ID's in question
+                    tdn0 = @view tdn[bond_slices[hopping_id_0], Lτ]
+                    tdn0′ = reshape(tdn0, lattice.L...)
+                    tdn1 = @view tdn[bond_slices[hopping_id_1], Lτ]
+                    tdn1′ = reshape(tdn1, lattice.L...)
+                    # measure the current-current correlation
+                    current_correlation!(
+                        correlations, bond_1, bond_0, tdn1′, tdn0′, unit_cell, lattice,
+                        Gdn_τ0, Gdn_0τ, Gdn_ττ, Gdn, -1, -1, coef*sgn
+                    )
                 end
-                # get the bond definitions
-                bond_0 = bonds[bond_id_0]
-                bond_1 = bonds[bond_id_1]
-                # get the effective hopping amptlitudes for each of the two hopping ID's in question
-                tdn0 = @view tdn[bond_slices[hopping_id_0], Lτ]
-                tdn0′ = reshape(tdn0, lattice.L...)
-                tdn1 = @view tdn[bond_slices[hopping_id_1], Lτ]
-                tdn1′ = reshape(tdn1, lattice.L...)
-                # measure the current-current correlation
-                current_correlation!(correlations[i], bond_1, bond_0, tdn1′, tdn0′, unit_cell, lattice,
-                                     Gdn_τ0, Gdn_0τ, Gdn_ττ, Gdn, -1, -1, sgn)
             end
 
         elseif correlation == "current_updn"
@@ -1176,29 +1276,28 @@ function make_equaltime_composite_measurements!(
             tup = fermion_path_integral_up.t
             tdn = fermion_path_integral_dn.t
 
-            for i in eachindex(id_pairs)
-                # get the hopping IDs associated with current operators
-                id_pair = id_pairs[1]
-                hopping_id_0 = id_pair[1]
-                hopping_id_1 = id_pair[2]
-                # get the bond IDs associated with the hopping IDs
-                bond_id_0 = bond_ids[hopping_id_0]
-                bond_id_1 = bond_ids[hopping_id_1]
-                # record bond id pair for current correlation measurement if not already recorded
-                if (bond_id_pairs[i][1] == 0) && (bond_id_pairs[i][2] == 0)
-                    bond_id_pairs[i] = (bond_id_0, bond_id_1)
+            for j in eachindex(ids)
+                for i in eachindex(ids)
+                    coef = conj(coefficients[i]) * coefficients[j]
+                    # get the hopping IDs associated with current operators
+                    hopping_id_0 = ids[j]
+                    hopping_id_1 = ids[i]
+                    # get the bond IDs associated with the hopping IDs
+                    bond_id_0 = bond_ids[hopping_id_0]
+                    bond_id_1 = bond_ids[hopping_id_1]
+                    # get the bond definitions
+                    bond_0 = bonds[bond_id_0]
+                    bond_1 = bonds[bond_id_1]
+                    # get the effective hopping amptlitudes for each of the two hopping ID's in question
+                    tup1 = @view tup[bond_slices[hopping_id_1], Lτ]
+                    tup1′ = reshape(tup1, lattice.L...)
+                    tdn0 = @view tdn[bond_slices[hopping_id_0], Lτ]
+                    tdn0′ = reshape(tdn0, lattice.L...)
+                    # measure the current-current correlation
+                    current_correlation!(
+                        correlations, bond_1, bond_0, tup1′, tdn0′, unit_cell, lattice,
+                        Gup_τ0, Gup_0τ, Gup_ττ, Gdn, +1, -1, coef*sgn)
                 end
-                # get the bond definitions
-                bond_0 = bonds[bond_id_0]
-                bond_1 = bonds[bond_id_1]
-                # get the effective hopping amptlitudes for each of the two hopping ID's in question
-                tup1 = @view tup[bond_slices[hopping_id_1], Lτ]
-                tup1′ = reshape(tup1, lattice.L...)
-                tdn0 = @view tdn[bond_slices[hopping_id_0], Lτ]
-                tdn0′ = reshape(tdn0, lattice.L...)
-                # measure the current-current correlation
-                current_correlation!(correlations[i], bond_1, bond_0, tup1′, tdn0′, unit_cell, lattice,
-                                    Gup_τ0, Gup_0τ, Gup_ττ, Gdn, +1, -1, sgn)
             end
 
         elseif correlation == "current_dnup"
@@ -1207,29 +1306,29 @@ function make_equaltime_composite_measurements!(
             tup = fermion_path_integral_up.t
             tdn = fermion_path_integral_dn.t
 
-            for i in eachindex(id_pairs)
-                # get the hopping IDs associated with current operators
-                id_pair = id_pairs[1]
-                hopping_id_0 = id_pair[1]
-                hopping_id_1 = id_pair[2]
-                # get the bond IDs associated with the hopping IDs
-                bond_id_0 = bond_ids[hopping_id_0]
-                bond_id_1 = bond_ids[hopping_id_1]
-                # record bond id pair for current correlation measurement if not already recorded
-                if (bond_id_pairs[i][1] == 0) && (bond_id_pairs[i][2] == 0)
-                    bond_id_pairs[i] = (bond_id_0, bond_id_1)
+            for j in eachindex(ids)
+                for i in eachindex(ids)
+                    coef = conj(coefficients[i]) * coefficients[j]
+                    # get the hopping IDs associated with current operators
+                    hopping_id_0 = ids[j]
+                    hopping_id_1 = ids[i]
+                    # get the bond IDs associated with the hopping IDs
+                    bond_id_0 = bond_ids[hopping_id_0]
+                    bond_id_1 = bond_ids[hopping_id_1]
+                    # get the bond definitions
+                    bond_0 = bonds[bond_id_0]
+                    bond_1 = bonds[bond_id_1]
+                    # get the effective hopping amptlitudes for each of the two hopping ID's in question
+                    tup0 = @view tup[bond_slices[hopping_id_0], Lτ]
+                    tup0′ = reshape(tup0, lattice.L...)
+                    tdn1 = @view tdn[bond_slices[hopping_id_1], Lτ]
+                    tdn1′ = reshape(tdn1, lattice.L...)
+                    # measure the current-current correlation
+                    current_correlation!(
+                        correlations, bond_1, bond_0, tdn1′, tup0′, unit_cell, lattice,
+                        Gdn_τ0, Gdn_0τ, Gdn_ττ, Gup, -1, +1, coef*sgn
+                    )
                 end
-                # get the bond definitions
-                bond_0 = bonds[bond_id_0]
-                bond_1 = bonds[bond_id_1]
-                # get the effective hopping amptlitudes for each of the two hopping ID's in question
-                tup0 = @view tup[bond_slices[hopping_id_0], Lτ]
-                tup0′ = reshape(tup0, lattice.L...)
-                tdn1 = @view tdn[bond_slices[hopping_id_1], Lτ]
-                tdn1′ = reshape(tdn1, lattice.L...)
-                # measure the current-current correlation
-                current_correlation!(correlations[i], bond_1, bond_0, tdn1′, tup0′, unit_cell, lattice,
-                                     Gdn_τ0, Gdn_0τ, Gdn_ττ, Gup, -1, +1, sgn)
             end
 
         elseif correlation == "current"
@@ -1238,33 +1337,33 @@ function make_equaltime_composite_measurements!(
             tup = fermion_path_integral_up.t
             tdn = fermion_path_integral_dn.t
 
-            for i in eachindex(id_pairs)
-                # get the hopping IDs associated with current operators
-                id_pair = id_pairs[1]
-                hopping_id_0 = id_pair[1]
-                hopping_id_1 = id_pair[2]
-                # get the bond IDs associated with the hopping IDs
-                bond_id_0 = bond_ids[hopping_id_0]
-                bond_id_1 = bond_ids[hopping_id_1]
-                # record bond id pair for current correlation measurement if not already recorded
-                if (bond_id_pairs[i][1] == 0) && (bond_id_pairs[i][2] == 0)
-                    bond_id_pairs[i] = (bond_id_0, bond_id_1)
+            for j in eachindex(ids)
+                for i in eachindex(ids)
+                    coef = conj(coefficients[i]) * coefficients[j]
+                    # get the hopping IDs associated with current operators
+                    hopping_id_0 = ids[j]
+                    hopping_id_1 = ids[i]
+                    # get the bond IDs associated with the hopping IDs
+                    bond_id_0 = bond_ids[hopping_id_0]
+                    bond_id_1 = bond_ids[hopping_id_1]
+                    # get the bond definitions
+                    bond_0 = bonds[bond_id_0]
+                    bond_1 = bonds[bond_id_1]
+                    # get the effective hopping amptlitudes for each of the two hopping ID's in question
+                    tup0 = @view tup[bond_slices[hopping_id_0], Lτ]
+                    tup0′ = reshape(tup0, lattice.L...)
+                    tup1 = @view tup[bond_slices[hopping_id_1], Lτ]
+                    tup1′ = reshape(tup1, lattice.L...)
+                    tdn0 = @view tdn[bond_slices[hopping_id_0], Lτ]
+                    tdn0′ = reshape(tdn0, lattice.L...)
+                    tdn1 = @view tdn[bond_slices[hopping_id_1], Lτ]
+                    tdn1′ = reshape(tdn1, lattice.L...)
+                    # measure the current-current correlation
+                    current_correlation!(
+                        correlations, bond_1, bond_0, tup1′, tup0′, tdn1′, tdn0′, unit_cell, lattice,
+                        Gup_τ0, Gup_0τ, Gup_ττ, Gup, Gdn_τ0, Gdn_0τ, Gdn_ττ, Gdn, coef*sgn
+                    )
                 end
-                # get the bond definitions
-                bond_0 = bonds[bond_id_0]
-                bond_1 = bonds[bond_id_1]
-                # get the effective hopping amptlitudes for each of the two hopping ID's in question
-                tup0 = @view tup[bond_slices[hopping_id_0], Lτ]
-                tup0′ = reshape(tup0, lattice.L...)
-                tup1 = @view tup[bond_slices[hopping_id_1], Lτ]
-                tup1′ = reshape(tup1, lattice.L...)
-                tdn0 = @view tdn[bond_slices[hopping_id_0], Lτ]
-                tdn0′ = reshape(tdn0, lattice.L...)
-                tdn1 = @view tdn[bond_slices[hopping_id_1], Lτ]
-                tdn1′ = reshape(tdn1, lattice.L...)
-                # measure the current-current correlation
-                current_correlation!(correlations[i], bond_1, bond_0, tup1′, tup0′, tdn1′, tdn0′, unit_cell, lattice,
-                                     Gup_τ0, Gup_0τ, Gup_ττ, Gup, Gdn_τ0, Gdn_0τ, Gdn_ττ, Gdn, sgn)
             end
         end
     end
@@ -1278,14 +1377,16 @@ end
 ###########################################################
 
 # make purely electronic time-displaced correlation measurements
-function make_time_displaced_measurements!(time_displaced_correlations::Dict{String, CorrelationContainer{P,E}}, l::Int, sgn::T,
-                                           Gup::AbstractMatrix{T}, Gup_ττ::AbstractMatrix{T}, Gup_τ0::AbstractMatrix{T}, Gup_0τ::AbstractMatrix{T},
-                                           Gdn::AbstractMatrix{T}, Gdn_ττ::AbstractMatrix{T}, Gdn_τ0::AbstractMatrix{T}, Gdn_0τ::AbstractMatrix{T},
-                                           model_geometry::ModelGeometry{D,E,N},
-                                           tight_binding_parameters_up::TightBindingParameters{T,E},
-                                           tight_binding_parameters_dn::TightBindingParameters{T,E},
-                                           fermion_path_integral_up::FermionPathIntegral{T,E},
-                                           fermion_path_integral_dn::FermionPathIntegral{T,E}) where {T<:Number, E<:AbstractFloat, P, D, N}
+function make_time_displaced_measurements!(
+    time_displaced_correlations::Dict{String, CorrelationContainer{P,E}}, l::Int, sgn::T,
+    Gup::AbstractMatrix{T}, Gup_ττ::AbstractMatrix{T}, Gup_τ0::AbstractMatrix{T}, Gup_0τ::AbstractMatrix{T},
+    Gdn::AbstractMatrix{T}, Gdn_ττ::AbstractMatrix{T}, Gdn_τ0::AbstractMatrix{T}, Gdn_0τ::AbstractMatrix{T},
+    model_geometry::ModelGeometry{D,E,N},
+    tight_binding_parameters_up::TightBindingParameters{T,E},
+    tight_binding_parameters_dn::TightBindingParameters{T,E},
+    fermion_path_integral_up::FermionPathIntegral{T,E},
+    fermion_path_integral_dn::FermionPathIntegral{T,E}
+) where {T<:Number, E<:AbstractFloat, P, D, N}
 
     Lτ = fermion_path_integral_up.Lτ::Int
     unit_cell = model_geometry.unit_cell::UnitCell{D,E,N}
@@ -1297,7 +1398,6 @@ function make_time_displaced_measurements!(time_displaced_correlations::Dict{Str
         
         correlation_container = time_displaced_correlations[correlation]::CorrelationContainer{P,E}
         id_pairs = correlation_container.id_pairs::Vector{NTuple{2,Int}}
-        bond_id_pairs = correlation_container.bond_id_pairs::Vector{NTuple{2,Int}}
         correlations = correlation_container.correlations::Vector{Array{Complex{E}, P}}
 
         if correlation == "greens"
@@ -1480,10 +1580,6 @@ function make_time_displaced_measurements!(time_displaced_correlations::Dict{Str
                 # get the bond IDs associated with the hopping IDs
                 bond_id_0 = bond_ids[hopping_id_0]
                 bond_id_1 = bond_ids[hopping_id_1]
-                # record bond id pair for current correlation measurement if not already recorded
-                if (bond_id_pairs[i][1] == 0) && (bond_id_pairs[i][2] == 0)
-                    bond_id_pairs[i] = (bond_id_0, bond_id_1)
-                end
                 # get the bond definitions
                 bond_0 = bonds[bond_id_0]
                 bond_1 = bonds[bond_id_1]
@@ -1511,10 +1607,6 @@ function make_time_displaced_measurements!(time_displaced_correlations::Dict{Str
                 # get the bond IDs associated with the hopping IDs
                 bond_id_0 = bond_ids[hopping_id_0]
                 bond_id_1 = bond_ids[hopping_id_1]
-                # record bond id pair for current correlation measurement if not already recorded
-                if (bond_id_pairs[i][1] == 0) && (bond_id_pairs[i][2] == 0)
-                    bond_id_pairs[i] = (bond_id_0, bond_id_1)
-                end
                 # get the bond definitions
                 bond_0 = bonds[bond_id_0]
                 bond_1 = bonds[bond_id_1]
@@ -1543,10 +1635,6 @@ function make_time_displaced_measurements!(time_displaced_correlations::Dict{Str
                 # get the bond IDs associated with the hopping IDs
                 bond_id_0 = bond_ids[hopping_id_0]
                 bond_id_1 = bond_ids[hopping_id_1]
-                # record bond id pair for current correlation measurement if not already recorded
-                if (bond_id_pairs[i][1] == 0) && (bond_id_pairs[i][2] == 0)
-                    bond_id_pairs[i] = (bond_id_0, bond_id_1)
-                end
                 # get the bond definitions
                 bond_0 = bonds[bond_id_0]
                 bond_1 = bonds[bond_id_1]
@@ -1575,10 +1663,6 @@ function make_time_displaced_measurements!(time_displaced_correlations::Dict{Str
                 # get the bond IDs associated with the hopping IDs
                 bond_id_0 = bond_ids[hopping_id_0]
                 bond_id_1 = bond_ids[hopping_id_1]
-                # record bond id pair for current correlation measurement if not already recorded
-                if (bond_id_pairs[i][1] == 0) && (bond_id_pairs[i][2] == 0)
-                    bond_id_pairs[i] = (bond_id_0, bond_id_1)
-                end
                 # get the bond definitions
                 bond_0 = bonds[bond_id_0]
                 bond_1 = bonds[bond_id_1]
@@ -1607,10 +1691,6 @@ function make_time_displaced_measurements!(time_displaced_correlations::Dict{Str
                 # get the bond IDs associated with the hopping IDs
                 bond_id_0 = bond_ids[hopping_id_0]
                 bond_id_1 = bond_ids[hopping_id_1]
-                # record bond id pair for current correlation measurement if not already recorded
-                if (bond_id_pairs[i][1] == 0) && (bond_id_pairs[i][2] == 0)
-                    bond_id_pairs[i] = (bond_id_0, bond_id_1)
-                end
                 # get the bond definitions
                 bond_0 = bonds[bond_id_0]
                 bond_1 = bonds[bond_id_1]
@@ -1635,21 +1715,428 @@ function make_time_displaced_measurements!(time_displaced_correlations::Dict{Str
 end
 
 
+#####################################################################
+## MAKE TIME-DISPLACED COMPOSITE CORRELATION FUNCTION MEASUREMENTS ##
+#####################################################################
+
+# make purely electronic time-displaced correlation measurements
+function make_time_displaced_composite_measurements!(
+    time_displaced_composite_correlations::Dict{String, CompositeCorrelationContainer{P,E}}, l::Int, sgn::T,
+    Gup::AbstractMatrix{T}, Gup_ττ::AbstractMatrix{T}, Gup_τ0::AbstractMatrix{T}, Gup_0τ::AbstractMatrix{T},
+    Gdn::AbstractMatrix{T}, Gdn_ττ::AbstractMatrix{T}, Gdn_τ0::AbstractMatrix{T}, Gdn_0τ::AbstractMatrix{T},
+    model_geometry::ModelGeometry{D,E,N},
+    tight_binding_parameters_up::TightBindingParameters{T,E},
+    tight_binding_parameters_dn::TightBindingParameters{T,E},
+    fermion_path_integral_up::FermionPathIntegral{T,E},
+    fermion_path_integral_dn::FermionPathIntegral{T,E}
+) where {T<:Number, E<:AbstractFloat, P, D, N}
+
+    Lτ = fermion_path_integral_up.Lτ::Int
+    unit_cell = model_geometry.unit_cell::UnitCell{D,E,N}
+    lattice = model_geometry.lattice::Lattice{D}
+    bonds = model_geometry.bonds::Vector{Bond{D}}
+
+    # iterate over time-displaced correlation function getting measured
+    for name in keys(time_displaced_composite_correlations)
+        
+        correlation_container = time_displaced_composite_correlations[name]::CompositeCorrelationContainer{P,E}
+        correlation = correlation_container.correlation
+        ids = correlation_container.ids::Vector{Int}
+        coefficients = correlation_container.coefficients::Vector{Complex{E}}
+        correlations = correlation_container.composite_correlations::Array{Complex{E}, P}
+        correlation_array = selectdim(correlations, D+1, l+1)
+
+        if correlation == "greens"
+
+            for j in eachindex(ids)
+                for i in eachindex(ids)
+                    coef = conj(coefficients[i])*coefficients[j]
+                    greens!(correlation_array, ids[i], ids[j], unit_cell, lattice, Gup_τ0, coef*sgn/2)
+                    greens!(correlation_array, ids[i], ids[j], unit_cell, lattice, Gdn_τ0, coef*sgn/2)
+                end
+            end
+
+        elseif correlation == "greens_up"
+
+            for j in eachindex(ids)
+                for i in eachindex(ids)
+                    coef = conj(coefficients[i])*coefficients[j]
+                    greens!(correlation_array, ids[i], ids[j], unit_cell, lattice, Gup_τ0, coef*sgn)
+                end
+            end
+
+        elseif correlation == "greens_dn"
+
+            for j in eachindex(ids)
+                for i in eachindex(ids)
+                    coef = conj(coefficients[i])*coefficients[j]
+                    greens!(correlation_array, ids[i], ids[j], unit_cell, lattice, Gdn_τ0, coef*sgn)
+                end
+            end
+
+        elseif correlation == "greens_tautau"
+
+            for j in eachindex(ids)
+                for i in eachindex(ids)
+                    coef = conj(coefficients[i])*coefficients[j]
+                    greens!(correlation_array, ids[i], ids[j], unit_cell, lattice, Gup_ττ, coef*sgn/2)
+                    greens!(correlation_array, ids[i], ids[j], unit_cell, lattice, Gdn_ττ, coef*sgn/2)
+                end
+            end
+
+        elseif correlation == "greens_tautau_up"
+
+            for j in eachindex(ids)
+                for i in eachindex(ids)
+                    coef = conj(coefficients[i])*coefficients[j]
+                    greens!(correlation_array, ids[i], ids[j], unit_cell, lattice, Gup_ττ, coef*sgn)
+                end
+            end
+
+        elseif correlation == "greens_tautau_dn"
+
+            for j in eachindex(ids)
+                for i in eachindex(ids)
+                    coef = conj(coefficients[i])*coefficients[j]
+                    greens!(correlation_array, ids[i], ids[j], unit_cell, lattice, Gdn_ττ, coef*sgn)
+                end
+            end
+
+        elseif correlation == "density_upup"
+
+            for j in eachindex(ids)
+                for i in eachindex(ids)
+                    coef = conj(coefficients[i])*coefficients[j]
+                    density_correlation!(
+                        correlation_array, ids[i], ids[j], unit_cell, lattice,
+                        Gup_τ0, Gup_0τ, Gup_ττ, Gup, +1, +1, coef*sgn
+                    )
+                end
+            end
+
+        elseif correlation == "density_dndn"
+
+            for j in eachindex(ids)
+                for i in eachindex(ids)
+                    coef = conj(coefficients[i])*coefficients[j]
+                    density_correlation!(
+                        correlation_array, ids[i], ids[j], unit_cell, lattice,
+                        Gdn_τ0, Gdn_0τ, Gdn_ττ, Gdn, +1, +1, coef*sgn
+                    )
+                end
+            end
+
+        elseif correlation == "density_updn"
+
+            for j in eachindex(ids)
+                for i in eachindex(ids)
+                    coef = conj(coefficients[i])*coefficients[j]
+                    density_correlation!(
+                        correlation_array, ids[i], ids[j], unit_cell, lattice,
+                        Gup_τ0, Gup_0τ, Gup_ττ, Gdn, +1, -1, coef*sgn
+                    )
+                end
+            end
+
+        elseif correlation == "density_dnup"
+
+            for j in eachindex(ids)
+                for i in eachindex(ids)
+                    coef = conj(coefficients[i])*coefficients[j]
+                    density_correlation!(
+                        correlation_array, ids[i], ids[j], unit_cell, lattice,
+                        Gdn_τ0, Gdn_0τ, Gdn_ττ, Gup, -1, +1, coef*sgn
+                    )
+                end
+            end
+
+        elseif correlation == "density"
+
+            for j in eachindex(ids)
+                for i in eachindex(ids)
+                    coef = conj(coefficients[i])*coefficients[j]
+                    density_correlation!(
+                        correlation_array, ids[i], ids[j], unit_cell, lattice,
+                        Gup_τ0, Gup_0τ, Gup_ττ, Gup, Gdn_τ0, Gdn_0τ, Gdn_ττ, Gdn, coef*sgn
+                    )
+                end
+            end
+
+        elseif correlation == "pair"
+
+            for j in eachindex(ids)
+                for i in eachindex(ids)
+                    coef = conj(coefficients[i])*coefficients[j]
+                    pair_correlation!(
+                        correlation_array, bonds[ids[i]], bonds[ids[j]], unit_cell, lattice,
+                        Gup_τ0, Gdn_τ0, coef*sgn
+                    )
+                end
+            end
+
+        elseif correlation == "spin_x"
+
+            for j in eachindex(ids)
+                for i in eachindex(ids)
+                    coef = conj(coefficients[i])*coefficients[j]
+                    spin_x_correlation!(
+                        correlation_array, ids[i], ids[j], unit_cell, lattice,
+                        Gup_τ0, Gup_0τ, Gdn_τ0, Gdn_0τ, coef*sgn
+                    )
+                end
+            end
+
+        elseif correlation == "spin_z"
+
+            for j in eachindex(ids)
+                for i in eachindex(ids)
+                    coef = conj(coefficients[i])*coefficients[j]
+                    spin_z_correlation!(
+                        correlation_array, ids[i], ids[j], unit_cell, lattice,
+                        Gup_τ0, Gup_0τ, Gup_ττ, Gup, Gdn_τ0, Gdn_0τ, Gdn_ττ, Gdn, coef*sgn
+                    )
+                end
+            end
+
+        elseif correlation == "bond_upup"
+
+            for j in eachindex(ids)
+                for i in eachindex(ids)
+                    coef = conj(coefficients[i])*coefficients[j]
+                    bond_correlation!(
+                        correlation_array, bonds[ids[i]], bonds[ids[j]], unit_cell, lattice,
+                        Gup_τ0, Gup_0τ, Gup_ττ, Gup, +1, +1, coef*sgn
+                    )
+                end
+            end
+
+        elseif correlation == "bond_dndn"
+
+            for j in eachindex(ids)
+                for i in eachindex(ids)
+                    coef = conj(coefficients[i])*coefficients[j]
+                    bond_correlation!(
+                        correlation_array, bonds[ids[i]], bonds[ids[j]], unit_cell, lattice,
+                        Gdn_τ0, Gdn_0τ, Gdn_ττ, Gdn, -1, -1, coef*sgn
+                    )
+                end
+            end
+
+        elseif correlation == "bond_updn"
+
+            for j in eachindex(ids)
+                for i in eachindex(ids)
+                    coef = conj(coefficients[i])*coefficients[j]
+                    bond_correlation!(
+                        correlation_array, bonds[ids[i]], bonds[ids[j]], unit_cell, lattice,
+                        Gup_τ0, Gup_0τ, Gup_ττ, Gdn, +1, -1, coef*sgn
+                    )
+                end
+            end
+
+        elseif correlation == "bond_dnup"
+
+            for j in eachindex(ids)
+                for i in eachindex(ids)
+                    coef = conj(coefficients[i])*coefficients[j]
+                    bond_correlation!(
+                        correlation_array, bonds[ids[i]], bonds[ids[i]], unit_cell, lattice,
+                        Gdn_τ0, Gdn_0τ, Gdn_ττ, Gup, -1, +1, coef*sgn
+                    )
+                end
+            end
+
+        elseif correlation == "bond"
+
+            for j in eachindex(ids)
+                for i in eachindex(ids)
+                    coef = conj(coefficients[i])*coefficients[j]
+                    bond_correlation!(
+                        correlation_array, bonds[ids[i]], bonds[ids[j]], unit_cell, lattice,
+                        Gup_τ0, Gup_0τ, Gup_ττ, Gup, Gdn_τ0, Gdn_0τ, Gdn_ττ, Gdn, coef*sgn
+                    )
+                end
+            end
+        
+        elseif correlation == "current_upup"
+
+            (; bond_ids, bond_slices) = tight_binding_parameters_up
+            tup = fermion_path_integral_up.t
+
+            for j in eachindex(ids)
+                for i in eachindex(ids)
+                    coef = conj(coefficients[i])*coefficients[j]
+                    # get the hopping IDs associated with current operators
+                    hopping_id_0 = ids[j]
+                    hopping_id_1 = ids[i]
+                    # get the bond IDs associated with the hopping IDs
+                    bond_id_0 = bond_ids[hopping_id_0]
+                    bond_id_1 = bond_ids[hopping_id_1]
+                    # get the bond definitions
+                    bond_0 = bonds[bond_id_0]
+                    bond_1 = bonds[bond_id_1]
+                    # get the effective hopping amptlitudes for each of the two hopping ID's in question
+                    tup0 = @view tup[bond_slices[hopping_id_0], Lτ]
+                    tup0′ = reshape(tup0, lattice.L...)
+                    tup1 = @view tup[bond_slices[hopping_id_1], mod1(l,Lτ)]
+                    tup1′ = reshape(tup1, lattice.L...)
+                    # measure the current-current correlation
+                    current_correlation!(
+                        correlation_array, bond_1, bond_0, tup1′, tup0′, unit_cell, lattice,
+                        Gup_τ0, Gup_0τ, Gup_ττ, Gup, +1, +1, coef*sgn
+                    )
+                end
+            end
+
+        elseif correlation == "current_dndn"
+
+            (; bond_ids, bond_slices) = tight_binding_parameters_dn
+            tdn = fermion_path_integral_dn.t
+
+            for j in eachindex(ids)
+                for i in eachindex(ids)
+                    coef = conj(coefficients[i])*coefficients[j]
+                    # get the hopping IDs associated with current operators
+                    hopping_id_0 = ids[j]
+                    hopping_id_1 = ids[i]
+                    # get the bond IDs associated with the hopping IDs
+                    bond_id_0 = bond_ids[hopping_id_0]
+                    bond_id_1 = bond_ids[hopping_id_1]
+                    # get the bond definitions
+                    bond_0 = bonds[bond_id_0]
+                    bond_1 = bonds[bond_id_1]
+                    # get the effective hopping amptlitudes for each of the two hopping ID's in question
+                    tdn0 = @view tdn[bond_slices[hopping_id_0], Lτ]
+                    tdn0′ = reshape(tdn0, lattice.L...)
+                    tdn1 = @view tdn[bond_slices[hopping_id_1], mod1(l,Lτ)]
+                    tdn1′ = reshape(tdn1, lattice.L...)
+                    # measure the current-current correlation
+                    current_correlation!(
+                        correlation_array, bond_1, bond_0, tdn1′, tdn0′, unit_cell, lattice,
+                        Gdn_τ0, Gdn_0τ, Gdn_ττ, Gdn, -1, -1, coef*sgn
+                    )
+                end
+            end
+
+        elseif correlation == "current_updn"
+
+            (; bond_ids, bond_slices) = tight_binding_parameters_up
+            tup = fermion_path_integral_up.t
+            tdn = fermion_path_integral_dn.t
+
+            for j in eachindex(ids)
+                for i in eachindex(ids)
+                    coef = conj(coefficients[i])*coefficients[j]
+                    # get the hopping IDs associated with current operators
+                    hopping_id_0 = ids[j]
+                    hopping_id_1 = ids[i]
+                    # get the bond IDs associated with the hopping IDs
+                    bond_id_0 = bond_ids[hopping_id_0]
+                    bond_id_1 = bond_ids[hopping_id_1]
+                    # get the bond definitions
+                    bond_0 = bonds[bond_id_0]
+                    bond_1 = bonds[bond_id_1]
+                    # get the effective hopping amptlitudes for each of the two hopping ID's in question
+                    tup0 = @view tup[bond_slices[hopping_id_0], Lτ]
+                    tup0′ = reshape(tup0, lattice.L...)
+                    tdn1 = @view tdn[bond_slices[hopping_id_1], mod1(l,Lτ)]
+                    tdn1′ = reshape(tdn1, lattice.L...)
+                    # measure the current-current correlation
+                    current_correlation!(
+                        correlation_array, bond_1, bond_0, tup1′, tdn0′, unit_cell, lattice,
+                        Gup_τ0, Gup_0τ, Gup_ττ, Gdn, +1, -1, coef*sgn
+                    )
+                end
+            end
+
+        elseif correlation == "current_dnup"
+
+            (; bond_ids, bond_slices) = tight_binding_parameters_up
+            tup = fermion_path_integral_up.t
+            tdn = fermion_path_integral_dn.t
+
+            for j in eachindex(ids)
+                for i in eachindex(ids)
+                    coef = conj(coefficients[i])*coefficients[j]
+                    # get the hopping IDs associated with current operators
+                    hopping_id_0 = ids[j]
+                    hopping_id_1 = ids[i]
+                    # get the bond IDs associated with the hopping IDs
+                    bond_id_0 = bond_ids[hopping_id_0]
+                    bond_id_1 = bond_ids[hopping_id_1]
+                    # get the bond definitions
+                    bond_0 = bonds[bond_id_0]
+                    bond_1 = bonds[bond_id_1]
+                    # get the effective hopping amptlitudes for each of the two hopping ID's in question
+                    tdn0 = @view tdn[bond_slices[hopping_id_0], Lτ]
+                    tdn0′ = reshape(tdn0, lattice.L...)
+                    tup1 = @view tup[bond_slices[hopping_id_1], mod1(l,Lτ)]
+                    tup1′ = reshape(tup1, lattice.L...)
+                    # measure the current-current correlation
+                    current_correlation!(
+                        correlation_array, bond_1, bond_0, tdn1′, tup0′, unit_cell, lattice,
+                        Gdn_τ0, Gdn_0τ, Gdn_ττ, Gup, -1, +1, coef*sgn
+                    )
+                end
+            end
+
+        elseif correlation == "current"
+
+            (; bond_ids, bond_slices) = tight_binding_parameters_up
+            tup = fermion_path_integral_up.t
+            tdn = fermion_path_integral_dn.t
+
+            for j in eachindex(ids)
+                for i in eachindex(ids)
+                    coef = conj(coefficients[i])*coefficients[j]
+                    # get the hopping IDs associated with current operators
+                    hopping_id_0 = ids[j]
+                    hopping_id_1 = ids[i]
+                    # get the bond IDs associated with the hopping IDs
+                    bond_id_0 = bond_ids[hopping_id_0]
+                    bond_id_1 = bond_ids[hopping_id_1]
+                    # get the bond definitions
+                    bond_0 = bonds[bond_id_0]
+                    bond_1 = bonds[bond_id_1]
+                    # get the effective hopping amptlitudes for each of the two hopping ID's in question
+                    tup0 = @view tup[bond_slices[hopping_id_0], Lτ]
+                    tup0′ = reshape(tup0, lattice.L...)
+                    tup1 = @view tup[bond_slices[hopping_id_1], mod1(l,Lτ)]
+                    tup1′ = reshape(tup1, lattice.L...)
+                    tdn0 = @view tdn[bond_slices[hopping_id_0], Lτ]
+                    tdn0′ = reshape(tdn0, lattice.L...)
+                    tdn1 = @view tdn[bond_slices[hopping_id_1], mod1(l,Lτ)]
+                    tdn1′ = reshape(tdn1, lattice.L...)
+                    # measure the current-current correlation
+                    current_correlation!(
+                        correlation_array, bond_1, bond_0, tup1′, tup0′, tdn1′, tdn0′, unit_cell, lattice,
+                        Gup_τ0, Gup_0τ, Gup_ττ, Gup, Gdn_τ0, Gdn_0τ, Gdn_ττ, Gdn, coef*sgn
+                    )
+                end
+            end
+        end
+    end
+
+    return nothing
+end
+
+
 ####################################
 ## MEASURE PHONON GREENS FUNCTION ##
 ####################################
 
 # measure equal-time phonon greens function
-function measure_equaltime_phonon_greens!(phonon_greens::CorrelationContainer{D,E},
-                                          electron_phonon_parameters::ElectronPhononParameters{T,E},
-                                          model_geometry::ModelGeometry{D,E,N},
-                                          sgn::T,
-                                          XrX0::AbstractArray{Complex{E},P},
-                                          Xr::AbstractArray{Complex{E},P},
-                                          X0::AbstractArray{Complex{E},P}) where {T<:Number, E<:AbstractFloat, D, P, N}
+function measure_equaltime_phonon_greens!(
+    phonon_greens::CorrelationContainer{D,E},
+    electron_phonon_parameters::ElectronPhononParameters{T,E},
+    model_geometry::ModelGeometry{D,E,N},
+    sgn::T,
+    XrX0::AbstractArray{Complex{E},P},
+    Xr::AbstractArray{Complex{E},P},
+    X0::AbstractArray{Complex{E},P}
+) where {T<:Number, E<:AbstractFloat, D, P, N}
 
     id_pairs = phonon_greens.id_pairs::Vector{NTuple{2,Int}}
-    bond_id_pairs = phonon_greens.bond_id_pairs::Vector{NTuple{2,Int}}
     correlations = phonon_greens.correlations::Vector{Array{Complex{E}, D}}
     unit_cell = model_geometry.unit_cell::UnitCell{D,E,N}
     lattice = model_geometry.lattice::Lattice{D}
@@ -1689,33 +2176,23 @@ function measure_equaltime_phonon_greens!(phonon_greens::CorrelationContainer{D,
         # record the equal-time phonon green's function
         XrX0_0 = selectdim(XrX0, D+1, 1)
         @. correlation += sgn * XrX0_0
-        # record the bond id pair if not already recorded
-        if (bond_id_pairs[i][1] == 0) && (bond_id_pairs[i][2] == 0)
-            # get the site ID each phonon mode lives on
-            site_1 = phonon_to_site[1, id_pair[1]]
-            site_2 = phonon_to_site[1, id_pair[2]]
-            # get orbital id associated with site
-            orbital_1 = site_to_orbital(site_1, unit_cell)
-            orbital_2 = site_to_orbital(site_2, unit_cell)
-            # record orbital/bond id pair
-            bond_id_pairs[i] = (orbital_1, orbital_2)
-        end
     end
 
     return nothing
 end
 
 # measure time-displaced phonon greens function
-function measure_time_displaced_phonon_greens!(phonon_greens::CorrelationContainer{P,E}, # time-displaced because P != D
-                                               electron_phonon_parameters::ElectronPhononParameters{T,E},
-                                               model_geometry::ModelGeometry{D,E,N},
-                                               sgn::T,
-                                               XrX0::AbstractArray{Complex{E},P},
-                                               Xr::AbstractArray{Complex{E},P},
-                                               X0::AbstractArray{Complex{E},P}) where {T<:Number, E<:AbstractFloat, D, P, N}
+function measure_time_displaced_phonon_greens!(
+    phonon_greens::CorrelationContainer{P,E}, # time-displaced because P != D
+    electron_phonon_parameters::ElectronPhononParameters{T,E},
+    model_geometry::ModelGeometry{D,E,N},
+    sgn::T,
+    XrX0::AbstractArray{Complex{E},P},
+    Xr::AbstractArray{Complex{E},P},
+    X0::AbstractArray{Complex{E},P}
+) where {T<:Number, E<:AbstractFloat, D, P, N}
 
     id_pairs = phonon_greens.id_pairs::Vector{NTuple{2,Int}}
-    bond_id_pairs = phonon_greens.bond_id_pairs::Vector{NTuple{2,Int}}
     correlations = phonon_greens.correlations::Vector{Array{Complex{E}, P}}
     unit_cell = model_geometry.unit_cell::UnitCell{D,E,N}
     lattice = model_geometry.lattice::Lattice{D}
@@ -1757,17 +2234,6 @@ function measure_time_displaced_phonon_greens!(phonon_greens::CorrelationContain
         correlation_0  = selectdim(correlation, D+1, 1)
         correlation_Lτ = selectdim(correlation, D+1, Lτ+1)
         copyto!(correlation_Lτ, correlation_0)
-        # record the bond id pair if not already recorded
-        if (bond_id_pairs[i][1] == 0) && (bond_id_pairs[i][2] == 0)
-            # get the site ID each phonon mode lives on
-            site_1 = phonon_to_site[1, id_pair[1]]
-            site_2 = phonon_to_site[1, id_pair[2]]
-            # get orbital id associated with site
-            orbital_1 = site_to_orbital(site_1, unit_cell)
-            orbital_2 = site_to_orbital(site_2, unit_cell)
-            # record orbital/bond id pair
-            bond_id_pairs[i] = (orbital_1, orbital_2)
-        end
     end
 
     return nothing
