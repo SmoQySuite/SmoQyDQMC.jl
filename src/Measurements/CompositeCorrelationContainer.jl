@@ -11,7 +11,7 @@ struct CompositeCorrelationContainer{D, T<:AbstractFloat}
     coefficients::Vector{Complex{T}}
 
     # array to contain composite correlation measurements
-    composite_correlations::Array{Complex{T}, D}
+    correlations::Array{Complex{T}, D}
 
     # whether time-displaced measurement that will be written to file during simulation
     time_displaced::Bool
@@ -61,7 +61,7 @@ function save(fn::String, composite_correlation_container::CompositeCorrelationC
             correlation = composite_correlation_container.correlation,
             ids = composite_correlation_container.ids,
             coefficients = composite_correlation_container.coefficients,
-            composite_correlations = composite_correlation_container.composite_correlations,
+            correlations = composite_correlation_container.correlations,
             time_displaced = composite_correlation_container.time_displaced
     )
 
@@ -71,7 +71,7 @@ end
 # Reset the correlation data stored in correlaiton_container to zero.
 function reset!(composite_correlation_container::CompositeCorrelationContainer{D,T}) where {D,T<:AbstractFloat}
 
-    fill!(composite_correlation_container.composite_correlations, zero(Complex{T}))
+    fill!(composite_correlation_container.correlations, zero(Complex{T}))
 
     return nothing
 end

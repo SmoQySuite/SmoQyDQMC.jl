@@ -325,24 +325,52 @@ function make_measurements!(
         end
     end
 
-    # measure equal-time phonon greens function
-    if haskey(equaltime_correlations, "phonon_greens")
+    # determine if electron-phonon parameters were passed
+    indx = findfirst(i -> typeof(i) <: ElectronPhononParameters, coupling_parameters)
 
-        # get the electron-phonon parameters
-        indx = findfirst(i -> typeof(i) <: ElectronPhononParameters, coupling_parameters)
+    # if electron-phonon parameters were passed
+    if !isnothing(indx)
 
-        # measure phonon green's function
-        measure_equaltime_phonon_greens!(equaltime_correlations["phonon_greens"], coupling_parameters[indx], model_geometry, sgn, a, a′, a″)
-    end
+        # get electron-phonon coupling parameters
+        elph_params = coupling_parameters[indx]
 
-    # measure time-displaced phonon greens function
-    if haskey(time_displaced_correlations, "phonon_greens")
+        # measure equal-time phonon greens function
+        if haskey(equaltime_correlations, "phonon_greens")
+            # measure phonon green's function
+            measure_equaltime_phonon_greens!(
+                equaltime_correlations["phonon_greens"], elph_params, model_geometry, sgn, a, a′, a″
+            )
+        end
 
-        # get the electron-phonon parameters
-        indx = findfirst(i -> typeof(i) <: ElectronPhononParameters, coupling_parameters)
+        # measure time-displaced phonon greens function
+        if haskey(time_displaced_correlations, "phonon_greens")
+            # measure phonon green's function
+            measure_time_displaced_phonon_greens!(
+                time_displaced_correlations["phonon_greens"], elph_params, model_geometry, sgn, a, a′, a″
+            )
+        end
 
-        # measure phonon green's function
-        measure_time_displaced_phonon_greens!(time_displaced_correlations["phonon_greens"], coupling_parameters[indx], model_geometry, sgn, a, a′, a″)
+        # iterate over composite equal-time correlations
+        for name in keys(equaltime_composite_correlations)
+            # check if composite phonon green's function measurement
+            if equaltime_composite_correlations[name].correlation == "phonon_greens"
+                # measure equal-time composite phonon green's function
+                measure_equaltime_composite_phonon_greens!(
+                    equaltime_composite_correlations[name], elph_params, model_geometry, sgn, a, a′, a″
+                )
+            end
+        end
+
+        # iterate over composite equal-time correlations
+        for name in keys(time_displaced_composite_correlations)
+            # check if composite phonon green's function measurement
+            if time_displaced_composite_correlations[name].correlation == "phonon_greens"
+                # measure equal-time composite phonon green's function
+                measure_time_displaced_composite_phonon_greens!(
+                    time_displaced_composite_correlations[name], elph_params, model_geometry, sgn, a, a′, a″
+                )
+            end
+        end
     end
 
     return (logdetG, sgndetG, δG, δθ)
@@ -996,7 +1024,7 @@ function make_equaltime_composite_measurements!(
         correlation = correlation_container.correlation
         ids = correlation_container.ids::Vector{Int}
         coefficients = correlation_container.coefficients::Vector{Complex{E}}
-        correlations = correlation_container.composite_correlations::Array{Complex{E}, D}
+        correlations = correlation_container.correlations::Array{Complex{E}, D}
 
         if correlation == "greens"
 
@@ -1743,7 +1771,7 @@ function make_time_displaced_composite_measurements!(
         correlation = correlation_container.correlation
         ids = correlation_container.ids::Vector{Int}
         coefficients = correlation_container.coefficients::Vector{Complex{E}}
-        correlations = correlation_container.composite_correlations::Array{Complex{E}, P}
+        correlations = correlation_container.correlations::Array{Complex{E}, P}
         correlation_array = selectdim(correlations, D+1, l+1)
 
         if correlation == "greens"
@@ -2138,9 +2166,7 @@ function measure_equaltime_phonon_greens!(
 
     id_pairs = phonon_greens.id_pairs::Vector{NTuple{2,Int}}
     correlations = phonon_greens.correlations::Vector{Array{Complex{E}, D}}
-    unit_cell = model_geometry.unit_cell::UnitCell{D,E,N}
     lattice = model_geometry.lattice::Lattice{D}
-    bonds = model_geometry.bonds::Vector{Bond{D}}
     phonon_parameters = electron_phonon_parameters.phonon_parameters::PhononParameters{E}
 
     # get phonon field
@@ -2158,9 +2184,6 @@ function measure_equaltime_phonon_greens!(
 
     # reshape phonon field matrix into multi-dimensional array
     x′ = reshape(x, (L..., nphonon, Lτ))
-
-    # get the site associated with each phonon field
-    phonon_to_site = reshape(phonon_parameters.phonon_to_site, (lattice.N, nphonon))
 
     # iterate over all pairs of phonon modes
     for i in eachindex(id_pairs)
@@ -2181,9 +2204,9 @@ function measure_equaltime_phonon_greens!(
     return nothing
 end
 
-# measure time-displaced phonon greens function
-function measure_time_displaced_phonon_greens!(
-    phonon_greens::CorrelationContainer{P,E}, # time-displaced because P != D
+# measure equal-time phonon greens function
+function measure_equaltime_composite_phonon_greens!(
+    phonon_greens::CompositeCorrelationContainer{D,E},
     electron_phonon_parameters::ElectronPhononParameters{T,E},
     model_geometry::ModelGeometry{D,E,N},
     sgn::T,
@@ -2192,11 +2215,11 @@ function measure_time_displaced_phonon_greens!(
     X0::AbstractArray{Complex{E},P}
 ) where {T<:Number, E<:AbstractFloat, D, P, N}
 
-    id_pairs = phonon_greens.id_pairs::Vector{NTuple{2,Int}}
-    correlations = phonon_greens.correlations::Vector{Array{Complex{E}, P}}
-    unit_cell = model_geometry.unit_cell::UnitCell{D,E,N}
+    @assert phonon_greens.correction == "phonon_greens"
+    ids = phonon_greens.id_pairs::Vector{Int}
+    coefficients = phonon_greens.coefficients::Vector{Complex{E}}
+    correlations = phonon_greens.correlations::Array{Complex{E}, D}
     lattice = model_geometry.lattice::Lattice{D}
-    bonds = model_geometry.bonds::Vector{Bond{D}}
     phonon_parameters = electron_phonon_parameters.phonon_parameters::PhononParameters{E}
 
     # get phonon field
@@ -2215,8 +2238,57 @@ function measure_time_displaced_phonon_greens!(
     # reshape phonon field matrix into multi-dimensional array
     x′ = reshape(x, (L..., nphonon, Lτ))
 
-    # get the site associated with each phonon field
-    phonon_to_site = reshape(phonon_parameters.phonon_to_site, (lattice.N, nphonon))
+    # iterate over all pairs of phonon modes
+    for j in eachindex(ids)
+        for i in eachindex(ids)
+            # get the phonon fields associated with the appropriate pair of phonon modes in the unit cell
+            x0 = selectdim(x′, D+1, ids[j])
+            xr = selectdim(x′, D+1, ids[i])
+            copyto!(X0, x0)
+            copyto!(Xr, xr)
+            # calculate phonon greens function
+            translational_avg!(XrX0, Xr, X0, restore = false)
+            # record the equal-time phonon green's function
+            XrX0_0 = selectdim(XrX0, D+1, 1)
+            coef = conj(coefficients[i]) * coefficients[j]
+            @. correlations += sgn * coef * XrX0_0
+        end
+    end
+
+    return nothing
+end
+
+# measure time-displaced phonon greens function
+function measure_time_displaced_phonon_greens!(
+    phonon_greens::CorrelationContainer{P,E}, # time-displaced because P != D
+    electron_phonon_parameters::ElectronPhononParameters{T,E},
+    model_geometry::ModelGeometry{D,E,N},
+    sgn::T,
+    XrX0::AbstractArray{Complex{E},P},
+    Xr::AbstractArray{Complex{E},P},
+    X0::AbstractArray{Complex{E},P}
+) where {T<:Number, E<:AbstractFloat, D, P, N}
+
+    id_pairs = phonon_greens.id_pairs::Vector{NTuple{2,Int}}
+    correlations = phonon_greens.correlations::Vector{Array{Complex{E}, P}}
+    lattice = model_geometry.lattice::Lattice{D}
+    phonon_parameters = electron_phonon_parameters.phonon_parameters::PhononParameters{E}
+
+    # get phonon field
+    x = electron_phonon_parameters.x::Matrix{E}
+
+    # length of imaginary time axis
+    Lτ = size(x,2)
+
+    # size of system in unit cells
+    L = lattice.L
+
+    # number of phonons per unit cell
+    phonon_parameters = electron_phonon_parameters.phonon_parameters::PhononParameters{E}
+    nphonon = phonon_parameters.nphonon::Int
+
+    # reshape phonon field matrix into multi-dimensional array
+    x′ = reshape(x, (L..., nphonon, Lτ))
 
     # iterate over all pairs of phonon modes
     for i in eachindex(id_pairs)
@@ -2234,6 +2306,62 @@ function measure_time_displaced_phonon_greens!(
         correlation_0  = selectdim(correlation, D+1, 1)
         correlation_Lτ = selectdim(correlation, D+1, Lτ+1)
         copyto!(correlation_Lτ, correlation_0)
+    end
+
+    return nothing
+end
+
+# measure time-displaced phonon greens function
+function measure_time_displaced_composite_phonon_greens!(
+    phonon_greens::CompositeCorrelationContainer{P,E}, # time-displaced because P != D
+    electron_phonon_parameters::ElectronPhononParameters{T,E},
+    model_geometry::ModelGeometry{D,E,N},
+    sgn::T,
+    XrX0::AbstractArray{Complex{E},P},
+    Xr::AbstractArray{Complex{E},P},
+    X0::AbstractArray{Complex{E},P}
+) where {T<:Number, E<:AbstractFloat, D, P, N}
+
+    @assert phonon_greens.correction == "phonon_greens"
+    ids = phonon_greens.id_pairs::Vector{Int}
+    coefficients = phonon_greens.coefficients::Vector{Complex{E}}
+    correlations = phonon_greens.correlations::Array{Complex{E}, D}
+    lattice = model_geometry.lattice::Lattice{D}
+    phonon_parameters = electron_phonon_parameters.phonon_parameters::PhononParameters{E}
+
+    # get phonon field
+    x = electron_phonon_parameters.x::Matrix{E}
+
+    # length of imaginary time axis
+    Lτ = size(x,2)
+
+    # size of system in unit cells
+    L = lattice.L
+
+    # number of phonons per unit cell
+    phonon_parameters = electron_phonon_parameters.phonon_parameters::PhononParameters{E}
+    nphonon = phonon_parameters.nphonon::Int
+
+    # reshape phonon field matrix into multi-dimensional array
+    x′ = reshape(x, (L..., nphonon, Lτ))
+
+    # iterate over all pairs of phonon modes
+    for j in eachindex(ids)
+        for i in eachindex(ids)
+            # get the phonon fields associated with the appropriate pair of phonon modes in the unit cell
+            x0 = selectdim(x′, D+1, ids[j])
+            xr = selectdim(x′, D+1, ids[i])
+            copyto!(X0, x0)
+            copyto!(Xr, xr)
+            # calculate phonon greens function
+            translational_avg!(XrX0, Xr, X0, restore = false)
+            correlation′ = selectdim(correlations, D+1, 1:Lτ)
+            coef = conj(coefficients[i]) * coefficients[j]
+            @. correlation′ += sgn * coef * XrX0
+            correlation_0  = selectdim(correlations, D+1, 1)
+            correlation_Lτ = selectdim(correlations, D+1, Lτ+1)
+            copyto!(correlation_Lτ, correlation_0)
+        end
     end
 
     return nothing
