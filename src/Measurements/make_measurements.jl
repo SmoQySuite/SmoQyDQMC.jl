@@ -310,7 +310,7 @@ function make_measurements!(
             )
 
             # make time-displaced composite correlation measuresurements of τ = l⋅Δτ
-            make_time_displaced_measurements!(
+            make_time_displaced_composite_measurements!(
                 time_displaced_composite_correlations, l, sgn,
                 G, G_ττ, G_τ0, G_0τ, G, G_ττ, G_τ0, G_0τ,
                 model_geometry, tight_binding_parameters, tight_binding_parameters,
@@ -1020,7 +1020,7 @@ function make_equaltime_composite_measurements!(
     # iterate over equal-time correlation function getting measured
     for name in keys(equaltime_composite_correlations)
         
-        correlation_container = equaltime_composite_correlations[name]::CorrelationContainer{D,E}
+        correlation_container = equaltime_composite_correlations[name]::CompositeCorrelationContainer{D,E}
         correlation = correlation_container.correlation
         ids = correlation_container.ids::Vector{Int}
         coefficients = correlation_container.coefficients::Vector{Complex{E}}
@@ -1324,7 +1324,8 @@ function make_equaltime_composite_measurements!(
                     # measure the current-current correlation
                     current_correlation!(
                         correlations, bond_1, bond_0, tup1′, tdn0′, unit_cell, lattice,
-                        Gup_τ0, Gup_0τ, Gup_ττ, Gdn, +1, -1, coef*sgn)
+                        Gup_τ0, Gup_0τ, Gup_ττ, Gdn, +1, -1, coef*sgn
+                    )
                 end
             end
 
@@ -2357,7 +2358,6 @@ function measure_time_displaced_composite_phonon_greens!(
             translational_avg!(XrX0, Xr, X0, restore = false)
             correlation′ = selectdim(correlations, D+1, 1:Lτ)
             coef = conj(coefficients[i]) * coefficients[j]
-            @. correlation′ += sgn * coef * XrX0
             correlation_0  = selectdim(correlations, D+1, 1)
             correlation_Lτ = selectdim(correlations, D+1, Lτ+1)
             copyto!(correlation_Lτ, correlation_0)

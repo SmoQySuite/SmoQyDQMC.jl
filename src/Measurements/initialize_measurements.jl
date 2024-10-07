@@ -430,9 +430,10 @@ end
     )  where {T<:AbstractFloat, D, N}
 
 Initialize a composite correlation measurement called `name` based
-on a linear combination of operators that appear in a standard
-`correlation` measurements, with `ids` and `coefficients` specifying
-the linear combination.
+on a linear combination of local operators used in a standard `correlation` measurement,
+with `ids` and `coefficients` specifying the linear combination. Note that when calculating
+the fourier transform of the composite correlation function measured in real space,
+it is assumed that the basis vector for the composite correlation operator is ``\mathbf{r} = 0``.
 """
 function initialize_composite_correlation_measurement!(;
     measurement_container::NamedTuple,
@@ -447,25 +448,28 @@ function initialize_composite_correlation_measurement!(;
 
     (; time_displaced_composite_correlations,
        integrated_composite_correlations,
-       equaltime_composite_correlations
+       equaltime_composite_correlations,
+       L, Lτ
     ) = measurement_container
 
     @assert correlation in keys(CORRELATION_FUNCTIONS)
     @assert length(ids) == length(coefficients)
 
-    # extent of lattice in unit cells
-    L = measurement_container.L
-
-    # length of imaginary time axis
-    Lτ = measurement_container.Lτ
-
     # if time displaced or integrated measurement should be made
     if time_displaced || integrated
-        time_displaced_composite_correlations[name] = CompositeCorrelationContainer(T, Lτ, L, correlation, ids, coefficients, time_displaced)
-        integrated_composite_correlations[name] = CompositeCorrelationContainer(T, L, correlation, ids, coefficients)
+        time_displaced_composite_correlations[name] = CompositeCorrelationContainer(
+            T, Lτ, L, correlation, ids, coefficients, time_displaced
+        )
+        integrated_composite_correlations[name] = CompositeCorrelationContainer(
+            T, L, correlation, ids, coefficients
+        )
+    end
+
     # if equal-time measurement should be made
-    else
-        equaltime_composite_correlations[name] = CompositeCorrelationContainer(T, L, correlation, ids, coefficients)
+    if !time_displaced
+        equaltime_composite_correlations[name] = CompositeCorrelationContainer(
+            T, L, correlation, ids, coefficients
+        )
     end
 
     return nothing
@@ -503,7 +507,13 @@ function initialize_measurement_directories(
 )
 
     (; datafolder, resuming, pID) = simulation_info
-    (; time_displaced_correlations, equaltime_correlations, integrated_correlations) = measurement_container
+    (; time_displaced_correlations,
+       equaltime_correlations,
+       integrated_correlations,
+       time_displaced_composite_correlations,
+       equaltime_composite_correlations,
+       integrated_composite_correlations
+    ) = measurement_container
 
     # only initialize folders if pID = 0
     if iszero(pID) && !resuming
@@ -525,6 +535,18 @@ function initialize_measurement_directories(
 
             # make directory for each individual eqaul-time correlation measurement
             equaltime_correlation_directory = joinpath(eqaultime_directory, correlation)
+            mkdir(equaltime_correlation_directory)
+
+            # create sub-directories for position and momentum space data
+            mkdir(joinpath(equaltime_correlation_directory, "position"))
+            mkdir(joinpath(equaltime_correlation_directory, "momentum"))
+        end
+
+        # iterate over equal-time composite correlation measurements
+        for name in keys(equaltime_composite_correlations)
+
+            # make directory for each individual eqaul-time correlation measurement
+            equaltime_correlation_directory = joinpath(eqaultime_directory, name)
             mkdir(equaltime_correlation_directory)
 
             # create sub-directories for position and momentum space data
@@ -556,6 +578,30 @@ function initialize_measurement_directories(
 
                 # make directory for time-displaced correlation measurement
                 time_displaced_correlation_directory = joinpath(time_displaced_directory, correlation)
+                mkdir(time_displaced_correlation_directory)
+
+                # create sub-directories for position and momentum space time-displaced correlation measurements
+                mkdir(joinpath(time_displaced_correlation_directory, "position"))
+                mkdir(joinpath(time_displaced_correlation_directory, "momentum"))
+            end
+        end
+
+        # iterate over integrated composite correlation measurements
+        for name in keys(integrated_composite_correlations)
+
+            # make directory for integrated correlation measurement
+            integrated_correlation_directory = joinpath(integrated_directory, name)
+            mkdir(integrated_correlation_directory)
+
+            # create sub-directories for position and momentum space time-displaced correlation measurements
+            mkdir(joinpath(integrated_correlation_directory, "position"))
+            mkdir(joinpath(integrated_correlation_directory, "momentum"))
+
+            # check if also a time-displaced measurement should also be made
+            if time_displaced_composite_correlations[name].time_displaced
+
+                # make directory for time-displaced correlation measurement
+                time_displaced_correlation_directory = joinpath(time_displaced_directory, name)
                 mkdir(time_displaced_correlation_directory)
 
                 # create sub-directories for position and momentum space time-displaced correlation measurements

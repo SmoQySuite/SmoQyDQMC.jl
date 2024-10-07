@@ -28,11 +28,12 @@ function CompositeCorrelationContainer(
     time_displaced::Bool
 )
 
+    @assert T<:AbstractFloat
     return CompositeCorrelationContainer(
         correlation, 
-        Vector{Int}[ids...],
-        Vector{Complex{T}}[coefficients...], 
-        zeros(Complex{T}, L..., Lτ), 
+        Int[ids...],
+        Complex{T}[coefficients...], 
+        zeros(Complex{T}, L..., Lτ+1), 
         time_displaced
     )
 end
@@ -45,10 +46,11 @@ function CompositeCorrelationContainer(
     coefficients,
 )
 
+    @assert T<:AbstractFloat
     return CompositeCorrelationContainer(
         correlation, 
-        Vector{Int}[ids...],
-        Vector{Complex{T}}[coefficients...], 
+        Int[ids...],
+        Complex{T}[coefficients...], 
         zeros(Complex{T}, L...), 
         false
     )

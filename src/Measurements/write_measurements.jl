@@ -3,10 +3,12 @@
 ######################################################
 
 @doc raw"""
-    write_measurements!(; measurement_container::NamedTuple,
-                        simulation_info::SimulationInfo,
-                        model_geometry::ModelGeometry{D, E, N},
-                        bin::Int, bin_size::Int) where {E<:AbstractFloat, D, N}
+    write_measurements!(;
+        measurement_container::NamedTuple,
+        simulation_info::SimulationInfo,
+        model_geometry::ModelGeometry{D, E, N},
+        bin::Int, bin_size::Int, Δτ::E
+    ) where {D, E<:AbstractFloat, N}
 
 Write the measurements contained in `measurement_container` to file.
 Measurements are written to file in a binary format using the [`JLD2.jl`](https://github.com/JuliaIO/JLD2.jl.git) package.
@@ -17,10 +19,12 @@ This function also does a few other things:
 3. Integrate relevant time-displaced correlation function measurements over imaginary time to get the corresponding zero matsubara frequency correlation function.
 4. Reset all the measurements in `measurement_container` to zero after the measurements are written to file.
 """
-function write_measurements!(; measurement_container::NamedTuple,
-                             simulation_info::SimulationInfo,
-                             model_geometry::ModelGeometry{D, E, N},
-                             bin::Int, bin_size::Int, Δτ::E) where {D, E<:AbstractFloat, N}
+function write_measurements!(;
+    measurement_container::NamedTuple,
+    simulation_info::SimulationInfo,
+    model_geometry::ModelGeometry{D, E, N},
+    bin::Int, bin_size::Int, Δτ::E
+) where {D, E<:AbstractFloat, N}
 
     (; datafolder, pID) = simulation_info
     lattice   = model_geometry.lattice::Lattice{D}
@@ -70,7 +74,7 @@ function write_measurements!(; measurement_container::NamedTuple,
         # fourier transform correlations to momentum space
         for i in eachindex(correlations)
             # get the pair of orbitals associated with the correlation
-            if CORRELATION_FUNCTIONS[correlation] == "ORBITAL_ID"
+            if (CORRELATION_FUNCTIONS[correlation] == "ORBITAL_ID") || (CORRELATION_FUNCTIONS[correlation] == "BOND_ID")
                 bond_a_id, bond_b_id = pairs[i]
             elseif CORRELATION_FUNCTIONS[correlation] == "HOPPING_ID"
                 hopping_a_id, hopping_b_id = pairs[i]
@@ -89,6 +93,27 @@ function write_measurements!(; measurement_container::NamedTuple,
 
         # write momentum space equal-time correlation to file
         save(joinpath(datafolder, "equal-time", correlation, "momentum", fn), correlation_container)
+
+        # set the correlations to zero
+        reset!(correlation_container)
+    end
+
+    # iterate over equal-time measurements
+    equaltime_composite_correlations = measurement_container.equaltime_composite_correlations
+    for name in keys(equaltime_composite_correlations)
+
+        # get the correlation container
+        correlation_container = equaltime_composite_correlations[name]
+        correlations = correlation_container.correlations::Array{Complex{E}, D}
+
+        # write position space equal-time correlation to file
+        save(joinpath(datafolder, "equal-time", name, "position", fn), correlation_container)
+
+        # perform fourier transform
+        fourier_transform!(correlations, 1, 1, unit_cell, lattice)
+
+        # write momentum space equal-time correlation to file
+        save(joinpath(datafolder, "equal-time", name, "momentum", fn), correlation_container)
 
         # set the correlations to zero
         reset!(correlation_container)
@@ -125,7 +150,7 @@ function write_measurements!(; measurement_container::NamedTuple,
         # fourier transform correlations to momentum space
         for i in eachindex(correlations)
             # get the pair of orbitals associated with the correlation
-            if CORRELATION_FUNCTIONS[correlation] == "ORBITAL_ID"
+            if (CORRELATION_FUNCTIONS[correlation] == "ORBITAL_ID") || (CORRELATION_FUNCTIONS[correlation] == "BOND_ID")
                 bond_a_id, bond_b_id = pairs[i]
             elseif CORRELATION_FUNCTIONS[correlation] == "HOPPING_ID"
                 hopping_a_id, hopping_b_id = pairs[i]
@@ -160,6 +185,48 @@ function write_measurements!(; measurement_container::NamedTuple,
         reset!(correlation_container)
     end
 
+    # iterate over time-displaced composite correlations
+    time_displaced_composite_correlations = measurement_container.time_displaced_composite_correlations
+    integrated_composite_correlations = measurement_container.integrated_composite_correlations
+    for name in keys(time_displaced_composite_correlations)
+
+        # get the correlation container
+        correlation_container = time_displaced_composite_correlations[name]
+        correlations = correlation_container.correlations::Array{Complex{E}, D+1}
+
+        # write position space time-displaced correlation to file
+        if correlation_container.time_displaced
+            save(joinpath(datafolder, "time-displaced", name, "position", fn), correlation_container)
+        end
+
+        # get susceptibility container
+        susceptibility_container = integrated_composite_correlations[name]
+        susceptibilities = susceptibility_container.correlations::Array{Complex{E}, D}
+
+        # calculate the position space susceptibility/integrated correlations
+        susceptibility!(susceptibilities, correlations, Δτ, D+1)
+
+        # write position space susceptibility to file
+        save(joinpath(datafolder, "integrated", name, "position", fn), susceptibility_container)
+
+        # perform fourier transform
+        fourier_transform!(correlations, 1, 1, D+1, unit_cell, lattice)
+
+        # write momentum space time-displaced correlation to file
+        if correlation_container.time_displaced
+            save(joinpath(datafolder, "time-displaced", name, "momentum", fn), correlation_container)
+        end
+
+        # calculate momentum space susceptibilies/integrated correlations
+        susceptibility!(susceptibilities, correlations, Δτ, D+1)
+
+        # write momentum space susceptibility to file
+        save(joinpath(datafolder, "integrated", name, "momentum", fn), susceptibility_container)
+
+        # set the correlations to zero
+        reset!(correlation_container)
+    end
+
     return nothing
 end
 
@@ -187,11 +254,21 @@ function normalize_measurements!(measurement_container::NamedTuple, bin_size::In
     time_displaced_correlations = measurement_container.time_displaced_correlations
     normalize_correlation_measurements!(time_displaced_correlations, bin_size)
 
+    # normalize equal-time composite correlation function measurements
+    equaltime_composite_correlations = measurement_container.equaltime_composite_correlations
+    normalize_composite_correlation_measurements!(equaltime_composite_correlations, bin_size)
+
+    # normalize time-displaced composite correlation function measurements
+    time_displaced_composite_correlations = measurement_container.time_displaced_composite_correlations
+    normalize_composite_correlation_measurements!(time_displaced_composite_correlations, bin_size)
+
     return nothing
 end
 
 # normalize global measurements by bin size
-function normalize_global_measurements!(global_measurements::Dict{String, Complex{T}}, bin_size::Int) where {T<:AbstractFloat}
+function normalize_global_measurements!(
+    global_measurements::Dict{String, Complex{T}}, bin_size::Int
+) where {T<:AbstractFloat}
 
     for global_measurement in keys(global_measurements)
         global_measurements[global_measurement] /= bin_size
@@ -201,7 +278,9 @@ function normalize_global_measurements!(global_measurements::Dict{String, Comple
 end
 
 # normalize local measurements by bin size
-function normalize_local_measurements!(local_measurements::Dict{String, Vector{Complex{T}}}, bin_size::Int) where {T<:AbstractFloat}
+function normalize_local_measurements!(
+    local_measurements::Dict{String, Vector{Complex{T}}}, bin_size::Int
+) where {T<:AbstractFloat}
 
     for local_measurement in keys(local_measurements)
         @. local_measurements[local_measurement] /= bin_size
@@ -211,7 +290,9 @@ function normalize_local_measurements!(local_measurements::Dict{String, Vector{C
 end
 
 # normalize correlation measurement
-function normalize_correlation_measurements!(correlation_measurements::Dict{String, CorrelationContainer{D, T}}, bin_size::Int) where {D, T<:AbstractFloat}
+function normalize_correlation_measurements!(
+    correlation_measurements::Dict{String, CorrelationContainer{D, T}}, bin_size::Int
+) where {D, T<:AbstractFloat}
 
     for measurement in keys(correlation_measurements)
         correlation_container = correlation_measurements[measurement]
@@ -220,6 +301,20 @@ function normalize_correlation_measurements!(correlation_measurements::Dict{Stri
         for i in eachindex(pairs)
             @. correlations[i] /= bin_size
         end
+    end
+
+    return nothing
+end
+
+# normalize correlation measurement
+function normalize_composite_correlation_measurements!(
+    composite_correlation_measurements::Dict{String, CompositeCorrelationContainer{D, T}}, bin_size::Int
+) where {D, T<:AbstractFloat}
+
+    for name in keys(composite_correlation_measurements)
+        correlation_container = composite_correlation_measurements[name]
+        correlations = correlation_container.correlations::Array{Complex{T}, D}
+        @. correlations /= bin_size
     end
 
     return nothing

@@ -86,9 +86,25 @@ function _process_correlation_measurements(
 
                 # process correlation measurement
                 if type == "time-displaced"
-                    _process_correlation_measurement(folder, correlation, space, pIDs, bin_intervals, binned_signs, model_geometry, Lτ, false)
+                    if haskey(CORRELATION_FUNCTIONS, correlation)
+                        _process_correlation_measurement(
+                            folder, correlation, space, pIDs, bin_intervals, binned_signs, model_geometry, Lτ, false
+                        )
+                    else
+                        _process_composite_correlation_measurement(
+                            folder, correlation, space, pIDs, bin_intervals, binned_signs, model_geometry, Lτ, false
+                        )
+                    end
                 else
-                    _process_correlation_measurement(folder, correlation, type, space, pIDs, bin_intervals, binned_signs, model_geometry, false)
+                    if haskey(CORRELATION_FUNCTIONS, correlation)
+                        _process_correlation_measurement(
+                            folder, correlation, type, space, pIDs, bin_intervals, binned_signs, model_geometry, false
+                        )
+                    else
+                        _process_composite_correlation_measurement(
+                            folder, correlation, type, space, pIDs, bin_intervals, binned_signs, model_geometry, false
+                        )
+                    end
                 end
             end
         end
@@ -132,9 +148,25 @@ function _process_correlation_measurements(
 
                 # process correlation measurement
                 if type == "time-displaced"
-                    _process_correlation_measurement(folder, correlation, space, [pID], bin_intervals, binned_signs, model_geometry, Lτ, true)
+                    if haskey(CORRELATION_FUNCTIONS, correlation)
+                        _process_correlation_measurement(
+                            folder, correlation, space, [pID], bin_intervals, binned_signs, model_geometry, Lτ, true
+                        )
+                    else
+                        _process_composite_correlation_measurement(
+                            folder, correlation, space, [pID], bin_intervals, binned_signs, model_geometry, Lτ, true
+                        )
+                    end
                 else
-                    _process_correlation_measurement(folder, correlation, type, space, [pID], bin_intervals, binned_signs, model_geometry, true)
+                    if haskey(CORRELATION_FUNCTIONS, correlation)
+                        _process_correlation_measurement(
+                            folder, correlation, type, space, [pID], bin_intervals, binned_signs, model_geometry, true
+                        )
+                    else
+                        _process_composite_correlation_measurement(
+                            folder, correlation, type, space, [pID], bin_intervals, binned_signs, model_geometry, true
+                        )
+                    end
                 end
             end
         end
@@ -167,13 +199,13 @@ function process_correlation_measurement(
 )
 
     β, Δτ, Lτ, model_geometry = load_model_summary(folder)
-    _process_correlation_measurement(folder, correlation, type, space, N_bins, pIDs, Lτ, model_geometry)
+    _process_correlation_measurement_high_level(folder, correlation, type, space, N_bins, pIDs, Lτ, model_geometry)
 
     return nothing
 end
 
 # process correlation measurement averaging over all MPI walkers
-function _process_correlation_measurement(
+function _process_correlation_measurement_high_level(
     folder::String,
     correlation::String,
     type::String,
@@ -207,15 +239,23 @@ function _process_correlation_measurement(
     # process correlation measurement
     if type == "time-displaced"
         if haskey(CORRELATION_FUNCTIONS, correlation)
-            _process_correlation_measurement(folder, correlation, space, [pID], bin_intervals, binned_signs, model_geometry, Lτ, false)
+            _process_correlation_measurement(
+                folder, correlation, space, pIDs, bin_intervals, binned_signs, model_geometry, Lτ, false
+            )
         else
-            _process_composite_correlation_measurement(folder, correlation, space, [pID], bin_intervals, binned_signs, model_geometry, Lτ, false)
+            _process_composite_correlation_measurement(
+                folder, correlation, space, pIDs, bin_intervals, binned_signs, model_geometry, Lτ, false
+            )
         end
     else
         if haskey(CORRELATION_FUNCTIONS, correlation)
-            _process_correlation_measurement(folder, correlation, type, space, [pID], bin_intervals, binned_signs, model_geometry, false)
+            _process_correlation_measurement(
+                folder, correlation, type, space, pIDs, bin_intervals, binned_signs, model_geometry, false
+            )
         else
-            _process_composite_correlation_measurement(folder, correlation, type, space, [pID], bin_intervals, binned_signs, model_geometry, false)
+            _process_composite_correlation_measurement(
+                folder, correlation, type, space, pIDs, bin_intervals, binned_signs, model_geometry, false
+            )
         end
     end
 
@@ -223,7 +263,7 @@ function _process_correlation_measurement(
 end
 
 # process correlation measurement for single MPI walker
-function _process_correlation_measurement(
+function _process_correlation_measurement_high_level(
     folder::String,
     correlation::String,
     type::String,
@@ -244,15 +284,23 @@ function _process_correlation_measurement(
     # process correlation measurement
     if type == "time-displaced"
         if haskey(CORRELATION_FUNCTIONS, correlation)
-            _process_correlation_measurement(folder, correlation, space, [pID], bin_intervals, binned_signs, model_geometry, Lτ, true)
+            _process_correlation_measurement(
+                folder, correlation, space, [pID], bin_intervals, binned_signs, model_geometry, Lτ, true
+            )
         else
-            _process_composite_correlation_measurement(folder, correlation, space, [pID], bin_intervals, binned_signs, model_geometry, Lτ, true)
+            _process_composite_correlation_measurement(
+                folder, correlation, space, [pID], bin_intervals, binned_signs, model_geometry, Lτ, true
+            )
         end
     else
         if haskey(CORRELATION_FUNCTIONS, correlation)
-            _process_correlation_measurement(folder, correlation, type, space, [pID], bin_intervals, binned_signs, model_geometry, true)
+            _process_correlation_measurement(
+                folder, correlation, type, space, [pID], bin_intervals, binned_signs, model_geometry, true
+            )
         else
-            _process_composite_correlation_measurement(folder, correlation, type, space, [pID], bin_intervals, binned_signs, model_geometry, true)
+            _process_composite_correlation_measurement(
+                folder, correlation, type, space, [pID], bin_intervals, binned_signs, model_geometry, true
+            )
         end
     end
 
@@ -260,7 +308,7 @@ function _process_correlation_measurement(
 end
 
 
-# process time-displaced correlaiton
+# process time-displaced correlation
 function _process_correlation_measurement(
     folder::String,
     correlation::String,

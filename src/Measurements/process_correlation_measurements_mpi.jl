@@ -70,9 +70,25 @@ function _process_correlation_measurements(
 
                 # process correlation measurement
                 if type == "time-displaced"
-                    _process_correlation_measurement(comm, mpiID, pID, folder, correlation, Lτ, space, binned_sign, bin_intervals, model_geometry)
+                    if haskey(CORRELATION_FUNCTIONS, correlation)
+                        _process_correlation_measurement(
+                            comm, mpiID, pID, folder, correlation, Lτ, space, binned_sign, bin_intervals, model_geometry
+                        )
+                    else
+                        _process_composite_correlation_measurement(
+                            comm, mpiID, pID, folder, correlation, Lτ, space, binned_sign, bin_intervals, model_geometry
+                        )
+                    end
                 else
-                    _process_correlation_measurement(comm, mpiID, pID, folder, correlation, type, space, binned_sign, bin_intervals, model_geometry)
+                    if haskey(CORRELATION_FUNCTIONS, correlation)
+                        _process_correlation_measurement(
+                            comm, mpiID, pID, folder, correlation, type, space, binned_sign, bin_intervals, model_geometry
+                        )
+                    else
+                        _process_composite_correlation_measurement(
+                            comm, mpiID, pID, folder, correlation, type, space, binned_sign, bin_intervals, model_geometry
+                        )
+                    end
                 end
             end
         end
