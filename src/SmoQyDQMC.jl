@@ -179,11 +179,15 @@ export CORRELATION_FUNCTIONS
 # Define CorrelationContainer struct to store correlation measurements in.
 include("Measurements/CorrelationContainer.jl")
 
+# Define CompositeCorrelationContainer struct to store composite correlation measurements
+include("Measurements/CompositeCorrelationContainer.jl")
+
 # initialize measurement container
 include("Measurements/initialize_measurements.jl")
 export initialize_measurement_container
 export initialize_measurements!
 export initialize_correlation_measurement!, initialize_correlation_measurements!
+export initialize_composite_correlation_measurement!
 export initialize_measurement_directories
 
 # make measurements
@@ -212,6 +216,10 @@ export process_measurements
 # process composite correlation measurements i.e. calculate functions of correlation functions
 include("Measurements/process_composite_correlation.jl")
 export composite_correlation_stat
+
+# process results to calculate composite correlation ratio
+include("Measurements/process_correlation_ratio.jl")
+export compute_correlation_ratio, compute_composite_correlation_ratio
 
 # tools for converted binned data, that is saved as *.jld2 binary files, to single csv file
 include("Measurements/binned_data_to_csv.jl")

@@ -12,7 +12,7 @@ Defines the Holstein coupling parameters in lattice.
 - `α3::Vector{T}`: Cubic Holstein coupling.
 - `α4::Vector{T}`: Quartic Holstein coupling.
 - `shifted::Vector{Bool}`: If the density multiplying the odd powered interaction terms is shifted.
-- `neighbor_table::Matrix{Int}`: Neighbor table where the first row specifies the site where the phonon mode is located, and the second row specifies the site corresponds to the density getting coupled to.
+- `neighbor_table::Matrix{Int}`: Neighbor table where the first row specifies the site where the phonon mode is located, and the second row specifies the site corresponding to the density getting coupled to.
 - `coupling_to_phonon::Vector{Int}`: Maps each Holstein coupling in the lattice to the corresponding phonon mode.
 - `phonon_to_coupling::Vector{Vector{Int}}`: Maps each phonon model to correspond Holstein couplings.
 """
@@ -39,8 +39,8 @@ struct HolsteinParameters{E<:AbstractFloat}
     # whether the density multiplying the odd powered interaction terms are shifted
     shifted::Vector{Bool}
 
-    # neighbor table for couplings where first row is site phonon lives on,
-    # and the second row is the site where density getting coupled to is
+    # neighbor table for couplings where first row is the site the phonon the lives on,
+    # and the second row is the site whose density the phonon mode is coupling to
     neighbor_table::Matrix{Int}
 
     # map coupling to phonon

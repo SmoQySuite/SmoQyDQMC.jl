@@ -48,13 +48,27 @@ function initialize_measurement_container(
     # initialize integrated correlation measurement dictionary
     integrated_correlations = Dict{String, CorrelationContainer{D,T}}()
 
+    # initialize time displaced correlation measurement dictionary
+    equaltime_composite_correlations = Dict{String, CompositeCorrelationContainer{D,T}}()
+
+    # initialize time displaced correlation measurement dictionary
+    time_displaced_composite_correlations = Dict{String, CompositeCorrelationContainer{D+1,T}}()
+
+    # initialize integrated correlation measurement dictionary
+    integrated_composite_correlations = Dict{String, CompositeCorrelationContainer{D,T}}()
+
     # initialize measurement container
     measurement_container = (
-        global_measurements         = global_measurements,
-        local_measurements          = local_measurements,
-        equaltime_correlations      = equaltime_correlations,
-        time_displaced_correlations = time_displaced_correlations,
-        integrated_correlations     = integrated_correlations,
+        global_measurements                   = global_measurements,
+        local_measurements                    = local_measurements,
+        equaltime_correlations                = equaltime_correlations,
+        time_displaced_correlations           = time_displaced_correlations,
+        integrated_correlations               = integrated_correlations,
+        equaltime_composite_correlations      = equaltime_composite_correlations,
+        time_displaced_composite_correlations = time_displaced_composite_correlations,
+        integrated_composite_correlations     = integrated_composite_correlations,
+        hopping_to_bond_id = Int[],
+        phonon_to_bond_id  = Int[],
         L                           = L,
         Lτ                          = Lτ,
         a                           = zeros(Complex{T}, L..., Lτ),
@@ -109,7 +123,7 @@ function initialize_measurements!(
     tight_binding_model::TightBindingModel{T,E}
 ) where {T<:Number, E<:AbstractFloat}
 
-    (; local_measurements, global_measurements) = measurement_container
+    (; local_measurements, global_measurements, hopping_to_bond_id) = measurement_container
 
     # number of orbitals per unit cell
     norbital = length(tight_binding_model.ϵ_mean)
@@ -147,6 +161,11 @@ function initialize_measurements!(
         local_measurements["hopping_inversion_avg"]    = zeros(Complex{E}, nhopping)
         local_measurements["hopping_inversion_avg_up"] = zeros(Complex{E}, nhopping)
         local_measurements["hopping_inversion_avg_dn"] = zeros(Complex{E}, nhopping)
+    end
+
+    # record bond ID associated with each hopping ID
+    for id in tight_binding_model.t_bond_ids
+        push!(hopping_to_bond_id, id)
     end
 
     return nothing
@@ -212,7 +231,7 @@ function initialize_measurements!(
     electron_phonon_model::ElectronPhononModel{T, E, D}
 ) where {T<:Number, E<:AbstractFloat, D}
 
-    (; local_measurements) = measurement_container
+    (; local_measurements, phonon_to_bond_id) = measurement_container
     (; phonon_modes, holstein_couplings_up, ssh_couplings_up, phonon_dispersions) = electron_phonon_model
 
     _initialize_measurements!(local_measurements, phonon_modes)
@@ -220,12 +239,20 @@ function initialize_measurements!(
     _initialize_measurements!(local_measurements, ssh_couplings_up)
     _initialize_measurements!(local_measurements, phonon_dispersions)
 
+    # Record the bond ID asspciated with each phonon ID.
+    # Note that ORBITAL_ID equals BOND_ID.
+    for phonon_mode in phonon_modes
+        push!(phonon_to_bond_id, phonon_mode.orbital)
+    end
+
     return nothing
 end
 
 # phonon mode related measurements
-function _initialize_measurements!(local_measurements::Dict{String, Vector{Complex{T}}},
-                                   phonon_modes::Vector{PhononMode{T}}) where {T<:AbstractFloat}
+function _initialize_measurements!(
+    local_measurements::Dict{String, Vector{Complex{T}}},
+    phonon_modes::Vector{PhononMode{T}}
+) where {T<:AbstractFloat}
 
     # number of phonon modes
     n_modes = length(phonon_modes)
@@ -293,7 +320,8 @@ end
     initialize_correlation_measurements!(;
         measurement_container::NamedTuple,
         model_geometry::ModelGeometry{D,T,N},
-        correlation::String, pairs::AbstractVector{NTuple{2,Int}},
+        correlation::String,
+        pairs::AbstractVector{NTuple{2,Int}},
         time_displaced::Bool,
         integrated::Bool = false
     )  where {T<:AbstractFloat, D, N}
@@ -308,30 +336,36 @@ If `time_displaced = false` and `integrated = true`, then both equal-time and in
 function initialize_correlation_measurements!(;
     measurement_container::NamedTuple,
     model_geometry::ModelGeometry{D,T,N},
-    correlation::String, pairs::AbstractVector{NTuple{2,Int}},
+    correlation::String,
+    pairs::AbstractVector{NTuple{2,Int}},
     time_displaced::Bool,
     integrated::Bool = false
 )  where {T<:AbstractFloat, D, N}
 
     # iterate over all bond/orbial ID pairs
     for pair in pairs
-        initialize_correlation_measurement!(measurement_container = measurement_container,
-                                            model_geometry = model_geometry,
-                                            correlation = correlation,
-                                            pair = pair,
-                                            time_displaced = time_displaced,
-                                            integrated = integrated)
+        initialize_correlation_measurement!(
+            measurement_container = measurement_container,
+            model_geometry = model_geometry,
+            correlation = correlation,
+            pair = pair,
+            time_displaced = time_displaced,
+            integrated = integrated
+        )
     end
 
     return nothing
 end
 
 # initialize a single correlation measurement
-function initialize_correlation_measurement!(; measurement_container::NamedTuple,
-                                             model_geometry::ModelGeometry{D,T,N},
-                                             correlation::String, pair::NTuple{2,Int},
-                                             time_displaced::Bool,
-                                             integrated::Bool = false)  where {T<:AbstractFloat, D, N}
+function initialize_correlation_measurement!(;
+    measurement_container::NamedTuple,
+    model_geometry::ModelGeometry{D,T,N},
+    correlation::String,
+    pair::NTuple{2,Int},
+    time_displaced::Bool,
+    integrated::Bool = false
+)  where {T<:AbstractFloat, D, N}
 
     (; time_displaced_correlations, integrated_correlations, equaltime_correlations) = measurement_container
 
@@ -355,20 +389,10 @@ function initialize_correlation_measurement!(; measurement_container::NamedTuple
 
         # add time-dispalced correlation measurement
         push!(time_displaced_correlations[correlation].id_pairs, pair)
-        if (CORRELATION_FUNCTIONS[correlation] == "BOND_ID") || (CORRELATION_FUNCTIONS[correlation] == "ORBITAL_ID")
-            push!(time_displaced_correlations[correlation].bond_id_pairs, pair) # record bond ID pair as same as correlation ID pair
-        else
-            push!(time_displaced_correlations[correlation].bond_id_pairs, (0,0)) # record null bond ID pair to be filled in later
-        end
         push!(time_displaced_correlations[correlation].correlations, zeros(Complex{T}, L..., Lτ+1))
 
         # add integrated correlation measurement
         push!(integrated_correlations[correlation].id_pairs, pair)
-        if (CORRELATION_FUNCTIONS[correlation] == "BOND_ID") || (CORRELATION_FUNCTIONS[correlation] == "ORBITAL_ID")
-            push!(integrated_correlations[correlation].bond_id_pairs, pair) # record bond ID pair as same as correlation ID pair
-        else
-            push!(integrated_correlations[correlation].bond_id_pairs, (0,0)) # record null bond ID pair to be filled in later
-        end
         push!(integrated_correlations[correlation].correlations, zeros(Complex{T}, L...))
     end
 
@@ -382,17 +406,74 @@ function initialize_correlation_measurement!(; measurement_container::NamedTuple
 
         # add equal-time correlation measurement
         push!(equaltime_correlations[correlation].id_pairs, pair)
-        if (CORRELATION_FUNCTIONS[correlation] == "BOND_ID") || (CORRELATION_FUNCTIONS[correlation] == "ORBITAL_ID")
-            push!(equaltime_correlations[correlation].bond_id_pairs, pair) # record bond ID pair as same as correlation ID pair
-        else
-            push!(equaltime_correlations[correlation].bond_id_pairs, (0,0)) # record null bond ID pair to be filled in later
-        end
         push!(equaltime_correlations[correlation].correlations, zeros(Complex{T}, L...))
     end
 
     return nothing
 end
 
+
+###################################################
+## INITIALIZE COMPOSITE CORRELATION MEASUREMENTS ##
+###################################################
+
+@doc raw"""
+    initialize_composite_correlation_measurement!(;
+        measurement_container::NamedTuple,
+        model_geometry::ModelGeometry{D,T,N},
+        name::String,
+        correlation::String,
+        ids,
+        coefficients,
+        time_displaced::Bool,
+        integrated::Bool = false
+    )  where {T<:AbstractFloat, D, N}
+
+Initialize a composite correlation measurement called `name` based
+on a linear combination of local operators used in a standard `correlation` measurement,
+with `ids` and `coefficients` specifying the linear combination. Note that when calculating
+the fourier transform of the composite correlation function measured in real space,
+it is assumed that the basis vector for the composite correlation operator is ``\mathbf{r} = 0``.
+"""
+function initialize_composite_correlation_measurement!(;
+    measurement_container::NamedTuple,
+    model_geometry::ModelGeometry{D,T,N},
+    name::String,
+    correlation::String,
+    ids,
+    coefficients,
+    time_displaced::Bool,
+    integrated::Bool = false
+)  where {T<:AbstractFloat, D, N}
+
+    (; time_displaced_composite_correlations,
+       integrated_composite_correlations,
+       equaltime_composite_correlations,
+       L, Lτ
+    ) = measurement_container
+
+    @assert correlation in keys(CORRELATION_FUNCTIONS)
+    @assert length(ids) == length(coefficients)
+
+    # if time displaced or integrated measurement should be made
+    if time_displaced || integrated
+        time_displaced_composite_correlations[name] = CompositeCorrelationContainer(
+            T, Lτ, L, correlation, ids, coefficients, time_displaced
+        )
+        integrated_composite_correlations[name] = CompositeCorrelationContainer(
+            T, L, correlation, ids, coefficients
+        )
+    end
+
+    # if equal-time measurement should be made
+    if !time_displaced
+        equaltime_composite_correlations[name] = CompositeCorrelationContainer(
+            T, L, correlation, ids, coefficients
+        )
+    end
+
+    return nothing
+end
 
 ################################################
 ## INITIALIZE MEASUREMENT DIRECTORY STRUCTURE ##
@@ -426,7 +507,13 @@ function initialize_measurement_directories(
 )
 
     (; datafolder, resuming, pID) = simulation_info
-    (; time_displaced_correlations, equaltime_correlations, integrated_correlations) = measurement_container
+    (; time_displaced_correlations,
+       equaltime_correlations,
+       integrated_correlations,
+       time_displaced_composite_correlations,
+       equaltime_composite_correlations,
+       integrated_composite_correlations
+    ) = measurement_container
 
     # only initialize folders if pID = 0
     if iszero(pID) && !resuming
@@ -448,6 +535,18 @@ function initialize_measurement_directories(
 
             # make directory for each individual eqaul-time correlation measurement
             equaltime_correlation_directory = joinpath(eqaultime_directory, correlation)
+            mkdir(equaltime_correlation_directory)
+
+            # create sub-directories for position and momentum space data
+            mkdir(joinpath(equaltime_correlation_directory, "position"))
+            mkdir(joinpath(equaltime_correlation_directory, "momentum"))
+        end
+
+        # iterate over equal-time composite correlation measurements
+        for name in keys(equaltime_composite_correlations)
+
+            # make directory for each individual eqaul-time correlation measurement
+            equaltime_correlation_directory = joinpath(eqaultime_directory, name)
             mkdir(equaltime_correlation_directory)
 
             # create sub-directories for position and momentum space data
@@ -479,6 +578,30 @@ function initialize_measurement_directories(
 
                 # make directory for time-displaced correlation measurement
                 time_displaced_correlation_directory = joinpath(time_displaced_directory, correlation)
+                mkdir(time_displaced_correlation_directory)
+
+                # create sub-directories for position and momentum space time-displaced correlation measurements
+                mkdir(joinpath(time_displaced_correlation_directory, "position"))
+                mkdir(joinpath(time_displaced_correlation_directory, "momentum"))
+            end
+        end
+
+        # iterate over integrated composite correlation measurements
+        for name in keys(integrated_composite_correlations)
+
+            # make directory for integrated correlation measurement
+            integrated_correlation_directory = joinpath(integrated_directory, name)
+            mkdir(integrated_correlation_directory)
+
+            # create sub-directories for position and momentum space time-displaced correlation measurements
+            mkdir(joinpath(integrated_correlation_directory, "position"))
+            mkdir(joinpath(integrated_correlation_directory, "momentum"))
+
+            # check if also a time-displaced measurement should also be made
+            if time_displaced_composite_correlations[name].time_displaced
+
+                # make directory for time-displaced correlation measurement
+                time_displaced_correlation_directory = joinpath(time_displaced_directory, name)
                 mkdir(time_displaced_correlation_directory)
 
                 # create sub-directories for position and momentum space time-displaced correlation measurements
