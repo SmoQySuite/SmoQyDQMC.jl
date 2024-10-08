@@ -54,6 +54,7 @@ function make_measurements!(
         time_displaced_composite_correlations,
         a, a′, a″
     ) = measurement_container
+    tmp = selectdim(a, ndims(a), 1)
 
     # assign spin-up and spin-down tight-binding parameters if necessary
     if !isnothing(tight_binding_parameters)
@@ -106,7 +107,8 @@ function make_measurements!(
         Gup, Gup_ττ, Gup_τ0, Gup_0τ,
         Gdn, Gdn_ττ, Gdn_τ0, Gdn_0τ,
         model_geometry, tight_binding_parameters_up, tight_binding_parameters_dn,
-        fermion_path_integral_up, fermion_path_integral_dn
+        fermion_path_integral_up, fermion_path_integral_dn,
+        tmp
     )
 
     # if there are time-displaced measurements to make
@@ -125,7 +127,8 @@ function make_measurements!(
             time_displaced_composite_correlations, 0, sgn,
             Gup, Gup_ττ, Gup_τ0, Gup_0τ, Gdn, Gdn_ττ, Gdn_τ0, Gdn_0τ,
             model_geometry, tight_binding_parameters_up, tight_binding_parameters_dn,
-            fermion_path_integral_up, fermion_path_integral_dn
+            fermion_path_integral_up, fermion_path_integral_dn,
+            tmp
         )
 
         # iterate over imaginary time slice
@@ -148,7 +151,8 @@ function make_measurements!(
                 time_displaced_composite_correlations, l, sgn,
                 Gup, Gup_ττ, Gup_τ0, Gup_0τ, Gdn, Gdn_ττ, Gdn_τ0, Gdn_0τ,
                 model_geometry, tight_binding_parameters_up, tight_binding_parameters_dn,
-                fermion_path_integral_up, fermion_path_integral_dn
+                fermion_path_integral_up, fermion_path_integral_dn,
+                tmp
             )
 
             # Periodically re-calculate the Green's function matrix for numerical stability.
@@ -231,6 +235,7 @@ function make_measurements!(
         equaltime_composite_correlations,
         a, a′, a″
     ) = measurement_container
+    tmp = selectdim(a, ndims(a), 1)
 
     # calculate sign
     sgn = sgndetG^2
@@ -273,7 +278,8 @@ function make_measurements!(
         equaltime_composite_correlations, sgn,
         G, G_ττ, G_τ0, G_0τ, G, G_ττ, G_τ0, G_0τ,
         model_geometry, tight_binding_parameters, tight_binding_parameters,
-        fermion_path_integral, fermion_path_integral
+        fermion_path_integral, fermion_path_integral,
+        tmp
     )
 
     # if there are time-displaced measurements to make
@@ -284,7 +290,7 @@ function make_measurements!(
             time_displaced_correlations, 0, sgn,
             G, G_ττ, G_τ0, G_0τ, G, G_ττ, G_τ0, G_0τ,
             model_geometry, tight_binding_parameters, tight_binding_parameters,
-            fermion_path_integral, fermion_path_integral
+            fermion_path_integral, fermion_path_integral,
         )
 
         # make time-displaced composite correlation measuresurements of τ = 0
@@ -292,7 +298,8 @@ function make_measurements!(
             time_displaced_composite_correlations, 0, sgn,
             G, G_ττ, G_τ0, G_0τ, G, G_ττ, G_τ0, G_0τ,
             model_geometry, tight_binding_parameters, tight_binding_parameters,
-            fermion_path_integral, fermion_path_integral
+            fermion_path_integral, fermion_path_integral,
+            tmp
         )
 
         # iterate over imaginary time slice
@@ -314,7 +321,8 @@ function make_measurements!(
                 time_displaced_composite_correlations, l, sgn,
                 G, G_ττ, G_τ0, G_0τ, G, G_ττ, G_τ0, G_0τ,
                 model_geometry, tight_binding_parameters, tight_binding_parameters,
-                fermion_path_integral, fermion_path_integral
+                fermion_path_integral, fermion_path_integral,
+                tmp
             )
 
             # Periodically re-calculate the Green's function matrix for numerical stability.
@@ -1004,7 +1012,8 @@ function make_equaltime_composite_measurements!(
     tight_binding_parameters_up::TightBindingParameters{T,E},
     tight_binding_parameters_dn::TightBindingParameters{T,E},
     fermion_path_integral_up::FermionPathIntegral{T,E},
-    fermion_path_integral_dn::FermionPathIntegral{T,E}
+    fermion_path_integral_dn::FermionPathIntegral{T,E},
+    tmp::AbstractArray{Complex{E}, D}
 ) where {T<:Number, E<:AbstractFloat, D, N}
 
     Lτ = fermion_path_integral_up.Lτ::Int
@@ -1025,14 +1034,19 @@ function make_equaltime_composite_measurements!(
         ids = correlation_container.ids::Vector{Int}
         coefficients = correlation_container.coefficients::Vector{Complex{E}}
         correlations = correlation_container.correlations::Array{Complex{E}, D}
+        structure_factors = correlation_container.structure_factors::Array{Complex{E}, D}
 
         if correlation == "greens"
 
             for j in eachindex(ids)
                 for i in eachindex(ids)
+                    fill!(tmp, 0)
                     coef = conj(coefficients[i]) * coefficients[j]
-                    greens!(correlations, ids[i], ids[j], unit_cell, lattice, Gup_τ0, coef*sgn/2)
-                    greens!(correlations, ids[i], ids[j], unit_cell, lattice, Gdn_τ0, coef*sgn/2)
+                    greens!(tmp, ids[i], ids[j], unit_cell, lattice, Gup_τ0, coef*sgn/2)
+                    greens!(tmp, ids[i], ids[j], unit_cell, lattice, Gdn_τ0, coef*sgn/2)
+                    @. correlations += tmp
+                    fourier_transform!(tmp, ids[i], ids[j], unit_cell, lattice)
+                    @. structure_factors += tmp
                 end
             end
 
@@ -1040,8 +1054,12 @@ function make_equaltime_composite_measurements!(
 
             for j in eachindex(ids)
                 for i in eachindex(ids)
+                    fill!(tmp, 0)
                     coef = conj(coefficients[i]) * coefficients[j]
-                    greens!(correlations, ids[i], ids[j], unit_cell, lattice, Gup_τ0, coef*sgn)
+                    greens!(tmp, ids[i], ids[j], unit_cell, lattice, Gup_τ0, coef*sgn)
+                    @. correlations += tmp
+                    fourier_transform!(tmp, ids[i], ids[j], unit_cell, lattice)
+                    @. structure_factors += tmp
                 end
             end
 
@@ -1049,8 +1067,12 @@ function make_equaltime_composite_measurements!(
 
             for j in eachindex(ids)
                 for i in eachindex(ids)
+                    fill!(tmp, 0)
                     coef = conj(coefficients[i]) * coefficients[j]
-                    greens!(correlations, ids[i], ids[j], unit_cell, lattice, Gdn_τ0, coef*sgn)
+                    greens!(tmp, ids[i], ids[j], unit_cell, lattice, Gdn_τ0, coef*sgn)
+                    @. correlations += tmp
+                    fourier_transform!(tmp, ids[i], ids[j], unit_cell, lattice)
+                    @. structure_factors += tmp
                 end
             end
 
@@ -1058,9 +1080,13 @@ function make_equaltime_composite_measurements!(
 
             for j in eachindex(ids)
                 for i in eachindex(ids)
+                    fill!(tmp, 0)
                     coef = conj(coefficients[i]) * coefficients[j]
-                    greens!(correlations, ids[i], ids[j], unit_cell, lattice, Gup_τ0, coef*sgn/2)
-                    greens!(correlations, ids[i], ids[j], unit_cell, lattice, Gdn_τ0, coef*sgn/2)
+                    greens!(tmp, ids[i], ids[j], unit_cell, lattice, Gup_τ0, coef*sgn/2)
+                    greens!(tmp, ids[i], ids[j], unit_cell, lattice, Gdn_τ0, coef*sgn/2)
+                    @. correlations += tmp
+                    fourier_transform!(tmp, ids[i], ids[j], unit_cell, lattice)
+                    @. structure_factors += tmp
                 end
             end
 
@@ -1068,8 +1094,12 @@ function make_equaltime_composite_measurements!(
 
             for j in eachindex(ids)
                 for i in eachindex(ids)
+                    fill!(tmp, 0)
                     coef = conj(coefficients[i]) * coefficients[j]
-                    greens!(correlations, ids[i], ids[j], unit_cell, lattice, Gup_τ0, coef*sgn)
+                    greens!(tmp, ids[i], ids[j], unit_cell, lattice, Gup_τ0, coef*sgn)
+                    @. correlations += tmp
+                    fourier_transform!(tmp, ids[i], ids[j], unit_cell, lattice)
+                    @. structure_factors += tmp
                 end
             end
 
@@ -1077,8 +1107,12 @@ function make_equaltime_composite_measurements!(
 
             for j in eachindex(ids)
                 for i in eachindex(ids)
+                    fill!(tmp, 0)
                     coef = conj(coefficients[i]) * coefficients[j]
-                    greens!(correlations, ids[i], ids[j], unit_cell, lattice, Gdn_τ0, coef*sgn)
+                    greens!(tmp, ids[i], ids[j], unit_cell, lattice, Gdn_τ0, coef*sgn)
+                    @. correlations += tmp
+                    fourier_transform!(tmp, ids[i], ids[j], unit_cell, lattice)
+                    @. structure_factors += tmp
                 end
             end    
 
@@ -1086,11 +1120,15 @@ function make_equaltime_composite_measurements!(
 
             for j in eachindex(ids)
                 for i in eachindex(ids)
+                    fill!(tmp, 0)
                     coef = conj(coefficients[i]) * coefficients[j]
                     density_correlation!(
-                        correlations, ids[i], ids[j], unit_cell, lattice,
+                        tmp, ids[i], ids[j], unit_cell, lattice,
                         Gup_τ0, Gup_0τ, Gup_ττ, Gup, +1, +1, coef*sgn
                     )
+                    @. correlations += tmp
+                    fourier_transform!(tmp, ids[i], ids[j], unit_cell, lattice)
+                    @. structure_factors += tmp
                 end
             end
 
@@ -1098,11 +1136,15 @@ function make_equaltime_composite_measurements!(
 
             for j in eachindex(ids)
                 for i in eachindex(ids)
+                    fill!(tmp, 0)
                     coef = conj(coefficients[i]) * coefficients[j]
                     density_correlation!(
-                        correlations, ids[i], ids[j], unit_cell, lattice,
+                        tmp, ids[i], ids[j], unit_cell, lattice,
                         Gdn_τ0, Gdn_0τ, Gdn_ττ, Gdn, -1, -1, coef*sgn
                     )
+                    @. correlations += tmp
+                    fourier_transform!(tmp, ids[i], ids[j], unit_cell, lattice)
+                    @. structure_factors += tmp
                 end
             end
 
@@ -1110,11 +1152,15 @@ function make_equaltime_composite_measurements!(
 
             for j in eachindex(ids)
                 for i in eachindex(ids)
+                    fill!(tmp, 0)
                     coef = conj(coefficients[i]) * coefficients[j]
                     density_correlation!(
-                        correlations, ids[i], ids[j], unit_cell, lattice,
+                        tmp, ids[i], ids[j], unit_cell, lattice,
                         Gup_τ0, Gup_0τ, Gup_ττ, Gdn, +1, -1, coef*sgn
                     )
+                    @. correlations += tmp
+                    fourier_transform!(tmp, ids[i], ids[j], unit_cell, lattice)
+                    @. structure_factors += tmp
                 end
             end
 
@@ -1122,11 +1168,15 @@ function make_equaltime_composite_measurements!(
 
             for j in eachindex(ids)
                 for i in eachindex(ids)
+                    fill!(tmp, 0)
                     coef = conj(coefficients[i]) * coefficients[j]
                     density_correlation!(
-                        correlations, ids[i], ids[j], unit_cell, lattice,
+                        tmp, ids[i], ids[j], unit_cell, lattice,
                         Gdn_τ0, Gdn_0τ, Gdn_ττ, Gup, -1, +1, coef*sgn
                     )
+                    @. correlations += tmp
+                    fourier_transform!(tmp, ids[i], ids[j], unit_cell, lattice)
+                    @. structure_factors += tmp
                 end
             end
 
@@ -1134,11 +1184,15 @@ function make_equaltime_composite_measurements!(
 
             for j in eachindex(ids)
                 for i in eachindex(ids)
+                    fill!(tmp, 0)
                     coef = conj(coefficients[i]) * coefficients[j]
                     density_correlation!(
-                        correlations, ids[i], ids[j], unit_cell, lattice,
+                        tmp, ids[i], ids[j], unit_cell, lattice,
                         Gup_τ0, Gup_0τ, Gup_ττ, Gup, Gdn_τ0, Gdn_0τ, Gdn_ττ, Gdn, coef*sgn
                     )
+                    @. correlations += tmp
+                    fourier_transform!(tmp, ids[i], ids[j], unit_cell, lattice)
+                    @. structure_factors += tmp
                 end
             end
 
@@ -1146,11 +1200,15 @@ function make_equaltime_composite_measurements!(
 
             for j in eachindex(ids)
                 for i in eachindex(ids)
+                    fill!(tmp, 0)
                     coef = conj(coefficients[i]) * coefficients[j]
                     pair_correlation!(
-                        correlations, bonds[ids[j]], bonds[ids[i]], unit_cell, lattice,
+                        tmp, bonds[ids[i]], bonds[ids[j]], unit_cell, lattice,
                         Gup_τ0, Gdn_τ0, coef*sgn
                     )
+                    @. correlations += tmp
+                    fourier_transform!(tmp, bonds[ids[i]].orbitals[1], bonds[ids[j]].orbitals[1], unit_cell, lattice)
+                    @. structure_factors += tmp
                 end
             end
 
@@ -1158,11 +1216,15 @@ function make_equaltime_composite_measurements!(
 
             for j in eachindex(ids)
                 for i in eachindex(ids)
+                    fill!(tmp, 0)
                     coef = conj(coefficients[i]) * coefficients[j]
                     spin_x_correlation!(
-                        correlations, ids[i], ids[j], unit_cell, lattice,
+                        tmp, ids[i], ids[j], unit_cell, lattice,
                         Gup_τ0, Gup_0τ, Gdn_τ0, Gdn_0τ, coef*sgn
                     )
+                    @. correlations += tmp
+                    fourier_transform!(tmp, ids[i], ids[j], unit_cell, lattice)
+                    @. structure_factors += tmp
                 end
             end
 
@@ -1170,11 +1232,15 @@ function make_equaltime_composite_measurements!(
 
             for j in eachindex(ids)
                 for i in eachindex(ids)
+                    fill!(tmp, 0)
                     coef = conj(coefficients[i]) * coefficients[j]
                     spin_z_correlation!(
-                        correlations, ids[i], ids[j], unit_cell, lattice,
+                        tmp, ids[i], ids[j], unit_cell, lattice,
                         Gup_τ0, Gup_0τ, Gup_ττ, Gup, Gdn_τ0, Gdn_0τ, Gdn_ττ, Gdn, coef*sgn
                     )
+                    @. correlations += tmp
+                    fourier_transform!(tmp, ids[i], ids[j], unit_cell, lattice)
+                    @. structure_factors += tmp
                 end
             end
 
@@ -1182,11 +1248,15 @@ function make_equaltime_composite_measurements!(
 
             for j in eachindex(ids)
                 for i in eachindex(ids)
+                    fill!(tmp, 0)
                     coef = conj(coefficients[i]) * coefficients[j]
                     bond_correlation!(
-                        correlations, bonds[ids[i]], bonds[ids[j]], unit_cell, lattice,
+                        tmp, bonds[ids[i]], bonds[ids[j]], unit_cell, lattice,
                         Gup_τ0, Gup_0τ, Gup_ττ, Gup, +1, +1, coef*sgn
                     )
+                    @. correlations += tmp
+                    fourier_transform!(tmp, bonds[ids[i]].orbitals[1], bonds[ids[j]].orbitals[1], unit_cell, lattice)
+                    @. structure_factors += tmp
                 end
             end
 
@@ -1194,11 +1264,15 @@ function make_equaltime_composite_measurements!(
 
             for j in eachindex(ids)
                 for i in eachindex(ids)
+                    fill!(tmp, 0)
                     coef = conj(coefficients[i]) * coefficients[j]
                     bond_correlation!(
-                        correlations, bonds[ids[i]], bonds[ids[j]], unit_cell, lattice,
+                        tmp, bonds[ids[i]], bonds[ids[j]], unit_cell, lattice,
                         Gdn_τ0, Gdn_0τ, Gdn_ττ, Gdn, -1, -1, coef*sgn
                     )
+                    @. correlations += tmp
+                    fourier_transform!(tmp, bonds[ids[i]].orbitals[1], bonds[ids[j]].orbitals[1], unit_cell, lattice)
+                    @. structure_factors += tmp
                 end
             end
 
@@ -1206,11 +1280,15 @@ function make_equaltime_composite_measurements!(
 
             for j in eachindex(ids)
                 for i in eachindex(ids)
+                    fill!(tmp, 0)
                     coef = conj(coefficients[i]) * coefficients[j]
                     bond_correlation!(
-                        correlations, bonds[ids[i]], bonds[ids[j]], unit_cell, lattice,
+                        tmp, bonds[ids[i]], bonds[ids[j]], unit_cell, lattice,
                         Gup_τ0, Gup_0τ, Gup_ττ, Gdn, +1, -1, coef*sgn
                     )
+                    @. correlations += tmp
+                    fourier_transform!(tmp, bonds[ids[i]].orbitals[1], bonds[ids[j]].orbitals[1], unit_cell, lattice)
+                    @. structure_factors += tmp
                 end
             end
 
@@ -1218,11 +1296,15 @@ function make_equaltime_composite_measurements!(
 
             for j in eachindex(ids)
                 for i in eachindex(ids)
+                    fill!(tmp, 0)
                     coef = conj(coefficients[i]) * coefficients[j]
                     bond_correlation!(
-                        correlations, bonds[ids[i]], bonds[ids[j]], unit_cell, lattice,
+                        tmp, bonds[ids[i]], bonds[ids[j]], unit_cell, lattice,
                         Gdn_τ0, Gdn_0τ, Gdn_ττ, Gup, -1, +1, coef*sgn
                     )
+                    @. correlations += tmp
+                    fourier_transform!(tmp, bonds[ids[i]].orbitals[1], bonds[ids[j]].orbitals[1], unit_cell, lattice)
+                    @. structure_factors += tmp
                 end
             end
 
@@ -1230,11 +1312,15 @@ function make_equaltime_composite_measurements!(
 
             for j in eachindex(ids)
                 for i in eachindex(ids)
+                    fill!(tmp, 0)
                     coef = conj(coefficients[i]) * coefficients[j]
                     bond_correlation!(
-                        correlations, bonds[ids[i]], bonds[ids[j]], unit_cell, lattice,
+                        tmp, bonds[ids[i]], bonds[ids[j]], unit_cell, lattice,
                         Gup_τ0, Gup_0τ, Gup_ττ, Gup, Gdn_τ0, Gdn_0τ, Gdn_ττ, Gdn, coef*sgn
                     )
+                    @. correlations += tmp
+                    fourier_transform!(tmp, bonds[ids[i]].orbitals[1], bonds[ids[j]].orbitals[1], unit_cell, lattice)
+                    @. structure_factors += tmp
                 end
             end
 
@@ -1245,6 +1331,7 @@ function make_equaltime_composite_measurements!(
 
             for j in eachindex(ids)
                 for i in eachindex(ids)
+                    fill!(tmp, 0)
                     coef = conj(coefficients[i]) * coefficients[j]
                     # get the hopping IDs associated with current operators
                     hopping_id_0 = ids[j]
@@ -1262,9 +1349,12 @@ function make_equaltime_composite_measurements!(
                     tup1′ = reshape(tup1, lattice.L...)
                     # measure the current-current correlation
                     current_correlation!(
-                        correlations, bond_1, bond_0, tup1′, tup0′, unit_cell, lattice,
+                        tmp, bond_1, bond_0, tup1′, tup0′, unit_cell, lattice,
                         Gup_τ0, Gup_0τ, Gup_ττ, Gup, +1, +1, coef*sgn
                     )
+                    @. correlations += tmp
+                    fourier_transform!(tmp, bond_1.orbitals[1], bond_0.orbitals[1], unit_cell, lattice)
+                    @. structure_factors += tmp
                 end
             end
 
@@ -1275,6 +1365,7 @@ function make_equaltime_composite_measurements!(
 
             for j in eachindex(ids)
                 for i in eachindex(ids)
+                    fill!(tmp, 0)
                     coef = conj(coefficients[i]) * coefficients[j]
                     # get the hopping IDs associated with current operators
                     hopping_id_0 = ids[j]
@@ -1292,9 +1383,12 @@ function make_equaltime_composite_measurements!(
                     tdn1′ = reshape(tdn1, lattice.L...)
                     # measure the current-current correlation
                     current_correlation!(
-                        correlations, bond_1, bond_0, tdn1′, tdn0′, unit_cell, lattice,
+                        tmp, bond_1, bond_0, tdn1′, tdn0′, unit_cell, lattice,
                         Gdn_τ0, Gdn_0τ, Gdn_ττ, Gdn, -1, -1, coef*sgn
                     )
+                    @. correlations += tmp
+                    fourier_transform!(tmp, bond_1.orbitals[1], bond_0.orbitals[1], unit_cell, lattice)
+                    @. structure_factors += tmp
                 end
             end
 
@@ -1306,6 +1400,7 @@ function make_equaltime_composite_measurements!(
 
             for j in eachindex(ids)
                 for i in eachindex(ids)
+                    fill!(tmp, 0)
                     coef = conj(coefficients[i]) * coefficients[j]
                     # get the hopping IDs associated with current operators
                     hopping_id_0 = ids[j]
@@ -1323,9 +1418,12 @@ function make_equaltime_composite_measurements!(
                     tdn0′ = reshape(tdn0, lattice.L...)
                     # measure the current-current correlation
                     current_correlation!(
-                        correlations, bond_1, bond_0, tup1′, tdn0′, unit_cell, lattice,
+                        tmp, bond_1, bond_0, tup1′, tdn0′, unit_cell, lattice,
                         Gup_τ0, Gup_0τ, Gup_ττ, Gdn, +1, -1, coef*sgn
                     )
+                    @. correlations += tmp
+                    fourier_transform!(tmp, bond_1.orbitals[1], bond_0.orbitals[1], unit_cell, lattice)
+                    @. structure_factors += tmp
                 end
             end
 
@@ -1337,6 +1435,7 @@ function make_equaltime_composite_measurements!(
 
             for j in eachindex(ids)
                 for i in eachindex(ids)
+                    fill!(tmp, 0)
                     coef = conj(coefficients[i]) * coefficients[j]
                     # get the hopping IDs associated with current operators
                     hopping_id_0 = ids[j]
@@ -1354,9 +1453,12 @@ function make_equaltime_composite_measurements!(
                     tdn1′ = reshape(tdn1, lattice.L...)
                     # measure the current-current correlation
                     current_correlation!(
-                        correlations, bond_1, bond_0, tdn1′, tup0′, unit_cell, lattice,
+                        tmp, bond_1, bond_0, tdn1′, tup0′, unit_cell, lattice,
                         Gdn_τ0, Gdn_0τ, Gdn_ττ, Gup, -1, +1, coef*sgn
                     )
+                    @. correlations += tmp
+                    fourier_transform!(tmp, bond_1.orbitals[1], bond_0.orbitals[1], unit_cell, lattice)
+                    @. structure_factors += tmp
                 end
             end
 
@@ -1368,6 +1470,7 @@ function make_equaltime_composite_measurements!(
 
             for j in eachindex(ids)
                 for i in eachindex(ids)
+                    fill!(tmp, 0)
                     coef = conj(coefficients[i]) * coefficients[j]
                     # get the hopping IDs associated with current operators
                     hopping_id_0 = ids[j]
@@ -1389,9 +1492,12 @@ function make_equaltime_composite_measurements!(
                     tdn1′ = reshape(tdn1, lattice.L...)
                     # measure the current-current correlation
                     current_correlation!(
-                        correlations, bond_1, bond_0, tup1′, tup0′, tdn1′, tdn0′, unit_cell, lattice,
+                        tmp, bond_1, bond_0, tup1′, tup0′, tdn1′, tdn0′, unit_cell, lattice,
                         Gup_τ0, Gup_0τ, Gup_ττ, Gup, Gdn_τ0, Gdn_0τ, Gdn_ττ, Gdn, coef*sgn
                     )
+                    @. correlations += tmp
+                    fourier_transform!(tmp, bond_1.orbitals[1], bond_0.orbitals[1], unit_cell, lattice)
+                    @. structure_factors += tmp
                 end
             end
         end
@@ -1757,7 +1863,8 @@ function make_time_displaced_composite_measurements!(
     tight_binding_parameters_up::TightBindingParameters{T,E},
     tight_binding_parameters_dn::TightBindingParameters{T,E},
     fermion_path_integral_up::FermionPathIntegral{T,E},
-    fermion_path_integral_dn::FermionPathIntegral{T,E}
+    fermion_path_integral_dn::FermionPathIntegral{T,E},
+    tmp::AbstractArray{Complex{E}, D}
 ) where {T<:Number, E<:AbstractFloat, P, D, N}
 
     Lτ = fermion_path_integral_up.Lτ::Int
@@ -1774,14 +1881,20 @@ function make_time_displaced_composite_measurements!(
         coefficients = correlation_container.coefficients::Vector{Complex{E}}
         correlations = correlation_container.correlations::Array{Complex{E}, P}
         correlation_array = selectdim(correlations, D+1, l+1)
+        structure_factors = correlation_container.correlations::Array{Complex{E}, P}
+        structure_factor_array = selectdim(structure_factors, D+1, l+1)
 
         if correlation == "greens"
 
             for j in eachindex(ids)
                 for i in eachindex(ids)
+                    fill!(tmp, 0)
                     coef = conj(coefficients[i])*coefficients[j]
-                    greens!(correlation_array, ids[i], ids[j], unit_cell, lattice, Gup_τ0, coef*sgn/2)
-                    greens!(correlation_array, ids[i], ids[j], unit_cell, lattice, Gdn_τ0, coef*sgn/2)
+                    greens!(tmp, ids[i], ids[j], unit_cell, lattice, Gup_τ0, coef*sgn/2)
+                    greens!(tmp, ids[i], ids[j], unit_cell, lattice, Gdn_τ0, coef*sgn/2)
+                    @. correlation_array += tmp
+                    fourier_transform!(tmp, ids[i], ids[j], unit_cell, lattice)
+                    @. structure_factor_array += tmp
                 end
             end
 
@@ -1789,8 +1902,12 @@ function make_time_displaced_composite_measurements!(
 
             for j in eachindex(ids)
                 for i in eachindex(ids)
+                    fill!(tmp, 0)
                     coef = conj(coefficients[i])*coefficients[j]
-                    greens!(correlation_array, ids[i], ids[j], unit_cell, lattice, Gup_τ0, coef*sgn)
+                    greens!(tmp, ids[i], ids[j], unit_cell, lattice, Gup_τ0, coef*sgn)
+                    @. correlation_array += tmp
+                    fourier_transform!(tmp, ids[i], ids[j], unit_cell, lattice)
+                    @. structure_factor_array += tmp
                 end
             end
 
@@ -1798,8 +1915,12 @@ function make_time_displaced_composite_measurements!(
 
             for j in eachindex(ids)
                 for i in eachindex(ids)
+                    fill!(tmp, 0)
                     coef = conj(coefficients[i])*coefficients[j]
-                    greens!(correlation_array, ids[i], ids[j], unit_cell, lattice, Gdn_τ0, coef*sgn)
+                    greens!(tmp, ids[i], ids[j], unit_cell, lattice, Gdn_τ0, coef*sgn)
+                    @. correlation_array += tmp
+                    fourier_transform!(tmp, ids[i], ids[j], unit_cell, lattice)
+                    @. structure_factor_array += tmp
                 end
             end
 
@@ -1807,9 +1928,13 @@ function make_time_displaced_composite_measurements!(
 
             for j in eachindex(ids)
                 for i in eachindex(ids)
+                    fill!(tmp, 0)
                     coef = conj(coefficients[i])*coefficients[j]
-                    greens!(correlation_array, ids[i], ids[j], unit_cell, lattice, Gup_ττ, coef*sgn/2)
-                    greens!(correlation_array, ids[i], ids[j], unit_cell, lattice, Gdn_ττ, coef*sgn/2)
+                    greens!(tmp, ids[i], ids[j], unit_cell, lattice, Gup_ττ, coef*sgn/2)
+                    greens!(tmp, ids[i], ids[j], unit_cell, lattice, Gdn_ττ, coef*sgn/2)
+                    @. correlation_array += tmp
+                    fourier_transform!(tmp, ids[i], ids[j], unit_cell, lattice)
+                    @. structure_factor_array += tmp
                 end
             end
 
@@ -1817,8 +1942,12 @@ function make_time_displaced_composite_measurements!(
 
             for j in eachindex(ids)
                 for i in eachindex(ids)
+                    fill!(tmp, 0)
                     coef = conj(coefficients[i])*coefficients[j]
-                    greens!(correlation_array, ids[i], ids[j], unit_cell, lattice, Gup_ττ, coef*sgn)
+                    greens!(tmp, ids[i], ids[j], unit_cell, lattice, Gup_ττ, coef*sgn)
+                    @. correlation_array += tmp
+                    fourier_transform!(tmp, ids[i], ids[j], unit_cell, lattice)
+                    @. structure_factor_array += tmp
                 end
             end
 
@@ -1826,8 +1955,12 @@ function make_time_displaced_composite_measurements!(
 
             for j in eachindex(ids)
                 for i in eachindex(ids)
+                    fill!(tmp, 0)
                     coef = conj(coefficients[i])*coefficients[j]
-                    greens!(correlation_array, ids[i], ids[j], unit_cell, lattice, Gdn_ττ, coef*sgn)
+                    greens!(tmp, ids[i], ids[j], unit_cell, lattice, Gdn_ττ, coef*sgn)
+                    @. correlation_array += tmp
+                    fourier_transform!(tmp, ids[i], ids[j], unit_cell, lattice)
+                    @. structure_factor_array += tmp
                 end
             end
 
@@ -1835,11 +1968,15 @@ function make_time_displaced_composite_measurements!(
 
             for j in eachindex(ids)
                 for i in eachindex(ids)
+                    fill!(tmp, 0)
                     coef = conj(coefficients[i])*coefficients[j]
                     density_correlation!(
-                        correlation_array, ids[i], ids[j], unit_cell, lattice,
+                        tmp, ids[i], ids[j], unit_cell, lattice,
                         Gup_τ0, Gup_0τ, Gup_ττ, Gup, +1, +1, coef*sgn
                     )
+                    @. correlation_array += tmp
+                    fourier_transform!(tmp, ids[i], ids[j], unit_cell, lattice)
+                    @. structure_factor_array += tmp
                 end
             end
 
@@ -1847,11 +1984,15 @@ function make_time_displaced_composite_measurements!(
 
             for j in eachindex(ids)
                 for i in eachindex(ids)
+                    fill!(tmp, 0)
                     coef = conj(coefficients[i])*coefficients[j]
                     density_correlation!(
-                        correlation_array, ids[i], ids[j], unit_cell, lattice,
+                        tmp, ids[i], ids[j], unit_cell, lattice,
                         Gdn_τ0, Gdn_0τ, Gdn_ττ, Gdn, +1, +1, coef*sgn
                     )
+                    @. correlation_array += tmp
+                    fourier_transform!(tmp, ids[i], ids[j], unit_cell, lattice)
+                    @. structure_factor_array += tmp
                 end
             end
 
@@ -1859,11 +2000,15 @@ function make_time_displaced_composite_measurements!(
 
             for j in eachindex(ids)
                 for i in eachindex(ids)
+                    fill!(tmp, 0)
                     coef = conj(coefficients[i])*coefficients[j]
                     density_correlation!(
-                        correlation_array, ids[i], ids[j], unit_cell, lattice,
+                        tmp, ids[i], ids[j], unit_cell, lattice,
                         Gup_τ0, Gup_0τ, Gup_ττ, Gdn, +1, -1, coef*sgn
                     )
+                    @. correlation_array += tmp
+                    fourier_transform!(tmp, ids[i], ids[j], unit_cell, lattice)
+                    @. structure_factor_array += tmp
                 end
             end
 
@@ -1871,11 +2016,15 @@ function make_time_displaced_composite_measurements!(
 
             for j in eachindex(ids)
                 for i in eachindex(ids)
+                    fill!(tmp, 0)
                     coef = conj(coefficients[i])*coefficients[j]
                     density_correlation!(
-                        correlation_array, ids[i], ids[j], unit_cell, lattice,
+                        tmp, ids[i], ids[j], unit_cell, lattice,
                         Gdn_τ0, Gdn_0τ, Gdn_ττ, Gup, -1, +1, coef*sgn
                     )
+                    @. correlation_array += tmp
+                    fourier_transform!(tmp, ids[i], ids[j], unit_cell, lattice)
+                    @. structure_factor_array += tmp
                 end
             end
 
@@ -1883,11 +2032,15 @@ function make_time_displaced_composite_measurements!(
 
             for j in eachindex(ids)
                 for i in eachindex(ids)
+                    fill!(tmp, 0)
                     coef = conj(coefficients[i])*coefficients[j]
                     density_correlation!(
-                        correlation_array, ids[i], ids[j], unit_cell, lattice,
+                        tmp, ids[i], ids[j], unit_cell, lattice,
                         Gup_τ0, Gup_0τ, Gup_ττ, Gup, Gdn_τ0, Gdn_0τ, Gdn_ττ, Gdn, coef*sgn
                     )
+                    @. correlation_array += tmp
+                    fourier_transform!(tmp, ids[i], ids[j], unit_cell, lattice)
+                    @. structure_factor_array += tmp
                 end
             end
 
@@ -1895,11 +2048,15 @@ function make_time_displaced_composite_measurements!(
 
             for j in eachindex(ids)
                 for i in eachindex(ids)
+                    fill!(tmp, 0)
                     coef = conj(coefficients[i])*coefficients[j]
                     pair_correlation!(
-                        correlation_array, bonds[ids[i]], bonds[ids[j]], unit_cell, lattice,
+                        tmp, bonds[ids[i]], bonds[ids[j]], unit_cell, lattice,
                         Gup_τ0, Gdn_τ0, coef*sgn
                     )
+                    @. correlation_array += tmp
+                    fourier_transform!(tmp, bonds[ids[i]].orbitals[1], bonds[ids[j]].orbitals[1], unit_cell, lattice)
+                    @. structure_factor_array += tmp
                 end
             end
 
@@ -1907,11 +2064,15 @@ function make_time_displaced_composite_measurements!(
 
             for j in eachindex(ids)
                 for i in eachindex(ids)
+                    fill!(tmp, 0)
                     coef = conj(coefficients[i])*coefficients[j]
                     spin_x_correlation!(
-                        correlation_array, ids[i], ids[j], unit_cell, lattice,
+                        tmp, ids[i], ids[j], unit_cell, lattice,
                         Gup_τ0, Gup_0τ, Gdn_τ0, Gdn_0τ, coef*sgn
                     )
+                    @. correlation_array += tmp
+                    fourier_transform!(tmp, ids[i], ids[j], unit_cell, lattice)
+                    @. structure_factor_array += tmp
                 end
             end
 
@@ -1919,11 +2080,15 @@ function make_time_displaced_composite_measurements!(
 
             for j in eachindex(ids)
                 for i in eachindex(ids)
+                    fill!(tmp, 0)
                     coef = conj(coefficients[i])*coefficients[j]
                     spin_z_correlation!(
-                        correlation_array, ids[i], ids[j], unit_cell, lattice,
+                        tmp, ids[i], ids[j], unit_cell, lattice,
                         Gup_τ0, Gup_0τ, Gup_ττ, Gup, Gdn_τ0, Gdn_0τ, Gdn_ττ, Gdn, coef*sgn
                     )
+                    @. correlation_array += tmp
+                    fourier_transform!(tmp, ids[i], ids[j], unit_cell, lattice)
+                    @. structure_factor_array += tmp
                 end
             end
 
@@ -1931,11 +2096,15 @@ function make_time_displaced_composite_measurements!(
 
             for j in eachindex(ids)
                 for i in eachindex(ids)
+                    fill!(tmp, 0)
                     coef = conj(coefficients[i])*coefficients[j]
                     bond_correlation!(
-                        correlation_array, bonds[ids[i]], bonds[ids[j]], unit_cell, lattice,
+                        tmp, bonds[ids[i]], bonds[ids[j]], unit_cell, lattice,
                         Gup_τ0, Gup_0τ, Gup_ττ, Gup, +1, +1, coef*sgn
                     )
+                    @. correlation_array += tmp
+                    fourier_transform!(tmp, bonds[ids[i]].orbitals[1], bonds[ids[j]].orbitals[1], unit_cell, lattice)
+                    @. structure_factor_array += tmp
                 end
             end
 
@@ -1943,11 +2112,15 @@ function make_time_displaced_composite_measurements!(
 
             for j in eachindex(ids)
                 for i in eachindex(ids)
+                    fill!(tmp, 0)
                     coef = conj(coefficients[i])*coefficients[j]
                     bond_correlation!(
-                        correlation_array, bonds[ids[i]], bonds[ids[j]], unit_cell, lattice,
+                        tmp, bonds[ids[i]], bonds[ids[j]], unit_cell, lattice,
                         Gdn_τ0, Gdn_0τ, Gdn_ττ, Gdn, -1, -1, coef*sgn
                     )
+                    @. correlation_array += tmp
+                    fourier_transform!(tmp, bonds[ids[i]].orbitals[1], bonds[ids[j]].orbitals[1], unit_cell, lattice)
+                    @. structure_factor_array += tmp
                 end
             end
 
@@ -1955,11 +2128,15 @@ function make_time_displaced_composite_measurements!(
 
             for j in eachindex(ids)
                 for i in eachindex(ids)
+                    fill!(tmp, 0)
                     coef = conj(coefficients[i])*coefficients[j]
                     bond_correlation!(
-                        correlation_array, bonds[ids[i]], bonds[ids[j]], unit_cell, lattice,
+                        tmp, bonds[ids[i]], bonds[ids[j]], unit_cell, lattice,
                         Gup_τ0, Gup_0τ, Gup_ττ, Gdn, +1, -1, coef*sgn
                     )
+                    @. correlation_array += tmp
+                    fourier_transform!(tmp, bonds[ids[i]].orbitals[1], bonds[ids[j]].orbitals[1], unit_cell, lattice)
+                    @. structure_factor_array += tmp
                 end
             end
 
@@ -1967,11 +2144,15 @@ function make_time_displaced_composite_measurements!(
 
             for j in eachindex(ids)
                 for i in eachindex(ids)
+                    fill!(tmp, 0)
                     coef = conj(coefficients[i])*coefficients[j]
                     bond_correlation!(
-                        correlation_array, bonds[ids[i]], bonds[ids[i]], unit_cell, lattice,
+                        tmp, bonds[ids[i]], bonds[ids[j]], unit_cell, lattice,
                         Gdn_τ0, Gdn_0τ, Gdn_ττ, Gup, -1, +1, coef*sgn
                     )
+                    @. correlation_array += tmp
+                    fourier_transform!(tmp, bonds[ids[i]].orbitals[1], bonds[ids[j]].orbitals[1], unit_cell, lattice)
+                    @. structure_factor_array += tmp
                 end
             end
 
@@ -1979,11 +2160,15 @@ function make_time_displaced_composite_measurements!(
 
             for j in eachindex(ids)
                 for i in eachindex(ids)
+                    fill!(tmp, 0)
                     coef = conj(coefficients[i])*coefficients[j]
                     bond_correlation!(
-                        correlation_array, bonds[ids[i]], bonds[ids[j]], unit_cell, lattice,
+                        tmp, bonds[ids[i]], bonds[ids[j]], unit_cell, lattice,
                         Gup_τ0, Gup_0τ, Gup_ττ, Gup, Gdn_τ0, Gdn_0τ, Gdn_ττ, Gdn, coef*sgn
                     )
+                    @. correlation_array += tmp
+                    fourier_transform!(tmp, bonds[ids[i]].orbitals[1], bonds[ids[j]].orbitals[1], unit_cell, lattice)
+                    @. structure_factor_array += tmp
                 end
             end
         
@@ -1994,6 +2179,7 @@ function make_time_displaced_composite_measurements!(
 
             for j in eachindex(ids)
                 for i in eachindex(ids)
+                    fill!(tmp, 0)
                     coef = conj(coefficients[i])*coefficients[j]
                     # get the hopping IDs associated with current operators
                     hopping_id_0 = ids[j]
@@ -2011,9 +2197,12 @@ function make_time_displaced_composite_measurements!(
                     tup1′ = reshape(tup1, lattice.L...)
                     # measure the current-current correlation
                     current_correlation!(
-                        correlation_array, bond_1, bond_0, tup1′, tup0′, unit_cell, lattice,
+                        tmp, bond_1, bond_0, tup1′, tup0′, unit_cell, lattice,
                         Gup_τ0, Gup_0τ, Gup_ττ, Gup, +1, +1, coef*sgn
                     )
+                    @. correlation_array += tmp
+                    fourier_transform!(tmp, bond_1.orbitals[1], bond_0.orbitals[1], unit_cell, lattice)
+                    @. structure_factor_array += tmp
                 end
             end
 
@@ -2024,6 +2213,7 @@ function make_time_displaced_composite_measurements!(
 
             for j in eachindex(ids)
                 for i in eachindex(ids)
+                    fill!(tmp, 0)
                     coef = conj(coefficients[i])*coefficients[j]
                     # get the hopping IDs associated with current operators
                     hopping_id_0 = ids[j]
@@ -2041,9 +2231,12 @@ function make_time_displaced_composite_measurements!(
                     tdn1′ = reshape(tdn1, lattice.L...)
                     # measure the current-current correlation
                     current_correlation!(
-                        correlation_array, bond_1, bond_0, tdn1′, tdn0′, unit_cell, lattice,
+                        tmp, bond_1, bond_0, tdn1′, tdn0′, unit_cell, lattice,
                         Gdn_τ0, Gdn_0τ, Gdn_ττ, Gdn, -1, -1, coef*sgn
                     )
+                    @. correlation_array += tmp
+                    fourier_transform!(tmp, bond_1.orbitals[1], bond_0.orbitals[1], unit_cell, lattice)
+                    @. structure_factor_array += tmp
                 end
             end
 
@@ -2055,6 +2248,7 @@ function make_time_displaced_composite_measurements!(
 
             for j in eachindex(ids)
                 for i in eachindex(ids)
+                    fill!(tmp, 0)
                     coef = conj(coefficients[i])*coefficients[j]
                     # get the hopping IDs associated with current operators
                     hopping_id_0 = ids[j]
@@ -2072,9 +2266,12 @@ function make_time_displaced_composite_measurements!(
                     tdn1′ = reshape(tdn1, lattice.L...)
                     # measure the current-current correlation
                     current_correlation!(
-                        correlation_array, bond_1, bond_0, tup1′, tdn0′, unit_cell, lattice,
+                        tmp, bond_1, bond_0, tup1′, tdn0′, unit_cell, lattice,
                         Gup_τ0, Gup_0τ, Gup_ττ, Gdn, +1, -1, coef*sgn
                     )
+                    @. correlation_array += tmp
+                    fourier_transform!(tmp, bond_1.orbitals[1], bond_0.orbitals[1], unit_cell, lattice)
+                    @. structure_factor_array += tmp
                 end
             end
 
@@ -2086,6 +2283,7 @@ function make_time_displaced_composite_measurements!(
 
             for j in eachindex(ids)
                 for i in eachindex(ids)
+                    fill!(tmp, 0)
                     coef = conj(coefficients[i])*coefficients[j]
                     # get the hopping IDs associated with current operators
                     hopping_id_0 = ids[j]
@@ -2103,9 +2301,12 @@ function make_time_displaced_composite_measurements!(
                     tup1′ = reshape(tup1, lattice.L...)
                     # measure the current-current correlation
                     current_correlation!(
-                        correlation_array, bond_1, bond_0, tdn1′, tup0′, unit_cell, lattice,
+                        tmp, bond_1, bond_0, tdn1′, tup0′, unit_cell, lattice,
                         Gdn_τ0, Gdn_0τ, Gdn_ττ, Gup, -1, +1, coef*sgn
                     )
+                    @. correlation_array += tmp
+                    fourier_transform!(tmp, bond_1.orbitals[1], bond_0.orbitals[1], unit_cell, lattice)
+                    @. structure_factor_array += tmp
                 end
             end
 
@@ -2117,6 +2318,7 @@ function make_time_displaced_composite_measurements!(
 
             for j in eachindex(ids)
                 for i in eachindex(ids)
+                    fill!(tmp, 0)
                     coef = conj(coefficients[i])*coefficients[j]
                     # get the hopping IDs associated with current operators
                     hopping_id_0 = ids[j]
@@ -2138,9 +2340,12 @@ function make_time_displaced_composite_measurements!(
                     tdn1′ = reshape(tdn1, lattice.L...)
                     # measure the current-current correlation
                     current_correlation!(
-                        correlation_array, bond_1, bond_0, tup1′, tup0′, tdn1′, tdn0′, unit_cell, lattice,
+                        tmp, bond_1, bond_0, tup1′, tup0′, tdn1′, tdn0′, unit_cell, lattice,
                         Gup_τ0, Gup_0τ, Gup_ττ, Gup, Gdn_τ0, Gdn_0τ, Gdn_ττ, Gdn, coef*sgn
                     )
+                    @. correlation_array += tmp
+                    fourier_transform!(tmp, bond_1.orbitals[1], bond_0.orbitals[1], unit_cell, lattice)
+                    @. structure_factor_array += tmp
                 end
             end
         end
@@ -2205,7 +2410,7 @@ function measure_equaltime_phonon_greens!(
     return nothing
 end
 
-# measure equal-time phonon greens function
+# measure equal-time composite phonon greens function
 function measure_equaltime_composite_phonon_greens!(
     phonon_greens::CompositeCorrelationContainer{D,E},
     electron_phonon_parameters::ElectronPhononParameters{T,E},
@@ -2220,8 +2425,11 @@ function measure_equaltime_composite_phonon_greens!(
     ids = phonon_greens.id_pairs::Vector{Int}
     coefficients = phonon_greens.coefficients::Vector{Complex{E}}
     correlations = phonon_greens.correlations::Array{Complex{E}, D}
+    structure_factors = phonon_greens.structure_factors::Array{Complex{E}, D}
     lattice = model_geometry.lattice::Lattice{D}
+    unit_cell = model_geometry.unit_cell::UnitCell{D,E}
     phonon_parameters = electron_phonon_parameters.phonon_parameters::PhononParameters{E}
+    phonon_to_site = phonon_parameters.phonon_to_site::Vector{Int}
 
     # get phonon field
     x = electron_phonon_parameters.x::Matrix{E}
@@ -2232,6 +2440,9 @@ function measure_equaltime_composite_phonon_greens!(
     # size of system in unit cells
     L = lattice.L
 
+    # number of unit cells
+    N_unitcells = prod(L)
+
     # number of phonons per unit cell
     phonon_parameters = electron_phonon_parameters.phonon_parameters::PhononParameters{E}
     nphonon = phonon_parameters.nphonon::Int
@@ -2241,7 +2452,15 @@ function measure_equaltime_composite_phonon_greens!(
 
     # iterate over all pairs of phonon modes
     for j in eachindex(ids)
+        # get orbital species
+        phonon = N_unitcells * (ids[j]-1) + 1
+        sites = phonon_to_site(phonon)
+        orbital_j = site_to_orbital(site, unit_cell)
         for i in eachindex(ids)
+            # get orbital species
+            phonon = N_unitcells * (ids[i]-1) + 1
+            sites = phonon_to_site(phonon)
+            orbital_i = site_to_orbital(site, unit_cell)
             # get the phonon fields associated with the appropriate pair of phonon modes in the unit cell
             x0 = selectdim(x′, D+1, ids[j])
             xr = selectdim(x′, D+1, ids[i])
@@ -2249,10 +2468,13 @@ function measure_equaltime_composite_phonon_greens!(
             copyto!(Xr, xr)
             # calculate phonon greens function
             translational_avg!(XrX0, Xr, X0, restore = false)
-            # record the equal-time phonon green's function
+            # record the equal-time phonon green's function in position space
             XrX0_0 = selectdim(XrX0, D+1, 1)
             coef = conj(coefficients[i]) * coefficients[j]
             @. correlations += sgn * coef * XrX0_0
+            # record the equal-time phonon green's function in momentum space
+            fourier_transform!(XrX0_0, orbital_i, orbital_j, unit_cell, lattice)
+            @. structure_factors += sgn * coef * XrX0_0
         end
     end
 
@@ -2312,7 +2534,7 @@ function measure_time_displaced_phonon_greens!(
     return nothing
 end
 
-# measure time-displaced phonon greens function
+# measure time-displaced composite phonon greens function
 function measure_time_displaced_composite_phonon_greens!(
     phonon_greens::CompositeCorrelationContainer{P,E}, # time-displaced because P != D
     electron_phonon_parameters::ElectronPhononParameters{T,E},
@@ -2327,8 +2549,11 @@ function measure_time_displaced_composite_phonon_greens!(
     ids = phonon_greens.id_pairs::Vector{Int}
     coefficients = phonon_greens.coefficients::Vector{Complex{E}}
     correlations = phonon_greens.correlations::Array{Complex{E}, D}
+    structure_factors = phonon_greens.structure_factors::Array{Complex{E}, D}
     lattice = model_geometry.lattice::Lattice{D}
+    unit_cell = model_geometry.unit_cell::UnitCell{D,E,N}
     phonon_parameters = electron_phonon_parameters.phonon_parameters::PhononParameters{E}
+    phonon_to_site = phonon_parameters.phonon_to_site::Vector{Int}
 
     # get phonon field
     x = electron_phonon_parameters.x::Matrix{E}
@@ -2339,6 +2564,9 @@ function measure_time_displaced_composite_phonon_greens!(
     # size of system in unit cells
     L = lattice.L
 
+    # number of unit cells
+    N_unitcells = prod(L)
+
     # number of phonons per unit cell
     phonon_parameters = electron_phonon_parameters.phonon_parameters::PhononParameters{E}
     nphonon = phonon_parameters.nphonon::Int
@@ -2348,19 +2576,35 @@ function measure_time_displaced_composite_phonon_greens!(
 
     # iterate over all pairs of phonon modes
     for j in eachindex(ids)
+        # get orbital species
+        phonon = N_unitcells * (ids[j]-1) + 1
+        sites = phonon_to_site(phonon)
+        orbital_j = site_to_orbital(site, unit_cell)
         for i in eachindex(ids)
+            # get orbital species
+            phonon = N_unitcells * (ids[i]-1) + 1
+            sites = phonon_to_site(phonon)
+            orbital_i = site_to_orbital(site, unit_cell)
             # get the phonon fields associated with the appropriate pair of phonon modes in the unit cell
             x0 = selectdim(x′, D+1, ids[j])
             xr = selectdim(x′, D+1, ids[i])
             copyto!(X0, x0)
             copyto!(Xr, xr)
-            # calculate phonon greens function
+            # calculate phonon greens function in position space
             translational_avg!(XrX0, Xr, X0, restore = false)
             correlation′ = selectdim(correlations, D+1, 1:Lτ)
             coef = conj(coefficients[i]) * coefficients[j]
+            @. correlation′ += coef * sgn * XrX0
             correlation_0  = selectdim(correlations, D+1, 1)
             correlation_Lτ = selectdim(correlations, D+1, Lτ+1)
             copyto!(correlation_Lτ, correlation_0)
+            # calculate phonon greens function in position space in momentum space
+            fourier_transform!(XrX0, orbital_i, orbital_j, D+1, unit_cell, lattice)
+            structure_factors′ = selectdim(structure_factors, D+1, 1:Lτ)
+            @. structure_factors′ += coef * sgn * XrX0
+            structure_factors_0  = selectdim(structure_factors, D+1, 1)
+            structure_factors_Lτ = selectdim(structure_factors, D+1, Lτ+1)
+            copyto!(structure_factors_Lτ, structure_factors_0)
         end
     end
 

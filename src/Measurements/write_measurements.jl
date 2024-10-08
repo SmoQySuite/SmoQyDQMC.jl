@@ -75,13 +75,13 @@ function write_measurements!(;
         for i in eachindex(correlations)
             # get the pair of orbitals associated with the correlation
             if (CORRELATION_FUNCTIONS[correlation] == "ORBITAL_ID") || (CORRELATION_FUNCTIONS[correlation] == "BOND_ID")
-                bond_a_id, bond_b_id = pairs[i]
+                bond_b_id, bond_a_id = pairs[i]
             elseif CORRELATION_FUNCTIONS[correlation] == "HOPPING_ID"
-                hopping_a_id, hopping_b_id = pairs[i]
+                hopping_b_id, hopping_a_id = pairs[i]
                 bond_a_id = hopping_to_bond_id[hopping_a_id]
                 bond_b_id = hopping_to_bond_id[hopping_b_id]
             elseif CORRELATION_FUNCTIONS[correlation] == "PHONON_ID"
-                phonon_a_id, phonon_b_id = pairs[i]
+                phonon_b_id, phonon_a_id = pairs[i]
                 bond_a_id = phonon_to_bond_id[phonon_a_id]
                 bond_b_id = phonon_to_bond_id[phonon_b_id]
             end
@@ -98,22 +98,18 @@ function write_measurements!(;
         reset!(correlation_container)
     end
 
-    # iterate over equal-time measurements
+    # iterate over equal-time composite measurements
     equaltime_composite_correlations = measurement_container.equaltime_composite_correlations
     for name in keys(equaltime_composite_correlations)
 
         # get the correlation container
         correlation_container = equaltime_composite_correlations[name]
-        correlations = correlation_container.correlations::Array{Complex{E}, D}
 
         # write position space equal-time correlation to file
-        save(joinpath(datafolder, "equal-time", name, "position", fn), correlation_container)
-
-        # perform fourier transform
-        fourier_transform!(correlations, 1, 1, unit_cell, lattice)
+        save(joinpath(datafolder, "equal-time", name, "position", fn), correlation_container, momentum = false)
 
         # write momentum space equal-time correlation to file
-        save(joinpath(datafolder, "equal-time", name, "momentum", fn), correlation_container)
+        save(joinpath(datafolder, "equal-time", name, "momentum", fn), correlation_container, momentum = true)
 
         # set the correlations to zero
         reset!(correlation_container)
@@ -151,13 +147,13 @@ function write_measurements!(;
         for i in eachindex(correlations)
             # get the pair of orbitals associated with the correlation
             if (CORRELATION_FUNCTIONS[correlation] == "ORBITAL_ID") || (CORRELATION_FUNCTIONS[correlation] == "BOND_ID")
-                bond_a_id, bond_b_id = pairs[i]
+                bond_b_id, bond_a_id = pairs[i]
             elseif CORRELATION_FUNCTIONS[correlation] == "HOPPING_ID"
-                hopping_a_id, hopping_b_id = pairs[i]
+                hopping_b_id, hopping_a_id = pairs[i]
                 bond_a_id = hopping_to_bond_id[hopping_a_id]
                 bond_b_id = hopping_to_bond_id[hopping_b_id]
             elseif CORRELATION_FUNCTIONS[correlation] == "PHONON_ID"
-                phonon_a_id, phonon_b_id = pairs[i]
+                phonon_b_id, phonon_a_id = pairs[i]
                 bond_a_id = phonon_to_bond_id[phonon_a_id]
                 bond_b_id = phonon_to_bond_id[phonon_b_id]
             end
@@ -193,35 +189,34 @@ function write_measurements!(;
         # get the correlation container
         correlation_container = time_displaced_composite_correlations[name]
         correlations = correlation_container.correlations::Array{Complex{E}, D+1}
+        structure_factors = correlation_container.structure_factors::Array{Complex{E}, D+1}
 
         # write position space time-displaced correlation to file
         if correlation_container.time_displaced
-            save(joinpath(datafolder, "time-displaced", name, "position", fn), correlation_container)
+            save(joinpath(datafolder, "time-displaced", name, "position", fn), correlation_container, momentum = false)
         end
 
         # get susceptibility container
         susceptibility_container = integrated_composite_correlations[name]
-        susceptibilities = susceptibility_container.correlations::Array{Complex{E}, D}
+        susceptibilities_pos = susceptibility_container.correlations::Array{Complex{E}, D}
+        susceptibilities_mom = susceptibility_container.structure_factors::Array{Complex{E}, D}
 
         # calculate the position space susceptibility/integrated correlations
-        susceptibility!(susceptibilities, correlations, Δτ, D+1)
+        susceptibility!(susceptibilities_pos, correlations, Δτ, D+1)
 
         # write position space susceptibility to file
-        save(joinpath(datafolder, "integrated", name, "position", fn), susceptibility_container)
-
-        # perform fourier transform
-        fourier_transform!(correlations, 1, 1, D+1, unit_cell, lattice)
+        save(joinpath(datafolder, "integrated", name, "position", fn), susceptibility_container, momentum = false)
 
         # write momentum space time-displaced correlation to file
         if correlation_container.time_displaced
-            save(joinpath(datafolder, "time-displaced", name, "momentum", fn), correlation_container)
+            save(joinpath(datafolder, "time-displaced", name, "momentum", fn), correlation_container, momentum = true)
         end
 
         # calculate momentum space susceptibilies/integrated correlations
-        susceptibility!(susceptibilities, correlations, Δτ, D+1)
+        susceptibility!(susceptibilities_mom, structure_factors, Δτ, D+1)
 
         # write momentum space susceptibility to file
-        save(joinpath(datafolder, "integrated", name, "momentum", fn), susceptibility_container)
+        save(joinpath(datafolder, "integrated", name, "momentum", fn), susceptibility_container, momentum = true)
 
         # set the correlations to zero
         reset!(correlation_container)
@@ -314,7 +309,9 @@ function normalize_composite_correlation_measurements!(
     for name in keys(composite_correlation_measurements)
         correlation_container = composite_correlation_measurements[name]
         correlations = correlation_container.correlations::Array{Complex{T}, D}
+        structure_factors = correlation_container.structure_factors::Array{Complex{T}, D}
         @. correlations /= bin_size
+        @. structure_factors /= bin_size
     end
 
     return nothing

@@ -13,6 +13,9 @@ struct CompositeCorrelationContainer{D, T<:AbstractFloat}
     # array to contain composite correlation measurements
     correlations::Array{Complex{T}, D}
 
+    # array to contain moment space structure factors
+    structure_factors::Array{Complex{T}, D}
+
     # whether time-displaced measurement that will be written to file during simulation
     time_displaced::Bool
 end
@@ -33,7 +36,8 @@ function CompositeCorrelationContainer(
         correlation, 
         Int[ids...],
         Complex{T}[coefficients...], 
-        zeros(Complex{T}, L..., Lτ+1), 
+        zeros(Complex{T}, L..., Lτ+1),
+        zeros(Complex{T}, L..., Lτ+1),
         time_displaced
     )
 end
@@ -51,21 +55,32 @@ function CompositeCorrelationContainer(
         correlation, 
         Int[ids...],
         Complex{T}[coefficients...], 
+        zeros(Complex{T}, L...),
         zeros(Complex{T}, L...), 
         false
     )
 end
 
 # Write correlation_container to a file with the name fn using the JLD2.jl package.
-function save(fn::String, composite_correlation_container::CompositeCorrelationContainer{D,T}) where {D, T<:AbstractFloat}
+function save(fn::String, composite_correlation_container::CompositeCorrelationContainer{D,T}; momentum::Bool) where {D, T<:AbstractFloat}
 
-    jldsave(fn;
-            correlation = composite_correlation_container.correlation,
-            ids = composite_correlation_container.ids,
-            coefficients = composite_correlation_container.coefficients,
-            correlations = composite_correlation_container.correlations,
-            time_displaced = composite_correlation_container.time_displaced
-    )
+    if momentum
+        jldsave(fn;
+                correlation = composite_correlation_container.correlation,
+                ids = composite_correlation_container.ids,
+                coefficients = composite_correlation_container.coefficients,
+                correlations = composite_correlation_container.structure_factors,
+                time_displaced = composite_correlation_container.time_displaced
+        )
+    else
+        jldsave(fn;
+                correlation = composite_correlation_container.correlation,
+                ids = composite_correlation_container.ids,
+                coefficients = composite_correlation_container.coefficients,
+                correlations = composite_correlation_container.correlations,
+                time_displaced = composite_correlation_container.time_displaced
+        )
+    end
 
     return nothing
 end
@@ -74,6 +89,7 @@ end
 function reset!(composite_correlation_container::CompositeCorrelationContainer{D,T}) where {D,T<:AbstractFloat}
 
     fill!(composite_correlation_container.correlations, zero(Complex{T}))
+    fill!(composite_correlation_container.structure_factors, zero(Complex{T}))
 
     return nothing
 end
