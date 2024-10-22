@@ -266,6 +266,8 @@ save_density_tuning_profile
 - [`process_measurements`](@ref)
 - [`process_correlation_measurement`](@ref)
 - [`composite_correlation_stat`](@ref)
+- [`compute_correlation_ratio`](@ref)
+- [`compute_composite_correlation_ratio`](@ref)
 - [`global_measurement_bins_to_csv`](@ref)
 - [`local_measurement_bins_to_csv`](@ref)
 - [`correlation_bins_to_csv`](@ref)
