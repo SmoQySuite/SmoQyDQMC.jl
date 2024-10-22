@@ -431,9 +431,7 @@ end
 
 Initialize a composite correlation measurement called `name` based
 on a linear combination of local operators used in a standard `correlation` measurement,
-with `ids` and `coefficients` specifying the linear combination. Note that when calculating
-the fourier transform of the composite correlation function measured in real space,
-it is assumed that the basis vector for the composite correlation operator is ``\mathbf{r} = 0``.
+with `ids` and `coefficients` specifying the linear combination.
 """
 function initialize_composite_correlation_measurement!(;
     measurement_container::NamedTuple,
