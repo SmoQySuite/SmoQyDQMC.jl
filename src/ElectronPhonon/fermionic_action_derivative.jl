@@ -37,32 +37,12 @@ function fermionic_action_derivative!(
     return (logdetG, sgndetG, δG, δθ)
 end
 
-# evaluate the derivative of the fermionic action for at time slice l
+
+# evaluate the derivative of the fermionic action for at time slice l for symmetric propagators
 function _fermionic_action_derivative!(
     dSdx::AbstractVector{E}, l::Int, G::Matrix{T}, sgndetG::T,
     electron_phonon_parameters::ElectronPhononParameters{T,E},
-    B::AbstractPropagator{T,E},
-    G′::Matrix{T}, G″::Matrix{T}, G‴::Matrix{T};
-    spin::Int
-) where {T<:Number, E<:AbstractFloat}
-
-    if ishermitian(B)
-        # evaluate derivative of fermionic action for hermitian propagators
-        _fermionic_action_derivative_sym!(dSdx, l, G, sgndetG, electron_phonon_parameters, B, G′, G″, G‴, spin = spin)
-    else
-        # evaluate derivative of fermionic action for non-hermitian/asymmetric propagators
-        _fermionic_action_derivative_asym!(dSdx, l, G, sgndetG, electron_phonon_parameters, B, G′, G″, G‴, spin = spin)
-    end
-
-    return nothing
-end
-
-
-# evaluate the derivative of the fermionic action for at time slice l for hermitian propagators
-function _fermionic_action_derivative_sym!(
-    dSdx::AbstractVector{E}, l::Int, G::Matrix{T}, sgndetG::T,
-    electron_phonon_parameters::ElectronPhononParameters{T,E},
-    B::AbstractPropagator{T,E},
+    B::Union{SymChkbrdPropagator{T,E},SymExactPropagator{T,E}},
     G′::Matrix{T}, G″::Matrix{T}, G‴::Matrix{T};
     spin::Int
 ) where {T<:Number, E<:AbstractFloat}
@@ -120,11 +100,11 @@ function _fermionic_action_derivative_sym!(
 end
 
 
-# evaluate the derivative of the fermionic action for at time slice l for non-hermitian propagators
-function _fermionic_action_derivative_asym!(
+# evaluate the derivative of the fermionic action for at time slice l for asymmetric propagators
+function _fermionic_action_derivative!(
     dSdx::AbstractVector{E}, l::Int, G::Matrix{T}, sgndetG::T,
     electron_phonon_parameters::ElectronPhononParameters{T,E},
-    B::AbstractPropagator{T,E},
+    B::Union{AsymChkbrdPropagator{T,E},AsymExactPropagator{T,E}},
     G′::Matrix{T}, G″::Matrix{T}, G‴::Matrix{T};
     spin::Int
 ) where {T<:Number, E<:AbstractFloat}
