@@ -66,7 +66,7 @@ function _fermionic_action_derivative!(
     x = @view electron_phonon_parameters.x[:,l]
 
     # define Λ = exp(-Δτ⋅V) and Γ = exp(-Δτ⋅K/2) and Γ⁻¹ = exp(+Δτ⋅K/2)
-    Λ   = B.expmΔτV
+    Λ   = Diagonal(B.expmΔτV)
     Γ   = B.expmΔτKo2
     Γᵀ  = adjoint(Γ)
     Γ⁻¹ = get_inv_exp_K(B)
@@ -88,8 +88,8 @@ function _fermionic_action_derivative!(
     eval_tr_dΛdx_invΛ_A!(dSdx, x, Δτ, sgndetG, G′, holstein_parameters)
 
     # construct Γ⁻ᵀ⋅(I - Λ⁻¹⋅Γ⁻¹⋅G⋅Γ⋅Λ)
-    ldiv_D!(Λ, G″)  # Λ⁻¹⋅Γ⁻¹⋅G⋅Γ
-    rmul_D!(G″, Λ)   # Λ⁻¹⋅Γ⁻¹⋅G⋅Γ⋅Λ
+    ldiv!(Λ, G″)  # Λ⁻¹⋅Γ⁻¹⋅G⋅Γ
+    rmul!(G″, Λ)   # Λ⁻¹⋅Γ⁻¹⋅G⋅Γ⋅Λ
     copyto!(G′, I)
     @. G″ = G″ - G′ # Λ⁻¹⋅Γ⁻¹⋅G⋅Γ⋅Λ - I
 
@@ -128,7 +128,7 @@ function _fermionic_action_derivative!(
     x = @view electron_phonon_parameters.x[:,l]
 
     # define Λ = exp(-Δτ⋅V) and Γ = exp(-Δτ⋅K) and Γ⁻¹ = exp(+Δτ⋅K)
-    Λ = B.expmΔτV
+    Λ = Diagonal(B.expmΔτV)
     Γ = B.expmΔτK
 
     # construct (I - G)
@@ -139,8 +139,8 @@ function _fermionic_action_derivative!(
     eval_tr_dΛdx_invΛ_A!(dSdx, x, Δτ, sgndetG, G′, holstein_parameters)
 
     # construct (I - Λ⁻¹⋅G⋅Λ)
-    mul_D!(G′, G, Λ) # G⋅Λ
-    ldiv_D!(Λ, G′)   # Λ⁻¹⋅G⋅Λ
+    mul!(G′, G, Λ) # G⋅Λ
+    ldiv!(Λ, G′)   # Λ⁻¹⋅G⋅Λ
     copyto!(G″, I)
     @. G″ = G′ - G″  # Λ⁻¹⋅G⋅Λ - I
 
