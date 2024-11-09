@@ -112,7 +112,7 @@ function make_measurements!(
     )
 
     # if there are time-displaced measurements to make
-    if length(time_displaced_correlations) > 0
+    if length(time_displaced_correlations) > 0 || length(time_displaced_composite_correlations) > 0
 
         # make time-displaced correlation measuresurements for τ = l⋅Δτ = 0
         make_time_displaced_measurements!(
@@ -283,7 +283,7 @@ function make_measurements!(
     )
 
     # if there are time-displaced measurements to make
-    if length(time_displaced_correlations) > 0
+    if length(time_displaced_correlations) > 0 || length(time_displaced_composite_correlations) > 0
 
         # make time-displaced correlation measuresurements of τ = 0
         make_time_displaced_measurements!(
@@ -1881,7 +1881,7 @@ function make_time_displaced_composite_measurements!(
         coefficients = correlation_container.coefficients::Vector{Complex{E}}
         correlations = correlation_container.correlations::Array{Complex{E}, P}
         correlation_array = selectdim(correlations, D+1, l+1)
-        structure_factors = correlation_container.correlations::Array{Complex{E}, P}
+        structure_factors = correlation_container.structure_factors::Array{Complex{E}, P}
         structure_factor_array = selectdim(structure_factors, D+1, l+1)
 
         if correlation == "greens"

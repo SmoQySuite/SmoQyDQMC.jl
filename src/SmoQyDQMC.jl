@@ -28,10 +28,6 @@ using StableLinearAlgebra
 # import methods from to overload
 import LinearAlgebra: mul!, lmul!, rmul!
 
-# importing routines for multiplying a dense matrix by a diagonal matrix that
-# is represented by a vector
-import StableLinearAlgebra: mul_D!, lmul_D!, rmul_D!, div_D!, ldiv_D!, rdiv_D!
-
 # get and set package version number as global constant
 const SMOQYDQMC_VERSION = PkgVersion.@Version 0
 
