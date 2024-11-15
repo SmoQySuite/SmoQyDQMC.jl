@@ -377,7 +377,7 @@ The purpose of the [`FermionPathIntegral`](@ref) type is to contain the minimal 
 Each instance of the [`FermionPathIntegral`](@ref) type is first allocated and initialized to just reflect the non-interacting component of the Hamiltonian.
 Then the two subsequent `initialize!` calls modify the [`FermionPathIntegral`](@ref) type to reflect the contributions from the Hubbard interaction and initial HS field configuration.
 
-Then the `initialize_propagators` function allocates and initializes the ``B_{\sigma,l}`` propagator matrices
+Then the [`initialize_propagators`](@ref) function allocates and initializes the ``B_{\sigma,l}`` propagator matrices
 to reflect the current state of the ``K_{\sigma,l}`` and ``V_{\sigma,l}`` matrices as represented by the [`FermionPathIntegral`](@ref) type.
 If `symmetric = true`, then the propagator matrices take the form
 ```math

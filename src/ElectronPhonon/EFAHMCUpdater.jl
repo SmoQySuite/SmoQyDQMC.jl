@@ -104,8 +104,9 @@ end
         fermion_greens_calculator_up_alt::FermionGreensCalculator{T,E},
         fermion_greens_calculator_dn_alt::FermionGreensCalculator{T,E},
         Bup::Vector{P}, Bdn::Vector{P},
-        δG_max::E, δG::E, δθ::E, rng::AbstractRNG,
-        update_stabilization_frequency::Bool = true,
+        δG::E, δθ::E, rng::AbstractRNG,
+        update_stabilization_frequency::Bool = false,
+        δG_max::E = 1e-5,
         δG_reject::E = 1e-2,
         recenter!::Function = identity,
         Nt::Int = hmc_updater.Nt,
@@ -130,8 +131,9 @@ function hmc_update!(
     fermion_greens_calculator_up_alt::FermionGreensCalculator{T,E},
     fermion_greens_calculator_dn_alt::FermionGreensCalculator{T,E},
     Bup::Vector{P}, Bdn::Vector{P},
-    δG_max::E, δG::E, δθ::E, rng::AbstractRNG,
-    update_stabilization_frequency::Bool = true,
+    δG::E, δθ::E, rng::AbstractRNG,
+    update_stabilization_frequency::Bool = false,
+    δG_max::E = 1e-5,
     δG_reject::E = 1e-2,
     recenter!::Function = identity,
     Nt::Int = hmc_updater.Nt,
@@ -145,7 +147,7 @@ function hmc_update!(
     holstein_parameters_up = electron_phonon_parameters.holstein_parameters_up::HolsteinParameters{E}
     holstein_parameters_dn = electron_phonon_parameters.holstein_parameters_dn::HolsteinParameters{E}
     ssh_parameters_up = electron_phonon_parameters.ssh_parameters_up::SSHParameters{T}
-    ssh_parameters_up = electron_phonon_parameters.ssh_parameters_dn::SSHParameters{T}
+    ssh_parameters_dn = electron_phonon_parameters.ssh_parameters_dn::SSHParameters{T}
     phonon_parameters = electron_phonon_parameters.phonon_parameters::PhononParameters{E}
     dispersion_parameters = electron_phonon_parameters.dispersion_parameters::DispersionParameters{E}
 
@@ -154,11 +156,11 @@ function hmc_update!(
     
     # whether the exponentiated on-site energy matrix needs to be updated with the phonon field,
     # true if there is a non-zero number of holstein couplings Nholstein
-    calculate_exp_V = (holstein_parameters_up.Nholstein > 0)
+    calculate_exp_V = (holstein_parameters_up.Nholstein > 0) || (holstein_parameters_dn.Nholstein > 0)
 
     # whether the exponentiated hopping matrix needs to be updated with the phonon field,
     # true if there is a non-zero number of ssh couplings Nssh
-    calculate_exp_K = (ssh_parameters_up.Nssh > 0)
+    calculate_exp_K = (ssh_parameters_up.Nssh > 0) || (ssh_parameters_dn.Nssh > 0)
 
     # flag to indicate numerical stability
     numerically_stable = true
@@ -416,8 +418,9 @@ end
         fermion_greens_calculator::FermionGreensCalculator{T,E},
         fermion_greens_calculator_alt::FermionGreensCalculator{T,E},
         B::Vector{P},
-        δG_max::E, δG::E, δθ::E, rng::AbstractRNG,
-        update_stabilization_frequency::Bool = true,
+        δG::E, δθ::E, rng::AbstractRNG,
+        update_stabilization_frequency::Bool = false,
+        δG_max::E = 1e-5,
         δG_reject::E = 1e-2,
         recenter!::Function = identity,
         Nt::Int = hmc_updater.Nt,
@@ -437,8 +440,9 @@ function hmc_update!(
     fermion_greens_calculator::FermionGreensCalculator{T,E},
     fermion_greens_calculator_alt::FermionGreensCalculator{T,E},
     B::Vector{P},
-    δG_max::E, δG::E, δθ::E, rng::AbstractRNG,
-    update_stabilization_frequency::Bool = true,
+    δG::E, δθ::E, rng::AbstractRNG,
+    update_stabilization_frequency::Bool = false,
+    δG_max::E = 1e-5,
     δG_reject::E = 1e-2,
     recenter!::Function = identity,
     Nt::Int = hmc_updater.Nt,

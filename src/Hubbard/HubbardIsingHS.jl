@@ -139,16 +139,19 @@ end
 
 
 @doc raw"""
-    local_updates!(Gup::Matrix{T}, logdetGup::E, sgndetGup::T,
-                   Gdn::Matrix{T}, logdetGdn::E, sgndetGdn::T,
-                   hubbard_ising_parameters::HubbardIsingHSParameters{E};
-                   fermion_path_integral_up::FermionPathIntegral{T,E},
-                   fermion_path_integral_dn::FermionPathIntegral{T,E},
-                   fermion_greens_calculator_up::FermionGreensCalculator{T,E},
-                   fermion_greens_calculator_dn::FermionGreensCalculator{T,E},
-                   Bup::Vector{P}, Bdn::Vector{P},
-                   δG_max::E, δG::E, δθ::E,  rng::AbstractRNG,
-                   update_stabilization_frequency::Bool=true) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
+    local_updates!(
+        Gup::Matrix{T}, logdetGup::E, sgndetGup::T,
+        Gdn::Matrix{T}, logdetGdn::E, sgndetGdn::T,
+        hubbard_ising_parameters::HubbardIsingHSParameters{E};
+        fermion_path_integral_up::FermionPathIntegral{T,E},
+        fermion_path_integral_dn::FermionPathIntegral{T,E},
+        fermion_greens_calculator_up::FermionGreensCalculator{T,E},
+        fermion_greens_calculator_dn::FermionGreensCalculator{T,E},
+        Bup::Vector{P}, Bdn::Vector{P},
+        δG::E, δθ::E,  rng::AbstractRNG,
+        δG_max::E = 1e-5,
+        update_stabilization_frequency::Bool = true
+    ) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
 
 Sweep through every imaginary time slice and orbital in the lattice, peforming local updates to every
 Ising Hubbard-Stratonovich (HS) field.
@@ -179,16 +182,19 @@ This method returns the a tuple containing `(acceptance_rate, logdetGup, sgndetG
 - `rng::AbstractRNG`: Random number generator used in method instead of global random number generator, important for reproducibility.
 - `update_stabilization_frequency::Bool=true`: If true, allows the stabilization frequency `n_stab` to be dynamically adjusted.
 """
-function local_updates!(Gup::Matrix{T}, logdetGup::E, sgndetGup::T,
-                        Gdn::Matrix{T}, logdetGdn::E, sgndetGdn::T,
-                        hubbard_ising_parameters::HubbardIsingHSParameters{E};
-                        fermion_path_integral_up::FermionPathIntegral{T,E},
-                        fermion_path_integral_dn::FermionPathIntegral{T,E},
-                        fermion_greens_calculator_up::FermionGreensCalculator{T,E},
-                        fermion_greens_calculator_dn::FermionGreensCalculator{T,E},
-                        Bup::Vector{P}, Bdn::Vector{P},
-                        δG_max::E, δG::E, δθ::E,  rng::AbstractRNG,
-                        update_stabilization_frequency::Bool=true) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
+function local_updates!(
+    Gup::Matrix{T}, logdetGup::E, sgndetGup::T,
+    Gdn::Matrix{T}, logdetGdn::E, sgndetGdn::T,
+    hubbard_ising_parameters::HubbardIsingHSParameters{E};
+    fermion_path_integral_up::FermionPathIntegral{T,E},
+    fermion_path_integral_dn::FermionPathIntegral{T,E},
+    fermion_greens_calculator_up::FermionGreensCalculator{T,E},
+    fermion_greens_calculator_dn::FermionGreensCalculator{T,E},
+    Bup::Vector{P}, Bdn::Vector{P},
+    δG::E, δθ::E,  rng::AbstractRNG,
+    δG_max::E = 1e-5,
+    update_stabilization_frequency::Bool = true
+) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
 
     Δτ          = hubbard_ising_parameters.Δτ::E
     U           = hubbard_ising_parameters.U::Vector{E}
@@ -317,12 +323,15 @@ end
 
 
 @doc raw"""
-    local_updates!(G::Matrix{T}, logdetG::E, sgndetG::T,
-                   hubbard_ising_parameters::HubbardIsingHSParameters{E};
-                   fermion_path_integral::FermionPathIntegral{T,E},
-                   fermion_greens_calculator::FermionGreensCalculator{T,E},
-                   B::Vector{P}, δG_max::E, δG::E, δθ::E, rng::AbstractRNG,
-                   update_stabilization_frequency::Bool=true) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
+    local_updates!(
+        G::Matrix{T}, logdetG::E, sgndetG::T,
+        hubbard_ising_parameters::HubbardIsingHSParameters{E};
+        fermion_path_integral::FermionPathIntegral{T,E},
+        fermion_greens_calculator::FermionGreensCalculator{T,E},
+        B::Vector{P}, δG::E, δθ::E, rng::AbstractRNG,
+        δG_max::E = 1e-5,
+        update_stabilization_frequency::Bool = true
+    ) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
 
 Sweep through every imaginary time slice and orbital in the lattice, performing local updates to every
 Ising Hubbard-Stratonovich (HS) field, assuming strictly attractive Hubbard interactions and perfect spin symmetry.
@@ -347,12 +356,15 @@ This method returns the a tuple containing `(acceptance_rate, logdetG, sgndetG, 
 - `rng::AbstractRNG`: Random number generator used in method instead of global random number generator, important for reproducibility.
 - `update_stabilization_frequency::Bool=true`:  If true, allows the stabilization frequency `n_stab` to be dynamically adjusted.
 """
-function local_updates!(G::Matrix{T}, logdetG::E, sgndetG::T,
-                        hubbard_ising_parameters::HubbardIsingHSParameters{E};
-                        fermion_path_integral::FermionPathIntegral{T,E},
-                        fermion_greens_calculator::FermionGreensCalculator{T,E},
-                        B::Vector{P}, δG_max::E, δG::E, δθ::E, rng::AbstractRNG,
-                        update_stabilization_frequency::Bool=true) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
+function local_updates!(
+    G::Matrix{T}, logdetG::E, sgndetG::T,
+    hubbard_ising_parameters::HubbardIsingHSParameters{E};
+    fermion_path_integral::FermionPathIntegral{T,E},
+    fermion_greens_calculator::FermionGreensCalculator{T,E},
+    B::Vector{P}, δG::E, δθ::E, rng::AbstractRNG,
+    δG_max::E = 1e-5,
+    update_stabilization_frequency::Bool = true
+) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
 
     (; update_perm, U, α, sites, s, Δτ) = hubbard_ising_parameters
     (; u, v) = fermion_path_integral
@@ -451,17 +463,19 @@ end
 
 
 @doc raw"""
-    reflection_update!(Gup::Matrix{T}, logdetGup::E, sgndetGup::T,
-                       Gdn::Matrix{T}, logdetGdn::E, sgndetGdn::T,
-                       hubbard_ising_parameters::HubbardIsingHSParameters{E};
-                       fermion_path_integral_up::FermionPathIntegral{T,E},
-                       fermion_path_integral_dn::FermionPathIntegral{T,E},
-                       fermion_greens_calculator_up::FermionGreensCalculator{T,E},
-                       fermion_greens_calculator_dn::FermionGreensCalculator{T,E},
-                       fermion_greens_calculator_up_alt::FermionGreensCalculator{T,E},
-                       fermion_greens_calculator_dn_alt::FermionGreensCalculator{T,E},
-                       Bup::Vector{P}, Bdn::Vector{P},
-                       rng::AbstractRNG) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
+    reflection_update!(
+        Gup::Matrix{T}, logdetGup::E, sgndetGup::T,
+        Gdn::Matrix{T}, logdetGdn::E, sgndetGdn::T,
+        hubbard_ising_parameters::HubbardIsingHSParameters{E};
+        fermion_path_integral_up::FermionPathIntegral{T,E},
+        fermion_path_integral_dn::FermionPathIntegral{T,E},
+        fermion_greens_calculator_up::FermionGreensCalculator{T,E},
+        fermion_greens_calculator_dn::FermionGreensCalculator{T,E},
+        fermion_greens_calculator_up_alt::FermionGreensCalculator{T,E},
+        fermion_greens_calculator_dn_alt::FermionGreensCalculator{T,E},
+        Bup::Vector{P}, Bdn::Vector{P},
+        rng::AbstractRNG
+    ) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
 
 Perform a reflection update where the sign of every Ising Hubbard-Stratonovich field on a randomly chosen orbital in the lattice is changed.
 This function returns `(accepted, logdetGup, sgndetGup, logdetGdn, sgndetGdn)`.
@@ -488,17 +502,19 @@ This function returns `(accepted, logdetGup, sgndetGup, logdetGdn, sgndetGdn)`.
 - `Bdn::Vector{P}`: Spin-down propagators for each imaginary time slice.
 - `rng::AbstractRNG`: Random number generator used in method instead of global random number generator, important for reproducibility.
 """
-function reflection_update!(Gup::Matrix{T}, logdetGup::E, sgndetGup::T,
-                            Gdn::Matrix{T}, logdetGdn::E, sgndetGdn::T,
-                            hubbard_ising_parameters::HubbardIsingHSParameters{E};
-                            fermion_path_integral_up::FermionPathIntegral{T,E},
-                            fermion_path_integral_dn::FermionPathIntegral{T,E},
-                            fermion_greens_calculator_up::FermionGreensCalculator{T,E},
-                            fermion_greens_calculator_dn::FermionGreensCalculator{T,E},
-                            fermion_greens_calculator_up_alt::FermionGreensCalculator{T,E},
-                            fermion_greens_calculator_dn_alt::FermionGreensCalculator{T,E},
-                            Bup::Vector{P}, Bdn::Vector{P},
-                            rng::AbstractRNG) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
+function reflection_update!(
+    Gup::Matrix{T}, logdetGup::E, sgndetGup::T,
+    Gdn::Matrix{T}, logdetGdn::E, sgndetGdn::T,
+    hubbard_ising_parameters::HubbardIsingHSParameters{E};
+    fermion_path_integral_up::FermionPathIntegral{T,E},
+    fermion_path_integral_dn::FermionPathIntegral{T,E},
+    fermion_greens_calculator_up::FermionGreensCalculator{T,E},
+    fermion_greens_calculator_dn::FermionGreensCalculator{T,E},
+    fermion_greens_calculator_up_alt::FermionGreensCalculator{T,E},
+    fermion_greens_calculator_dn_alt::FermionGreensCalculator{T,E},
+    Bup::Vector{P}, Bdn::Vector{P},
+    rng::AbstractRNG
+) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
 
     (; N, U, α, sites, s, Δτ) = hubbard_ising_parameters
     Gup′ = fermion_greens_calculator_up_alt.G′
@@ -582,13 +598,15 @@ function reflection_update!(Gup::Matrix{T}, logdetGup::E, sgndetGup::T,
 end
 
 @doc raw"""
-    reflection_update!(G::Matrix{T}, logdetG::E, sgndetG::T,
-                       hubbard_ising_parameters::HubbardIsingHSParameters{E};
-                       fermion_path_integral::FermionPathIntegral{T,E},
-                       fermion_greens_calculator::FermionGreensCalculator{T,E},
-                       fermion_greens_calculator_alt::FermionGreensCalculator{T,E},
-                       B::Vector{P},
-                       rng::AbstractRNG) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
+    reflection_update!(
+        G::Matrix{T}, logdetG::E, sgndetG::T,
+        hubbard_ising_parameters::HubbardIsingHSParameters{E};
+        fermion_path_integral::FermionPathIntegral{T,E},
+        fermion_greens_calculator::FermionGreensCalculator{T,E},
+        fermion_greens_calculator_alt::FermionGreensCalculator{T,E},
+        B::Vector{P},
+        rng::AbstractRNG
+    ) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
 
 Perform a reflection update where the sign of every Ising Hubbard-Stratonovich field on a randomly chosen orbital in the lattice is changed.
 This function returns `(accepted, logdetG, sgndetG)`. This method assumes strictly attractive Hubbard interactions.
@@ -608,13 +626,15 @@ This function returns `(accepted, logdetG, sgndetG)`. This method assumes strict
 - `B::Vector{P}`: Propagators for each imaginary time slice.
 - `rng::AbstractRNG`: Random number generator used in method instead of global random number generator, important for reproducibility.
 """
-function reflection_update!(G::Matrix{T}, logdetG::E, sgndetG::T,
-                            hubbard_ising_parameters::HubbardIsingHSParameters{E};
-                            fermion_path_integral::FermionPathIntegral{T,E},
-                            fermion_greens_calculator::FermionGreensCalculator{T,E},
-                            fermion_greens_calculator_alt::FermionGreensCalculator{T,E},
-                            B::Vector{P},
-                            rng::AbstractRNG) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
+function reflection_update!(
+    G::Matrix{T}, logdetG::E, sgndetG::T,
+    hubbard_ising_parameters::HubbardIsingHSParameters{E};
+    fermion_path_integral::FermionPathIntegral{T,E},
+    fermion_greens_calculator::FermionGreensCalculator{T,E},
+    fermion_greens_calculator_alt::FermionGreensCalculator{T,E},
+    B::Vector{P},
+    rng::AbstractRNG
+) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
 
     (; N, U, α, sites, s, Δτ) = hubbard_ising_parameters
     G′ = fermion_greens_calculator_alt.G′
@@ -681,17 +701,19 @@ end
 
 
 @doc raw"""
-    swap_update!(Gup::Matrix{T}, logdetGup::E, sgndetGup::T,
-                 Gdn::Matrix{T}, logdetGdn::E, sgndetGdn::T,
-                 hubbard_ising_parameters::HubbardIsingHSParameters{E};
-                 fermion_path_integral_up::FermionPathIntegral{T,E},
-                 fermion_path_integral_dn::FermionPathIntegral{T,E},
-                 fermion_greens_calculator_up::FermionGreensCalculator{T,E},
-                 fermion_greens_calculator_dn::FermionGreensCalculator{T,E},
-                 fermion_greens_calculator_up_alt::FermionGreensCalculator{T,E},
-                 fermion_greens_calculator_dn_alt::FermionGreensCalculator{T,E},
-                 Bup::Vector{P}, Bdn::Vector{P},
-                 rng::AbstractRNG) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
+    swap_update!(
+        Gup::Matrix{T}, logdetGup::E, sgndetGup::T,
+        Gdn::Matrix{T}, logdetGdn::E, sgndetGdn::T,
+        hubbard_ising_parameters::HubbardIsingHSParameters{E};
+        fermion_path_integral_up::FermionPathIntegral{T,E},
+        fermion_path_integral_dn::FermionPathIntegral{T,E},
+        fermion_greens_calculator_up::FermionGreensCalculator{T,E},
+        fermion_greens_calculator_dn::FermionGreensCalculator{T,E},
+        fermion_greens_calculator_up_alt::FermionGreensCalculator{T,E},
+        fermion_greens_calculator_dn_alt::FermionGreensCalculator{T,E},
+        Bup::Vector{P}, Bdn::Vector{P},
+        rng::AbstractRNG
+    ) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
 
 Perform a swap update where the HS fields associated with two randomly chosen sites in the lattice are exchanged.
 This function returns `(accepted, logdetGup, sgndetGup, logdetGdn, sgndetGdn)`.
@@ -718,17 +740,19 @@ This function returns `(accepted, logdetGup, sgndetGup, logdetGdn, sgndetGdn)`.
 - `Bdn::Vector{P}`: Spin-down propagators for each imaginary time slice.
 - `rng::AbstractRNG`: Random number generator used in method instead of global random number generator, important for reproducibility.
 """
-function swap_update!(Gup::Matrix{T}, logdetGup::E, sgndetGup::T,
-                      Gdn::Matrix{T}, logdetGdn::E, sgndetGdn::T,
-                      hubbard_ising_parameters::HubbardIsingHSParameters{E};
-                      fermion_path_integral_up::FermionPathIntegral{T,E},
-                      fermion_path_integral_dn::FermionPathIntegral{T,E},
-                      fermion_greens_calculator_up::FermionGreensCalculator{T,E},
-                      fermion_greens_calculator_dn::FermionGreensCalculator{T,E},
-                      fermion_greens_calculator_up_alt::FermionGreensCalculator{T,E},
-                      fermion_greens_calculator_dn_alt::FermionGreensCalculator{T,E},
-                      Bup::Vector{P}, Bdn::Vector{P},
-                      rng::AbstractRNG) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
+function swap_update!(
+    Gup::Matrix{T}, logdetGup::E, sgndetGup::T,
+    Gdn::Matrix{T}, logdetGdn::E, sgndetGdn::T,
+    hubbard_ising_parameters::HubbardIsingHSParameters{E};
+    fermion_path_integral_up::FermionPathIntegral{T,E},
+    fermion_path_integral_dn::FermionPathIntegral{T,E},
+    fermion_greens_calculator_up::FermionGreensCalculator{T,E},
+    fermion_greens_calculator_dn::FermionGreensCalculator{T,E},
+    fermion_greens_calculator_up_alt::FermionGreensCalculator{T,E},
+    fermion_greens_calculator_dn_alt::FermionGreensCalculator{T,E},
+    Bup::Vector{P}, Bdn::Vector{P},
+    rng::AbstractRNG
+) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
 
     (; N, U, α, sites, s, Δτ) = hubbard_ising_parameters
     Gup′ = fermion_greens_calculator_up_alt.G′
@@ -841,12 +865,14 @@ end
 
 
 @doc raw"""
-    swap_update!(G::Matrix{T}, logdetG::E, sgndetG::T,
-                 hubbard_ising_parameters::HubbardIsingHSParameters{E};
-                 fermion_path_integral::FermionPathIntegral{T,E},
-                 fermion_greens_calculator::FermionGreensCalculator{T,E},
-                 fermion_greens_calculator_alt::FermionGreensCalculator{T,E},
-                 B::Vector{P}, rng::AbstractRNG) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
+    swap_update!(
+        G::Matrix{T}, logdetG::E, sgndetG::T,
+        hubbard_ising_parameters::HubbardIsingHSParameters{E};
+        fermion_path_integral::FermionPathIntegral{T,E},
+        fermion_greens_calculator::FermionGreensCalculator{T,E},
+        fermion_greens_calculator_alt::FermionGreensCalculator{T,E},
+        B::Vector{P}, rng::AbstractRNG
+    ) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
 
 For strictly attractive Hubbard interactions, perform a swap update where the HS fields associated with two randomly chosen
 sites in the lattice are exchanged. This function returns `(accepted, logdetG, sgndetG)`.
@@ -866,12 +892,14 @@ sites in the lattice are exchanged. This function returns `(accepted, logdetG, s
 - `B::Vector{P}`: Propagators for each imaginary time slice.
 - `rng::AbstractRNG`: Random number generator used in method instead of global random number generator, important for reproducibility.
 """
-function swap_update!(G::Matrix{T}, logdetG::E, sgndetG::T,
-                      hubbard_ising_parameters::HubbardIsingHSParameters{E};
-                      fermion_path_integral::FermionPathIntegral{T,E},
-                      fermion_greens_calculator::FermionGreensCalculator{T,E},
-                      fermion_greens_calculator_alt::FermionGreensCalculator{T,E},
-                      B::Vector{P}, rng::AbstractRNG) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
+function swap_update!(
+    G::Matrix{T}, logdetG::E, sgndetG::T,
+    hubbard_ising_parameters::HubbardIsingHSParameters{E};
+    fermion_path_integral::FermionPathIntegral{T,E},
+    fermion_greens_calculator::FermionGreensCalculator{T,E},
+    fermion_greens_calculator_alt::FermionGreensCalculator{T,E},
+    B::Vector{P}, rng::AbstractRNG
+) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
 
     (; N, U, α, sites, s, Δτ) = hubbard_ising_parameters
     G′ = fermion_greens_calculator_alt.G′

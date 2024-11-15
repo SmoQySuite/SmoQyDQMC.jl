@@ -14,12 +14,13 @@
         fermion_path_integral_dn::FermionPathIntegral{T,E},
         fermion_greens_calculator_up::FermionGreensCalculator{T,E},
         fermion_greens_calculator_dn::FermionGreensCalculator{T,E},
-        Bup::Vector{P}, Bdn::Vector{P}, δG_max::E, δG::E, δθ::E,
+        Bup::Vector{P}, Bdn::Vector{P},
         model_geometry::ModelGeometry{D,E,N},
         tight_binding_parameters::Union{Nothing, TightBindingParameters{T,E}} = nothing,
         tight_binding_parameters_up::Union{Nothing, TightBindingParameters{T,E}} = nothing,
         tight_binding_parameters_dn::Union{Nothing, TightBindingParameters{T,E}} = nothing,
-        coupling_parameters::Tuple
+        coupling_parameters::Tuple,
+        δG::E, δθ::E, δG_max::E = 1e-6
     ) where {T<:Number, E<:AbstractFloat, D, N, P<:AbstractPropagator{T,E}}
 
 Make measurements, including time-displaced correlation and zero Matsubara frequency measurements.
@@ -38,12 +39,13 @@ function make_measurements!(
     fermion_path_integral_dn::FermionPathIntegral{T,E},
     fermion_greens_calculator_up::FermionGreensCalculator{T,E},
     fermion_greens_calculator_dn::FermionGreensCalculator{T,E},
-    Bup::Vector{P}, Bdn::Vector{P}, δG_max::E, δG::E, δθ::E,
+    Bup::Vector{P}, Bdn::Vector{P},
     model_geometry::ModelGeometry{D,E,N},
     tight_binding_parameters::Union{Nothing, TightBindingParameters{T,E}} = nothing,
     tight_binding_parameters_up::Union{Nothing, TightBindingParameters{T,E}} = nothing,
     tight_binding_parameters_dn::Union{Nothing, TightBindingParameters{T,E}} = nothing,
-    coupling_parameters::Tuple
+    coupling_parameters::Tuple,
+    δG::E, δθ::E, δG_max::E = 1e-6
 ) where {T<:Number, E<:AbstractFloat, D, N, P<:AbstractPropagator{T,E}}
 
     # extract temporary storage vectors
@@ -205,10 +207,11 @@ end
         # Keyword Arguments Start Here
         fermion_path_integral::FermionPathIntegral{T,E},
         fermion_greens_calculator::FermionGreensCalculator{T,E},
-        B::Vector{P}, δG_max::E, δG::E, δθ::E,
+        B::Vector{P},
         model_geometry::ModelGeometry{D,E,N},
         tight_binding_parameters::TightBindingParameters{T,E},
-        coupling_parameters::Tuple
+        coupling_parameters::Tuple,
+        δG::E, δθ::E, δG_max::E = 1e-6
     ) where {T<:Number, E<:AbstractFloat, D, N, P<:AbstractPropagator{T,E}}
 
 Make measurements, including time-displaced correlation and zero Matsubara frequency measurements.
@@ -221,10 +224,11 @@ function make_measurements!(
     # Keyword Arguments Start Here
     fermion_path_integral::FermionPathIntegral{T,E},
     fermion_greens_calculator::FermionGreensCalculator{T,E},
-    B::Vector{P}, δG_max::E, δG::E, δθ::E,
+    B::Vector{P},
     model_geometry::ModelGeometry{D,E,N},
     tight_binding_parameters::TightBindingParameters{T,E},
-    coupling_parameters::Tuple
+    coupling_parameters::Tuple,
+    δG::E, δθ::E, δG_max::E = 1e-6
 ) where {T<:Number, E<:AbstractFloat, D, N, P<:AbstractPropagator{T,E}}
 
     # extract temporary storage vectors
