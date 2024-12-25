@@ -162,7 +162,7 @@ Let ``\hat{O}_{\mathbf{i},\nu}`` represent some operator associated with unit ce
 For instance, in the case of a density-density correlation, ``\nu`` corresponds to an `ORBITAL_ID` index.
 The first type of correlation that may be reported are `equal-time` correlation function of the form
 ```math
-C_{\nu,\gamma}(\mathbf{r}) = \frac{1}{N} \sum_{\mathbf{i}} \langle O_{\mathbf{i}+\mathbf{r},\nu} O_{\mathbf{i},\gamma} \rangle
+C_{\nu,\gamma}(\mathbf{r}) = \frac{1}{N} \sum_{\mathbf{i}} \langle O^{\dagger}_{\mathbf{i}+\mathbf{r},\nu} O^{\phantom\dagger}_{\mathbf{i},\gamma} \rangle
 ```
 in `position` space, where the sum over ``\mathbf{i}`` runs over all unit cells, and ``\mathbf{r}`` represents a displacement in
 unit cells. The corresponding `equal-time` correlation function in `momentum` space is given by
@@ -173,7 +173,7 @@ where ``\mathbf{r}_\nu`` and ``\mathbf{r}_\gamma`` are static displacement vecto
 
 The second type of correlation function is the `time-displaced` correlation function in `position` space is given by
 ```math
-C_{\nu,\gamma}(\mathbf{r},\tau) = \frac{1}{N} \sum_{\mathbf{i}} \langle O_{\mathbf{i}+\mathbf{r},\nu}(\tau) O_{\mathbf{i},\gamma}(0) \rangle,
+C_{\nu,\gamma}(\mathbf{r},\tau) = \frac{1}{N} \sum_{\mathbf{i}} \langle O^{\dagger}_{\mathbf{i}+\mathbf{r},\nu}(\tau) O^{\phantom\dagger}_{\mathbf{i},\gamma}(0) \rangle,
 ```
 and in `momentum` space by
 ```math
@@ -225,3 +225,20 @@ package currently supports.
 ```math
 \mathcal{D}_{\mathbf{r}}^{n_\alpha, n_\gamma}(\tau) = \frac{1}{N} \sum_\mathbf{i} \langle \hat{X}_{n_\alpha,\mathbf{i}+\mathbf{r}}(\tau) \hat{X}_{n_\gamma,\mathbf{i}}(0) \rangle.
 ```
+
+### Composite Correlation Measurements
+
+Lastly, with the [`initialize_composite_correlation_measurement!`](@ref) it is possible to make user named composite correlation measurements, defined
+by a linear combination of one of the above correlation measuremesnts of the form
+```math
+\hat{O}_\mathbf{i} = \sum_\nu c_\nu \hat{O}_{\mathbf{i},\nu},
+```
+where ``c_\nu`` are user-specified (complex or real) coefficients.
+Note that all cross-terms are automatically expanded out when making the composite correlation measurement, by which we mean that
+```math
+\langle \hat{O}^{\dagger}_{\mathbf{i}+\mathbf{r}}(\tau) \hat{O}^{\phantom\dagger}_{\mathbf{i}}(0)  \rangle
+= \sum_{\nu',\nu} c_{\nu'}^{*} c_\nu^{\phantom *} \langle \hat{O}^{\dagger}_{\mathbf{i}+\mathbf{r},\nu'}(\tau) \hat{O}^{\phantom\dagger}_{\mathbf{i},\nu}(0)  \rangle
+```
+is measured.
+Note that the ID pair ``(\mathtt{*\_ID\_2}, \mathtt{*\_ID\_1})`` columns are omitted from the composite correlation CSV stat files generated
+at the end of a simulation.

@@ -73,7 +73,7 @@ bib = CitationBibliography(
 
 DocMeta.setdocmeta!(SmoQyDQMC, :DocTestSetup, :(using SmoQyDQMC); recursive=true)
 
-tutorials = ["hubbard_chain",]
+tutorials = ["hubbard_square",]
 tutorials_sources = [joinpath(pkgdir(SmoQyDQMC, "tutorials"), tutorial*".jl") for tutorial in tutorials]
 tutorial_mds = build_examples(tutorials_sources, "tutorials")
 

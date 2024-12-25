@@ -1,23 +1,28 @@
 ```@meta
-EditURL = "../../../tutorials/hubbard_chain.jl"
+EditURL = "../../../tutorials/hubbard_square.jl"
 ```
 
-Download this example as a [Julia script](../assets/scripts/tutorials/hubbard_chain.jl).
+Download this example as a [Julia script](../assets/scripts/tutorials/hubbard_square.jl).
 
-# Tutorial 1: Hubbard Chain
+# Square Hubbard Model
 
-In this example we will work through simulating the repulsive Hubbard model on a 1D chain.
-The Hubbard Hamiltonian for a 1D chain is given by
+In this example we will work through simulating the repulsive Hubbard model on a square lattice.
+The Hubbard Hamiltonian for a square lattice given by
 ```math
-\hat{H} = -t \sum_{\sigma,i} (\hat{c}^{\dagger}_{\sigma,i+1}, \hat{c}^{\phantom \dagger}_{\sigma,i} + {\rm h.c.})
-+ U \sum_i (\hat{n}_{\uparrow,i}-\tfrac{1}{2})(\hat{n}_{\downarrow,i}-\tfrac{1}{2})
-- \mu \sum_{\sigma,i} \hat{n}_{\sigma,i},
+\begin{align}
+\hat{H} = &
+-t \sum_{\langle i, j \rangle, \sigma} (\hat{c}^{\dagger}_{\sigma,i}, \hat{c}^{\phantom \dagger}_{\sigma,j} + {\rm h.c.})
+-t^{\prime} \sum_{\langle\langle i, j \rangle\rangle, \sigma} (\hat{c}^{\dagger}_{\sigma,i}, \hat{c}^{\phantom \dagger}_{\sigma,j} + {\rm h.c.}) \\
+& + U \sum_i (\hat{n}_{\uparrow,i}-\tfrac{1}{2})(\hat{n}_{\downarrow,i}-\tfrac{1}{2})
+- \mu \sum_{i,\sigma} \hat{n}_{\sigma,i},
+\end{align}
 ```
 where ``\hat{c}^\dagger_{\sigma,i} \ (\hat{c}^{\phantom \dagger}_{\sigma,i})`` creates (annihilates) a spin ``\sigma``
 electron on site ``i`` in the lattice, and ``\hat{n}_{\sigma,i} = \hat{c}^\dagger_{\sigma,i} \hat{c}^{\phantom \dagger}_{\sigma,i}``
-is the spin-``\sigma`` electron number operator for site ``i``. In the above Hamiltonian ``t`` is the nearest neighbor hopping integral
+is the spin-``\sigma`` electron number operator for site ``i``. In the above Hamiltonian ``(t^{\prime}) \ t`` is the (next-) nearest-neighbor hopping amplitude
 and ``U > 0`` controls the strength of the on-site Hubbard repulsion.
-Lastly, we note the system is half-filled and particle-hole symmetric when the chemical potential is zero ``(\mu = 0.0)``.
+Lastly, we note the system is half-filled and particle-hole symmetric when the next-nearest-neighbor hopping amplitude
+and the chemical potential is zero ``(t^{\prime} = \mu = 0.0),`` in which case there is no sign problem.
 
 ## Import packages
 Let us begin by importing [SmoQyDQMC.jl](https://github.com/SmoQySuite/SmoQyDQMC.jl.git), and its relevant submodules.
@@ -56,6 +61,7 @@ function run_simulation(;
     # KEYWORD ARGUMENTS
     sID, # Simulation ID.
     U, # Hubbard interaction.
+    t′, # Next-nearest-neighbor hopping amplitude.
     μ, # Chemical potential.
     L, # System size.
     β, # Inverse temperature.
@@ -82,7 +88,7 @@ Think of the `additional_info` dictionary as a place to record any additional in
 
 ````julia
 # Construct the foldername the data will be written to.
-datafolder_prefix = @sprintf "hubbard_chain_U%.2f_mu%.2f_L%d_b%.2f" U μ L β
+datafolder_prefix = @sprintf "hubbard_square_U%.2f_tp%.2f_mu%.2f_L%d_b%.2f" U t′ μ L β
 
 # Initialize simulation info.
 simulation_info = SimulationInfo(
@@ -104,7 +110,7 @@ additional_info = Dict()
 additional_info["N_therm"] = N_therm
 additional_info["N_updates"] = N_updates
 additional_info["N_bins"] = N_bins
-additional_info["n_stab"] = n_stab
+additional_info["n_stab_init"] = n_stab
 additional_info["dG_max"] = δG_max
 additional_info["symmetric"] = symmetric
 additional_info["checkerboard"] = checkerboard
@@ -130,8 +136,8 @@ First we define the lattice geometry for our model, relying on the
 [LatticeUtilities](https://github.com/SmoQySuite/LatticeUtilities.jl.git) package to do so.
 We define a the unit cell and size of our finite lattice using the [`UnitCell`](https://smoqysuite.github.io/LatticeUtilities.jl/stable/api/#LatticeUtilities.UnitCell)
 and [`Lattice`](https://smoqysuite.github.io/LatticeUtilities.jl/stable/api/#LatticeUtilities.Lattice) types, respectively.
-Lastly, we define an instance of the [`Bond`](https://smoqysuite.github.io/LatticeUtilities.jl/stable/api/#LatticeUtilities.Bond) type to represent the
-nearest-neighbor bond.
+Lastly, we define various instances of the [`Bond`](https://smoqysuite.github.io/LatticeUtilities.jl/stable/api/#LatticeUtilities.Bond) type to represent the
+the nearest-neighbor and next-nearest-neighbor bonds.
 All of this information regarding the lattice geometry is then stored in an instance of the [`ModelGeometry`](@ref) type.
 Further documentation, with usage examples, for [LatticeUtilities](https://github.com/SmoQySuite/LatticeUtilities.jl.git) package
 can be found [here](https://smoqysuite.github.io/LatticeUtilities.jl/stable/).
@@ -139,14 +145,15 @@ can be found [here](https://smoqysuite.github.io/LatticeUtilities.jl/stable/).
 ````julia
 # Define unit cell.
 unit_cell = lu.UnitCell(
-    lattice_vecs = [[1.0]],
-    basis_vecs = [[0.0]]
+    lattice_vecs = [[1.0, 0.0],
+                    [0.0, 1.0]],
+    basis_vecs = [[0.0, 0.0]]
 )
 
 # Define finite lattice with periodic boundary conditions.
 lattice = lu.Lattice(
-    L = [L],
-    periodic = [true]
+    L = [L, L],
+    periodic = [true, true]
 )
 
 # Initialize model geometry.
@@ -154,25 +161,82 @@ model_geometry = ModelGeometry(
     unit_cell, lattice
 )
 
-# Define the nearest-neighbor bond for a 1D chain.
-bond = lu.Bond(
+# Define the nearest-neighbor bond in +x direction.
+bond_px = lu.Bond(
     orbitals = (1,1),
-    displacement = [1]
+    displacement = [1, 0]
 )
 
 # Add this bond definition to the model, by adding it the model_geometry.
-bond_id = add_bond!(model_geometry, bond)
+bond_px_id = add_bond!(model_geometry, bond_px)
+
+# Define the nearest-neighbor bond in +y direction.
+bond_py = lu.Bond(
+    orbitals = (1,1),
+    displacement = [0, 1]
+)
+
+# Add this bond definition to the model, by adding it the model_geometry.
+bond_py_id = add_bond!(model_geometry, bond_py)
+
+# Define the next-nearest-neighbor bond in +x+y direction.
+bond_pxpy = lu.Bond(
+    orbitals = (1,1),
+    displacement = [1, 1]
+)
+
+# Define the nearest-neighbor bond in -x direction.
+# Will be used to make measurements later in this tutorial.
+bond_nx = lu.Bond(
+    orbitals = (1,1),
+    displacement = [-1, 0]
+)
+
+# Add this bond definition to the model, by adding it the model_geometry.
+bond_nx_id = add_bond!(model_geometry, bond_nx)
+
+# Define the nearest-neighbor bond in -y direction.
+# Will be used to make measurements later in this tutorial.
+bond_ny = lu.Bond(
+    orbitals = (1,1),
+    displacement = [0, -1]
+)
+
+# Add this bond definition to the model, by adding it the model_geometry.
+bond_ny_id = add_bond!(model_geometry, bond_ny)
+
+# Define the next-nearest-neighbor bond in +x+y direction.
+bond_pxpy = lu.Bond(
+    orbitals = (1,1),
+    displacement = [1, 1]
+)
+
+# Add this bond definition to the model, by adding it the model_geometry.
+bond_pxpy_id = add_bond!(model_geometry, bond_pxpy)
+
+# Define the next-nearest-neighbor bond in +x-y direction.
+bond_pxny = lu.Bond(
+    orbitals = (1,1),
+    displacement = [1, -1]
+)
+
+# Add this bond definition to the model, by adding it the model_geometry.
+bond_pxny_id = add_bond!(model_geometry, bond_pxny)
 ````
 
 Next we specify the non-interacting tight-binding term in our Hamiltonian with the [`TightBindingModel`](@ref) type.
 
 ````julia
+# Set neartest-neighbor hopping amplitude to unity,
+# setting the energy scale in the model.
+t = 1.0
+
 # Define the non-interacting tight-binding model.
 tight_binding_model = TightBindingModel(
     model_geometry = model_geometry,
-    t_bonds = [bond], # defines hopping
-    t_mean  = [1.], # defines corresponding mean hopping amplitude
-    t_std   = [0.], # defines corresponding standard deviation in hopping amplitude
+    t_bonds = [bond_px, bond_py, bond_pxpy, bond_pxny], # defines hopping
+    t_mean  = [t, t, t′, t′], # defines corresponding mean hopping amplitude
+    t_std   = [0., 0., 0., 0.], # defines corresponding standard deviation in hopping amplitude
     ϵ_mean  = [0.], # set mean on-site energy for each orbital in unit cell
     ϵ_std   = [0.], # set standard deviation of on-site energy or each orbital in unit cell
     μ       = μ # set chemical potential
@@ -250,10 +314,8 @@ containing the HS fields that will be sampled during the DQMC simulation.
 ## Initialize meuasurements
 Having initialized both our model and the corresponding model parameters,
 the next step is to initialize the various measurements we want to make during our DQMC simulation.
-This includes defining the various types of correlation measurements that will be made, which is done
-using the [`initialize_correlation_measurements!`](@ref) function. The [`initialize_measurement_directories`](@ref)
-function is also used to initialize the various subdirectories in the data folder that the measurements will be
-written to. Again, for more information refer to the [Simulation Output Overview](@ref) page.
+This includes defining the various types of correlation measurements that will be made, which is primarily done
+using the [`initialize_correlation_measurements!`](@ref) function.
 
 Here the arguments `β` and `Δτ` correspond to the inverse temperature and imaginary-time axis discretization constant,
 which were passed as arguments to the `run_simulation` function.
@@ -306,7 +368,45 @@ initialize_correlation_measurements!(
     integrated = true,
     pairs = [(1, 1)]
 )
+````
 
+We also want to define define what we term a composite correlation measurement to measure
+d-wave pairing tendencies in our Hubbard model. Specifically, we would like to measure the d-wave pair susceptibility
+```math
+\chi_d(\mathbf{q}) = \frac{1}{L^2} \int_0^\beta d\tau \sum_{\mathbf{r}, \mathbf{i}} e^{-\text{i}\mathbf{q}\cdot\mathbf{r}}
+\langle \hat{\Delta}^{\phantom\dagger}_{d,\mathbf{i}+\mathbf{r}}(\tau) \hat{\Delta}^{\dagger}_{d,\mathbf{i}}(0) \rangle
+```
+for all scattering momentum ``\mathbf{q}``, where
+```math
+\hat{\Delta}^{\dagger}_{d,\mathbf{i}}(\tau) = \frac{1}{2}\left[
+(
+   \hat{c}^\dagger_{\uparrow,\mathbf{i}+\mathbf{x}} + \hat{c}^\dagger_{\uparrow,\mathbf{i}-\mathbf{x}}
+ - \hat{c}^\dagger_{\uparrow,\mathbf{i}+\mathbf{y}} - \hat{c}^\dagger_{\uparrow,\mathbf{i}-\mathbf{y}}
+)
+\hat{c}^\dagger_{\downarrow,\mathbf{i}}
+\right]
+```
+is the d-wave pair creation operator. We do this using the [`initialize_composite_correlation_measurement!`](@ref) function.
+
+````julia
+# Initialize the d-wave pair susceptibility measurement.
+initialize_composite_correlation_measurement!(
+    measurement_container = measurement_container,
+    model_geometry = model_geometry,
+    name = "d-wave",
+    correlation = "pair",
+    ids = [bond_px_id, bond_nx_id, bond_py_id, bond_ny_id],
+    coefficients = [0.5, 0.5, -0.5, -0.5],
+    time_displaced = false,
+    integrated = true
+)
+````
+
+The [`initialize_measurement_directories`](@ref) can now be used used to initialize the various subdirectories
+in the data folder that the measurements will be written to.
+Again, for more information refer to the [Simulation Output Overview](@ref) page.
+
+````julia
 # Initialize the sub-directories to which the various measurements will be written.
 initialize_measurement_directories(simulation_info, measurement_container)
 ````
@@ -512,6 +612,19 @@ end
 
 # Normalize acceptance rate.
 avg_acceptance_rate /=  (N_therm + N_updates)
+additional_info["avg_acceptance_rate"] = avg_acceptance_rate
+````
+
+Record final stabilization period used at the end of the simulation.
+
+````julia
+additional_info["n_stab_final"] = fermion_greens_calculator_up.n_stab
+
+# Record largest numerical error.
+additional_info["dG"] = δG
+
+# Write simulation summary TOML file.
+save_simulation_info(simulation_info, additional_info)
 ````
 
 ## Process results
@@ -521,6 +634,15 @@ Inside this function the binned data gets further rebinned into `n_bins`,
 where `n_bins` is any positive integer satisfying the constraints `(N_bins ≥ n_bin)` and `(N_bins % n_bins == 0)`.
 Again, for more information on how to interpret the output refer the the [Simulation Output Overview](@ref) page.
 
+````julia
+# Set the number of bins used to calculate the error in measured observables.
+n_bins = N_bins
+
+# Process the simulation results, calculating final error bars for all measurements,
+# writing final statisitics to CSV files.
+process_measurements(simulation_info.datafolder, n_bins)
+````
+
 Lastly, it is worth mentioning that running many DQMC simulations will generate many seperate binary files, which can eventually exceed the file quota limit on the system.
 To help prevent this problem from arising, we can use the function [`compress_jld2_bins`](@ref)
 to merge all the seperate [JLD2](https://github.com/JuliaIO/JLD2.jl.git) binary files into a single compressed one.
@@ -529,13 +651,6 @@ Alternately, if storage space becomes an issue and you are certain that you no l
 Keep in mind though, once the binned binary data is deleted it cannot be recovered!
 
 ````julia
-# Set the number of bins used to calculate the error in measured observables.
-n_bins = N_bins
-
-# Process the simulation results, calculating final error bars for all measurements,
-# writing final statisitics to CSV files.
-process_measurements(simulation_info.datafolder, n_bins)
-
 # Merge binary files containing binned data into a single file.
 compress_jld2_bins(folder = simulation_info.datafolder)
 
@@ -556,23 +671,25 @@ if abspath(PROGRAM_FILE) == @__FILE__
     run_simulation(;
         sID       = parse(Int,     ARGS[1]),
         U         = parse(Float64, ARGS[2]),
-        μ         = parse(Float64, ARGS[3]),
-        L         = parse(Int,     ARGS[4]),
-        β         = parse(Float64, ARGS[5]),
-        N_therm   = parse(Int,     ARGS[6]),
-        N_updates = parse(Int,     ARGS[7]),
-        N_bins    = parse(Int,     ARGS[8])
+        t′        = parse(Float64, ARGS[3]),
+        μ         = parse(Float64, ARGS[4]),
+        L         = parse(Int,     ARGS[5]),
+        β         = parse(Float64, ARGS[6]),
+        N_therm   = parse(Int,     ARGS[7]),
+        N_updates = parse(Int,     ARGS[8]),
+        N_bins    = parse(Int,     ARGS[9])
     )
 end
 ````
 
 For instance, the command
 ```
-> julia hubbard_chain.jl 1 4.0 0.0 16 5.0 2500 10000 100
+> julia hubbard_square.jl 1 5.0 -0.25 -2.0 4 4.0 2500 10000 100
 ```
-runs a DQMC simulation of a ``L = 16`` site Hubbard chain at half-filling ``(\mu = 0),`` with interaction strength ``U = 4,``
-at inverse temperature ``\beta = 5``. In the DQMC simulation, ``2500`` sweeps through the
-lattice are be performed to thermalize the system. Then an additional ``10,000`` sweeps are performed,
-after each of which measurements are be made. During the simulation, bin-averaged measurements are
-written to file ``100`` times, with each bin of data containing the average of ``10,000/100 = 100`` sequential measurements.
+runs a DQMC simulation of a ``N = 4 \times 4`` doped square Hubbard model at inverse temperature ``\beta = 4.0``
+with interaction strength ``U = 5.0,`` chemical potential ``\mu = -2.0`` and next-nearest-neighbor hopping amplitude ``t^\prime = -0.25``.
+In the DQMC simulation, ``2500`` sweeps through the lattice are be performed to thermalize the system.
+Then an additional ``10,000`` sweeps are performed, after each of which measurements are be made.
+During the simulation, bin-averaged measurements are written to file ``100`` times,
+with each bin of data containing the average of ``10,000/100 = 100`` sequential measurements.
 
