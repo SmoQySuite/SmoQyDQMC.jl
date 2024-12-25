@@ -10,6 +10,7 @@ function run_simulation(;
     # KEYWORD ARGUMENTS
     sID, # Simulation ID.
     U, # Hubbard interaction.
+    t′, # Next-nearest-neighbor hopping amplitude.
     μ, # Chemical potential.
     L, # System size.
     β, # Inverse temperature.
@@ -26,7 +27,7 @@ function run_simulation(;
 )
 
 # Construct the foldername the data will be written to.
-datafolder_prefix = @sprintf "hubbard_chain_U%.2f_mu%.2f_L%d_b%.2f" U μ L β
+datafolder_prefix = @sprintf "hubbard_square_U%.2f_tp%.2f_mu%.2f_L%d_b%.2f" U t′ μ L β
 
 # Initialize simulation info.
 simulation_info = SimulationInfo(
@@ -48,7 +49,7 @@ additional_info = Dict()
 additional_info["N_therm"] = N_therm
 additional_info["N_updates"] = N_updates
 additional_info["N_bins"] = N_bins
-additional_info["n_stab"] = n_stab
+additional_info["n_stab_init"] = n_stab
 additional_info["dG_max"] = δG_max
 additional_info["symmetric"] = symmetric
 additional_info["checkerboard"] = checkerboard
@@ -56,14 +57,15 @@ additional_info["seed"] = seed
 
 # Define unit cell.
 unit_cell = lu.UnitCell(
-    lattice_vecs = [[1.0]],
-    basis_vecs = [[0.0]]
+    lattice_vecs = [[1.0, 0.0],
+                    [0.0, 1.0]],
+    basis_vecs = [[0.0, 0.0]]
 )
 
 # Define finite lattice with periodic boundary conditions.
 lattice = lu.Lattice(
-    L = [L],
-    periodic = [true]
+    L = [L, L],
+    periodic = [true, true]
 )
 
 # Initialize model geometry.
@@ -71,21 +73,78 @@ model_geometry = ModelGeometry(
     unit_cell, lattice
 )
 
-# Define the nearest-neighbor bond for a 1D chain.
-bond = lu.Bond(
+# Define the nearest-neighbor bond in +x direction.
+bond_px = lu.Bond(
     orbitals = (1,1),
-    displacement = [1]
+    displacement = [1, 0]
 )
 
 # Add this bond definition to the model, by adding it the model_geometry.
-bond_id = add_bond!(model_geometry, bond)
+bond_px_id = add_bond!(model_geometry, bond_px)
+
+# Define the nearest-neighbor bond in +y direction.
+bond_py = lu.Bond(
+    orbitals = (1,1),
+    displacement = [0, 1]
+)
+
+# Add this bond definition to the model, by adding it the model_geometry.
+bond_py_id = add_bond!(model_geometry, bond_py)
+
+# Define the next-nearest-neighbor bond in +x+y direction.
+bond_pxpy = lu.Bond(
+    orbitals = (1,1),
+    displacement = [1, 1]
+)
+
+# Define the nearest-neighbor bond in -x direction.
+# Will be used to make measurements later in this tutorial.
+bond_nx = lu.Bond(
+    orbitals = (1,1),
+    displacement = [-1, 0]
+)
+
+# Add this bond definition to the model, by adding it the model_geometry.
+bond_nx_id = add_bond!(model_geometry, bond_nx)
+
+# Define the nearest-neighbor bond in -y direction.
+# Will be used to make measurements later in this tutorial.
+bond_ny = lu.Bond(
+    orbitals = (1,1),
+    displacement = [0, -1]
+)
+
+# Add this bond definition to the model, by adding it the model_geometry.
+bond_ny_id = add_bond!(model_geometry, bond_ny)
+
+# Define the next-nearest-neighbor bond in +x+y direction.
+bond_pxpy = lu.Bond(
+    orbitals = (1,1),
+    displacement = [1, 1]
+)
+
+# Add this bond definition to the model, by adding it the model_geometry.
+bond_pxpy_id = add_bond!(model_geometry, bond_pxpy)
+
+# Define the next-nearest-neighbor bond in +x-y direction.
+bond_pxny = lu.Bond(
+    orbitals = (1,1),
+    displacement = [1, -1]
+)
+
+# Add this bond definition to the model, by adding it the model_geometry.
+bond_pxny_id = add_bond!(model_geometry, bond_pxny)
+
+# Set neartest-neighbor hopping amplitude to unity,
+# setting the energy scale in the model.
+t = 1.0
 
 # Define the non-interacting tight-binding model.
 tight_binding_model = TightBindingModel(
     model_geometry = model_geometry,
-    t_bonds = [bond], # defines hopping
-    t_mean  = [1.], # defines corresponding mean hopping amplitude
-    t_std   = [0.], # defines corresponding standard deviation in hopping amplitude
+    t_bonds = [bond_px, bond_py, bond_pxpy, bond_pxny], # defines hopping
+    t_mean  = [t, t, t′, t′], # defines corresponding mean hopping amplitude
+    t_std   = [0., 0., 0., 0.], # defines corresponding standard deviation in hopping amplitude
     ϵ_mean  = [0.], # set mean on-site energy for each orbital in unit cell
     ϵ_std   = [0.], # set standard deviation of on-site energy or each orbital in unit cell
     μ       = μ # set chemical potential
@@ -176,6 +235,18 @@ initialize_correlation_measurements!(
     time_displaced = false,
     integrated = true,
     pairs = [(1, 1)]
+)
+
+# Initialize the d-wave pair susceptibility measurement.
+initialize_composite_correlation_measurement!(
+    measurement_container = measurement_container,
+    model_geometry = model_geometry,
+    name = "d-wave",
+    correlation = "pair",
+    ids = [bond_px_id, bond_nx_id, bond_py_id, bond_ny_id],
+    coefficients = [0.5, 0.5, -0.5, -0.5],
+    time_displaced = false,
+    integrated = true
 )
 
 # Initialize the sub-directories to which the various measurements will be written.
@@ -299,6 +370,15 @@ end
 
 # Normalize acceptance rate.
 avg_acceptance_rate /=  (N_therm + N_updates)
+additional_info["avg_acceptance_rate"] = avg_acceptance_rate
+
+additional_info["n_stab_final"] = fermion_greens_calculator_up.n_stab
+
+# Record largest numerical error.
+additional_info["dG"] = δG
+
+# Write simulation summary TOML file.
+save_simulation_info(simulation_info, additional_info)
 
 # Set the number of bins used to calculate the error in measured observables.
 n_bins = N_bins
@@ -320,11 +400,12 @@ if abspath(PROGRAM_FILE) == @__FILE__
     run_simulation(;
         sID       = parse(Int,     ARGS[1]),
         U         = parse(Float64, ARGS[2]),
-        μ         = parse(Float64, ARGS[3]),
-        L         = parse(Int,     ARGS[4]),
-        β         = parse(Float64, ARGS[5]),
-        N_therm   = parse(Int,     ARGS[6]),
-        N_updates = parse(Int,     ARGS[7]),
-        N_bins    = parse(Int,     ARGS[8])
+        t′        = parse(Float64, ARGS[3]),
+        μ         = parse(Float64, ARGS[4]),
+        L         = parse(Int,     ARGS[5]),
+        β         = parse(Float64, ARGS[6]),
+        N_therm   = parse(Int,     ARGS[7]),
+        N_updates = parse(Int,     ARGS[8]),
+        N_bins    = parse(Int,     ARGS[9])
     )
 end
