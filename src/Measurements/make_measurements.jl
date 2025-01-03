@@ -867,7 +867,7 @@ function make_equaltime_measurements!(
 
             for i in eachindex(id_pairs)
                 # get the hopping IDs associated with current operators
-                id_pair = id_pairs[1]
+                id_pair = id_pairs[i]
                 hopping_id_0 = id_pair[1]
                 hopping_id_1 = id_pair[2]
                 # get the bond IDs associated with the hopping IDs
@@ -893,7 +893,7 @@ function make_equaltime_measurements!(
 
             for i in eachindex(id_pairs)
                 # get the hopping IDs associated with current operators
-                id_pair = id_pairs[1]
+                id_pair = id_pairs[i]
                 hopping_id_0 = id_pair[1]
                 hopping_id_1 = id_pair[2]
                 # get the bond IDs associated with the hopping IDs
@@ -920,7 +920,7 @@ function make_equaltime_measurements!(
 
             for i in eachindex(id_pairs)
                 # get the hopping IDs associated with current operators
-                id_pair = id_pairs[1]
+                id_pair = id_pairs[i]
                 hopping_id_0 = id_pair[1]
                 hopping_id_1 = id_pair[2]
                 # get the bond IDs associated with the hopping IDs
@@ -947,7 +947,7 @@ function make_equaltime_measurements!(
 
             for i in eachindex(id_pairs)
                 # get the hopping IDs associated with current operators
-                id_pair = id_pairs[1]
+                id_pair = id_pairs[i]
                 hopping_id_0 = id_pair[1]
                 hopping_id_1 = id_pair[2]
                 # get the bond IDs associated with the hopping IDs
@@ -974,7 +974,7 @@ function make_equaltime_measurements!(
 
             for i in eachindex(id_pairs)
                 # get the hopping IDs associated with current operators
-                id_pair = id_pairs[1]
+                id_pair = id_pairs[i]
                 hopping_id_0 = id_pair[1]
                 hopping_id_1 = id_pair[2]
                 # get the bond IDs associated with the hopping IDs
