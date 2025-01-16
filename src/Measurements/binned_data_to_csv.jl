@@ -223,9 +223,9 @@ function correlation_bins_to_csv(
 
     # correlation filename
     if pID == -1
-        filename = @sprintf "%s_%s_%s_pID-%d_bins.csv" correlation space type pID
-    else
         filename = @sprintf "%s_%s_%s_bins.csv" correlation space type
+    else
+        filename = @sprintf "%s_%s_%s_pID-%d_bins.csv" correlation space type pID
     end
 
     # get the number of processes that ran during simulation
