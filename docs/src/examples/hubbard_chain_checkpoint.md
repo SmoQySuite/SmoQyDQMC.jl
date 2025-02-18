@@ -2,7 +2,7 @@
 EditURL = "../../../examples/hubbard_chain_checkpoint.jl"
 ```
 
-Download this example as a [Julia script](../assets/scripts/hubbard_chain_checkpoint.jl).
+Download this example as a [Julia script](../assets/scripts/examples/hubbard_chain_checkpoint.jl).
 
 # Hubbard Chain with Checkpointing
 
@@ -26,7 +26,7 @@ are written with the same frequency as they are going to be once measurements st
 Below you will find the source code from the julia script linked at the top of this page,
 but with additional comments giving more detailed explanations for what certain parts of the code are doing.
 
-````@example hubbard_chain_checkpoint
+````julia
 using LinearAlgebra
 using Random
 using Printf

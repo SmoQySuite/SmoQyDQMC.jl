@@ -2,7 +2,7 @@
 EditURL = "../../../examples/bssh_chain.jl"
 ```
 
-Download this example as a [Julia script](../assets/scripts/bssh_chain.jl).
+Download this example as a [Julia script](../assets/scripts/examples/bssh_chain.jl).
 
 # Bond Su-Schrieffer-Heeger Chain
 
@@ -35,7 +35,7 @@ Bin averaged measurements are then written to file `N_bins = 20` during the simu
 Below you will find the source code from the julia script linked at the top of this page,
 but with additional comments giving more detailed explanations for what certain parts of the code are doing.
 
-````@example bssh_chain
+````julia
 using LinearAlgebra
 using Random
 using Printf
@@ -98,7 +98,7 @@ function run_bssh_chain_simulation(sID, Ω, α, μ, β, L, N_burnin, N_updates, 
     bin_size = div(N_updates, N_bins)
 
     # Number of fermionic time-steps in HMC update.
-    Nt = 2
+    Nt = 4
 
     # Fermionic time-step used in HMC update.
     Δt = π/(2*Ω)/Nt

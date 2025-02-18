@@ -2,7 +2,7 @@
 EditURL = "../../../examples/hubbard_chain.jl"
 ```
 
-Download this example as a [Julia script](../assets/scripts/hubbard_chain.jl).
+Download this example as a [Julia script](../assets/scripts/examples/hubbard_chain.jl).
 
 # Hubbard Chain
 
@@ -46,7 +46,7 @@ Below you will find a more heavily commented version
 of the [`example_scripts/hubbard_chain.jl`](https://github.com/SmoQySuite/SmoQyDQMC.jl/blob/main/example_scripts/hubbard_chain.jl)
 script that includes additional exposition on what each part of the code is doing.
 
-````@example hubbard_chain
+````julia
 # First we import the required packages, including all of the required SmoQyDQMC submodules.
 
 using LinearAlgebra

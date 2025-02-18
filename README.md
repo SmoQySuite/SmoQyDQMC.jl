@@ -58,23 +58,28 @@ the [Reexport.jl](https://github.com/simonster/Reexport.jl.git) package in order
 - [StableLinearAlgebra.jl](https://github.com/SmoQySuite/StableLinearAlgebra.jl.git): Implements optimized numerical stabilizaiton methods required by DQMC simulations.
 - [Checkerboard.jl](https://github.com/SmoQySuite/Checkerboard.jl.git): Implements and exports the checkerboard method for approximating exponentiated hopping matrices by a sparse matrix.
 - [JLD2.jl](https://github.com/JuliaIO/JLD2.jl.git): Package used to write data to binary files in an HDF5 compatible format. It is also recommended this package be used at the scripting level to implement checkpointing in a simulation.
-- [BinningAnalysis.jl](https://github.com/carstenbauer/BinningAnalysis.jl.git): Export method impelementing the jackknife algorithm for calculating error bars.
 
 ## Citation
 
 If you found this library to be useful in the course of academic work, please consider citing us:
 
 ```bibtex
-@misc{SmoQyDQMC,
-      title={SmoQyDQMC.jl: A flexible implementation of determinant quantum Monte Carlo for Hubbard and electron-phonon interactions}, 
-      author={Benjamin Cohen-Stead and Sohan Malkaruge Costa and James Neuhaus and Andy Tanjaroon Ly and Yutan Zhang and Richard Scalettar and Kipton Barros and Steven Johnston},
-      year={2023},
-      eprint={2311.09395},
-      archivePrefix={arXiv},
-      primaryClass={cond-mat.str-el},
-      url={https://arxiv.org/abs/2311.09395}
+@Article{SmoQyDQMC.jl,
+	title={{SmoQyDQMC.jl: A flexible implementation of determinant quantum Monte Carlo for Hubbard and electron-phonon interactions}},
+	author={Benjamin Cohen-Stead and Sohan Malkaruge Costa and James Neuhaus and Andy Tanjaroon Ly and Yutan Zhang and Richard Scalettar and Kipton Barros and Steven Johnston},
+	journal={SciPost Phys. Codebases},
+	pages={29},
+	year={2024},
+	publisher={SciPost},
+	doi={10.21468/SciPostPhysCodeb.29},
+	url={https://scipost.org/10.21468/SciPostPhysCodeb.29},
 }
 ```
+
+## Publications
+
+A list of some of the publications that report results generated using [SmoQyDQMC.jl](https://github.com/SmoQySuite/SmoQyDQMC.jl)
+can be found [here](https://smoqysuite.github.io/SmoQyDQMC.jl/stable/#Publication-List).
 
 ## Contact Us
 

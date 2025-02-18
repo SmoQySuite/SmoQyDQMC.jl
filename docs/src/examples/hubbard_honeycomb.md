@@ -2,7 +2,7 @@
 EditURL = "../../../examples/hubbard_honeycomb.jl"
 ```
 
-Download this example as a [Julia script](../assets/scripts/hubbard_honeycomb.jl).
+Download this example as a [Julia script](../assets/scripts/examples/hubbard_honeycomb.jl).
 
 # Honeycomb Hubbard model
 
@@ -29,7 +29,7 @@ a Hubbard interaction of ``U = 6.0``, at inverse temperature ``\beta = 4.0``.
 Below you will find the source code from the julia script linked at the top of this page,
 but with additional comments giving more detailed explanations for what certain parts of the code are doing.
 
-````@example hubbard_honeycomb
+````julia
 using LinearAlgebra
 using Random
 using Printf

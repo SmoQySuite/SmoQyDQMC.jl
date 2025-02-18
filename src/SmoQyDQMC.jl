@@ -9,6 +9,7 @@ using Printf
 using StaticArrays
 using OffsetArrays
 using JLD2
+using CodecZlib
 using FastLapackInterface
 using Reexport
 using PkgVersion
@@ -30,10 +31,6 @@ using StableLinearAlgebra
 
 # import methods from to overload
 import LinearAlgebra: mul!, lmul!, rmul!
-
-# importing routines for multiplying a dense matrix by a diagonal matrix that
-# is represented by a vector
-import StableLinearAlgebra: mul_D!, lmul_D!, rmul_D!, div_D!, ldiv_D!, rdiv_D!
 
 # get and set package version number as global constant
 const SMOQYDQMC_VERSION = PkgVersion.@Version 0
@@ -152,6 +149,10 @@ include("ElectronPhonon/hmc_update.jl")
 include("ElectronPhonon/HMCUpdater.jl")
 export HMCUpdater
 
+# implement exact fourier acceleration integration of
+# equation of motion
+include("ElectronPhonon/ExactFourierAccelerator.jl")
+
 # defines Exact Fourier Acceleration HMC update method
 include("ElectronPhonon/EFAHMCUpdater.jl")
 export EFAHMCUpdater
@@ -205,11 +206,15 @@ export CORRELATION_FUNCTIONS
 # Define CorrelationContainer struct to store correlation measurements in.
 include("Measurements/CorrelationContainer.jl")
 
+# Define CompositeCorrelationContainer struct to store composite correlation measurements
+include("Measurements/CompositeCorrelationContainer.jl")
+
 # initialize measurement container
 include("Measurements/initialize_measurements.jl")
 export initialize_measurement_container
 export initialize_measurements!
 export initialize_correlation_measurement!, initialize_correlation_measurements!
+export initialize_composite_correlation_measurement!
 export initialize_measurement_directories
 
 # make measurements
@@ -239,9 +244,17 @@ export process_measurements
 include("Measurements/process_composite_correlation.jl")
 export composite_correlation_stat
 
+# process results to calculate composite correlation ratio
+include("Measurements/process_correlation_ratio.jl")
+export compute_correlation_ratio, compute_composite_correlation_ratio
+
 # tools for converted binned data, that is saved as *.jld2 binary files, to single csv file
 include("Measurements/binned_data_to_csv.jl")
 export global_measurement_bins_to_csv, local_measurement_bins_to_csv, correlation_bins_to_csv
+
+# functions to compress & decompress JLD2 binary files
+include("Measurements/compress_decompress_bins.jl")
+export compress_jld2_bins, decompress_jld2_bins, delete_jld2_bins
 
 ############################
 ## PACKAGE INITIALIZATION ##

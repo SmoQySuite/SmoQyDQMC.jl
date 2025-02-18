@@ -13,7 +13,7 @@
     ) where {D}
 
     function composite_correlation_stat(
-        comm::MPI.COMM;
+        comm::MPI.Comm;
         # Keyword Arguments Below
         folder::String,
         correlations::Vector{String},
@@ -170,6 +170,8 @@ function _composite_correlation_stat(
 
     # iterate over correlation
     for i in eachindex(correlations)
+        # initialize binned value to zero
+        fill!(binned_correlations[i], 0.0)
         # load binned correlation
         if types[i] == "time-displaced"
             _load_binned_correlation!(binned_correlations[i], bin_intervals, dirs[i], ids[i], locs[i], Δls[i], pID)
@@ -195,15 +197,13 @@ function _load_binned_correlation!(
     id_pair::NTuple{2,Int},
     loc::NTuple{D,Int},
     Δl::Int,
-    pID::Int
+    pID::Int,
+    coef = one(Complex{T})
 ) where {D, T<:AbstractFloat}
 
     # find the specified id pair
     id_pairs = JLD2.load(joinpath(dir,@sprintf("bin-1_pID-%d.jld2", pID)), "id_pairs")
     pair = findfirst(i -> i == id_pair, id_pairs)
-
-    # initialize binned values to zero
-    fill!(binned_vals, 0)
 
     # number of bins
     num_bins = length(bin_intervals)
@@ -221,9 +221,9 @@ function _load_binned_correlation!(
             corr = OffsetArrays.Origin(0)(JLD2.load(file, "correlations")[pair])
             # record the relevant correlations
             if Δl < 0
-                binned_vals[bin] += corr[loc...]
+                binned_vals[bin] += coef * corr[loc...]
             else
-                binned_vals[bin] += corr[loc..., Δl]
+                binned_vals[bin] += coef * corr[loc..., Δl]
             end
         end
         # normalize binned data

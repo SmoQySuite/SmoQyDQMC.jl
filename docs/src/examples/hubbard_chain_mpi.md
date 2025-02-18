@@ -2,7 +2,7 @@
 EditURL = "../../../examples/hubbard_chain_mpi.jl"
 ```
 
-Download this example as a [Julia script](../assets/scripts/hubbard_chain_mpi.jl).
+Download this example as a [Julia script](../assets/scripts/examples/hubbard_chain_mpi.jl).
 
 # Hubbard Chain with MPI
 
@@ -22,7 +22,7 @@ For more information I recommend you refer to the
 Below you will find the source code from the julia script linked at the top of this page,
 but with additional comments giving more detailed explanations for what certain parts of the code are doing.
 
-````@example hubbard_chain_mpi
+````julia
 using LinearAlgebra
 using Random
 using Printf

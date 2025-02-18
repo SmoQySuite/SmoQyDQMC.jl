@@ -47,7 +47,7 @@ struct SSHParameters{T<:Number}
     # initial phonon to coupling
     init_phonon_to_coupling::Vector{Vector{Int}}
 
-    # initial phonon to coupling
+    # final phonon to coupling
     final_phonon_to_coupling::Vector{Vector{Int}}
 
     # map hopping in bare tight binding model to ssh coupling

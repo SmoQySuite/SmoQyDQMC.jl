@@ -2,7 +2,7 @@
 EditURL = "../../../examples/hubbard_threeband.jl"
 ```
 
-Download this example as a [Julia script](../assets/scripts/hubbard_threeband.jl).
+Download this example as a [Julia script](../assets/scripts/examples/hubbard_threeband.jl).
 
 # Three-Band Hubbard Model
 
@@ -48,7 +48,7 @@ followed by `N_udpates = 10000` sweeps, after each of which measurements are mad
 Below you will find the source code from the julia script linked at the top of this page,
 but with additional comments giving more detailed explanations for what certain parts of the code are doing.
 
-````@example hubbard_threeband
+````julia
 using LinearAlgebra
 using Random
 using Printf
