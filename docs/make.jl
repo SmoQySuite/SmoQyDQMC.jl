@@ -5,10 +5,20 @@ using Literate
 using LatticeUtilities
 using JDQMCFramework
 
+# Remove existing Documenter `build` directory
+build_path = joinpath(@__DIR__, "build")
+isdir(build_path) && rm(build_path; recursive=true)
+# Create `build/assets` directories
+scripts_path = joinpath(build_path, "assets", "scripts")
+example_scripts_path = joinpath(scripts_path, "examples")
+tutorial_scripts_path = joinpath(scripts_path, "tutorials")
+mkpath.([example_scripts_path, tutorial_scripts_path])
+
 # generates script and notebook versions of tutorials based on literate example
 function build_examples(example_sources, destdir)
     assetsdir = joinpath(fill("..", length(splitpath(destdir)))..., "assets")
 
+    script_type = destdir
     destpath = joinpath(@__DIR__, "src", destdir)
     isdir(destpath) && rm(destpath; recursive=true)
 
@@ -23,20 +33,28 @@ function build_examples(example_sources, destdir)
         # which is set up by `Documenter.deploydocs`.
         function preprocess(str)
             """
-            # Download this example as a [Julia script]($assetsdir/scripts/$name.jl).
+            # Download this example as a [Julia script]($assetsdir/scripts/$script_type/$name.jl).
 
             """ * str
         end
         # Write to `src/$destpath/$name.md`
-        Literate.markdown(source, destpath; preprocess, credit=false)
+        Literate.markdown(
+            source, destpath;
+            preprocess,
+            credit=false,
+            codefence = "````julia" => "````"
+        )
     end
 
-    # Create Jupyter notebooks and Julia script for each Literate example. These
-    # will be stored in the `assets/` directory of the hosted docs.
+    # Create Julia script for each Literate example.
+    # These will be stored in the `assets/` directory of the hosted docs.
     for source in example_sources
 
         # Build julia scripts
-        Literate.script(source, scripts_path; credit=false)
+        Literate.script(
+            source, joinpath(scripts_path, script_type);
+            credit=false
+        )
     end
 
     # Return paths `$destpath/$name.md` for each new Markdown file (relative to
@@ -47,13 +65,6 @@ function build_examples(example_sources, destdir)
     end
 end
 
-# Remove existing Documenter `build` directory
-build_path = joinpath(@__DIR__, "build")
-isdir(build_path) && rm(build_path; recursive=true)
-# Create `build/assets` directories
-scripts_path = joinpath(build_path, "assets", "scripts")
-mkpath.([scripts_path,])
-
 # initialize bibliography
 bib = CitationBibliography(
     joinpath(@__DIR__, "src", "references.bib");
@@ -61,6 +72,10 @@ bib = CitationBibliography(
 )
 
 DocMeta.setdocmeta!(SmoQyDQMC, :DocTestSetup, :(using SmoQyDQMC); recursive=true)
+
+tutorials = ["hubbard_square",]
+tutorials_sources = [joinpath(pkgdir(SmoQyDQMC, "tutorials"), tutorial*".jl") for tutorial in tutorials]
+tutorial_mds = build_examples(tutorials_sources, "tutorials")
 
 examples = ["hubbard_chain", "hubbard_chain_mpi", "hubbard_chain_checkpoint", "holstein_chain",
             "ossh_chain", "bssh_chain", "hubbard_holstein_square", "hubbard_threeband",
@@ -88,6 +103,7 @@ makedocs(;
         "Supported Hamiltonians" => "hamiltonian.md",
         "Simulation Output Overview" => "simulation_output.md",
         "API" => "api.md",
+        "Tutorials" => tutorial_mds,
         "Examples" => example_mds,
     ],
     draft = true

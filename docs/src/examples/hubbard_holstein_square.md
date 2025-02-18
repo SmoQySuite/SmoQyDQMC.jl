@@ -2,7 +2,7 @@
 EditURL = "../../../examples/hubbard_holstein_square.jl"
 ```
 
-Download this example as a [Julia script](../assets/scripts/hubbard_holstein_square.jl).
+Download this example as a [Julia script](../assets/scripts/examples/hubbard_holstein_square.jl).
 
 # Square Hubbard-Holstein Model
 
@@ -36,7 +36,7 @@ Below you will find the source code from the julia script linked at the top of t
 but with additional comments giving more detailed explanations for what certain parts of the code are doing.
 Additionally, this script demonstrates how to calculate the extended s-wave and d-wave pair susceptibilities.
 
-````@example hubbard_holstein_square
+````julia
 using LinearAlgebra
 using Random
 using Printf
@@ -93,7 +93,7 @@ function run_hubbard_holstein_square_simulation(sID, U, Ω, α, μ, β, L, N_bur
     bin_size = div(N_updates, N_bins)
 
     # Number of fermionic time-steps in HMC update.
-    Nt = 2
+    Nt = 4
 
     # Fermionic time-step used in HMC update.
     Δt = π/(2*Ω)/Nt

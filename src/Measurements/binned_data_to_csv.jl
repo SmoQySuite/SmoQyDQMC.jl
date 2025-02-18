@@ -223,9 +223,9 @@ function correlation_bins_to_csv(
 
     # correlation filename
     if pID == -1
-        filename = @sprintf "%s_%s_%s_pID-%d_bins.csv" correlation space type pID
-    else
         filename = @sprintf "%s_%s_%s_bins.csv" correlation space type
+    else
+        filename = @sprintf "%s_%s_%s_pID-%d_bins.csv" correlation space type pID
     end
 
     # get the number of processes that ran during simulation
@@ -367,7 +367,7 @@ function _write_correlations_to_csv(fout::IO, correlation_folder::String, global
 
             # write the specific correlation value to file
             val = correlation[c]
-            @printf(fout, "%d %d %d%.8f %.8f %.8f %.8f\n", bin, pID, index, real(val), imag(val), real(sgn), imag(sgn))
+            @printf(fout, "%d %d %d %.8f %.8f %.8f %.8f\n", bin, pID, index, real(val), imag(val), real(sgn), imag(sgn))
         end
     end
 

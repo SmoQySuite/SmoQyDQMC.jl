@@ -2,7 +2,7 @@
 EditURL = "../../../examples/holstein_kagome.jl"
 ```
 
-Download this example as a [Julia script](../assets/scripts/holstein_kagome.jl).
+Download this example as a [Julia script](../assets/scripts/examples/holstein_kagome.jl).
 
 # Kagome Holstein Model with Density Tuning
 
@@ -34,7 +34,7 @@ file `N_bins = 50` during the simulation.
 Below you will find the source code from the julia script linked at the top of this page,
 but with additional comments giving more detailed explanations for what certain parts of the code are doing.
 
-````@example holstein_kagome
+````julia
 using LinearAlgebra
 using Random
 using Printf
@@ -94,7 +94,7 @@ function run_holstein_chain_simulation(sID, Ω, α, n, μ, β, L, N_burnin, N_up
     # parameters associated with these HMC updates.
 
     # Number of fermionic time-steps in HMC update.
-    Nt = 2
+    Nt = 4
 
     # Fermionic time-step used in HMC update.
     Δt = π/(2*Ω)/Nt

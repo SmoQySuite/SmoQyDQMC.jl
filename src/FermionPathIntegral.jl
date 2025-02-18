@@ -1,9 +1,9 @@
 @doc raw"""
     FermionPathIntegral{T<:Number, E<:AbstractFloat}
 
-Represents a fermion path integral. In particular, contains the information to represent each
-diagonal on-site energy matrix ``V_l`` and hopping matrix ``K_l`` for each imaginary time
-slice``l \in [1, L_\tau],`` such that ``\tau = \Delta\tau \cdot l`` and ``\beta = \Delta\tau \cdot L_\tau.``
+A type to represent a fermion path integral. In particular, this type contains the information required to reconstruct
+the diagonal on-site energy matrices ``V_l`` and hopping matrices ``K_l`` for each imaginary time
+slice ``l \in [1, L_\tau],`` where ``\tau = \Delta\tau \cdot l`` and ``\beta = \Delta\tau \cdot L_\tau.``
 
 # Fields
 
@@ -12,8 +12,8 @@ slice``l \in [1, L_\tau],`` such that ``\tau = \Delta\tau \cdot l`` and ``\beta 
 - `Lτ::Int`: Length of the imaginary time axis.
 - `N::Int`: Number of orbitals in the lattice.
 - `neighbor_table::Matrix{Int}`: Neighbor table for each pair of orbitals in the lattice connected by a hopping.
-- `t::Matrix{T}`: Hopping amplitudes for imaginary time slice ``l`` is stored in `t[:,l]`.
-- `V::Matrix{T}`: Diagonal on-site energy matrix ``V_l`` for imaginary time slice ``l`` is stored in `V[:,l]`.
+- `t::Matrix{T}`: Hopping amplitudes for imaginary-time slice ``l`` are stored in `t[:,l]`.
+- `V::Matrix{T}`: The diagonal on-site energy matrices ``V_l`` for imaginary-time slice ``l`` are stored in `V[:,l]`.
 - `K::Matrix{T}`: Used to construct hopping matrix to cacluate exponentiated hopping matrix if checkerboard approximation is not being used.
 - `eigen_ws::HermitianEigenWs{T,Matrix{T},E}`: For calculating eigenvalues and eigenvectors of `K` while avoiding dynamic memory allocations.
 - `u::Vector{T}`: Temporary vector to avoid dynamic allocation when performing local updates.

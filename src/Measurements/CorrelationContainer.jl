@@ -4,9 +4,6 @@ struct CorrelationContainer{D, T<:AbstractFloat}
     # ID pairs to measure correlation function for
     id_pairs::Vector{NTuple{2,Int}}
 
-    # corresponding bond ID pairs
-    bond_id_pairs::Vector{NTuple{2,Int}}
-
     # correlation data for each pair of bond/orbital IDs getting measured
     correlations::Vector{Array{Complex{T}, D}}
 
@@ -18,7 +15,7 @@ end
 # in a D dimensional array.
 function CorrelationContainer(D::Int, T::DataType, time_displaced::Bool)
 
-    correlation_container = CorrelationContainer(NTuple{2,Int}[], NTuple{2,Int}[], Array{Complex{T},D}[], time_displaced)
+    correlation_container = CorrelationContainer(NTuple{2,Int}[], Array{Complex{T},D}[], time_displaced)
 
     return correlation_container
 end
@@ -28,9 +25,9 @@ function save(fn::String, correlation_container::CorrelationContainer{D,T}) wher
 
     jldsave(fn;
             id_pairs = correlation_container.id_pairs,
-            bond_id_pairs = correlation_container.bond_id_pairs,
             correlations = correlation_container.correlations,
-            time_displaced = correlation_container.time_displaced)
+            time_displaced = correlation_container.time_displaced
+    )
 
     return nothing
 end

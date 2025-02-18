@@ -2,7 +2,7 @@
 EditURL = "../../../examples/holstein_zeeman_square.jl"
 ```
 
-Download this example as a [Julia script](../assets/scripts/holstein_zeeman_square.jl).
+Download this example as a [Julia script](../assets/scripts/examples/holstein_zeeman_square.jl).
 
 # Square Holstein Model with Zeeman Splitting
 
@@ -40,7 +40,7 @@ Below you will find the source code from the julia script linked at the top of t
 but with additional comments giving more detailed explanations for what certain parts of the code are doing.
 Additionally, this script demonstrates how to calculate the extended s-wave and d-wave pair susceptibilities.
 
-````@example holstein_zeeman_square
+````julia
 using LinearAlgebra
 using Random
 using Printf
@@ -97,7 +97,7 @@ function run_holstein_zeeman_square_simulation(sID, Δϵ, Ω, α, μ, β, L, N_b
     bin_size = div(N_updates, N_bins)
 
     # Number of fermionic time-steps in HMC update.
-    Nt = 2
+    Nt = 4
 
     # Fermionic time-step used in HMC update.
     Δt = π/(2*Ω)/Nt
