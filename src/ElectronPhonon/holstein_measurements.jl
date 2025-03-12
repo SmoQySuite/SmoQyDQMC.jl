@@ -72,7 +72,7 @@ function measure_holstein_energy(
     # iterate over unit cells
     for u in eachindex(ctp)
         x_ul = x[ctp[u],Lτ]
-        i_ul = nt[2,1]
+        i_ul = nt[2,u]
         n_ul = 1 - real(G[i_ul, i_ul])
         ϵ_hol += (α2′[u]*x_ul^2 + α4′[u]*x_ul^4) * n_ul
         if shift
