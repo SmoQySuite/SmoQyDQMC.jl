@@ -530,46 +530,43 @@ function make_local_measurements!(
 
     # measure hopping energy
     if nhopping > 0
-        for n in 1:nhopping
-
-            # get the bond ID corresponding to the hopping
-            bond_id = bond_ids[n]
+        for hopping_id in 1:nhopping
 
             # measure bare hopping energy
-            hup = sgn * measure_bare_hopping_energy(tight_binding_parameters_up, Gup, bond_id)
-            hdn = sgn * measure_bare_hopping_energy(tight_binding_parameters_dn, Gdn, bond_id)
+            hup = sgn * measure_bare_hopping_energy(tight_binding_parameters_up, Gup, hopping_id)
+            hdn = sgn * measure_bare_hopping_energy(tight_binding_parameters_dn, Gdn, hopping_id)
             h = hup + hdn
             local_measurements["bare_hopping_energy_up"][n] += hup
             local_measurements["bare_hopping_energy_dn"][n] += hdn
             local_measurements["bare_hopping_energy"][n] += h
 
-            # measure hopping amplitude
-            hup = sgn * measure_hopping_energy(tight_binding_parameters_up, fermion_path_integral_up, Gup, bond_id)
-            hdn = sgn * measure_hopping_energy(tight_binding_parameters_dn, fermion_path_integral_up, Gdn, bond_id)
+            # measure hopping energy
+            hup = sgn * measure_hopping_energy(tight_binding_parameters_up, fermion_path_integral_up, Gup, hopping_id)
+            hdn = sgn * measure_hopping_energy(tight_binding_parameters_dn, fermion_path_integral_up, Gdn, hopping_id)
             h = hup + hdn
             local_measurements["hopping_energy_up"][n] += hup
             local_measurements["hopping_energy_dn"][n] += hdn
             local_measurements["hopping_energy"][n] += h
 
             # measure hopping amplitude
-            tup = sgn * measure_hopping_amplitude(tight_binding_parameters_up, fermion_path_integral_up, bond_id)
-            tdn = sgn * measure_hopping_amplitude(tight_binding_parameters_dn, fermion_path_integral_up, bond_id)
+            tup = sgn * measure_hopping_amplitude(tight_binding_parameters_up, fermion_path_integral_up, hopping_id)
+            tdn = sgn * measure_hopping_amplitude(tight_binding_parameters_dn, fermion_path_integral_up, hopping_id)
             tn = (tup + tup)/2
             local_measurements["hopping_amplitude_up"][n] += tup
             local_measurements["hopping_amplitude_dn"][n] += tdn
             local_measurements["hopping_amplitude"][n] += tn
 
             # measure hopping inversion
-            tup = sgn * measure_hopping_inversion(tight_binding_parameters_up, fermion_path_integral_up, bond_id)
-            tdn = sgn * measure_hopping_inversion(tight_binding_parameters_dn, fermion_path_integral_up, bond_id)
+            tup = sgn * measure_hopping_inversion(tight_binding_parameters_up, fermion_path_integral_up, hopping_id)
+            tdn = sgn * measure_hopping_inversion(tight_binding_parameters_dn, fermion_path_integral_up, hopping_id)
             tn = (tup + tup)/2
             local_measurements["hopping_inversion_up"][n] += tup
             local_measurements["hopping_inversion_dn"][n] += tdn
             local_measurements["hopping_inversion"][n] += tn
 
             # measure hopping inversion
-            tup = sgn * measure_hopping_inversion_avg(tight_binding_parameters_up, fermion_path_integral_up, bond_id)
-            tdn = sgn * measure_hopping_inversion_avg(tight_binding_parameters_dn, fermion_path_integral_up, bond_id)
+            tup = sgn * measure_hopping_inversion_avg(tight_binding_parameters_up, fermion_path_integral_up, hopping_id)
+            tdn = sgn * measure_hopping_inversion_avg(tight_binding_parameters_dn, fermion_path_integral_up, hopping_id)
             tn = (tup + tup)/2
             local_measurements["hopping_inversion_avg_up"][n] += tup
             local_measurements["hopping_inversion_avg_dn"][n] += tdn
