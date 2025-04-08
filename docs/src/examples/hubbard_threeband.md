@@ -480,7 +480,7 @@ function run_hubbard_threeband_simulation(sID, Ud, Up, tpd, tpp, ϵd, ϵp, μ, �
     process_measurements(simulation_info.datafolder, N_bins)
 
     # Measure the d-wave pair suspcetibility.
-    P_d, ΔP_d = composite_correlation_stats(
+    P_d, ΔP_d = composite_correlation_stat(
         folder = simulation_info.datafolder,
         correlation = "pair",
         space = "momentum",

@@ -1,15 +1,19 @@
 @doc raw"""
-    reflection_update!(Gup::Matrix{T}, logdetGup::E, sgndetGup::T,
-                       Gdn::Matrix{T}, logdetGdn::E, sgndetGdn::T,
-                       electron_phonon_parameters::ElectronPhononParameters{T,E};
-                       fermion_path_integral_up::FermionPathIntegral{T,E},
-                       fermion_path_integral_dn::FermionPathIntegral{T,E},
-                       fermion_greens_calculator_up::FermionGreensCalculator{T,E},
-                       fermion_greens_calculator_dn::FermionGreensCalculator{T,E},
-                       fermion_greens_calculator_up_alt::FermionGreensCalculator{T,E},
-                       fermion_greens_calculator_dn_alt::FermionGreensCalculator{T,E},
-                       Bup::Vector{P}, Bdn::Vector{P}, rng::AbstractRNG,
-                       phonon_types = nothing) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
+    reflection_update!(
+        # ARGUMENTS
+        Gup::Matrix{T}, logdetGup::E, sgndetGup::T,
+        Gdn::Matrix{T}, logdetGdn::E, sgndetGdn::T,
+        electron_phonon_parameters::ElectronPhononParameters{T,E};
+        # KEYWORD ARGUMENTS
+        fermion_path_integral_up::FermionPathIntegral{T,E},
+        fermion_path_integral_dn::FermionPathIntegral{T,E},
+        fermion_greens_calculator_up::FermionGreensCalculator{T,E},
+        fermion_greens_calculator_dn::FermionGreensCalculator{T,E},
+        fermion_greens_calculator_up_alt::FermionGreensCalculator{T,E},
+        fermion_greens_calculator_dn_alt::FermionGreensCalculator{T,E},
+        Bup::Vector{P}, Bdn::Vector{P}, rng::AbstractRNG,
+        phonon_types = nothing
+    ) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
 
 Randomly sample a phonon mode in the lattice, and propose an update that reflects all the phonon fields associated with that phonon mode ``x \rightarrow -x.``
 This function returns `(accepted, logdetGup, sgndetGup, logdetGdn, sgndetGdn)`.
@@ -37,17 +41,21 @@ This function returns `(accepted, logdetGup, sgndetGup, logdetGdn, sgndetGdn)`.
 - `rng::AbstractRNG`: Random number generator used in method instead of global random number generator, important for reproducibility.
 - `phonon_types = nothing`: Collection of phonon types in the unit cell to randomly sample a phonon mode from. If `nothing` then all phonon modes in the unit cell are considered.
 """
-function reflection_update!(Gup::Matrix{T}, logdetGup::E, sgndetGup::T,
-                            Gdn::Matrix{T}, logdetGdn::E, sgndetGdn::T,
-                            electron_phonon_parameters::ElectronPhononParameters{T,E};
-                            fermion_path_integral_up::FermionPathIntegral{T,E},
-                            fermion_path_integral_dn::FermionPathIntegral{T,E},
-                            fermion_greens_calculator_up::FermionGreensCalculator{T,E},
-                            fermion_greens_calculator_dn::FermionGreensCalculator{T,E},
-                            fermion_greens_calculator_up_alt::FermionGreensCalculator{T,E},
-                            fermion_greens_calculator_dn_alt::FermionGreensCalculator{T,E},
-                            Bup::Vector{P}, Bdn::Vector{P}, rng::AbstractRNG,
-                            phonon_types = nothing) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
+function reflection_update!(
+    # ARGUMENTS
+    Gup::Matrix{T}, logdetGup::E, sgndetGup::T,
+    Gdn::Matrix{T}, logdetGdn::E, sgndetGdn::T,
+    electron_phonon_parameters::ElectronPhononParameters{T,E};
+    # KEYWORD ARGUMENTS
+    fermion_path_integral_up::FermionPathIntegral{T,E},
+    fermion_path_integral_dn::FermionPathIntegral{T,E},
+    fermion_greens_calculator_up::FermionGreensCalculator{T,E},
+    fermion_greens_calculator_dn::FermionGreensCalculator{T,E},
+    fermion_greens_calculator_up_alt::FermionGreensCalculator{T,E},
+    fermion_greens_calculator_dn_alt::FermionGreensCalculator{T,E},
+    Bup::Vector{P}, Bdn::Vector{P}, rng::AbstractRNG,
+    phonon_types = nothing
+) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
 
     Gup′ = fermion_greens_calculator_up_alt.G′
     Gdn′ = fermion_greens_calculator_dn_alt.G′
@@ -110,12 +118,6 @@ function reflection_update!(Gup::Matrix{T}, logdetGup::E, sgndetGup::T,
     # reflection phonon fields for chosen mode
     @. x_i = -x_i
 
-    # calculate the final bosonic action
-    Sb′ = bosonic_action(electron_phonon_parameters)
-
-    # caclulate the change in the bosonic action
-    ΔSb = Sb′ - Sb
-
     # update the fermion path integrals to reflect new phonon field configuration
     if calculate_exp_V
         update!(fermion_path_integral_up, holstein_parameters_up, x, +1)
@@ -125,6 +127,12 @@ function reflection_update!(Gup::Matrix{T}, logdetGup::E, sgndetGup::T,
         update!(fermion_path_integral_up, ssh_parameters_up, x, +1)
         update!(fermion_path_integral_dn, ssh_parameters_dn, x, +1)
     end
+
+    # calculate the final bosonic action
+    Sb′ = bosonic_action(electron_phonon_parameters)
+
+    # caclulate the change in the bosonic action
+    ΔSb = Sb′ - Sb
 
     # update the spin up and spin down propagators to reflect current phonon configuration
     calculate_propagators!(Bup, fermion_path_integral_up, calculate_exp_K = calculate_exp_K, calculate_exp_V = calculate_exp_V)
@@ -137,7 +145,7 @@ function reflection_update!(Gup::Matrix{T}, logdetGup::E, sgndetGup::T,
     # calculate acceptance probability P = exp(-ΔS_b)⋅|det(Gup)/det(Gup′)|⋅|det(Gdn)/det(Gdn′)|
     #                                    = exp(-ΔS_b)⋅|det(Mup′)/det(Mup)|⋅|det(Mdn′)/det(Mdn)|
     if isfinite(logdetGup′) && isfinite(logdetGdn′)
-        P_i = exp(-ΔSb + logdetGup + logdetGdn - logdetGup′ - logdetGdn′)
+        P_i = min(1.0, exp(-ΔSb + logdetGup + logdetGdn - logdetGup′ - logdetGdn′))
     else
         P_i = 0.0
     end
@@ -184,13 +192,17 @@ function reflection_update!(Gup::Matrix{T}, logdetGup::E, sgndetGup::T,
 end
 
 @doc raw"""
-    reflection_update!(G::Matrix{T}, logdetG::E, sgndetG::T,
-                       electron_phonon_parameters::ElectronPhononParameters{T,E};
-                       fermion_path_integral::FermionPathIntegral{T,E},
-                       fermion_greens_calculator::FermionGreensCalculator{T,E},
-                       fermion_greens_calculator_alt::FermionGreensCalculator{T,E},
-                       B::Vector{P}, rng::AbstractRNG,
-                       phonon_types = nothing) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
+    reflection_update!(
+        # ARGUMENTS
+        G::Matrix{T}, logdetG::E, sgndetG::T,
+        electron_phonon_parameters::ElectronPhononParameters{T,E};
+        # KEYWORD ARGUMENTS
+        fermion_path_integral::FermionPathIntegral{T,E},
+        fermion_greens_calculator::FermionGreensCalculator{T,E},
+        fermion_greens_calculator_alt::FermionGreensCalculator{T,E},
+        B::Vector{P}, rng::AbstractRNG,
+        phonon_types = nothing
+    ) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
 
 Randomly sample a phonon mode in the lattice, and propose an update that reflects all the phonon fields associated with that phonon mode ``x \rightarrow -x.``
 This function returns `(accepted, logdetG, sgndetG)`.
@@ -209,15 +221,19 @@ This function returns `(accepted, logdetG, sgndetG)`.
 - `fermion_greens_calculator_alt::FermionGreensCalculator{T,E}`: Used to calculate matrix factorizations for proposed state.
 - `B::Vector{P}`: Propagators for each imaginary time slice.
 - `rng::AbstractRNG`: Random number generator used in method instead of global random number generator, important for reproducibility.
-- `phonon_types = nothing`: Collection of phonon types in the unit cell to randomly sample a phonon mode from. If `nothing` then all phonon modes in the unit cell are considered.
+- `phonon_types = nothing`: Collection of phonon types (specified my `PHONON_ID`) in the unit cell to randomly sample a phonon mode from. If `nothing` then all phonon modes in the unit cell are considered.
 """
-function reflection_update!(G::Matrix{T}, logdetG::E, sgndetG::T,
-                            electron_phonon_parameters::ElectronPhononParameters{T,E};
-                            fermion_path_integral::FermionPathIntegral{T,E},
-                            fermion_greens_calculator::FermionGreensCalculator{T,E},
-                            fermion_greens_calculator_alt::FermionGreensCalculator{T,E},
-                            B::Vector{P}, rng::AbstractRNG,
-                            phonon_types = nothing) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
+function reflection_update!(
+    # ARGUMENTS
+    G::Matrix{T}, logdetG::E, sgndetG::T,
+    electron_phonon_parameters::ElectronPhononParameters{T,E};
+    # KEYWORD ARGUMENTS
+    fermion_path_integral::FermionPathIntegral{T,E},
+    fermion_greens_calculator::FermionGreensCalculator{T,E},
+    fermion_greens_calculator_alt::FermionGreensCalculator{T,E},
+    B::Vector{P}, rng::AbstractRNG,
+    phonon_types = nothing
+) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
 
     G′ = fermion_greens_calculator_alt.G′
     phonon_parameters = electron_phonon_parameters.phonon_parameters::PhononParameters{E}
@@ -270,12 +286,6 @@ function reflection_update!(G::Matrix{T}, logdetG::E, sgndetG::T,
     # reflection phonon fields for chosen mode
     @. x_i = -x_i
 
-    # calculate the final bosonic action
-    Sb′ = bosonic_action(electron_phonon_parameters)
-
-    # caclulate the change in the bosonic action
-    ΔSb = Sb′ - Sb
-
     # update the fermion path integrals to reflect new phonon field configuration
     if calculate_exp_V
         update!(fermion_path_integral, holstein_parameters, x, +1)
@@ -283,6 +293,12 @@ function reflection_update!(G::Matrix{T}, logdetG::E, sgndetG::T,
     if calculate_exp_K
         update!(fermion_path_integral, ssh_parameters, x, +1)
     end
+
+    # calculate the final bosonic action
+    Sb′ = bosonic_action(electron_phonon_parameters)
+
+    # caclulate the change in the bosonic action
+    ΔSb = Sb′ - Sb
 
     # update the spin up and spin down propagators to reflect current phonon configuration
     calculate_propagators!(B, fermion_path_integral, calculate_exp_K = calculate_exp_K, calculate_exp_V = calculate_exp_V)
@@ -293,7 +309,7 @@ function reflection_update!(G::Matrix{T}, logdetG::E, sgndetG::T,
     # calculate acceptance probability P = exp(-ΔS_b)⋅|det(G)/det(G′)|²
     #                                    = exp(-ΔS_b)⋅|det(M′)/det(M)|²
     if isfinite(logdetG′)
-        P_i = exp(-ΔSb + 2*logdetG - 2*logdetG′)
+        P_i = min(1.0, exp(-ΔSb + 2*logdetG - 2*logdetG′))
     else
         P_i = 0.0
     end

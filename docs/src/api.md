@@ -151,7 +151,6 @@ swap_update!(::Matrix{T}, ::E, ::T, ::HubbardIsingHSParameters{E}) where {T<:Num
 - [`measure_phonon_position_moment`](@ref)
 - [`measure_holstein_energy`](@ref)
 - [`measure_ssh_energy`](@ref)
-- [`measure_ssh_sgn_switch`](@ref)
 - [`measure_dispersion_energy`](@ref)
 
 **Electron-Phonon Updates**
@@ -206,7 +205,6 @@ measure_phonon_potential_energy
 measure_phonon_position_moment
 measure_holstein_energy
 measure_ssh_energy
-measure_ssh_sgn_switch
 measure_dispersion_energy
 ```
 

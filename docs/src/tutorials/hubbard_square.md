@@ -24,7 +24,7 @@ and ``U > 0`` controls the strength of the on-site Hubbard repulsion.
 Lastly, we note the system is half-filled and particle-hole symmetric when the next-nearest-neighbor hopping amplitude
 and the chemical potential is zero ``(t^{\prime} = \mu = 0.0),`` in which case there is no sign problem.
 
-## Import packages
+## [Import packages](@id hubbard_square_import_packages)
 Let us begin by importing [SmoQyDQMC.jl](https://github.com/SmoQySuite/SmoQyDQMC.jl.git), and its relevant submodules.
 
 ````julia
@@ -78,7 +78,8 @@ function run_simulation(;
 )
 ````
 
-## Initialize simulation
+## [Initialize simulation](@id hubbard_square_initialize_simulation)
+
 In this first part of the script we name and initialize our simulation, creating the data folder our simulation results will be written to.
 This is done by initializing an instances of the [`SimulationInfo`](@ref) type, as well as an `additional_info` dictionary where we will store useful metadata about the simulation.
 Finally, the integer `seed` is used to initialize the random number generator `rng` that will be used to generate random numbers throughout the rest of the simulation.
@@ -129,8 +130,10 @@ Another useful resource in the documentation is the [Simulation Output Overview]
 data folder generated during a [SmoQyDQMC](https://github.com/SmoQySuite/SmoQyDQMC.jl.git) simulation.
 
 ## Initialize model
+
 The next step is define the model we wish to simulate.
-In this example the relevant model parameters are the Hubbard interaction strength ``U`` (`U`), chemical potential ``\mu`` (`μ`), and lattice size ``L`` (`L`).
+In this example the relevant model parameters are the Hubbard interaction strength ``U`` (`U`), chemical potential ``\mu`` (`μ`),
+next-nearest-neighbor hopping amplitude ``t^\prime`` (`t′`) and lattice size ``L`` (`L`).
 
 First we define the lattice geometry for our model, relying on the
 [LatticeUtilities](https://github.com/SmoQySuite/LatticeUtilities.jl.git) package to do so.
@@ -275,6 +278,7 @@ model_summary(
 ````
 
 ## Initialize model parameters
+
 The next step is to initialize our model parameters given the size of our finite lattice.
 To clarify, both the [`TightBindingModel`](@ref) and [`HubbardModel`](@ref) types are agnostic to the size of the lattice being simulated,
 defining the model in a translationally invariant way. As [SmoQyDQMC.jl](https://github.com/SmoQySuite/SmoQyDQMC.jl.git) supports
@@ -311,7 +315,8 @@ will be used to decouple the Hubbard interaction. Then the [`HubbardIsingHSParam
 transformation to the Hubbard interaction, with the `hubbard_stratonovich_params.s` array
 containing the HS fields that will be sampled during the DQMC simulation.
 
-## Initialize meuasurements
+## [Initialize meuasurements](@id hubbard_square_initialize_measurements)
+
 Having initialized both our model and the corresponding model parameters,
 the next step is to initialize the various measurements we want to make during our DQMC simulation.
 This includes defining the various types of correlation measurements that will be made, which is primarily done
@@ -411,7 +416,8 @@ Again, for more information refer to the [Simulation Output Overview](@ref) page
 initialize_measurement_directories(simulation_info, measurement_container)
 ````
 
-## Setup DQMC simulation
+## [Setup DQMC simulation](@id hubbard_square_setup_dqmc)
+
 This section of the code sets up the DQMC simulation by allocating the initializing the relevant types and arrays we will need in the simulation.
 
 This section of code is perhaps the most opaque and difficult to understand, and will be discussed in more detail once written.
@@ -431,7 +437,7 @@ initialize!(fermion_path_integral_up, fermion_path_integral_dn, hubbard_params)
 # Hubbard-Stratonovich field configuration.
 initialize!(fermion_path_integral_up, fermion_path_integral_dn, hubbard_stratonovich_params)
 
-# Initialize imaginary-time propagators for all imaginary-time slice for spin-up and spin-down electrons.
+# Initialize imaginary-time propagators for all imaginary-time slices for spin-up and spin-down electrons.
 Bup = initialize_propagators(fermion_path_integral_up, symmetric=symmetric, checkerboard=checkerboard)
 Bdn = initialize_propagators(fermion_path_integral_dn, symmetric=symmetric, checkerboard=checkerboard)
 
@@ -524,7 +530,7 @@ with `δG` is simply reporting the maximum observed numerical error during the s
 
 ````julia
 # Initialize average acceptance rate variable.
-avg_acceptance_rate = 0.0
+additional_info["avg_acceptance_rate"] = 0.0
 
 # Iterate over number of thermalization updates to perform.
 for n in 1:N_therm
@@ -542,11 +548,12 @@ for n in 1:N_therm
     )
 
     # Record acceptance rate for sweep.
-    avg_acceptance_rate += acceptance_rate
+    additional_info["avg_acceptance_rate"] += acceptance_rate
 end
 ````
 
-## Make measurements
+## [Make measurements](@id hubbard_square_make_measurements)
+
 In this next section of code we continue to sample the HS field with [`local_updates!`](@ref) function, but begin making measurements as well.
 Here, `N_updates` refers to the number of times [`local_updates!`](@ref) is called,
 as well as the number of times measurements are made using the [`make_measurements!`](@ref) function.
@@ -582,7 +589,7 @@ for bin in 1:N_bins
         )
 
         # Record acceptance rate.
-        avg_acceptance_rate += acceptance_rate
+        additional_info["avg_acceptance_rate"] += acceptance_rate
 
         # Make measurements.
         (logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = make_measurements!(
@@ -611,8 +618,7 @@ for bin in 1:N_bins
 end
 
 # Normalize acceptance rate.
-avg_acceptance_rate /=  (N_therm + N_updates)
-additional_info["avg_acceptance_rate"] = avg_acceptance_rate
+additional_info["avg_acceptance_rate"] /=  (N_therm + N_updates)
 ````
 
 Record final stabilization period used at the end of the simulation.
@@ -627,7 +633,8 @@ additional_info["dG"] = δG
 save_simulation_info(simulation_info, additional_info)
 ````
 
-## Process results
+## [Process results](@id hubbard_square_process_results)
+
 In this final section of code we process the binned data, calculating final estimates for the mean and error of all measured observables.
 The final statistics are written to CSV files using the function [`process_measurements`](@ref) function.
 Inside this function the binned data gets further rebinned into `n_bins`,
@@ -659,6 +666,7 @@ end # end of run_simulation function
 ````
 
 ## Execute script
+
 DQMC simulations are typically run from the command line as jobs on a computing cluster.
 With this in mind, the following block of code only executes if the Julia script is run from the command line,
 also reading in additional command line arguments.
@@ -689,7 +697,7 @@ For instance, the command
 runs a DQMC simulation of a ``N = 4 \times 4`` doped square Hubbard model at inverse temperature ``\beta = 4.0``
 with interaction strength ``U = 5.0,`` chemical potential ``\mu = -2.0`` and next-nearest-neighbor hopping amplitude ``t^\prime = -0.25``.
 In the DQMC simulation, ``2500`` sweeps through the lattice are be performed to thermalize the system.
-Then an additional ``10,000`` sweeps are performed, after each of which measurements are be made.
+Then an additional ``10,000`` sweeps are performed, after each of which measurements are made.
 During the simulation, bin-averaged measurements are written to file ``100`` times,
 with each bin of data containing the average of ``10,000/100 = 100`` sequential measurements.
 
