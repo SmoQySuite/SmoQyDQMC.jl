@@ -168,7 +168,7 @@ model_summary(
 )
 
 # Initialize tight-binding parameters.
-tight_binding_params = TightBindingParameters(
+tight_binding_parameters = TightBindingParameters(
     tight_binding_model = tight_binding_model,
     model_geometry = model_geometry,
     rng = rng
@@ -253,8 +253,8 @@ initialize_composite_correlation_measurement!(
 initialize_measurement_directories(simulation_info, measurement_container)
 
 # Allocate FermionPathIntegral type for both the spin-up and spin-down electrons.
-fermion_path_integral_up = FermionPathIntegral(tight_binding_parameters = tight_binding_params, β = β, Δτ = Δτ)
-fermion_path_integral_dn = FermionPathIntegral(tight_binding_parameters = tight_binding_params, β = β, Δτ = Δτ)
+fermion_path_integral_up = FermionPathIntegral(tight_binding_parameters = tight_binding_parameters, β = β, Δτ = Δτ)
+fermion_path_integral_dn = FermionPathIntegral(tight_binding_parameters = tight_binding_parameters, β = β, Δτ = Δτ)
 
 # Initialize FermionPathIntegral type for both the spin-up and spin-down electrons to account for Hubbard interaction.
 initialize!(fermion_path_integral_up, fermion_path_integral_dn, hubbard_params)
@@ -263,7 +263,7 @@ initialize!(fermion_path_integral_up, fermion_path_integral_dn, hubbard_params)
 # Hubbard-Stratonovich field configuration.
 initialize!(fermion_path_integral_up, fermion_path_integral_dn, hubbard_stratonovich_params)
 
-# Initialize imaginary-time propagators for all imaginary-time slice for spin-up and spin-down electrons.
+# Initialize imaginary-time propagators for all imaginary-time slices for spin-up and spin-down electrons.
 Bup = initialize_propagators(fermion_path_integral_up, symmetric=symmetric, checkerboard=checkerboard)
 Bdn = initialize_propagators(fermion_path_integral_dn, symmetric=symmetric, checkerboard=checkerboard)
 
@@ -293,7 +293,7 @@ Gdn_0τ = similar(Gdn) # Gdn(0,τ)
 δθ = zero(sgndetGup)
 
 # Initialize average acceptance rate variable.
-avg_acceptance_rate = 0.0
+additional_info["avg_acceptance_rate"] = 0.0
 
 # Iterate over number of thermalization updates to perform.
 for n in 1:N_therm
@@ -311,7 +311,7 @@ for n in 1:N_therm
     )
 
     # Record acceptance rate for sweep.
-    avg_acceptance_rate += acceptance_rate
+    additional_info["avg_acceptance_rate"] += acceptance_rate
 end
 
 # Reset diagonostic parameters used to monitor numerical stability to zero.
@@ -340,7 +340,7 @@ for bin in 1:N_bins
         )
 
         # Record acceptance rate.
-        avg_acceptance_rate += acceptance_rate
+        additional_info["avg_acceptance_rate"] += acceptance_rate
 
         # Make measurements.
         (logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = make_measurements!(
@@ -352,7 +352,7 @@ for bin in 1:N_bins
             fermion_greens_calculator_up = fermion_greens_calculator_up,
             fermion_greens_calculator_dn = fermion_greens_calculator_dn,
             Bup = Bup, Bdn = Bdn, δG_max = δG_max, δG = δG, δθ = δθ,
-            model_geometry = model_geometry, tight_binding_parameters = tight_binding_params,
+            model_geometry = model_geometry, tight_binding_parameters = tight_binding_parameters,
             coupling_parameters = (hubbard_params, hubbard_stratonovich_params)
         )
     end
@@ -369,8 +369,7 @@ for bin in 1:N_bins
 end
 
 # Normalize acceptance rate.
-avg_acceptance_rate /=  (N_therm + N_updates)
-additional_info["avg_acceptance_rate"] = avg_acceptance_rate
+additional_info["avg_acceptance_rate"] /=  (N_therm + N_updates)
 
 additional_info["n_stab_final"] = fermion_greens_calculator_up.n_stab
 
