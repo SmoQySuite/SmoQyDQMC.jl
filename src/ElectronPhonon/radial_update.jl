@@ -1,5 +1,5 @@
 @doc raw"""
-    swap_update!(
+    radial_update!(
         # ARGUMENTS
         Gup::Matrix{T}, logdetGup::E, sgndetGup::T,
         Gdn::Matrix{T}, logdetGdn::E, sgndetGdn::T,
@@ -12,11 +12,15 @@
         fermion_greens_calculator_up_alt::FermionGreensCalculator{T,E},
         fermion_greens_calculator_dn_alt::FermionGreensCalculator{T,E},
         Bup::Vector{P}, Bdn::Vector{P}, rng::AbstractRNG,
-        phonon_type_pairs = nothing
+        phonon_id::Union{Int, Nothing} = nothing,
+        σ::E = 1.0
     ) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
 
-Randomly sample a pairs of phonon modes and exchange the phonon fields associated with the pair of phonon modes.
-This function returns `(accepted, logdetGup, sgndetGup, logdetGdn, sgndetGdn)`.
+Perform a radial update to the phonon fields, as described by Algorithm 1 in the paper
+[arXiv:2411.18218](https://arxiv.org/abs/2411.18218).
+Specifically, the proposed update to the phonon fields ``x`` is a rescaling such that
+``x \rightarrow e^{\gamma} x`` where ``\gamma \sim N(0, \sigma/\sqrt{d})`` and ``d`` is
+the number of phonon fields being updated.
 
 # Arguments
 
@@ -39,9 +43,10 @@ This function returns `(accepted, logdetGup, sgndetGup, logdetGdn, sgndetGdn)`.
 - `Bup::Vector{P}`: Spin-up propagators for each imaginary time slice.
 - `Bdn::Vector{P}`: Spin-down propagators for each imaginary time slice.
 - `rng::AbstractRNG`: Random number generator used in method instead of global random number generator, important for reproducibility.
-- `phonon_type_pairs = nothing`: Collection of phonon type pairs (specified by pairs of `PHONON_ID` values) in the unit cell to randomly sample a phonon modes from. If `nothing` then all phonon mode pairs in the unit cell are considered.
+- `phonon_id::Union{Int, Nothing} = nothing`: Apply radial update to phonon fields corresponding tp specified `PHONON_ID`. If `phonon_id = nothing`, then radial update is applied to all phonon fields.
+- `σ::E = 1.0`: Relative size of the radial update.
 """
-function swap_update!(
+function radial_update!(
     # ARGUMENTS
     Gup::Matrix{T}, logdetGup::E, sgndetGup::T,
     Gdn::Matrix{T}, logdetGdn::E, sgndetGdn::T,
@@ -54,7 +59,8 @@ function swap_update!(
     fermion_greens_calculator_up_alt::FermionGreensCalculator{T,E},
     fermion_greens_calculator_dn_alt::FermionGreensCalculator{T,E},
     Bup::Vector{P}, Bdn::Vector{P}, rng::AbstractRNG,
-    phonon_type_pairs = nothing
+    phonon_id::Union{Int, Nothing} = nothing,
+    σ::E = 1.0
 ) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
 
     Gup′ = fermion_greens_calculator_up_alt.G′
@@ -65,6 +71,7 @@ function swap_update!(
     ssh_parameters_up = electron_phonon_parameters.ssh_parameters_up::SSHParameters{T}
     ssh_parameters_dn = electron_phonon_parameters.ssh_parameters_dn::SSHParameters{T}
     x = electron_phonon_parameters.x
+    M = phonon_parameters.M
 
     # make sure stabilization frequencies match
     if fermion_greens_calculator_up.n_stab != fermion_greens_calculator_up_alt.n_stab
@@ -76,9 +83,6 @@ function swap_update!(
         resize!(fermion_greens_calculator_dn_alt, fermion_greens_calculator_dn.n_stab)
     end
 
-    # get the mass associated with each phonon
-    M = phonon_parameters.M
-
     # get the number of phonon modes per unit cell
     nphonon = phonon_parameters.nphonon
 
@@ -88,31 +92,40 @@ function swap_update!(
     # number of unit cells
     Nunitcells = Nphonon ÷ nphonon
 
-    # sample random phonon mode
-    phonon_mode_i, phonon_mode_j = _sample_phonon_mode_pair(rng, nphonon, Nunitcells, M, phonon_type_pairs)
-
     # whether the exponentiated on-site energy matrix needs to be updated with the phonon field,
     # true if phonon mode appears in holstein coupling
-    calculate_exp_V = ((phonon_mode_i in holstein_parameters_up.coupling_to_phonon) ||
-                       (phonon_mode_j in holstein_parameters_up.coupling_to_phonon) ||
-                       (phonon_mode_i in holstein_parameters_dn.coupling_to_phonon) ||
-                       (phonon_mode_j in holstein_parameters_dn.coupling_to_phonon))
+    calculate_exp_V = ((holstein_parameters_up.nholstein > 0) ||
+                       (holstein_parameters_dn.nholstein > 0))
 
     # whether the exponentiated hopping matrix needs to be updated with the phonon field,
     # true if phonon mode appears in SSH coupling
-    calculate_exp_K = ((phonon_mode_i in ssh_parameters_up.coupling_to_phonon) ||
-                       (phonon_mode_j in ssh_parameters_up.coupling_to_phonon) ||
-                       (phonon_mode_i in ssh_parameters_dn.coupling_to_phonon) ||
-                       (phonon_mode_j in ssh_parameters_dn.coupling_to_phonon))
+    calculate_exp_K = ((ssh_parameters_up.nssh > 0) ||
+                       (ssh_parameters_dn.nssh > 0))
 
-    # get the corresponding phonon fields
-    x_i = @view x[phonon_mode_i, :]
-    x_j = @view x[phonon_mode_j, :]
+    # get phonon fields and mass for specified phonon mode if necessary
+    if !isnothing(phonon_id)
+        M′ = @view M[(phonon_id-1)*Nunitcells+1:phonon_id*Nunitcells]
+        x′ = @view x[(phonon_id-1)*Nunitcells+1:phonon_id*Nunitcells, :]
+    else
+        M′ = M
+        x′ = x
+    end
 
-    # calculate the initial bosonic action
+    # number of fields to update, excluding phonon fields that correspond
+    # to phonon modes with infinite mass
+    d = count(m -> isfinite(m), M′)
+
+    # calculate standard deviation for normal distribution
+    σR = σR / sqrt(d)
+
+    # randomly sample expansion/contraction coefficient
+    γ = randn(rng) * σR
+    expγ = exp(γ)
+
+    # calculate initial bosonic action
     Sb = bosonic_action(electron_phonon_parameters)
 
-    # calculate the initial fermionc action
+    # calculate initial fermionic action
     Sf = logdetGup + logdetGdn
 
     # calculate initial total action
@@ -128,8 +141,8 @@ function swap_update!(
         update!(fermion_path_integral_dn, ssh_parameters_dn, x, -1)
     end
 
-    # swap phonon fields
-    swap!(x_i, x_j)
+    # apply expansion/contraction to phonon fields
+    @. x′ = expγ * x′
 
     # update the fermion path integrals to reflect new phonon field configuration
     if calculate_exp_V
@@ -140,7 +153,6 @@ function swap_update!(
         update!(fermion_path_integral_up, ssh_parameters_up, x, +1)
         update!(fermion_path_integral_dn, ssh_parameters_dn, x, +1)
     end
-
 
     # update the spin up and spin down propagators to reflect current phonon configuration
     calculate_propagators!(Bup, fermion_path_integral_up, calculate_exp_K = calculate_exp_K, calculate_exp_V = calculate_exp_V)
@@ -157,32 +169,29 @@ function swap_update!(
         logdetGdn′, sgndetGdn′ = NaN, NaN
     end
 
-    # check the fermionic determinants are finite
+    # if finite fermionic determiantn
     if isfinite(logdetGup′) && isfinite(logdetGdn′)
 
         # calculate the final bosonic action
         Sb′ = bosonic_action(electron_phonon_parameters)
 
-        # calculate final fermionic action
+        # calculate final fermionci action
         Sf′ = logdetGup′ + logdetGdn′
 
-        # calculate final total action
+        # calculate final action
         S′ = Sb′ + Sf′
 
-        # calculate the change in the action
+        # calculate the change in action
         ΔS = S′ - S
 
-        # calculate acceptance probability
-        P_i = min(1.0, exp(-ΔS))
+        # calculate final acceptance rate
+        P_γ = min(1.0, exp(-ΔS + d*γ))
     else
-        P_i = 0.0
+        P_γ = 0.0
     end
 
-    # accept/reject outcome
-    accepted = rand(rng) < P_i
-
     # accept or reject the update
-    if accepted
+    if rand(rng) < P_γ
         logdetGup = logdetGup′
         logdetGdn = logdetGdn′
         sgndetGup = sgndetGup′
@@ -191,6 +200,7 @@ function swap_update!(
         copyto!(Gdn, Gdn′)
         copyto!(fermion_greens_calculator_up, fermion_greens_calculator_up_alt)
         copyto!(fermion_greens_calculator_dn, fermion_greens_calculator_dn_alt)
+        accepted = true
     else
         # substract off the effect of the current phonon configuration on the fermion path integrals
         if calculate_exp_V
@@ -202,7 +212,7 @@ function swap_update!(
             update!(fermion_path_integral_dn, ssh_parameters_dn, x, -1)
         end
         # revert to the original phonon configuration
-        swap!(x_i, x_j)
+        @. x′ = x′ / expγ
         # update the fermion path integrals to reflect new phonon field configuration
         if calculate_exp_V
             update!(fermion_path_integral_up, holstein_parameters_up, x, +1)
@@ -215,13 +225,15 @@ function swap_update!(
         # update the fermion path integrals to reflect the original phonon configuration
         calculate_propagators!(Bup, fermion_path_integral_up, calculate_exp_K = calculate_exp_K, calculate_exp_V = calculate_exp_V)
         calculate_propagators!(Bdn, fermion_path_integral_dn, calculate_exp_K = calculate_exp_K, calculate_exp_V = calculate_exp_V)
+        accepted = false
     end
 
     return (accepted, logdetGup, sgndetGup, logdetGdn, sgndetGdn)
 end
 
+
 @doc raw"""
-    swap_update!(
+    radial_update!(
         # ARGUMENTS
         G::Matrix{T}, logdetG::E, sgndetG::T,
         electron_phonon_parameters::ElectronPhononParameters{T,E};
@@ -230,11 +242,15 @@ end
         fermion_greens_calculator::FermionGreensCalculator{T,E},
         fermion_greens_calculator_alt::FermionGreensCalculator{T,E},
         B::Vector{P}, rng::AbstractRNG,
-        phonon_type_pairs = nothing
+        phonon_id::Union{Int, Nothing} = nothing,
+        σ::E = 1.0
     ) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
 
-Randomly sample a pairs of phonon modes and exchange the phonon fields associated with the pair of phonon modes.
-This function returns `(accepted, logdetG, sgndetG)`.
+Perform a radial update to the phonon fields, as described by Algorithm 1 in the paper
+[arXiv:2411.18218](https://arxiv.org/abs/2411.18218).
+Specifically, the proposed update to the phonon fields ``x`` is a rescaling such that
+``x \rightarrow e^{\gamma} x`` where ``\gamma \sim N(0, \sigma/\sqrt{d})`` and ``d`` is
+the number of phonon fields being updated.
 
 # Arguments
 
@@ -250,9 +266,10 @@ This function returns `(accepted, logdetG, sgndetG)`.
 - `fermion_greens_calculator_alt::FermionGreensCalculator{T,E}`: Used to calculate matrix factorizations for proposed state.
 - `B::Vector{P}`: Propagators for each imaginary time slice.
 - `rng::AbstractRNG`: Random number generator used in method instead of global random number generator, important for reproducibility.
-- `phonon_type_pairs = nothing`: Collection of phonon type pairs in the unit cell to randomly sample a phonon modes from. If `nothing` then all phonon mode pairs in the unit cell are considered.
+- `phonon_id::Union{Int, Nothing} = nothing`: Apply radial update to phonon fields corresponding tp specified `PHONON_ID`. If `phonon_id = nothing`, then radial update is applied to all phonon fields.
+- `σ::E = 1.0`: Relative size of the radial update.
 """
-function swap_update!(
+function radial_update!(
     # ARGUMENTS
     G::Matrix{T}, logdetG::E, sgndetG::T,
     electron_phonon_parameters::ElectronPhononParameters{T,E};
@@ -261,7 +278,8 @@ function swap_update!(
     fermion_greens_calculator::FermionGreensCalculator{T,E},
     fermion_greens_calculator_alt::FermionGreensCalculator{T,E},
     B::Vector{P}, rng::AbstractRNG,
-    phonon_type_pairs = nothing
+    phonon_id::Union{Int, Nothing} = nothing,
+    σ::E = 1.0
 ) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
 
     G′ = fermion_greens_calculator_alt.G′
@@ -269,14 +287,12 @@ function swap_update!(
     holstein_parameters = electron_phonon_parameters.holstein_parameters_up::HolsteinParameters{E}
     ssh_parameters = electron_phonon_parameters.ssh_parameters_up::SSHParameters{T}
     x = electron_phonon_parameters.x
+    M = phonon_parameters.M
 
     # make sure stabilization frequencies match
     if fermion_greens_calculator.n_stab != fermion_greens_calculator_alt.n_stab
         resize!(fermion_greens_calculator_alt, fermion_greens_calculator.n_stab)
     end
-
-    # get the mass associated with each phonon
-    M = phonon_parameters.M
 
     # get the number of phonon modes per unit cell
     nphonon = phonon_parameters.nphonon
@@ -287,25 +303,38 @@ function swap_update!(
     # number of unit cells
     Nunitcells = Nphonon ÷ nphonon
 
-    # sample random phonon mode
-    phonon_mode_i, phonon_mode_j = _sample_phonon_mode_pair(rng, nphonon, Nunitcells, M, phonon_type_pairs)
-
     # whether the exponentiated on-site energy matrix needs to be updated with the phonon field,
     # true if phonon mode appears in holstein coupling
-    calculate_exp_V = (phonon_mode_i in holstein_parameters.coupling_to_phonon) || (phonon_mode_j in holstein_parameters.coupling_to_phonon)
+    calculate_exp_V = (holstein_parameters.nholstein > 0)
 
     # whether the exponentiated hopping matrix needs to be updated with the phonon field,
     # true if phonon mode appears in SSH coupling
-    calculate_exp_K = (phonon_mode_i in ssh_parameters.coupling_to_phonon) || (phonon_mode_j in ssh_parameters.coupling_to_phonon)
+    calculate_exp_K = (ssh_parameters.nssh > 0)
 
-    # get the corresponding phonon fields
-    x_i = @view x[phonon_mode_i, :]
-    x_j = @view x[phonon_mode_j, :]
+    # get phonon fields and mass for specified phonon mode if necessary
+    if !isnothing(phonon_id)
+        M′ = @view M[(phonon_id-1)*Nunitcells+1:phonon_id*Nunitcells]
+        x′ = @view x[(phonon_id-1)*Nunitcells+1:phonon_id*Nunitcells, :]
+    else
+        M′ = M
+        x′ = x
+    end
 
-    # calculate the initial bosonic action
+    # number of fields to update, excluding phonon fields that correspond
+    # to phonon modes with infinite mass
+    d = count(m -> isfinite(m), M′)
+
+    # calculate standard deviation for normal distribution
+    σR = σ / sqrt(d)
+
+    # randomly sample expansion/contraction coefficient
+    γ = randn(rng) * σR
+    expγ = exp(γ)
+
+    # calculate initial bosonic action
     Sb = bosonic_action(electron_phonon_parameters)
 
-    # caculate initial fermionic action
+    # calculate initial fermionic action
     Sf = 2*logdetG
 
     # calculate initial total action
@@ -319,8 +348,8 @@ function swap_update!(
         update!(fermion_path_integral, ssh_parameters, x, -1)
     end
 
-    # reflection phonon fields for chosen mode
-    swap!(x_i, x_j)
+    # apply expansion/contraction to phonon fields
+    @. x′ = expγ * x′
 
     # update the fermion path integrals to reflect new phonon field configuration
     if calculate_exp_V
@@ -341,36 +370,34 @@ function swap_update!(
         logdetG′, sgndetG′ = NaN, NaN
     end
 
-    # check the fermionic determinant is finite
+    # if finite fermionic determiantn
     if isfinite(logdetG′)
 
         # calculate the final bosonic action
         Sb′ = bosonic_action(electron_phonon_parameters)
 
-        # calculate final fermionic action
+        # calculate final fermionci action
         Sf′ = 2*logdetG′
 
-        # calculate final total action
+        # calculate final action
         S′ = Sb′ + Sf′
 
-        # calculate the change in the action
+        # calculate the change in action
         ΔS = S′ - S
 
-        # calculate acceptance rate
-        P_i = min(1.0, exp(-ΔS))
+        # calculate final acceptance rate
+        P_γ = min(1.0, exp(-ΔS + d*γ))
     else
-        P_i = 0.0
+        P_γ = 0.0
     end
 
-    # accept/reject outcome
-    accepted = rand(rng) < P_i
-
     # accept or reject the update
-    if accepted
+    if rand(rng) < P_γ
         logdetG = logdetG′
         sgndetG = sgndetG′
         copyto!(G, G′)
         copyto!(fermion_greens_calculator, fermion_greens_calculator_alt)
+        accepted = true
     else
         # substract off the effect of the current phonon configuration on the fermion path integrals
         if calculate_exp_V
@@ -380,7 +407,7 @@ function swap_update!(
             update!(fermion_path_integral, ssh_parameters, x, -1)
         end
         # revert to the original phonon configuration
-        swap!(x_i, x_j)
+        @. x′ = x′ / expγ
         # update the fermion path integrals to reflect new phonon field configuration
         if calculate_exp_V
             update!(fermion_path_integral, holstein_parameters, x, +1)
@@ -390,63 +417,8 @@ function swap_update!(
         end
         # update the fermion path integrals to reflect the original phonon configuration
         calculate_propagators!(B, fermion_path_integral, calculate_exp_K = calculate_exp_K, calculate_exp_V = calculate_exp_V)
+        accepted = false
     end
 
     return (accepted, logdetG, sgndetG)
-end
-
-
-# sample a pair of random phonon modes
-function _sample_phonon_mode_pair(rng::AbstractRNG, nphonon::Int, Nunitcells::Int, masses::Vector{T}, phonon_type_pairs = nothing) where {T<:AbstractFloat}
-
-    # sample a pair of phonon types
-    if isnothing(phonon_type_pairs)
-        phonon_type_pair = ( rand(rng, 1:nphonon) , rand(rng, 1:nphonon) )
-    else
-        n = rand(rng, 1:length(phonon_type_pairs))
-        phonon_type_pair = phonon_type_pairs[n]
-    end
-    
-    return _sample_phonon_mode_pair(rng, nphonon, Nunitcells, masses, phonon_type_pair)
-end
-
-# sample a pair of random phonon modes
-function _sample_phonon_mode_pair(rng::AbstractRNG, nphonon::Int, Nunitcells::Int, masses::Vector{T}, phonon_type_pair::NTuple{2,Int}) where {T<:AbstractFloat}
-
-    # initialize phonon mode 1 to zero
-    phonon_mode_1 = 0
-    
-    # initialize phonon mode 1 mass to zero
-    mass = zero(T)
-
-    # sample phonon mode 1
-    while iszero(phonon_mode_1) || isinf(mass)
-
-        # sample unit cell 1
-        unit_cell_1 = rand(rng, 1:Nunitcells)
-
-        # sample phonon mode 1
-        phonon_mode_1 = (phonon_type_pair[1] - 1) * Nunitcells + unit_cell_1
-
-        # get mass of phonon mode 1
-        mass = masses[phonon_mode_1]
-    end
-
-    # initialize phonon mode 2 to phonon mode 1
-    phonon_mode_2 = phonon_mode_1
-
-    # sample phonon mode 2
-    while phonon_mode_1 == phonon_mode_2 || isinf(mass)
-
-        # sample unit cell 2
-        unit_cell_2 = rand(rng, 1:Nunitcells)
-
-        # sample phonon mode 2
-        phonon_mode_2 = (phonon_type_pair[2] - 1) * Nunitcells + unit_cell_2
-
-        # get mass of phonon mode 2
-        mass = masses[phonon_mode_2]
-    end
-
-    return (phonon_mode_1, phonon_mode_2)
 end
