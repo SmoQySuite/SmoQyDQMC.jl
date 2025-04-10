@@ -287,7 +287,7 @@ For instance, we need to initialize a seperate number to represent the on-site e
 
 ````julia
 # Initialize tight-binding parameters.
-tight_binding_params = TightBindingParameters(
+tight_binding_parameters = TightBindingParameters(
     tight_binding_model = tight_binding_model,
     model_geometry = model_geometry,
     rng = rng
@@ -427,8 +427,8 @@ This is true even if you want to modify this script to perform a DQMC simulation
 
 ````julia
 # Allocate FermionPathIntegral type for both the spin-up and spin-down electrons.
-fermion_path_integral_up = FermionPathIntegral(tight_binding_parameters = tight_binding_params, β = β, Δτ = Δτ)
-fermion_path_integral_dn = FermionPathIntegral(tight_binding_parameters = tight_binding_params, β = β, Δτ = Δτ)
+fermion_path_integral_up = FermionPathIntegral(tight_binding_parameters = tight_binding_parameters, β = β, Δτ = Δτ)
+fermion_path_integral_dn = FermionPathIntegral(tight_binding_parameters = tight_binding_parameters, β = β, Δτ = Δτ)
 
 # Initialize FermionPathIntegral type for both the spin-up and spin-down electrons to account for Hubbard interaction.
 initialize!(fermion_path_integral_up, fermion_path_integral_dn, hubbard_params)
@@ -601,7 +601,7 @@ for bin in 1:N_bins
             fermion_greens_calculator_up = fermion_greens_calculator_up,
             fermion_greens_calculator_dn = fermion_greens_calculator_dn,
             Bup = Bup, Bdn = Bdn, δG_max = δG_max, δG = δG, δθ = δθ,
-            model_geometry = model_geometry, tight_binding_parameters = tight_binding_params,
+            model_geometry = model_geometry, tight_binding_parameters = tight_binding_parameters,
             coupling_parameters = (hubbard_params, hubbard_stratonovich_params)
         )
     end

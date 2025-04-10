@@ -123,6 +123,7 @@ function run_holstein_chain_simulation(sID, Ω, α, n, μ, β, L, N_burnin, N_up
         "bin_size" => bin_size,
         "hmc_acceptance_rate" => 0.0,
         "reflection_acceptance_rate" => 0.0,
+        "radial_acceptance_rate" => 0.0,
         "n_stab_init" => n_stab,
         "symmetric" => symmetric,
         "checkerboard" => checkerboard,
@@ -368,6 +369,18 @@ function run_holstein_chain_simulation(sID, Ω, α, n, μ, β, L, N_burnin, N_up
         # Record whether the reflection update was accepted or rejected.
         additional_info["reflection_acceptance_rate"] += accepted
 
+        # Perform a radial update.
+        (accepted, logdetG, sgndetG) = radial_update!(
+            G, logdetG, sgndetG, electron_phonon_parameters,
+            fermion_path_integral = fermion_path_integral,
+            fermion_greens_calculator = fermion_greens_calculator,
+            fermion_greens_calculator_alt = fermion_greens_calculator_alt,
+            B = B, rng = rng
+        )
+
+        # Record whether the reflection update was accepted or rejected.
+        additional_info["radial_acceptance_rate"] += accepted
+
         # Perform an HMC update.
         (accepted, logdetG, sgndetG, δG, δθ) = hmc_update!(
             G, logdetG, sgndetG, electron_phonon_parameters, hmc_updater,
@@ -417,6 +430,18 @@ function run_holstein_chain_simulation(sID, Ω, α, n, μ, β, L, N_burnin, N_up
 
             # Record whether the reflection update was accepted or rejected.
             additional_info["reflection_acceptance_rate"] += accepted
+
+            # Perform a radial update.
+            (accepted, logdetG, sgndetG) = radial_update!(
+                G, logdetG, sgndetG, electron_phonon_parameters,
+                fermion_path_integral = fermion_path_integral,
+                fermion_greens_calculator = fermion_greens_calculator,
+                fermion_greens_calculator_alt = fermion_greens_calculator_alt,
+                B = B, rng = rng
+            )
+
+            # Record whether the reflection update was accepted or rejected.
+            additional_info["radial_acceptance_rate"] += accepted
 
             # Perform an HMC update.
             (accepted, logdetG, sgndetG, δG, δθ) = hmc_update!(
@@ -468,6 +493,9 @@ function run_holstein_chain_simulation(sID, Ω, α, n, μ, β, L, N_burnin, N_up
 
     # Calculate reflection update acceptance rate.
     additional_info["reflection_acceptance_rate"] /= (N_updates + N_burnin)
+
+    # Calculate radial update acceptance rate.
+    additional_info["radial_acceptance_rate"] /= (N_updates + N_burnin)
 
     # Record the final numerical stabilization period that the simulation settled on.
     additional_info["n_stab_final"] = fermion_greens_calculator.n_stab

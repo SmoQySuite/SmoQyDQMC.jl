@@ -389,7 +389,7 @@ For more information refer to [here](@ref hubbard_square_setup_dqmc).
 
 ````julia
 # Allocate a single FermionPathIntegral for both spin-up and down electrons.
-fermion_path_integral = FermionPathIntegral(tight_binding_parameters = tight_binding_params, β = β, Δτ = Δτ)
+fermion_path_integral = FermionPathIntegral(tight_binding_parameters = tight_binding_parameters, β = β, Δτ = Δτ)
 
 # Initialize FermionPathIntegral type to account for electron-phonon interaction.
 initialize!(fermion_path_integral, electron_phonon_parameters)
@@ -461,8 +461,8 @@ hmc_updater = EFAHMCUpdater(
 The next section of code performs updates to thermalize the system prior to beginning measurements.
 In addition to EFA-HMC updates that will be performed using the [`EFAHMCUpdater`](@ref) type initialized above and
 the [`hmc_update!`](@ref) function below, we will also perform reflection and swap updates using the
-[`reflection_update!`](@ref) and [`swap_update!`](@ref) functions respectively. We will additionally initialize variables
-to keep track of the acceptance rate for these three types of updates.
+[`reflection_update!`](@ref) and [`swap_update!`](@ref) functions respectively.
+We will additionally initialize variables to keep track of the acceptance rate for these three types of updates.
 
 ````julia
 # Initialize variables to record acceptance rates for various udpates.
@@ -519,8 +519,8 @@ structure of this part of the code, refer to [here](@ref hubbard_square_make_mea
 
 ````julia
 # Reset diagonostic parameters used to monitor numerical stability to zero.
-δG = zero(logdetGup)
-δθ = zero(sgndetGup)
+δG = zero(logdetG)
+δθ = zero(sgndetG)
 
 # Calculate the bin size.
 bin_size = N_updates ÷ N_bins
@@ -604,6 +604,9 @@ additional_info["hmc_acceptance_rate"] /= (N_updates + N_therm)
 additional_info["reflection_acceptance_rate"] /= (N_updates + N_therm)
 additional_info["swap_acceptance_rate"] /= (N_updates + N_therm)
 
+# Record largest numerical error encountered during simulation.
+additional_info["dG"] = δG
+
 # Write simulation metadata to simulation_info.toml file.
 save_simulation_info(simulation_info, additional_info)
 ````
@@ -617,7 +620,7 @@ For more information refer to [here](@ref hubbard_square_process_results).
 ````julia
 # Process the simulation results, calculating final error bars for all measurements,
 # writing final statisitics to CSV files.
-process_measurements(simulation_info.datafolder, n_bins)
+process_measurements(simulation_info.datafolder, N_bins)
 
 # Merge binary files containing binned data into a single file.
 compress_jld2_bins(folder = simulation_info.datafolder)
@@ -646,14 +649,14 @@ if abspath(PROGRAM_FILE) == @__FILE__
         β         = parse(Float64, ARGS[6]), # Inverse temperature.
         N_therm   = parse(Int,     ARGS[7]), # Number of thermalization updates.
         N_updates = parse(Int,     ARGS[8]), # Total number of measurements and measurement updates.
-        N_bins    = parse(Int,     ARGS[9]) # Number of times bin-averaged measurements are written to file.
+        N_bins    = parse(Int,     ARGS[9])  # Number of times bin-averaged measurements are written to file.
     )
 end
 ````
 
 For instance, the command
 ```
-> julia hubbard_square.jl 1 1.0 1.5 0.0 3 4.0 5000 10000 100
+> julia holstein_honeycomb.jl 1 1.0 1.5 0.0 3 4.0 5000 10000 100
 ```
 runs a DQMC simulation of a Holstein model on a ``3 \times 3`` unit cell (`N = 2 \times 3^2 = 18` site) honeycomb lattice
 at half-filling ``(\mu = 0)`` and inverse temperature ``\beta = 4.0``.

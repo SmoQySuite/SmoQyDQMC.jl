@@ -1,5 +1,5 @@
 # integration test that runs a DQMC simulation of a Hubbard Chain at half-filling
-@testitem "Hubbard Chain" begin
+@testitem "Hubbard Chain Example" begin
     
     include("../examples/hubbard_chain.jl")
     sID = 1

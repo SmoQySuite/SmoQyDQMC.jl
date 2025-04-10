@@ -326,7 +326,7 @@ initialize_correlation_measurements!(
 # It is then also useful to calculate the corresponding structure factor ``S_\text{cdw}(\mathbf{q},\tau)`` and susceptibility ``\chi_\text{cdw}(\mathbf{q}).``
 # This can all be easily calculated using the [`initialize_composite_correlation_measurement!`](@ref) function, as shown below.
 
-## Initialize the extended s-wave pair susceptibility measurement.
+## Initialize CDW correlation measurement.
 initialize_composite_correlation_measurement!(
     measurement_container = measurement_container,
     model_geometry = model_geometry,
@@ -425,8 +425,8 @@ hmc_updater = EFAHMCUpdater(
 # The next section of code performs updates to thermalize the system prior to beginning measurements.
 # In addition to EFA-HMC updates that will be performed using the [`EFAHMCUpdater`](@ref) type initialized above and
 # the [`hmc_update!`](@ref) function below, we will also perform reflection and swap updates using the
-# [`reflection_update!`](@ref) and [`swap_update!`](@ref) functions respectively. We will additionally initialize variables
-# to keep track of the acceptance rate for these three types of updates.
+# [`reflection_update!`](@ref) and [`swap_update!`](@ref) functions respectively.
+# We will additionally initialize variables to keep track of the acceptance rate for these three types of updates.
 
 ## Initialize variables to record acceptance rates for various udpates.
 additional_info["hmc_acceptance_rate"] = 0.0
@@ -604,7 +604,7 @@ if abspath(PROGRAM_FILE) == @__FILE__
         β         = parse(Float64, ARGS[6]), # Inverse temperature.
         N_therm   = parse(Int,     ARGS[7]), # Number of thermalization updates.
         N_updates = parse(Int,     ARGS[8]), # Total number of measurements and measurement updates.
-        N_bins    = parse(Int,     ARGS[9]) # Number of times bin-averaged measurements are written to file.
+        N_bins    = parse(Int,     ARGS[9])  # Number of times bin-averaged measurements are written to file.
     )
 end
 

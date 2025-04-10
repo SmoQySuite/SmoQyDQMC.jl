@@ -93,17 +93,25 @@ function reflection_update!(
 
     # whether the exponentiated on-site energy matrix needs to be updated with the phonon field,
     # true if phonon mode appears in holstein coupling
-    calculate_exp_V = (phonon_mode in holstein_parameters_up.coupling_to_phonon)
+    calculate_exp_V = ((phonon_mode in holstein_parameters_up.coupling_to_phonon) ||
+                       (phonon_mode in holstein_parameters_dn.coupling_to_phonon))
 
     # whether the exponentiated hopping matrix needs to be updated with the phonon field,
     # true if phonon mode appears in SSH coupling
-    calculate_exp_K = (phonon_mode in ssh_parameters_up.coupling_to_phonon)
+    calculate_exp_K = ((phonon_mode in ssh_parameters_up.coupling_to_phonon) ||
+                       (phonon_mode in ssh_parameters_dn.coupling_to_phonon))
 
     # get the corresponding phonon fields
     x_i = @view x[phonon_mode, :]
 
     # calculate the initial bosonic action
     Sb = bosonic_action(electron_phonon_parameters)
+
+    # calculate initial ferimonic action
+    Sf = logdetGup + logdetGdn
+
+    # calculate the total initial action
+    S = Sb + Sf
 
     # substract off the effect of the current phonon configuration on the fermion path integrals
     if calculate_exp_V
@@ -128,24 +136,38 @@ function reflection_update!(
         update!(fermion_path_integral_dn, ssh_parameters_dn, x, +1)
     end
 
-    # calculate the final bosonic action
-    Sb′ = bosonic_action(electron_phonon_parameters)
-
-    # caclulate the change in the bosonic action
-    ΔSb = Sb′ - Sb
-
     # update the spin up and spin down propagators to reflect current phonon configuration
     calculate_propagators!(Bup, fermion_path_integral_up, calculate_exp_K = calculate_exp_K, calculate_exp_V = calculate_exp_V)
     calculate_propagators!(Bdn, fermion_path_integral_dn, calculate_exp_K = calculate_exp_K, calculate_exp_V = calculate_exp_V)
 
     # update the Green's function to reflect the new phonon configuration
-    logdetGup′, sgndetGup′ = calculate_equaltime_greens!(Gup′, fermion_greens_calculator_up_alt, Bup)
-    logdetGdn′, sgndetGdn′ = calculate_equaltime_greens!(Gdn′, fermion_greens_calculator_dn_alt, Bdn)
+    logdetGup′, sgndetGup′ = logdetGup, sgndetGup
+    logdetGdn′, sgndetGdn′ = logdetGdn, sgndetGdn
+    try
+        logdetGup′, sgndetGup′ = calculate_equaltime_greens!(Gup′, fermion_greens_calculator_up_alt, Bup)
+        logdetGdn′, sgndetGdn′ = calculate_equaltime_greens!(Gdn′, fermion_greens_calculator_dn_alt, Bdn)
+    catch
+        logdetGup′, sgndetGup′ = NaN, NaN
+        logdetGdn′, sgndetGdn′ = NaN, NaN
+    end
 
-    # calculate acceptance probability P = exp(-ΔS_b)⋅|det(Gup)/det(Gup′)|⋅|det(Gdn)/det(Gdn′)|
-    #                                    = exp(-ΔS_b)⋅|det(Mup′)/det(Mup)|⋅|det(Mdn′)/det(Mdn)|
+    # check of fermion determinants are finite
     if isfinite(logdetGup′) && isfinite(logdetGdn′)
-        P_i = min(1.0, exp(-ΔSb + logdetGup + logdetGdn - logdetGup′ - logdetGdn′))
+
+        # calculate the final bosonic action
+        Sb′ = bosonic_action(electron_phonon_parameters)
+
+        # calculate final fermionic action
+        Sf′ = logdetGup′ + logdetGdn′
+
+        # calculate total final action
+        S′ = Sb′ + Sf′
+
+        # calculate final total action
+        ΔS = S′ - S
+
+        # calculate acceptance probability
+        P_i = min(1.0, exp(-ΔS))
     else
         P_i = 0.0
     end
@@ -275,6 +297,12 @@ function reflection_update!(
     # calculate the initial bosonic action
     Sb = bosonic_action(electron_phonon_parameters)
 
+    # calculate the initial fermionic action
+    Sf = 2*logdetG
+
+    # calculate the total initial action
+    S = Sb + Sf
+
     # substract off the effect of the current phonon configuration on the fermion path integrals
     if calculate_exp_V
         update!(fermion_path_integral, holstein_parameters, x, -1)
@@ -294,23 +322,36 @@ function reflection_update!(
         update!(fermion_path_integral, ssh_parameters, x, +1)
     end
 
-    # calculate the final bosonic action
-    Sb′ = bosonic_action(electron_phonon_parameters)
-
-    # caclulate the change in the bosonic action
-    ΔSb = Sb′ - Sb
-
     # update the spin up and spin down propagators to reflect current phonon configuration
     calculate_propagators!(B, fermion_path_integral, calculate_exp_K = calculate_exp_K, calculate_exp_V = calculate_exp_V)
 
     # update the Green's function to reflect the new phonon configuration
-    logdetG′, sgndetG′ = calculate_equaltime_greens!(G′, fermion_greens_calculator_alt, B)
-
-    # calculate acceptance probability P = exp(-ΔS_b)⋅|det(G)/det(G′)|²
-    #                                    = exp(-ΔS_b)⋅|det(M′)/det(M)|²
+    logdetG′, sgndetG′ = logdetG, sgndetG
+    try
+        logdetG′, sgndetG′ = calculate_equaltime_greens!(G′, fermion_greens_calculator_alt, B)
+    catch
+        logdetG′, sgndetG′ = NaN, NaN
+    end
+    
+    # check if fermion determinant is finite
     if isfinite(logdetG′)
-        P_i = min(1.0, exp(-ΔSb + 2*logdetG - 2*logdetG′))
+
+        # calculate the final bosonic action
+        Sb′ = bosonic_action(electron_phonon_parameters)
+
+        # calculate final fermionic action
+        Sf′ = 2*logdetG′
+
+        # calculate total final action
+        S′ = Sb′ + Sf′
+
+        # caclulate the change in action
+        ΔS = S′ - S
+
+        # calculate acceptance probability
+        P_i = min(1.0, exp(-ΔS))
     else
+
         P_i = 0.0
     end
 

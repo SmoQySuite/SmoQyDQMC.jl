@@ -161,6 +161,7 @@ swap_update!(::Matrix{T}, ::E, ::T, ::HubbardIsingHSParameters{E}) where {T<:Num
 - [`SmoQyDQMC.FourierMassMatrix`](@ref)
 - [`reflection_update!`](@ref)
 - [`swap_update!`](@ref)
+- [`radial_update!`](@ref)
 
 ### Electron-Phonon Model Types and Method
 
@@ -224,6 +225,8 @@ reflection_update!(::Matrix{T}, ::E, ::T, ::Matrix{T}, ::E, ::T, ::ElectronPhono
 reflection_update!(::Matrix{T}, ::E, ::T, ::ElectronPhononParameters{T,E}) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
 swap_update!(::Matrix{T}, ::E, ::T, ::Matrix{T}, ::E, ::T, ::ElectronPhononParameters{T,E}) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
 swap_update!(::Matrix{T}, ::E, ::T, ::ElectronPhononParameters{T,E}) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
+radial_update!(::Matrix{T}, ::E, ::T, ::Matrix{T}, ::E, ::T, ::ElectronPhononParameters{T,E}) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
+radial_update!(::Matrix{T}, ::E, ::T, ::ElectronPhononParameters{T,E}) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
 ```
 
 ## Density and Chemical Potential Tuning

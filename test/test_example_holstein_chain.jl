@@ -1,5 +1,5 @@
 # integration test that runs a DQMC simulation of a Hubbard Chain at half-filling
-@testitem "Holstein Chain" begin
+@testitem "Holstein Chain Example" begin
     
     include("../examples/holstein_chain.jl")
     sID = 1
