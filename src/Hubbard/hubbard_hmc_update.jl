@@ -12,7 +12,8 @@ function lmc_update!(
     Bup::Vector{P}, Bdn::Vector{P},
     δG_max::E, δG::E, δθ::E, rng::AbstractRNG,
     initialize_force::Bool = true,
-    δG_reject::E = 1e-2, hs_filter = I) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
+    δG_reject::E = 1e-2, hs_filter = I
+) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
 
     # randomly sample step size
     Δt′ = Δt * randexp(rng)
@@ -37,7 +38,8 @@ function lmc_update!(
     fermion_greens_calculator::FermionGreensCalculator{T,E},
     fermion_greens_calculator_alt::FermionGreensCalculator{T,E},
     B::Vector{P}, δG_max::E, δG::E, δθ::E, rng::AbstractRNG, initialize_force::Bool = true,
-    δG_reject::E = 1e-2, hs_filter = I) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
+    δG_reject::E = 1e-2, hs_filter = I
+) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
 
     # randomly sample step size
     Δt′ = Δt * randexp(rng)
@@ -66,7 +68,8 @@ function hmc_update!(
     Bup::Vector{P}, Bdn::Vector{P},
     δG_max::E, δG::E, δθ::E, rng::AbstractRNG,
     initialize_force::Bool = true,
-    δG_reject::E = 1e-2, hs_filter = I) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
+    δG_reject::E = 1e-2, hs_filter = I
+) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
 
     # sample the trajectory length from geometric distribution with mean given by Nt
     Nt′ = Nt > 1 ? floor(Int, log(rand())/log(1-1/Nt)) + 1 : 1
@@ -91,7 +94,8 @@ function hmc_update!(
     fermion_greens_calculator::FermionGreensCalculator{T,E},
     fermion_greens_calculator_alt::FermionGreensCalculator{T,E},
     B::Vector{P}, δG_max::E, δG::E, δθ::E, rng::AbstractRNG, initialize_force::Bool = true,
-    δG_reject::E = 1e-2, hs_filter = I) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
+    δG_reject::E = 1e-2, hs_filter = I
+) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
 
     # sample the trajectory length from geometric distribution with mean given by Nt
     Nt′ = Nt > 1 ? floor(Int, log(rand())/log(1-1/Nt)) + 1 : 1
@@ -121,7 +125,8 @@ function _hmc_update!(
     Bup::Vector{P}, Bdn::Vector{P},
     δG_max::E, δG::E, δθ::E, rng::AbstractRNG,
     initialize_force::Bool = true,
-    δG_reject::E = 1e-2, hs_filter = I) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
+    δG_reject::E = 1e-2, hs_filter = I
+) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
 
     (; s, s0, v, dSds, dSds0) = hubbard_hs_parameters
 
@@ -132,6 +137,7 @@ function _hmc_update!(
             dSds, hubbard_hs_parameters, Gup, logdetGup, sgndetGup, Gdn, logdetGdn, sgndetGdn,
             δG, δθ, fermion_greens_calculator_up, fermion_greens_calculator_dn, Bup, Bdn
         )
+        apply_filter!(dSds, hs_filter)
     end
 
     # initialize fermion green's function matrices and their determinants determinants
@@ -151,7 +157,7 @@ function _hmc_update!(
     copyto!(fermion_greens_calculator_up_alt, fermion_greens_calculator_up)
     copyto!(fermion_greens_calculator_dn_alt, fermion_greens_calculator_dn)
 
-    # record initial phonon configuration
+    # record initial HS configuration
     copyto!(s0, s)
 
     # record initial force
@@ -184,7 +190,7 @@ function _hmc_update!(
 
         # calculate v(t+Δt/2) = v(t) - Δt/2⋅∂S/∂s(t)
         @. v = v - Δt/2 * dSds
-        apply_filter!(v, hs_filter)
+        # apply_filter!(v, hs_filter)
 
         # subtract off the effect of the current HS configuration from the fermion path integrals
         update!(fermion_path_integral_up, hubbard_hs_parameters, +1, -1)
@@ -222,6 +228,7 @@ function _hmc_update!(
             dSds, hubbard_hs_parameters, Gup′, logdetGup′, sgndetGup′, Gdn′, logdetGdn′, sgndetGdn′,
             δG′, δθ, fermion_greens_calculator_up_alt, fermion_greens_calculator_dn_alt, Bup, Bdn
         )
+        apply_filter!(dSds, hs_filter)
 
         # if numerical error too large or nan occurs
         if (!isfinite(δG′)) || (!isfinite(logdetGup′)) || (!isfinite(logdetGdn′)) || (δG′ > δG_reject)
@@ -235,7 +242,7 @@ function _hmc_update!(
 
         # calculate v(t+Δt) = v(t+Δt/2) - Δt/2⋅∂S/∂s(t+Δt)
         @. v = v - Δt/2 * dSds
-        apply_filter!(v, hs_filter)
+        # apply_filter!(v, hs_filter)
     end
 
     # if numerically stable
@@ -324,7 +331,8 @@ function _hmc_update!(
     fermion_greens_calculator::FermionGreensCalculator{T,E},
     fermion_greens_calculator_alt::FermionGreensCalculator{T,E},
     B::Vector{P}, δG_max::E, δG::E, δθ::E, rng::AbstractRNG, initialize_force::Bool = true,
-    δG_reject::E = 1e-2, hs_filter = I) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
+    δG_reject::E = 1e-2, hs_filter = I
+) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
 
     (; s, s0, v, dSds, dSds0) = hubbard_hs_parameters
 
@@ -335,6 +343,7 @@ function _hmc_update!(
             dSds, hubbard_hs_parameters, G, logdetG, sgndetG,
             δG, δθ, fermion_greens_calculator, B
         )
+        apply_filter!(dSds, hs_filter)
     end
 
     # initialize fermion green's function matrices and their determinants determinants
@@ -382,7 +391,7 @@ function _hmc_update!(
 
         # calculate v(t+Δt/2) = v(t) - Δt/2⋅∂S/∂s(t)
         @. v = v - Δt/2 * dSds
-        apply_filter!(v, hs_filter)
+        # apply_filter!(v, hs_filter)
 
         # subtract off the effect of the current HS configuration from the fermion path integrals
         update!(fermion_path_integral, hubbard_hs_parameters, +1, -1)
@@ -417,6 +426,9 @@ function _hmc_update!(
             δG′, δθ, fermion_greens_calculator_alt, Bup
         )
 
+        # apply low pass filter to the action derivative
+        apply_filter!(dSds, hs_filter)
+
         # if numerical error too large or nan occurs
         if !isfinite(δG) || !isfinite(logdetG′)|| δG′ > δG_reject
 
@@ -429,7 +441,7 @@ function _hmc_update!(
 
         # calculate v(t+Δt) = v(t+Δt/2) - Δt/2⋅∂S/∂s(t+Δt)
         @. v = v - Δt/2 * dSds
-        apply_filter!(v, hs_filter)
+        # apply_filter!(v, hs_filter)
     end
 
     # if numerically stable

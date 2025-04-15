@@ -107,13 +107,8 @@ export LowPassFilter, apply_filter!
 include("Hubbard/hubbard_hmc_update.jl")
 export hmc_update!, lmc_update!
 
-# impelemnt reflection updates for HS fields
-include("Hubbard/hubbard_reflection_update.jl")
-export reflection_udpate!
-
-# implement swap update for HS fields
-include("Hubbard/hubbard_swap_update.jl")
-export swap_update!
+# implement radial update for continuous HS fields
+include("Hubbard/radial_update.jl")
 
 ###########################
 ## ELECTRON-PHONON MODEL ##

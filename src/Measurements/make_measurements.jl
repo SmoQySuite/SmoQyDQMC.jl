@@ -414,7 +414,6 @@ function make_global_measurements!(
     # measure the spin resolved sign
     global_measurements["sgndetGup"] += sgndetGup
     global_measurements["sgndetGdn"] += sgndetGdn
-    global_measurements["sgndetG"]   += (sgndetGup + sgndetGdn)/2
 
     # measure log|det(G)|
     global_measurements["logdetGup"] += logdetGup

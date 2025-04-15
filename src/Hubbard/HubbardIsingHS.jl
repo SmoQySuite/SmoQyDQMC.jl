@@ -1,5 +1,5 @@
 @doc raw"""
-    HubbardIsingHSParameters{T<:AbstractFloat, F<:Int} <: AbstractHubbardHS{F}
+    HubbardIsingHSParameters{T<:AbstractFloat}
 
 Parameters associated with decoupling the Hubbard interaction using the standard Ising
 Hubbard-Stratonovich (HS) transformation.
@@ -16,7 +16,7 @@ Hubbard-Stratonovich (HS) transformation.
 - `s::Matrix{Int}`: Ising Hubbard-Stratonovich fields.
 - `update_perm::Vector{Int}`: Order in which to iterate over HS fields in time slice when performing local updates.
 """
-struct HubbardIsingHSParameters{T<:AbstractFloat, F<:Int} <: AbstractHubbardHS{F}
+struct HubbardIsingHSParameters{T<:AbstractFloat}
 
     # inverse temperature
     β::T
@@ -40,7 +40,7 @@ struct HubbardIsingHSParameters{T<:AbstractFloat, F<:Int} <: AbstractHubbardHS{F
     sites::Vector{Int}
 
     # Ising Hubbard-Stratonovich fields
-    s::Matrix{F}
+    s::Matrix{Int}
 
     # order in which to iterate over orbitals when updating Hubbard-Stratonovich fields.
     update_perm::Vector{Int}
@@ -84,14 +84,14 @@ end
 @doc raw"""
     initialize!(fermion_path_integral_up::FermionPathIntegral{T,E},
                 fermion_path_integral_dn::FermionPathIntegral{T,E},
-                hubbard_ising_parameters::HubbardIsingHSParameters{E,F}) where {T,E,F}
+                hubbard_ising_parameters::HubbardIsingHSParameters{E}) where {T,E}
 
 Initialize the contribution from the Hubbard interaction to the [`FermionPathIntegral`](@ref)
 instance `fermion_path_integral_up` for spin up and `fermion_path_integral_dn` spin down.
 """
 function initialize!(fermion_path_integral_up::FermionPathIntegral{T,E},
                      fermion_path_integral_dn::FermionPathIntegral{T,E},
-                     hubbard_ising_parameters::HubbardIsingHSParameters{E,F}) where {T,E,F}
+                     hubbard_ising_parameters::HubbardIsingHSParameters{E}) where {T,E}
     
     (; α, U, Δτ, s, sites) = hubbard_ising_parameters
     Vup = fermion_path_integral_up.V
@@ -112,13 +112,13 @@ end
 
 @doc raw"""
     initialize!(fermion_path_integral::FermionPathIntegral{T,E},
-                hubbard_ising_parameters::HubbardIsingHSParameters{E,F}) where {T,E,F}
+                hubbard_ising_parameters::HubbardIsingHSParameters{E}) where {T,E}
 
 Initialize the contribution from an attractive Hubbard interaction to the [`FermionPathIntegral`](@ref)
 instance `fermion_path_integral`.
 """
 function initialize!(fermion_path_integral::FermionPathIntegral{T,E},
-                     hubbard_ising_parameters::HubbardIsingHSParameters{E,F}) where {T,E,F}
+                     hubbard_ising_parameters::HubbardIsingHSParameters{E}) where {T,E}
     
     (; α, U, Δτ, s, sites) = hubbard_ising_parameters
     V = fermion_path_integral.V
@@ -166,7 +166,7 @@ This method returns the a tuple containing `(acceptance_rate, logdetGup, sgndetG
 - `Gdn::Matrix{T}`: Spin-down equal-time Green's function matrix.
 - `logdetGdn::E`: The log of the absolute value of the determinant of the spin-down equal-time Green's function matrix, ``\log \vert \det G_\downarrow(\tau,\tau) \vert.``
 - `sgndetGdn::T`: The sign/phase of the determinant of the spin-down equal-time Green's function matrix, ``\det G_\downarrow(\tau,\tau) / \vert \det G_\downarrow(\tau,\tau) \vert.``
-- `hubbard_ising_parameters::HubbardIsingHSParameters{E,F}`: Ising Hubbard-Stratonovich fields and associated parameters to update.
+- `hubbard_ising_parameters::HubbardIsingHSParameters{E}`: Ising Hubbard-Stratonovich fields and associated parameters to update.
 
 ## Keyword Arguments
 
@@ -343,7 +343,7 @@ This method returns the a tuple containing `(acceptance_rate, logdetG, sgndetG, 
 - `G::Matrix{T}`: Equal-time Green's function matrix.
 - `logdetG::E`: The log of the absolute value of the determinant of theequal-time Green's function matrix, ``\log \vert \det G_\uparrow(\tau,\tau) \vert.``
 - `sgndetG::T`: The sign/phase of the determinant of the equal-time Green's function matrix, ``\det G_\uparrow(\tau,\tau) / \vert \det G_\uparrow(\tau,\tau) \vert.``
-- `hubbard_ising_parameters::HubbardIsingHSParameters{E,F}`: Ising Hubbard-Stratonovich fields and associated parameters to update.
+- `hubbard_ising_parameters::HubbardIsingHSParameters{E}`: Ising Hubbard-Stratonovich fields and associated parameters to update.
 
 ## Keyword Arguments
 

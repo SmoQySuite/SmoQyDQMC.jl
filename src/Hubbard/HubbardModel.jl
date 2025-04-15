@@ -245,3 +245,6 @@ function initialize!(fermion_path_integral::FermionPathIntegral{T,E},
 
     return nothing
 end
+
+# define heaviside function
+heaviside(x::T) where {T<:AbstractFloat} = (x ≥ 0) ? one(T) : zero(T)
