@@ -222,8 +222,6 @@ Initialize electron-phonon model related measurements.
 - `ssh_energy`: Refer to [`measure_ssh_energy`](@ref).
 - `ssh_energy_up`: Refer to [`measure_ssh_energy`](@ref).
 - `ssh_energy_dn`: Refer to [`measure_ssh_energy`](@ref).
-- `ssh_sgn_switch_up`: Refer to [`measure_ssh_sgn_switch`](@ref).
-- `ssh_sgn_switch_dn`: Refer to [`measure_ssh_sgn_switch`](@ref).
 - `dispersion_energy`: Refer to [`measure_dispersion_energy`](@ref).
 """
 function initialize_measurements!(

@@ -4,8 +4,9 @@
 
 @doc raw"""
     measure_holstein_energy(
-        electron_phonon_parameters::ElectronPhononParameters{T,E},
-        Gup::Matrix{T}, Gdn::Matrix{T},
+        holstein_parameters::HolsteinParameters{E},
+        G::Matrix{T},
+        x::Matrix{E},
         holstein_id::Int
     ) where {T<:Number, E<:AbstractFloat}
 
@@ -22,28 +23,13 @@ Calculate and return both the spin-resolved Holstein interaction energy
                                 \right)
                             \right\rangle,
 ```
-and the total Holstein interaction energy coupling definition corresponding to `holstein_id`.
-The method returns `(ϵ_hol, ϵ_hol_up, ϵ_hol_dn)` where `ϵ_hol = ϵ_hol_up + ϵ_hol_dn`.
+corresponding to `holstein_id`.
 """
 function measure_holstein_energy(
-    electron_phonon_parameters::ElectronPhononParameters{T,E},
-    Gup::Matrix{T}, Gdn::Matrix{T},
-    holstein_id::Int
-) where {T<:Number, E<:AbstractFloat}
-
-    x = electron_phonon_parameters.x::Matrix{E}
-    holstein_parameters_up = electron_phonon_parameters.holstein_parameters_up::HolsteinParameters{E}
-    ϵ_hol_up = measure_holstein_energy(holstein_parameters_up, Gup, Gdn, x, holstein_id)
-    holstein_parameters_dn = electron_phonon_parameters.holstein_parameters_dn::HolsteinParameters{E}
-    ϵ_hol_dn = measure_holstein_energy(holstein_parameters_dn, Gup, Gdn, x, holstein_id)
-    ϵ_hol = ϵ_hol_up + ϵ_hol_dn
-
-    return ϵ_hol, ϵ_hol_up, ϵ_hol_dn
-end
-
-function measure_holstein_energy(
     holstein_parameters::HolsteinParameters{E},
-    G::Matrix{T}, x::Matrix{E}, holstein_id::Int
+    G::Matrix{T},
+    x::Matrix{E},
+    holstein_id::Int
 ) where {T<:Number, E<:AbstractFloat}
 
     (; nholstein, Nholstein, α, α2, α3, α4, neighbor_table, coupling_to_phonon, shifted) = holstein_parameters
@@ -72,7 +58,7 @@ function measure_holstein_energy(
     # iterate over unit cells
     for u in eachindex(ctp)
         x_ul = x[ctp[u],Lτ]
-        i_ul = nt[2,1]
+        i_ul = nt[2,u]
         n_ul = 1 - real(G[i_ul, i_ul])
         ϵ_hol += (α2′[u]*x_ul^2 + α4′[u]*x_ul^4) * n_ul
         if shift

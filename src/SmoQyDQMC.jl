@@ -157,10 +157,11 @@ include("ElectronPhonon/ExactFourierAccelerator.jl")
 include("ElectronPhonon/EFAHMCUpdater.jl")
 export EFAHMCUpdater
 
-# impelment reflection and swap updates for phonon fields
+# impelment reflection, swap and radial updates for phonon fields
 include("ElectronPhonon/reflection_update.jl")
 include("ElectronPhonon/swap_update.jl")
-export reflection_update!, swap_update!
+include("ElectronPhonon/radial_update.jl")
+export reflection_update!, swap_update!, radial_update!
 
 ##########################################
 ## MEASUREMENTS, DATA ANALYSIS & OUTPUT ##
@@ -189,7 +190,7 @@ export measure_holstein_energy
 
 # measurements for ssh interaction
 include("ElectronPhonon/ssh_measurements.jl")
-export measure_ssh_energy, measure_ssh_sgn_switch
+export measure_ssh_energy
 
 # measurements for phonon dispersion
 include("ElectronPhonon/dispersion_measurements.jl")

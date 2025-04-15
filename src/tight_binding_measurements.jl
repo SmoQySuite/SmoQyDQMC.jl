@@ -40,48 +40,41 @@ end
 @doc raw"""
     measure_bare_hopping_energy(
         tight_binding_parameters::TightBindingParameters{T,E},
-        G::Matrix{T}, bond_id::Int
+        G::Matrix{T}, hopping_id::Int
     ) where {T<:Number, E<:AbstractFloat}
 
 Calculate the average bare hopping energy
 ``\epsilon_{\rm hopping} = -\langle t_{\langle i,j \rangle} \hat{c}^\dagger_{\sigma,i} \hat{c}_{\sigma,j} + {\rm h.c.} \rangle``
-for the hopping defined by the bond corresponding to `bond_id`.
+for the hopping defined by the `hopping_id`.
 """
 function measure_bare_hopping_energy(
     tight_binding_parameters::TightBindingParameters{T,E},
-    G::Matrix{T}, bond_id::Int
+    G::Matrix{T}, hopping_id::Int
 ) where {T<:Number, E<:AbstractFloat}
 
-    (; t, neighbor_table, bond_slices, bond_ids) = tight_binding_parameters
+    (; t, neighbor_table, bond_slices) = tight_binding_parameters
 
     # initialize hopping energy to zero
     h = zero(T)
 
-    # check if hopping associated with bond ID
-    if bond_id in bond_ids
+    # get the neighbor table associated with the bond/hopping in question
+    nt = @view neighbor_table[:, bond_slices[hopping_id]]
 
-        # get the bond slice index associated with bond id
-        bond_id_index = findfirst(i -> i==bond_id, bond_ids)
+    # get the hopping associated with the bond/hopping in question
+    t′ = @view t[bond_slices[hopping_id]]
 
-        # get the neighbor table associated with the bond/hopping in question
-        nt = @view neighbor_table[:, bond_slices[bond_id_index]]
-
-        # get the hopping associated with the bond/hopping in question
-        t′ = @view t[bond_slices[bond_id_index]]
-
-        # iterate over each bond/hopping
-        @fastmath @inbounds for n in axes(nt, 2)
-            # get the pair of hoppings
-            j = nt[1,n] # annihilate electron on orbital j
-            i = nt[2,n] # create electron on orbital i
-            # calculate the hopping energy
-            hij = -G[j,i] # hopping amplitude from site j to site i
-            h += (-t′[n] * hij) + conj(-t′[n] * hij)
-        end
-
-        # noramalize the measurement
-        h /= length(t′)
+    # iterate over each bond/hopping
+    @fastmath @inbounds for n in axes(nt, 2)
+        # get the pair of hoppings
+        j = nt[1,n] # annihilate electron on orbital j
+        i = nt[2,n] # create electron on orbital i
+        # calculate the hopping energy
+        hij = -G[j,i] # hopping amplitude from site j to site i
+        h += (-t′[n] * hij) + conj(-t′[n] * hij)
     end
+
+    # noramalize the measurement
+    h /= length(t′)
 
     return h
 end
@@ -90,17 +83,17 @@ end
     measure_hopping_energy(
         tight_binding_parameters::TightBindingParameters{T,E},
         fermion_path_integral::FermionPathIntegral{T,E},
-        G::Matrix{T}, bond_id::Int
+        G::Matrix{T}, hopping_id::Int
     ) where {T<:Number, E<:AbstractFloat}
 
 Calculate the average hopping energy
 ``\epsilon_{\rm hopping} = -\langle t_{l,\langle i,j \rangle} \hat{c}^\dagger_{\sigma,i} \hat{c}_{\sigma,j} + {\rm h.c.} \rangle``
-for the hopping defined by the bond corresponding to `bond_id`.
+for the hopping defined by the the `hopping_id`.
 """
 function measure_hopping_energy(
     tight_binding_parameters::TightBindingParameters{T,E},
     fermion_path_integral::FermionPathIntegral{T,E},
-    G::Matrix{T}, bond_id::Int
+    G::Matrix{T}, hopping_id::Int
 ) where {T<:Number, E<:AbstractFloat}
 
     (; neighbor_table, bond_slices, bond_ids) = tight_binding_parameters
@@ -109,31 +102,24 @@ function measure_hopping_energy(
     # initialize hopping energy to zero
     h = zero(T)
 
-    # check if hopping associated with bond ID
-    if bond_id in bond_ids
+    # get the neighbor table associated with the bond/hopping in question
+    nt = @view neighbor_table[:, bond_slices[hopping_id]]
 
-        # get the bond slice index associated with bond id
-        bond_id_index = findfirst(i -> i==bond_id, bond_ids)
+    # get the hopping associated with the bond/hopping in question
+    t′ = @view t[bond_slices[hopping_id], Lτ]
 
-        # get the neighbor table associated with the bond/hopping in question
-        nt = @view neighbor_table[:, bond_slices[bond_id_index]]
-
-        # get the hopping associated with the bond/hopping in question
-        t′ = @view t[bond_slices[bond_id_index], Lτ]
-
-        # iterate over each bond/hopping
-        @fastmath @inbounds for n in axes(nt, 2)
-            # get the pair of hoppings
-            j = nt[1,n] # annihilate electron on orbital j
-            i = nt[2,n] # create electron on orbital i
-            # calculate the hopping energy
-            hij = -G[j,i] # hopping amplitude from site j to site i
-            h += (-t′[n] * hij) + conj(-t′[n] * hij)
-        end
-
-        # noramalize the measurement
-        h /= length(t′)
+    # iterate over each bond/hopping
+    @fastmath @inbounds for n in axes(nt, 2)
+        # get the pair of hoppings
+        j = nt[1,n] # annihilate electron on orbital j
+        i = nt[2,n] # create electron on orbital i
+        # calculate the hopping energy
+        hij = -G[j,i] # hopping amplitude from site j to site i
+        h += (-t′[n] * hij) + conj(-t′[n] * hij)
     end
+
+    # noramalize the measurement
+    h /= length(t′)
 
     return h
 end
@@ -142,15 +128,15 @@ end
     measure_hopping_amplitude(
         tight_binding_parameters::TightBindingParameters{T,E},
         fermion_path_integral::FermionPathIntegral{T,E},
-        bond_id::Int
+        hopping_id::Int
     ) where {T<:Number, E<:AbstractFloat}
 
-Calculate the average hopping amplitude for the hopping defined by the bond corresponding to `bond_id`.
+Calculate the average hopping amplitude for the hopping defined by the `hopping_id`.
 """
 function measure_hopping_amplitude(
     tight_binding_parameters::TightBindingParameters{T,E},
     fermion_path_integral::FermionPathIntegral{T,E},
-    bond_id::Int
+    hopping_id::Int
 ) where {T<:Number, E<:AbstractFloat}
 
     (; neighbor_table, bond_slices, bond_ids) = tight_binding_parameters
@@ -159,18 +145,11 @@ function measure_hopping_amplitude(
     # initialize hopping energy to zero
     t_avg = zero(T)
 
-    # check if hopping associated with bond ID
-    if bond_id in bond_ids
+    # get the hopping associated with the bond/hopping in question
+    t′ = @view t[bond_slices[hopping_id], :]
 
-        # get the bond slice index associated with bond id
-        bond_id_index = findfirst(i -> i==bond_id, bond_ids)
-
-        # get the hopping associated with the bond/hopping in question
-        t′ = @view t[bond_slices[bond_id_index], :]
-
-        # noramalize the measurement
-        t_avg += mean(t′)
-    end
+    # noramalize the measurement
+    t_avg += mean(t′)
 
     return t_avg
 end
@@ -179,7 +158,7 @@ end
     measure_hopping_inversion(
         tight_binding_parameters::TightBindingParameters{T,E},
         fermion_path_integral::FermionPathIntegral{T,E},
-        bond_id::Int
+        hopping_id::Int
     ) where {T<:Number, E<:AbstractFloat}
 
 Measure the fraction of time the sign of the instaneous modulated hopping ampltiude ``t_{l,(\mathbf{i},\nu),(\mathbf{j},\gamma)}``
@@ -189,7 +168,7 @@ imaginary time-slice index.
 function measure_hopping_inversion(
     tight_binding_parameters::TightBindingParameters{T,E},
     fermion_path_integral::FermionPathIntegral{T,E},
-    bond_id::Int
+    hopping_id::Int
 ) where {T<:Number, E<:AbstractFloat}
 
     (; neighbor_table, bond_slices, bond_ids) = tight_binding_parameters
@@ -204,30 +183,23 @@ function measure_hopping_inversion(
     # instaneous hopping inversion fraction
     hopping_inversion = zero(E)
 
-    # check if hopping associated with bond ID
-    if bond_id in bond_ids
+    # get the bare hopping amplitudes associated with bond
+    t0′ = @view t0[bond_slices[hopping_id]]
 
-        # get the bond slice index associated with bond id
-        bond_id_index = findfirst(i -> i==bond_id, bond_ids)
+    # get modulated hopping amplitudes associated with bond
+    tτ′ = @view tτ[bond_slices[hopping_id], :]
 
-        # get the bare hopping amplitudes associated with bond
-        t0′ = @view t0[bond_slices[bond_id_index]]
-
-        # get modulated hopping amplitudes associated with bond
-        tτ′ = @view tτ[bond_slices[bond_id_index], :]
-
-        # iterate over imaginary time slices
-        for l in axes(tτ′,2)
-            # iterate over each specific hopping/bond
-            for h in eachindex(t0′)
-                # detect whether the sign of the hopping was inverted
-                hopping_inversion += !(sign(real(t0′[h])) == sign(real(tτ′[h,l])))
-            end
+    # iterate over imaginary time slices
+    for l in axes(tτ′,2)
+        # iterate over each specific hopping/bond
+        for h in eachindex(t0′)
+            # detect whether the sign of the hopping was inverted
+            hopping_inversion += !(sign(real(t0′[h])) == sign(real(tτ′[h,l])))
         end
-
-        # normalize fraction
-        hopping_inversion /= length(tτ′)
     end
+
+    # normalize fraction
+    hopping_inversion /= length(tτ′)
 
     return hopping_inversion
 end
@@ -236,7 +208,7 @@ end
     measure_hopping_inversion_avg(
         tight_binding_parameters::TightBindingParameters{T,E},
         fermion_path_integral::FermionPathIntegral{T,E},
-        bond_id::Int
+        hopping_id::Int
     ) where {T<:Number, E<:AbstractFloat}
 
 Measure the fraction of time the sign of the imaginary-time averaged modulated hopping ampltiude
@@ -246,7 +218,7 @@ Measure the fraction of time the sign of the imaginary-time averaged modulated h
 function measure_hopping_inversion_avg(
     tight_binding_parameters::TightBindingParameters{T,E},
     fermion_path_integral::FermionPathIntegral{T,E},
-    bond_id::Int
+    hopping_id::Int
 ) where {T<:Number, E<:AbstractFloat}
 
     (; neighbor_table, bond_slices, bond_ids) = tight_binding_parameters
@@ -261,30 +233,23 @@ function measure_hopping_inversion_avg(
     # instaneous hopping inversion fraction
     hopping_inversion_avg = zero(E)
 
-    # check if hopping associated with bond ID
-    if bond_id in bond_ids
+    # get the bare hopping amplitudes associated with bond
+    t0′ = @view t0[bond_slices[hopping_id]]
 
-        # get the bond slice index associated with bond id
-        bond_id_index = findfirst(i -> i==bond_id, bond_ids)
+    # get modulated hopping amplitudes associated with bond
+    tτ′ = @view tτ[bond_slices[hopping_id], :]
 
-        # get the bare hopping amplitudes associated with bond
-        t0′ = @view t0[bond_slices[bond_id_index]]
+    # iterate over each specific hopping/bond
+    for h in eachindex(t0′)
 
-        # get modulated hopping amplitudes associated with bond
-        tτ′ = @view tτ[bond_slices[bond_id_index], :]
-
-        # iterate over each specific hopping/bond
-        for h in eachindex(t0′)
-
-            # calculate average modulated hopping amplitude
-            thτ′ = @view tτ′[h,:]
-            thτ′_avg = mean(thτ′)
-            hopping_inversion_avg += !(sign(real(t0′[h])) == sign(real(thτ′_avg)))
-        end
-
-        # normalize fraction
-        hopping_inversion_avg /= length(t0′)
+        # calculate average modulated hopping amplitude
+        thτ′ = @view tτ′[h,:]
+        thτ′_avg = mean(thτ′)
+        hopping_inversion_avg += !(sign(real(t0′[h])) == sign(real(thτ′_avg)))
     end
+
+    # normalize fraction
+    hopping_inversion_avg /= length(t0′)
 
     return hopping_inversion_avg
 end

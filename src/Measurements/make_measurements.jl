@@ -531,50 +531,47 @@ function make_local_measurements!(
 
     # measure hopping energy
     if nhopping > 0
-        for n in 1:nhopping
-
-            # get the bond ID corresponding to the hopping
-            bond_id = bond_ids[n]
+        for hopping_id in 1:nhopping
 
             # measure bare hopping energy
-            hup = sgn * measure_bare_hopping_energy(tight_binding_parameters_up, Gup, bond_id)
-            hdn = sgn * measure_bare_hopping_energy(tight_binding_parameters_dn, Gdn, bond_id)
+            hup = sgn * measure_bare_hopping_energy(tight_binding_parameters_up, Gup, hopping_id)
+            hdn = sgn * measure_bare_hopping_energy(tight_binding_parameters_dn, Gdn, hopping_id)
             h = hup + hdn
-            local_measurements["bare_hopping_energy_up"][n] += hup
-            local_measurements["bare_hopping_energy_dn"][n] += hdn
-            local_measurements["bare_hopping_energy"][n] += h
+            local_measurements["bare_hopping_energy_up"][hopping_id] += hup
+            local_measurements["bare_hopping_energy_dn"][hopping_id] += hdn
+            local_measurements["bare_hopping_energy"][hopping_id] += h
+
+            # measure hopping energy
+            hup = sgn * measure_hopping_energy(tight_binding_parameters_up, fermion_path_integral_up, Gup, hopping_id)
+            hdn = sgn * measure_hopping_energy(tight_binding_parameters_dn, fermion_path_integral_up, Gdn, hopping_id)
+            h = hup + hdn
+            local_measurements["hopping_energy_up"][hopping_id] += hup
+            local_measurements["hopping_energy_dn"][hopping_id] += hdn
+            local_measurements["hopping_energy"][hopping_id] += h
 
             # measure hopping amplitude
-            hup = sgn * measure_hopping_energy(tight_binding_parameters_up, fermion_path_integral_up, Gup, bond_id)
-            hdn = sgn * measure_hopping_energy(tight_binding_parameters_dn, fermion_path_integral_up, Gdn, bond_id)
-            h = hup + hdn
-            local_measurements["hopping_energy_up"][n] += hup
-            local_measurements["hopping_energy_dn"][n] += hdn
-            local_measurements["hopping_energy"][n] += h
-
-            # measure hopping amplitude
-            tup = sgn * measure_hopping_amplitude(tight_binding_parameters_up, fermion_path_integral_up, bond_id)
-            tdn = sgn * measure_hopping_amplitude(tight_binding_parameters_dn, fermion_path_integral_up, bond_id)
+            tup = sgn * measure_hopping_amplitude(tight_binding_parameters_up, fermion_path_integral_up, hopping_id)
+            tdn = sgn * measure_hopping_amplitude(tight_binding_parameters_dn, fermion_path_integral_up, hopping_id)
             tn = (tup + tup)/2
-            local_measurements["hopping_amplitude_up"][n] += tup
-            local_measurements["hopping_amplitude_dn"][n] += tdn
-            local_measurements["hopping_amplitude"][n] += tn
+            local_measurements["hopping_amplitude_up"][hopping_id] += tup
+            local_measurements["hopping_amplitude_dn"][hopping_id] += tdn
+            local_measurements["hopping_amplitude"][hopping_id] += tn
 
             # measure hopping inversion
-            tup = sgn * measure_hopping_inversion(tight_binding_parameters_up, fermion_path_integral_up, bond_id)
-            tdn = sgn * measure_hopping_inversion(tight_binding_parameters_dn, fermion_path_integral_up, bond_id)
+            tup = sgn * measure_hopping_inversion(tight_binding_parameters_up, fermion_path_integral_up, hopping_id)
+            tdn = sgn * measure_hopping_inversion(tight_binding_parameters_dn, fermion_path_integral_up, hopping_id)
             tn = (tup + tup)/2
-            local_measurements["hopping_inversion_up"][n] += tup
-            local_measurements["hopping_inversion_dn"][n] += tdn
-            local_measurements["hopping_inversion"][n] += tn
+            local_measurements["hopping_inversion_up"][hopping_id] += tup
+            local_measurements["hopping_inversion_dn"][hopping_id] += tdn
+            local_measurements["hopping_inversion"][hopping_id] += tn
 
             # measure hopping inversion
-            tup = sgn * measure_hopping_inversion_avg(tight_binding_parameters_up, fermion_path_integral_up, bond_id)
-            tdn = sgn * measure_hopping_inversion_avg(tight_binding_parameters_dn, fermion_path_integral_up, bond_id)
+            tup = sgn * measure_hopping_inversion_avg(tight_binding_parameters_up, fermion_path_integral_up, hopping_id)
+            tdn = sgn * measure_hopping_inversion_avg(tight_binding_parameters_dn, fermion_path_integral_up, hopping_id)
             tn = (tup + tup)/2
-            local_measurements["hopping_inversion_avg_up"][n] += tup
-            local_measurements["hopping_inversion_avg_dn"][n] += tdn
-            local_measurements["hopping_inversion_avg"][n] += tn
+            local_measurements["hopping_inversion_avg_up"][hopping_id] += tup
+            local_measurements["hopping_inversion_avg_dn"][hopping_id] += tdn
+            local_measurements["hopping_inversion_avg"][hopping_id] += tn
         end
     end
 
@@ -1779,10 +1776,10 @@ function make_time_displaced_measurements!(
                 bond_0 = bonds[bond_id_0]
                 bond_1 = bonds[bond_id_1]
                 # get the effective hopping amptlitudes for each of the two hopping ID's in question
-                tup0 = @view tup[bond_slices[hopping_id_0], Lτ]
-                tup0′ = reshape(tup0, lattice.L...)
-                tdn1 = @view tdn[bond_slices[hopping_id_1], mod1(l,Lτ)]
-                tdn1′ = reshape(tdn1, lattice.L...)
+                tdn0 = @view tup[bond_slices[hopping_id_0], Lτ]
+                tdn0′ = reshape(tdn0, lattice.L...)
+                tup1 = @view tdn[bond_slices[hopping_id_1], mod1(l,Lτ)]
+                tup1′ = reshape(tup1, lattice.L...)
                 # measure the current-current correlation
                 correlation_array = selectdim(correlations[i], D+1, l+1)
                 current_correlation!(correlation_array, bond_1, bond_0, tup1′, tdn0′, unit_cell, lattice,
@@ -1807,10 +1804,10 @@ function make_time_displaced_measurements!(
                 bond_0 = bonds[bond_id_0]
                 bond_1 = bonds[bond_id_1]
                 # get the effective hopping amptlitudes for each of the two hopping ID's in question
-                tdn0 = @view tdn[bond_slices[hopping_id_0], Lτ]
-                tdn0′ = reshape(tdn0, lattice.L...)
-                tup1 = @view tup[bond_slices[hopping_id_1], mod1(l,Lτ)]
-                tup1′ = reshape(tup1, lattice.L...)
+                tup0 = @view tdn[bond_slices[hopping_id_0], Lτ]
+                tup0′ = reshape(tup0, lattice.L...)
+                tdn1 = @view tdn[bond_slices[hopping_id_1], mod1(l,Lτ)]
+                tdn1′ = reshape(tdn1, lattice.L...)
                 # measure the current-current correlation
                 correlation_array = selectdim(correlations[i], D+1, l+1)
                 current_correlation!(correlation_array, bond_1, bond_0, tdn1′, tup0′, unit_cell, lattice,
@@ -2426,7 +2423,7 @@ function measure_equaltime_composite_phonon_greens!(
     X0::AbstractArray{Complex{E},P}
 ) where {T<:Number, E<:AbstractFloat, D, P, N}
 
-    @assert phonon_greens.correction == "phonon_greens"
+    @assert phonon_greens.correlation == "phonon_greens"
     ids = phonon_greens.id_pairs::Vector{Int}
     coefficients = phonon_greens.coefficients::Vector{Complex{E}}
     correlations = phonon_greens.correlations::Array{Complex{E}, D}
@@ -2550,7 +2547,7 @@ function measure_time_displaced_composite_phonon_greens!(
     X0::AbstractArray{Complex{E},P}
 ) where {T<:Number, E<:AbstractFloat, D, P, N}
 
-    @assert phonon_greens.correction == "phonon_greens"
+    @assert phonon_greens.correlation == "phonon_greens"
     ids = phonon_greens.id_pairs::Vector{Int}
     coefficients = phonon_greens.coefficients::Vector{Complex{E}}
     correlations = phonon_greens.correlations::Array{Complex{E}, D}

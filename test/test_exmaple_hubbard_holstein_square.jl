@@ -1,5 +1,5 @@
 # integration test that runs a DQMC simulation of a Hubbard-Holstein model on a square lattice.
-@testitem "Hubbard-Holstein Square" begin
+@testitem "Hubbard-Holstein Square Example" begin
     
     include("../examples/hubbard_holstein_square.jl")
     sID = 1
