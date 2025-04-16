@@ -27,292 +27,265 @@ function run_simulation(;
     checkerboard = false, # Whether checkerboard approximation is used.
     seed = abs(rand(Int)), # Seed for random number generator.
     filepath = &quot;.&quot; # Filepath to where data folder will be created.
-)</code></pre><h2 id="hubbard_square_initialize_simulation"><a class="docs-heading-anchor" href="#hubbard_square_initialize_simulation">Initialize simulation</a><a id="hubbard_square_initialize_simulation-1"></a><a class="docs-heading-anchor-permalink" href="#hubbard_square_initialize_simulation" title="Permalink"></a></h2><p>In this first part of the script we name and initialize our simulation, creating the data folder our simulation results will be written to. This is done by initializing an instances of the <a href="../../api/#SmoQyDQMC.SimulationInfo"><code>SimulationInfo</code></a> type, as well as an <code>additional_info</code> dictionary where we will store useful metadata about the simulation. Finally, the integer <code>seed</code> is used to initialize the random number generator <code>rng</code> that will be used to generate random numbers throughout the rest of the simulation.</p><p>Next we record relevant simulation parameters to the <code>additional_info</code> dictionary. Think of the <code>additional_info</code> dictionary as a place to record any additional information during the simulation that will not otherwise be automatically recorded and written to file.</p><pre><code class="language-julia hljs"># Construct the foldername the data will be written to.
-datafolder_prefix = @sprintf &quot;hubbard_square_U%.2f_tp%.2f_mu%.2f_L%d_b%.2f&quot; U t′ μ L β
+)</code></pre><h2 id="hubbard_square_initialize_simulation"><a class="docs-heading-anchor" href="#hubbard_square_initialize_simulation">Initialize simulation</a><a id="hubbard_square_initialize_simulation-1"></a><a class="docs-heading-anchor-permalink" href="#hubbard_square_initialize_simulation" title="Permalink"></a></h2><p>In this first part of the script we name and initialize our simulation, creating the data folder our simulation results will be written to. This is done by initializing an instances of the <a href="../../api/#SmoQyDQMC.SimulationInfo"><code>SimulationInfo</code></a> type, as well as an <code>additional_info</code> dictionary where we will store useful metadata about the simulation. Finally, the integer <code>seed</code> is used to initialize the random number generator <code>rng</code> that will be used to generate random numbers throughout the rest of the simulation.</p><p>Next we record relevant simulation parameters to the <code>additional_info</code> dictionary. Think of the <code>additional_info</code> dictionary as a place to record any additional information during the simulation that will not otherwise be automatically recorded and written to file.</p><pre><code class="language-julia hljs">    # Construct the foldername the data will be written to.
+    datafolder_prefix = @sprintf &quot;hubbard_square_U%.2f_tp%.2f_mu%.2f_L%d_b%.2f&quot; U t′ μ L β
 
-# Initialize simulation info.
-simulation_info = SimulationInfo(
-    filepath = filepath,
-    datafolder_prefix = datafolder_prefix,
-    sID = sID
-)
+    # Initialize simulation info.
+    simulation_info = SimulationInfo(
+        filepath = filepath,
+        datafolder_prefix = datafolder_prefix,
+        sID = sID
+    )
 
-# Initialize the directory the data will be written to.
-initialize_datafolder(simulation_info)
+    # Initialize the directory the data will be written to.
+    initialize_datafolder(simulation_info)
 
-# Initialize random number generator
-rng = Xoshiro(seed)
+    # Initialize random number generator
+    rng = Xoshiro(seed)
 
-# Initialize additiona_info dictionary
-additional_info = Dict()
+    # Initialize additiona_info dictionary
+    additional_info = Dict()
 
-# Record simulation parameters.
-additional_info[&quot;N_therm&quot;] = N_therm
-additional_info[&quot;N_updates&quot;] = N_updates
-additional_info[&quot;N_bins&quot;] = N_bins
-additional_info[&quot;n_stab_init&quot;] = n_stab
-additional_info[&quot;dG_max&quot;] = δG_max
-additional_info[&quot;symmetric&quot;] = symmetric
-additional_info[&quot;checkerboard&quot;] = checkerboard
-additional_info[&quot;seed&quot;] = seed</code></pre><p>In the above, <code>sID</code> stands for simulation ID, which is used to distinguish simulations that would otherwise be identical i.e. to distinguish simulations that use the same parameters and are only different in the random seed used to initialize the simulation. A valid <code>sID</code> is any positive integer greater than zero, and is used when naming the data folder the simulation results will be written to. Specifically, the the actual data folder created above will be <code>&quot;$(filepath)/$(datafolder_prefix)-$(sID)&quot;</code>. Note that if you set <code>sID = 0</code>, then it will instead be assigned smallest previously unused integer value. For instance, suppose the directory <code>&quot;$(filepath)/$(datafolder_prefix)-1&quot;</code> already exits. Then if you pass <code>sID = 0</code> to <a href="../../api/#SmoQyDQMC.SimulationInfo"><code>SimulationInfo</code></a>, then the simulation ID <code>sID = 2</code> will be used instead, and a directory <code>&quot;$(filepath)/$(datafolder_prefix)-2&quot;</code> will be created.</p><p>Another useful resource in the documentation is the <a href="../../simulation_output/#Simulation-Output-Overview">Simulation Output Overview</a> page, which describes the output written to the data folder generated during a <a href="https://github.com/SmoQySuite/SmoQyDQMC.jl.git">SmoQyDQMC</a> simulation.</p><h2 id="Initialize-model"><a class="docs-heading-anchor" href="#Initialize-model">Initialize model</a><a id="Initialize-model-1"></a><a class="docs-heading-anchor-permalink" href="#Initialize-model" title="Permalink"></a></h2><p>The next step is define the model we wish to simulate. In this example the relevant model parameters are the Hubbard interaction strength <span>$U$</span> (<code>U</code>), chemical potential <span>$\mu$</span> (<code>μ</code>), next-nearest-neighbor hopping amplitude <span>$t^\prime$</span> (<code>t′</code>) and lattice size <span>$L$</span> (<code>L</code>).</p><p>First we define the lattice geometry for our model, relying on the <a href="https://github.com/SmoQySuite/LatticeUtilities.jl.git">LatticeUtilities</a> package to do so. We define a the unit cell and size of our finite lattice using the <a href="https://smoqysuite.github.io/LatticeUtilities.jl/stable/api/#LatticeUtilities.UnitCell"><code>UnitCell</code></a> and <a href="https://smoqysuite.github.io/LatticeUtilities.jl/stable/api/#LatticeUtilities.Lattice"><code>Lattice</code></a> types, respectively. Lastly, we define various instances of the <a href="https://smoqysuite.github.io/LatticeUtilities.jl/stable/api/#LatticeUtilities.Bond"><code>Bond</code></a> type to represent the the nearest-neighbor and next-nearest-neighbor bonds. All of this information regarding the lattice geometry is then stored in an instance of the <a href="../../api/#SmoQyDQMC.ModelGeometry"><code>ModelGeometry</code></a> type. Further documentation, with usage examples, for <a href="https://github.com/SmoQySuite/LatticeUtilities.jl.git">LatticeUtilities</a> package can be found <a href="https://smoqysuite.github.io/LatticeUtilities.jl/stable/">here</a>.</p><pre><code class="language-julia hljs"># Define unit cell.
-unit_cell = lu.UnitCell(
-    lattice_vecs = [[1.0, 0.0],
-                    [0.0, 1.0]],
-    basis_vecs = [[0.0, 0.0]]
-)
+    # Record simulation parameters.
+    additional_info[&quot;N_therm&quot;] = N_therm
+    additional_info[&quot;N_updates&quot;] = N_updates
+    additional_info[&quot;N_bins&quot;] = N_bins
+    additional_info[&quot;n_stab_init&quot;] = n_stab
+    additional_info[&quot;dG_max&quot;] = δG_max
+    additional_info[&quot;symmetric&quot;] = symmetric
+    additional_info[&quot;checkerboard&quot;] = checkerboard
+    additional_info[&quot;seed&quot;] = seed</code></pre><p>In the above, <code>sID</code> stands for simulation ID, which is used to distinguish simulations that would otherwise be identical i.e. to distinguish simulations that use the same parameters and are only different in the random seed used to initialize the simulation. A valid <code>sID</code> is any positive integer greater than zero, and is used when naming the data folder the simulation results will be written to. Specifically, the the actual data folder created above will be <code>&quot;$(filepath)/$(datafolder_prefix)-$(sID)&quot;</code>. Note that if you set <code>sID = 0</code>, then it will instead be assigned smallest previously unused integer value. For instance, suppose the directory <code>&quot;$(filepath)/$(datafolder_prefix)-1&quot;</code> already exits. Then if you pass <code>sID = 0</code> to <a href="../../api/#SmoQyDQMC.SimulationInfo"><code>SimulationInfo</code></a>, then the simulation ID <code>sID = 2</code> will be used instead, and a directory <code>&quot;$(filepath)/$(datafolder_prefix)-2&quot;</code> will be created.</p><p>Another useful resource in the documentation is the <a href="../../simulation_output/#Simulation-Output-Overview">Simulation Output Overview</a> page, which describes the output written to the data folder generated during a <a href="https://github.com/SmoQySuite/SmoQyDQMC.jl.git">SmoQyDQMC</a> simulation.</p><h2 id="Initialize-model"><a class="docs-heading-anchor" href="#Initialize-model">Initialize model</a><a id="Initialize-model-1"></a><a class="docs-heading-anchor-permalink" href="#Initialize-model" title="Permalink"></a></h2><p>The next step is define the model we wish to simulate. In this example the relevant model parameters are the Hubbard interaction strength <span>$U$</span> (<code>U</code>), chemical potential <span>$\mu$</span> (<code>μ</code>), next-nearest-neighbor hopping amplitude <span>$t^\prime$</span> (<code>t′</code>) and lattice size <span>$L$</span> (<code>L</code>).</p><p>First we define the lattice geometry for our model, relying on the <a href="https://github.com/SmoQySuite/LatticeUtilities.jl.git">LatticeUtilities</a> package to do so. We define a the unit cell and size of our finite lattice using the <a href="https://smoqysuite.github.io/LatticeUtilities.jl/stable/api/#LatticeUtilities.UnitCell"><code>UnitCell</code></a> and <a href="https://smoqysuite.github.io/LatticeUtilities.jl/stable/api/#LatticeUtilities.Lattice"><code>Lattice</code></a> types, respectively. Lastly, we define various instances of the <a href="https://smoqysuite.github.io/LatticeUtilities.jl/stable/api/#LatticeUtilities.Bond"><code>Bond</code></a> type to represent the the nearest-neighbor and next-nearest-neighbor bonds. All of this information regarding the lattice geometry is then stored in an instance of the <a href="../../api/#SmoQyDQMC.ModelGeometry"><code>ModelGeometry</code></a> type. Further documentation, with usage examples, for <a href="https://github.com/SmoQySuite/LatticeUtilities.jl.git">LatticeUtilities</a> package can be found <a href="https://smoqysuite.github.io/LatticeUtilities.jl/stable/">here</a>.</p><pre><code class="language-julia hljs">    # Define unit cell.
+    unit_cell = lu.UnitCell(
+        lattice_vecs = [[1.0, 0.0],
+                        [0.0, 1.0]],
+        basis_vecs = [[0.0, 0.0]]
+    )
 
-# Define finite lattice with periodic boundary conditions.
-lattice = lu.Lattice(
-    L = [L, L],
-    periodic = [true, true]
-)
+    # Define finite lattice with periodic boundary conditions.
+    lattice = lu.Lattice(
+        L = [L, L],
+        periodic = [true, true]
+    )
 
-# Initialize model geometry.
-model_geometry = ModelGeometry(
-    unit_cell, lattice
-)
+    # Initialize model geometry.
+    model_geometry = ModelGeometry(
+        unit_cell, lattice
+    )
 
-# Define the nearest-neighbor bond in +x direction.
-bond_px = lu.Bond(
-    orbitals = (1,1),
-    displacement = [1, 0]
-)
+    # Define the nearest-neighbor bond in +x direction.
+    bond_px = lu.Bond(
+        orbitals = (1,1),
+        displacement = [1, 0]
+    )
 
-# Add this bond definition to the model, by adding it the model_geometry.
-bond_px_id = add_bond!(model_geometry, bond_px)
+    # Add this bond definition to the model, by adding it the model_geometry.
+    bond_px_id = add_bond!(model_geometry, bond_px)
 
-# Define the nearest-neighbor bond in +y direction.
-bond_py = lu.Bond(
-    orbitals = (1,1),
-    displacement = [0, 1]
-)
+    # Define the nearest-neighbor bond in +y direction.
+    bond_py = lu.Bond(
+        orbitals = (1,1),
+        displacement = [0, 1]
+    )
 
-# Add this bond definition to the model, by adding it the model_geometry.
-bond_py_id = add_bond!(model_geometry, bond_py)
+    # Add this bond definition to the model, by adding it the model_geometry.
+    bond_py_id = add_bond!(model_geometry, bond_py)
 
-# Define the next-nearest-neighbor bond in +x+y direction.
-bond_pxpy = lu.Bond(
-    orbitals = (1,1),
-    displacement = [1, 1]
-)
+    # Define the next-nearest-neighbor bond in +x+y direction.
+    bond_pxpy = lu.Bond(
+        orbitals = (1,1),
+        displacement = [1, 1]
+    )
 
-# Define the nearest-neighbor bond in -x direction.
-# Will be used to make measurements later in this tutorial.
-bond_nx = lu.Bond(
-    orbitals = (1,1),
-    displacement = [-1, 0]
-)
+    # Define the nearest-neighbor bond in -x direction.
+    # Will be used to make measurements later in this tutorial.
+    bond_nx = lu.Bond(
+        orbitals = (1,1),
+        displacement = [-1, 0]
+    )
 
-# Add this bond definition to the model, by adding it the model_geometry.
-bond_nx_id = add_bond!(model_geometry, bond_nx)
+    # Add this bond definition to the model, by adding it the model_geometry.
+    bond_nx_id = add_bond!(model_geometry, bond_nx)
 
-# Define the nearest-neighbor bond in -y direction.
-# Will be used to make measurements later in this tutorial.
-bond_ny = lu.Bond(
-    orbitals = (1,1),
-    displacement = [0, -1]
-)
+    # Define the nearest-neighbor bond in -y direction.
+    # Will be used to make measurements later in this tutorial.
+    bond_ny = lu.Bond(
+        orbitals = (1,1),
+        displacement = [0, -1]
+    )
 
-# Add this bond definition to the model, by adding it the model_geometry.
-bond_ny_id = add_bond!(model_geometry, bond_ny)
+    # Add this bond definition to the model, by adding it the model_geometry.
+    bond_ny_id = add_bond!(model_geometry, bond_ny)
 
-# Define the next-nearest-neighbor bond in +x+y direction.
-bond_pxpy = lu.Bond(
-    orbitals = (1,1),
-    displacement = [1, 1]
-)
+    # Define the next-nearest-neighbor bond in +x+y direction.
+    bond_pxpy = lu.Bond(
+        orbitals = (1,1),
+        displacement = [1, 1]
+    )
 
-# Add this bond definition to the model, by adding it the model_geometry.
-bond_pxpy_id = add_bond!(model_geometry, bond_pxpy)
+    # Add this bond definition to the model, by adding it the model_geometry.
+    bond_pxpy_id = add_bond!(model_geometry, bond_pxpy)
 
-# Define the next-nearest-neighbor bond in +x-y direction.
-bond_pxny = lu.Bond(
-    orbitals = (1,1),
-    displacement = [1, -1]
-)
+    # Define the next-nearest-neighbor bond in +x-y direction.
+    bond_pxny = lu.Bond(
+        orbitals = (1,1),
+        displacement = [1, -1]
+    )
 
-# Add this bond definition to the model, by adding it the model_geometry.
-bond_pxny_id = add_bond!(model_geometry, bond_pxny)</code></pre><p>Next we specify the non-interacting tight-binding term in our Hamiltonian with the <a href="../../api/#SmoQyDQMC.TightBindingModel"><code>TightBindingModel</code></a> type.</p><pre><code class="language-julia hljs"># Set neartest-neighbor hopping amplitude to unity,
-# setting the energy scale in the model.
-t = 1.0
+    # Add this bond definition to the model, by adding it the model_geometry.
+    bond_pxny_id = add_bond!(model_geometry, bond_pxny)</code></pre><p>Next we specify the non-interacting tight-binding term in our Hamiltonian with the <a href="../../api/#SmoQyDQMC.TightBindingModel"><code>TightBindingModel</code></a> type.</p><pre><code class="language-julia hljs">    # Set neartest-neighbor hopping amplitude to unity,
+    # setting the energy scale in the model.
+    t = 1.0
 
-# Define the non-interacting tight-binding model.
-tight_binding_model = TightBindingModel(
-    model_geometry = model_geometry,
-    t_bonds = [bond_px, bond_py, bond_pxpy, bond_pxny], # defines hopping
-    t_mean  = [t, t, t′, t′], # defines corresponding mean hopping amplitude
-    t_std   = [0., 0., 0., 0.], # defines corresponding standard deviation in hopping amplitude
-    ϵ_mean  = [0.], # set mean on-site energy for each orbital in unit cell
-    ϵ_std   = [0.], # set standard deviation of on-site energy or each orbital in unit cell
-    μ       = μ # set chemical potential
-)</code></pre><p>Finally, we define the Hubbard interaction with the <a href="../../api/#SmoQyDQMC.HubbardModel"><code>HubbardModel</code></a> type.</p><pre><code class="language-julia hljs"># Define the Hubbard interaction in the model.
-hubbard_model = HubbardModel(
-    shifted   = false, # if true, then Hubbard interaction is instead parameterized as U⋅nup⋅ndn
-    U_orbital = [1], # orbitals in unit cell with Hubbard interaction.
-    U_mean    = [U], # mean Hubbard interaction strength for corresponding orbital species in unit cell.
-    U_std     = [0.], # standard deviation of Hubbard interaction strength for corresponding orbital species in unit cell.
-)</code></pre><p>Note that most terms in our model can support random disorder. However, we have suppressed this behavior by setting all relevant standard deviations in model values to zero. If these standard devaitions were not specified they would have also defaulted to zero We explicitly set them to zero here to simply highlight the presence of this functionality even though we are not using it.</p><p>Lastly, the <a href="../../api/#SmoQyDQMC.model_summary"><code>model_summary</code></a> function is used to write a <code>model_summary.toml</code> file, completely specifying the Hamiltonian that will be simulated.</p><pre><code class="language-julia hljs"># Write model summary TOML file specifying Hamiltonian that will be simulated.
-model_summary(
-    simulation_info = simulation_info,
-    β = β, Δτ = Δτ,
-    model_geometry = model_geometry,
-    tight_binding_model = tight_binding_model,
-    interactions = (hubbard_model,)
-)</code></pre><h2 id="Initialize-model-parameters"><a class="docs-heading-anchor" href="#Initialize-model-parameters">Initialize model parameters</a><a id="Initialize-model-parameters-1"></a><a class="docs-heading-anchor-permalink" href="#Initialize-model-parameters" title="Permalink"></a></h2><p>The next step is to initialize our model parameters given the size of our finite lattice. To clarify, both the <a href="../../api/#SmoQyDQMC.TightBindingModel"><code>TightBindingModel</code></a> and <a href="../../api/#SmoQyDQMC.HubbardModel"><code>HubbardModel</code></a> types are agnostic to the size of the lattice being simulated, defining the model in a translationally invariant way. As <a href="https://github.com/SmoQySuite/SmoQyDQMC.jl.git">SmoQyDQMC.jl</a> supports random disorder in the terms appearing in the Hamiltonian, it is necessary to initialize seperate parameter values for each unit cell in the lattice. For instance, we need to initialize a seperate number to represent the on-site energy for each orbital in our finite lattice.</p><pre><code class="language-julia hljs"># Initialize tight-binding parameters.
-tight_binding_parameters = TightBindingParameters(
-    tight_binding_model = tight_binding_model,
-    model_geometry = model_geometry,
-    rng = rng
-)
+    # Define the non-interacting tight-binding model.
+    tight_binding_model = TightBindingModel(
+        model_geometry = model_geometry,
+        t_bonds = [bond_px, bond_py, bond_pxpy, bond_pxny], # defines hopping
+        t_mean  = [t, t, t′, t′], # defines corresponding mean hopping amplitude
+        t_std   = [0., 0., 0., 0.], # defines corresponding standard deviation in hopping amplitude
+        ϵ_mean  = [0.], # set mean on-site energy for each orbital in unit cell
+        ϵ_std   = [0.], # set standard deviation of on-site energy or each orbital in unit cell
+        μ       = μ # set chemical potential
+    )</code></pre><p>Finally, we define the Hubbard interaction with the <a href="../../api/#SmoQyDQMC.HubbardModel"><code>HubbardModel</code></a> type.</p><pre><code class="language-julia hljs">    # Define the Hubbard interaction in the model.
+    hubbard_model = HubbardModel(
+        shifted   = false, # if true, then Hubbard interaction is instead parameterized as U⋅nup⋅ndn
+        U_orbital = [1], # orbitals in unit cell with Hubbard interaction.
+        U_mean    = [U], # mean Hubbard interaction strength for corresponding orbital species in unit cell.
+        U_std     = [0.], # standard deviation of Hubbard interaction strength for corresponding orbital species in unit cell.
+    )</code></pre><p>Note that most terms in our model can support random disorder. However, we have suppressed this behavior by setting all relevant standard deviations in model values to zero. If these standard devaitions were not specified they would have also defaulted to zero We explicitly set them to zero here to simply highlight the presence of this functionality even though we are not using it.</p><p>Lastly, the <a href="../../api/#SmoQyDQMC.model_summary"><code>model_summary</code></a> function is used to write a <code>model_summary.toml</code> file, completely specifying the Hamiltonian that will be simulated.</p><pre><code class="language-julia hljs">    # Write model summary TOML file specifying Hamiltonian that will be simulated.
+    model_summary(
+        simulation_info = simulation_info,
+        β = β, Δτ = Δτ,
+        model_geometry = model_geometry,
+        tight_binding_model = tight_binding_model,
+        interactions = (hubbard_model,)
+    )</code></pre><h2 id="Initialize-model-parameters"><a class="docs-heading-anchor" href="#Initialize-model-parameters">Initialize model parameters</a><a id="Initialize-model-parameters-1"></a><a class="docs-heading-anchor-permalink" href="#Initialize-model-parameters" title="Permalink"></a></h2><p>The next step is to initialize our model parameters given the size of our finite lattice. To clarify, both the <a href="../../api/#SmoQyDQMC.TightBindingModel"><code>TightBindingModel</code></a> and <a href="../../api/#SmoQyDQMC.HubbardModel"><code>HubbardModel</code></a> types are agnostic to the size of the lattice being simulated, defining the model in a translationally invariant way. As <a href="https://github.com/SmoQySuite/SmoQyDQMC.jl.git">SmoQyDQMC.jl</a> supports random disorder in the terms appearing in the Hamiltonian, it is necessary to initialize seperate parameter values for each unit cell in the lattice. For instance, we need to initialize a seperate number to represent the on-site energy for each orbital in our finite lattice.</p><pre><code class="language-julia hljs">    # Initialize tight-binding parameters.
+    tight_binding_parameters = TightBindingParameters(
+        tight_binding_model = tight_binding_model,
+        model_geometry = model_geometry,
+        rng = rng
+    )
 
-# Initialize Hubbard interaction parameters.
-hubbard_params = HubbardParameters(
-    model_geometry = model_geometry,
-    hubbard_model = hubbard_model,
-    rng = rng
-)
+    # Initialize Hubbard interaction parameters.
+    hubbard_params = HubbardParameters(
+        model_geometry = model_geometry,
+        hubbard_model = hubbard_model,
+        rng = rng
+    )
 
-# Apply Ising Hubbard-Stranonvich (HS) transformation to decouple the Hubbard interaction,
-# and initialize the corresponding HS fields that will be sampled in the DQMC simulation.
-hubbard_stratonovich_params = HubbardIsingHSParameters(
-    β = β, Δτ = Δτ,
-    hubbard_parameters = hubbard_params,
-    rng = rng
-)</code></pre><p>Let me quickly clarify the difference between the <a href="../../api/#SmoQyDQMC.HubbardParameters"><code>HubbardParameters</code></a> and <a href="../../api/#SmoQyDQMC.HubbardIsingHSParameters"><code>HubbardIsingHSParameters</code></a> types initialized above. The <a href="../../api/#SmoQyDQMC.HubbardParameters"><code>HubbardParameters</code></a> type simply defines the Hubbard interaction parameters, agnostic to Hubbard-Stratonovich (HS) transformation that will be used to decouple the Hubbard interaction. Then the <a href="../../api/#SmoQyDQMC.HubbardIsingHSParameters"><code>HubbardIsingHSParameters</code></a> type actually applies a HS transformation to the Hubbard interaction, with the <code>hubbard_stratonovich_params.s</code> array containing the HS fields that will be sampled during the DQMC simulation.</p><h2 id="hubbard_square_initialize_measurements"><a class="docs-heading-anchor" href="#hubbard_square_initialize_measurements">Initialize meuasurements</a><a id="hubbard_square_initialize_measurements-1"></a><a class="docs-heading-anchor-permalink" href="#hubbard_square_initialize_measurements" title="Permalink"></a></h2><p>Having initialized both our model and the corresponding model parameters, the next step is to initialize the various measurements we want to make during our DQMC simulation. This includes defining the various types of correlation measurements that will be made, which is primarily done using the <a href="../../api/#SmoQyDQMC.initialize_correlation_measurements!"><code>initialize_correlation_measurements!</code></a> function.</p><p>Here the arguments <code>β</code> and <code>Δτ</code> correspond to the inverse temperature and imaginary-time axis discretization constant, which were passed as arguments to the <code>run_simulation</code> function.</p><pre><code class="language-julia hljs"># Initialize the container that measurements will be accumulated into.
-measurement_container = initialize_measurement_container(model_geometry, β, Δτ)
+    # Apply Ising Hubbard-Stranonvich (HS) transformation to decouple the Hubbard interaction,
+    # and initialize the corresponding HS fields that will be sampled in the DQMC simulation.
+    hubbard_stratonovich_params = HubbardIsingHSParameters(
+        β = β, Δτ = Δτ,
+        hubbard_parameters = hubbard_params,
+        rng = rng
+    )</code></pre><p>Let me quickly clarify the difference between the <a href="../../api/#SmoQyDQMC.HubbardParameters"><code>HubbardParameters</code></a> and <a href="../../api/#SmoQyDQMC.HubbardIsingHSParameters"><code>HubbardIsingHSParameters</code></a> types initialized above. The <a href="../../api/#SmoQyDQMC.HubbardParameters"><code>HubbardParameters</code></a> type simply defines the Hubbard interaction parameters, agnostic to Hubbard-Stratonovich (HS) transformation that will be used to decouple the Hubbard interaction. Then the <a href="../../api/#SmoQyDQMC.HubbardIsingHSParameters"><code>HubbardIsingHSParameters</code></a> type actually applies a HS transformation to the Hubbard interaction, with the <code>hubbard_stratonovich_params.s</code> array containing the HS fields that will be sampled during the DQMC simulation.</p><h2 id="hubbard_square_initialize_measurements"><a class="docs-heading-anchor" href="#hubbard_square_initialize_measurements">Initialize meuasurements</a><a id="hubbard_square_initialize_measurements-1"></a><a class="docs-heading-anchor-permalink" href="#hubbard_square_initialize_measurements" title="Permalink"></a></h2><p>Having initialized both our model and the corresponding model parameters, the next step is to initialize the various measurements we want to make during our DQMC simulation. This includes defining the various types of correlation measurements that will be made, which is primarily done using the <a href="../../api/#SmoQyDQMC.initialize_correlation_measurements!"><code>initialize_correlation_measurements!</code></a> function.</p><p>Here the arguments <code>β</code> and <code>Δτ</code> correspond to the inverse temperature and imaginary-time axis discretization constant, which were passed as arguments to the <code>run_simulation</code> function.</p><pre><code class="language-julia hljs">    # Initialize the container that measurements will be accumulated into.
+    measurement_container = initialize_measurement_container(model_geometry, β, Δτ)
 
-# Initialize the tight-binding model related measurements, like the hopping energy.
-initialize_measurements!(measurement_container, tight_binding_model)
+    # Initialize the tight-binding model related measurements, like the hopping energy.
+    initialize_measurements!(measurement_container, tight_binding_model)
 
-# Initialize the Hubbard interaction related measurements.
-initialize_measurements!(measurement_container, hubbard_model)
+    # Initialize the Hubbard interaction related measurements.
+    initialize_measurements!(measurement_container, hubbard_model)
 
-# Initialize the single-particle electron Green&#39;s function measurement.
-initialize_correlation_measurements!(
-    measurement_container = measurement_container,
-    model_geometry = model_geometry,
-    correlation = &quot;greens&quot;,
-    time_displaced = true,
-    pairs = [(1, 1)]
-)
+    # Initialize the single-particle electron Green&#39;s function measurement.
+    initialize_correlation_measurements!(
+        measurement_container = measurement_container,
+        model_geometry = model_geometry,
+        correlation = &quot;greens&quot;,
+        time_displaced = true,
+        pairs = [(1, 1)]
+    )
 
-# Initialize density correlation function measurement.
-initialize_correlation_measurements!(
-    measurement_container = measurement_container,
-    model_geometry = model_geometry,
-    correlation = &quot;density&quot;,
-    time_displaced = false,
-    integrated = true,
-    pairs = [(1, 1)]
-)
+    # Initialize density correlation function measurement.
+    initialize_correlation_measurements!(
+        measurement_container = measurement_container,
+        model_geometry = model_geometry,
+        correlation = &quot;density&quot;,
+        time_displaced = false,
+        integrated = true,
+        pairs = [(1, 1)]
+    )
 
-# Initialize the pair correlation function measurement.
-initialize_correlation_measurements!(
-    measurement_container = measurement_container,
-    model_geometry = model_geometry,
-    correlation = &quot;pair&quot;,
-    time_displaced = false,
-    integrated = true,
-    pairs = [(1, 1)]
-)
+    # Initialize the pair correlation function measurement.
+    initialize_correlation_measurements!(
+        measurement_container = measurement_container,
+        model_geometry = model_geometry,
+        correlation = &quot;pair&quot;,
+        time_displaced = false,
+        integrated = true,
+        pairs = [(1, 1)]
+    )
 
-# Initialize the spin-z correlation function measurement.
-initialize_correlation_measurements!(
-    measurement_container = measurement_container,
-    model_geometry = model_geometry,
-    correlation = &quot;spin_z&quot;,
-    time_displaced = false,
-    integrated = true,
-    pairs = [(1, 1)]
-)</code></pre><p>We also want to define define what we term a composite correlation measurement to measure d-wave pairing tendencies in our Hubbard model. Specifically, we would like to measure the d-wave pair susceptibility</p><p class="math-container">\[\chi_d(\mathbf{q}) = \frac{1}{L^2} \int_0^\beta d\tau \sum_{\mathbf{r}, \mathbf{i}} e^{-\text{i}\mathbf{q}\cdot\mathbf{r}}
+    # Initialize the spin-z correlation function measurement.
+    initialize_correlation_measurements!(
+        measurement_container = measurement_container,
+        model_geometry = model_geometry,
+        correlation = &quot;spin_z&quot;,
+        time_displaced = false,
+        integrated = true,
+        pairs = [(1, 1)]
+    )</code></pre><p>We also want to define define what we term a composite correlation measurement to measure d-wave pairing tendencies in our Hubbard model. Specifically, we would like to measure the d-wave pair susceptibility</p><p class="math-container">\[\chi_d(\mathbf{q}) = \frac{1}{L^2} \int_0^\beta d\tau \sum_{\mathbf{r}, \mathbf{i}} e^{-\text{i}\mathbf{q}\cdot\mathbf{r}}
 \langle \hat{\Delta}^{\phantom\dagger}_{d,\mathbf{i}+\mathbf{r}}(\tau) \hat{\Delta}^{\dagger}_{d,\mathbf{i}}(0) \rangle\]</p><p>for all scattering momentum <span>$\mathbf{q}$</span>, where</p><p class="math-container">\[\hat{\Delta}^{\dagger}_{d,\mathbf{i}}(\tau) = \frac{1}{2}\left[
 (
    \hat{c}^\dagger_{\uparrow,\mathbf{i}+\mathbf{x}} + \hat{c}^\dagger_{\uparrow,\mathbf{i}-\mathbf{x}}
  - \hat{c}^\dagger_{\uparrow,\mathbf{i}+\mathbf{y}} - \hat{c}^\dagger_{\uparrow,\mathbf{i}-\mathbf{y}}
 )
 \hat{c}^\dagger_{\downarrow,\mathbf{i}}
-\right]\]</p><p>is the d-wave pair creation operator. We do this using the <a href="../../api/#SmoQyDQMC.initialize_composite_correlation_measurement!"><code>initialize_composite_correlation_measurement!</code></a> function.</p><pre><code class="language-julia hljs"># Initialize the d-wave pair susceptibility measurement.
-initialize_composite_correlation_measurement!(
-    measurement_container = measurement_container,
-    model_geometry = model_geometry,
-    name = &quot;d-wave&quot;,
-    correlation = &quot;pair&quot;,
-    ids = [bond_px_id, bond_nx_id, bond_py_id, bond_ny_id],
-    coefficients = [0.5, 0.5, -0.5, -0.5],
-    time_displaced = false,
-    integrated = true
-)</code></pre><p>The <a href="../../api/#SmoQyDQMC.initialize_measurement_directories"><code>initialize_measurement_directories</code></a> can now be used used to initialize the various subdirectories in the data folder that the measurements will be written to. Again, for more information refer to the <a href="../../simulation_output/#Simulation-Output-Overview">Simulation Output Overview</a> page.</p><pre><code class="language-julia hljs"># Initialize the sub-directories to which the various measurements will be written.
-initialize_measurement_directories(simulation_info, measurement_container)</code></pre><h2 id="hubbard_square_setup_dqmc"><a class="docs-heading-anchor" href="#hubbard_square_setup_dqmc">Setup DQMC simulation</a><a id="hubbard_square_setup_dqmc-1"></a><a class="docs-heading-anchor-permalink" href="#hubbard_square_setup_dqmc" title="Permalink"></a></h2><p>This section of the code sets up the DQMC simulation by allocating the initializing the relevant types and arrays we will need in the simulation.</p><p>This section of code is perhaps the most opaque and difficult to understand, and will be discussed in more detail once written. That said, you do not need to fully comprehend everything that goes on in this section as most of it is fairly boilerplate, and will not need to be changed much once written. This is true even if you want to modify this script to perform a DQMC simulation for a different Hamiltonian.</p><pre><code class="language-julia hljs"># Allocate FermionPathIntegral type for both the spin-up and spin-down electrons.
-fermion_path_integral_up = FermionPathIntegral(tight_binding_parameters = tight_binding_parameters, β = β, Δτ = Δτ)
-fermion_path_integral_dn = FermionPathIntegral(tight_binding_parameters = tight_binding_parameters, β = β, Δτ = Δτ)
+\right]\]</p><p>is the d-wave pair creation operator. We do this using the <a href="../../api/#SmoQyDQMC.initialize_composite_correlation_measurement!"><code>initialize_composite_correlation_measurement!</code></a> function.</p><pre><code class="language-julia hljs">    # Initialize the d-wave pair susceptibility measurement.
+    initialize_composite_correlation_measurement!(
+        measurement_container = measurement_container,
+        model_geometry = model_geometry,
+        name = &quot;d-wave&quot;,
+        correlation = &quot;pair&quot;,
+        ids = [bond_px_id, bond_nx_id, bond_py_id, bond_ny_id],
+        coefficients = [0.5, 0.5, -0.5, -0.5],
+        time_displaced = false,
+        integrated = true
+    )</code></pre><p>The <a href="../../api/#SmoQyDQMC.initialize_measurement_directories"><code>initialize_measurement_directories</code></a> can now be used used to initialize the various subdirectories in the data folder that the measurements will be written to. Again, for more information refer to the <a href="../../simulation_output/#Simulation-Output-Overview">Simulation Output Overview</a> page.</p><pre><code class="language-julia hljs">    # Initialize the sub-directories to which the various measurements will be written.
+    initialize_measurement_directories(simulation_info, measurement_container)</code></pre><h2 id="hubbard_square_setup_dqmc"><a class="docs-heading-anchor" href="#hubbard_square_setup_dqmc">Setup DQMC simulation</a><a id="hubbard_square_setup_dqmc-1"></a><a class="docs-heading-anchor-permalink" href="#hubbard_square_setup_dqmc" title="Permalink"></a></h2><p>This section of the code sets up the DQMC simulation by allocating the initializing the relevant types and arrays we will need in the simulation.</p><p>This section of code is perhaps the most opaque and difficult to understand, and will be discussed in more detail once written. That said, you do not need to fully comprehend everything that goes on in this section as most of it is fairly boilerplate, and will not need to be changed much once written. This is true even if you want to modify this script to perform a DQMC simulation for a different Hamiltonian.</p><pre><code class="language-julia hljs">    # Allocate FermionPathIntegral type for both the spin-up and spin-down electrons.
+    fermion_path_integral_up = FermionPathIntegral(tight_binding_parameters = tight_binding_parameters, β = β, Δτ = Δτ)
+    fermion_path_integral_dn = FermionPathIntegral(tight_binding_parameters = tight_binding_parameters, β = β, Δτ = Δτ)
 
-# Initialize FermionPathIntegral type for both the spin-up and spin-down electrons to account for Hubbard interaction.
-initialize!(fermion_path_integral_up, fermion_path_integral_dn, hubbard_params)
+    # Initialize FermionPathIntegral type for both the spin-up and spin-down electrons to account for Hubbard interaction.
+    initialize!(fermion_path_integral_up, fermion_path_integral_dn, hubbard_params)
 
-# Initialize FermionPathIntegral type for both the spin-up and spin-down electrons to account for the current
-# Hubbard-Stratonovich field configuration.
-initialize!(fermion_path_integral_up, fermion_path_integral_dn, hubbard_stratonovich_params)
+    # Initialize FermionPathIntegral type for both the spin-up and spin-down electrons to account for the current
+    # Hubbard-Stratonovich field configuration.
+    initialize!(fermion_path_integral_up, fermion_path_integral_dn, hubbard_stratonovich_params)
 
-# Initialize imaginary-time propagators for all imaginary-time slices for spin-up and spin-down electrons.
-Bup = initialize_propagators(fermion_path_integral_up, symmetric=symmetric, checkerboard=checkerboard)
-Bdn = initialize_propagators(fermion_path_integral_dn, symmetric=symmetric, checkerboard=checkerboard)
+    # Initialize imaginary-time propagators for all imaginary-time slices for spin-up and spin-down electrons.
+    Bup = initialize_propagators(fermion_path_integral_up, symmetric=symmetric, checkerboard=checkerboard)
+    Bdn = initialize_propagators(fermion_path_integral_dn, symmetric=symmetric, checkerboard=checkerboard)
 
-# Initialize FermionGreensCalculator type for spin-up and spin-down electrons.
-fermion_greens_calculator_up = dqmcf.FermionGreensCalculator(Bup, β, Δτ, n_stab)
-fermion_greens_calculator_dn = dqmcf.FermionGreensCalculator(Bdn, β, Δτ, n_stab)
+    # Initialize FermionGreensCalculator type for spin-up and spin-down electrons.
+    fermion_greens_calculator_up = dqmcf.FermionGreensCalculator(Bup, β, Δτ, n_stab)
+    fermion_greens_calculator_dn = dqmcf.FermionGreensCalculator(Bdn, β, Δτ, n_stab)
 
-# Allcoate matrices for spin-up and spin-down electron Green&#39;s function matrices.
-Gup = zeros(eltype(Bup[1]), size(Bup[1]))
-Gdn = zeros(eltype(Bdn[1]), size(Bdn[1]))
+    # Allcoate matrices for spin-up and spin-down electron Green&#39;s function matrices.
+    Gup = zeros(eltype(Bup[1]), size(Bup[1]))
+    Gdn = zeros(eltype(Bdn[1]), size(Bdn[1]))
 
-# Initialize the spin-up and spin-down electron Green&#39;s function matrices, also
-# calculating their respective determinants as the same time.
-logdetGup, sgndetGup = dqmcf.calculate_equaltime_greens!(Gup, fermion_greens_calculator_up)
-logdetGdn, sgndetGdn = dqmcf.calculate_equaltime_greens!(Gdn, fermion_greens_calculator_dn)
+    # Initialize the spin-up and spin-down electron Green&#39;s function matrices, also
+    # calculating their respective determinants as the same time.
+    logdetGup, sgndetGup = dqmcf.calculate_equaltime_greens!(Gup, fermion_greens_calculator_up)
+    logdetGdn, sgndetGdn = dqmcf.calculate_equaltime_greens!(Gdn, fermion_greens_calculator_dn)
 
-# Allocate matrices for various time-displaced Green&#39;s function matrices.
-Gup_ττ = similar(Gup) # Gup(τ,τ)
-Gup_τ0 = similar(Gup) # Gup(τ,0)
-Gup_0τ = similar(Gup) # Gup(0,τ)
-Gdn_ττ = similar(Gdn) # Gdn(τ,τ)
-Gdn_τ0 = similar(Gdn) # Gdn(τ,0)
-Gdn_0τ = similar(Gdn) # Gdn(0,τ)
+    # Allocate matrices for various time-displaced Green&#39;s function matrices.
+    Gup_ττ = similar(Gup) # Gup(τ,τ)
+    Gup_τ0 = similar(Gup) # Gup(τ,0)
+    Gup_0τ = similar(Gup) # Gup(0,τ)
+    Gdn_ττ = similar(Gdn) # Gdn(τ,τ)
+    Gdn_τ0 = similar(Gdn) # Gdn(τ,0)
+    Gdn_0τ = similar(Gdn) # Gdn(0,τ)
 
-# Initialize diagonostic parameters to asses numerical stability.
-δG = zero(logdetGup)
-δθ = zero(sgndetGup)</code></pre><p>At the start of this section, two instances of the <a href="../../api/#SmoQyDQMC.FermionPathIntegral"><code>FermionPathIntegral</code></a> type are allocated, one for each electron spin species. Recall that after performing a HS transformation to decouple the Hubbard interaction, the resulting Hamiltonian is quadratic in fermion creation and annihilation operators, but fluctuates in imaginary-time as a result of introducing the HS fields. Therefore, this Hamiltonian may be expressed as</p><p class="math-container">\[\hat{H}_l = \sum_\sigma \hat{\mathbf{c}}_\sigma^\dagger \left[ H_{\sigma,l} \right] \hat{\mathbf{c}}_\sigma
-= \sum_\sigma \hat{\mathbf{c}}_\sigma^\dagger \left[ K_{\sigma,l} + V_{\sigma,l} \right] \hat{\mathbf{c}}_\sigma,\]</p><p>at imaginary-time <span>$\tau = \Delta\tau \cdot l$</span>, where <span>$\hat{\mathbf{c}}_\sigma \ (\hat{\mathbf{c}}_\sigma^\dagger)$</span> is a column (row) vector of spin-<span>$\sigma$</span> electron annihilation (creation) operators for each orbital in the lattice. Here <span>$H_{\sigma,l}$</span> is the spin-<span>$\sigma$</span> Hamiltonian matrix for imaginary-time <span>$\tau$</span>, which can be expressed as the sum of the electron kinetic and potential energy matrices <span>$K_{\sigma,l}$</span> and <span>$V_{\sigma,l}$</span>, respectively. The purpose of the <a href="../../api/#SmoQyDQMC.FermionPathIntegral"><code>FermionPathIntegral</code></a> type is to contain the minimal information required to reconstruct each <span>$K_{\sigma,l}$</span> and <span>$V_{\sigma,l}$</span> matrices. Each instance of the <a href="../../api/#SmoQyDQMC.FermionPathIntegral"><code>FermionPathIntegral</code></a> type is first allocated and initialized to just reflect the non-interacting component of the Hamiltonian. Then the two subsequent <code>initialize!</code> calls modify the <a href="../../api/#SmoQyDQMC.FermionPathIntegral"><code>FermionPathIntegral</code></a> type to reflect the contributions from the Hubbard interaction and initial HS field configuration.</p><p>Then the <a href="../../api/#SmoQyDQMC.initialize_propagators"><code>initialize_propagators</code></a> function allocates and initializes the <span>$B_{\sigma,l}$</span> propagator matrices to reflect the current state of the <span>$K_{\sigma,l}$</span> and <span>$V_{\sigma,l}$</span> matrices as represented by the <a href="../../api/#SmoQyDQMC.FermionPathIntegral"><code>FermionPathIntegral</code></a> type. If <code>symmetric = true</code>, then the propagator matrices take the form</p><p class="math-container">\[B_{\sigma,l} = \left[ e^{-\Delta\tau K_{\sigma,l}/2} \right]^\dagger \cdot e^{-\Delta\tau V_{\sigma,l}} \cdot e^{-\Delta\tau K_{\sigma,l}/2},\]</p><p>whereas if <code>symmetric = false</code> then</p><p class="math-container">\[B_{\sigma,l} = e^{-\Delta\tau V_{\sigma,l}} \cdot e^{-\Delta\tau K_{\sigma,l}}.\]</p><p>If <code>checkerboard = true</code>, then the exponentiated kinetic energy matrices <span>$e^{-\Delta\tau K_{\sigma,l}} \ \left( \text{ or } e^{-\Delta\tau K_{\sigma,l}/2} \right)$</span> are represented using the sparse checkerboard approximation, otherwise they are computed exactly.</p><p>Next, two instances of the <a href="https://smoqysuite.github.io/JDQMCFramework.jl/stable/api/#JDQMCFramework.FermionGreensCalculator"><code>FermionGreensCalculator</code></a> type are initialized, which are used to take care of numerical stabilization behind the scenes in the DQMC simulation. Here <code>n_stab</code> is the period in imaginary-time with which numerical stabilization is performed, and is typically on the order of <span>$n_{\rm stab} \sim 10.$</span></p><p>Now we allocate and initialize the the equal-time Green&#39;s function matrix <span>$G_\sigma(0,0)$</span> for both spin species (<code>Gup</code> and <code>Gdn</code>). The initiliazation process also returns <span>$\log | \det G_\sigma(0,0) |$</span> (<code>logdetGup</code> and <code>logdetGdn</code>) and <span>${\rm sgn} \det G_\sigma(0,0)$</span> (<code>sgndetGup</code> and <code>sgndetGdn</code>).</p><p>Finally, we allocate matrices to represent the equal-time and time-displaced Green&#39;s function matrices <span>$G_\sigma(\tau,\tau)$</span> (<code>Gup_ττ</code> and <code>Gdn_ττ</code>), <span>$G_\sigma(\tau, 0)$</span> (<code>Gup_τ0</code> and <code>Gdn_τ0</code>), and <span>$G_\sigma(0,\tau)$</span> (<code>Gup_0τ</code> and <code>Gdn_0τ</code>) for <span>$\tau \ne 0$</span>. All of these various Green&#39;s function matrices are required if we want to make time-displaced correlation function measurements.</p><p>Lastly, we initialize two diagonostic parameters <code>δG</code> and <code>δθ</code> to asses numerical stability during the simulation. The <code>δG</code>  parameter is particularly important to keep track of during the simulation, and is defined as</p><p class="math-container">\[\delta G = \max \left( | G^{\rm stab.}_\sigma(0,0) - G^{\rm naive}_\sigma(0,0) | \right),\]</p><p>i.e. the maximum magnitude numerical error corrected by numerical stabilization for any Green&#39;s function matrix element. The <span>$\delta \theta$</span> diagnostic parameter reports the error in the phase of the fermion determnant as it can in general be complex, but this is less important to keep track of in most situations.</p><h2 id="Thermalize-system"><a class="docs-heading-anchor" href="#Thermalize-system">Thermalize system</a><a id="Thermalize-system-1"></a><a class="docs-heading-anchor-permalink" href="#Thermalize-system" title="Permalink"></a></h2><p>The next section of code performs updates to thermalize the system prior to beginning measurements. The structure of this function should be fairly inuitive, mainly consisting of a loop inside of which the <a href="../../api/#SmoQyDQMC.local_updates!-Union{Tuple{P}, Tuple{E}, Tuple{T}, Tuple{Matrix{T}, E, T, Matrix{T}, E, T, HubbardIsingHSParameters{E}}} where {T&lt;:Number, E&lt;:AbstractFloat, P&lt;:AbstractPropagator{T, E}}"><code>local_updates!</code></a> function is called to sweep through all imaginary-time slices and orbitals, attempting an update to each HS field. Here, <code>N_therm</code> the number of thermalization sweeps that will be performed.</p><p>Lastly, if the <a href="../../api/#SmoQyDQMC.local_updates!-Union{Tuple{P}, Tuple{E}, Tuple{T}, Tuple{Matrix{T}, E, T, Matrix{T}, E, T, HubbardIsingHSParameters{E}}} where {T&lt;:Number, E&lt;:AbstractFloat, P&lt;:AbstractPropagator{T, E}}"><code>local_updates!</code></a> argument <code>update_stabilization_frequency = true</code>, then the <code>δG_max</code> parameter acts a maximum threshold for <code>δG</code>. If <code>δG</code> exceeds <code>δG_max</code>, then <code>n_stab</code> is decrimented by one (the frequency of numerical stabilization is increased) and <code>δG</code> is reset to zero. In the case <code>update_stabilization_frequency = false</code>, then <code>δG_max</code> doesn&#39;t do anything and <code>n_stab</code> remains unchanged during the simulation, with <code>δG</code> is simply reporting the maximum observed numerical error during the simulation.</p><pre><code class="language-julia hljs"># Initialize average acceptance rate variable.
-additional_info[&quot;avg_acceptance_rate&quot;] = 0.0
+    # Initialize diagonostic parameters to asses numerical stability.
+    δG = zero(logdetGup)
+    δθ = zero(sgndetGup)</code></pre><p>At the start of this section, two instances of the <a href="../../api/#SmoQyDQMC.FermionPathIntegral"><code>FermionPathIntegral</code></a> type are allocated, one for each electron spin species. Recall that after performing a HS transformation to decouple the Hubbard interaction, the resulting Hamiltonian is quadratic in fermion creation and annihilation operators, but fluctuates in imaginary-time as a result of introducing the HS fields. Therefore, this Hamiltonian may be expressed as</p><p class="math-container">\[\hat{H}_l = \sum_\sigma \hat{\mathbf{c}}_\sigma^\dagger \left[ H_{\sigma,l} \right] \hat{\mathbf{c}}_\sigma
+= \sum_\sigma \hat{\mathbf{c}}_\sigma^\dagger \left[ K_{\sigma,l} + V_{\sigma,l} \right] \hat{\mathbf{c}}_\sigma,\]</p><p>at imaginary-time <span>$\tau = \Delta\tau \cdot l$</span>, where <span>$\hat{\mathbf{c}}_\sigma \ (\hat{\mathbf{c}}_\sigma^\dagger)$</span> is a column (row) vector of spin-<span>$\sigma$</span> electron annihilation (creation) operators for each orbital in the lattice. Here <span>$H_{\sigma,l}$</span> is the spin-<span>$\sigma$</span> Hamiltonian matrix for imaginary-time <span>$\tau$</span>, which can be expressed as the sum of the electron kinetic and potential energy matrices <span>$K_{\sigma,l}$</span> and <span>$V_{\sigma,l}$</span>, respectively. The purpose of the <a href="../../api/#SmoQyDQMC.FermionPathIntegral"><code>FermionPathIntegral</code></a> type is to contain the minimal information required to reconstruct each <span>$K_{\sigma,l}$</span> and <span>$V_{\sigma,l}$</span> matrices. Each instance of the <a href="../../api/#SmoQyDQMC.FermionPathIntegral"><code>FermionPathIntegral</code></a> type is first allocated and initialized to just reflect the non-interacting component of the Hamiltonian. Then the two subsequent <code>initialize!</code> calls modify the <a href="../../api/#SmoQyDQMC.FermionPathIntegral"><code>FermionPathIntegral</code></a> type to reflect the contributions from the Hubbard interaction and initial HS field configuration.</p><p>Then the <a href="../../api/#SmoQyDQMC.initialize_propagators"><code>initialize_propagators</code></a> function allocates and initializes the <span>$B_{\sigma,l}$</span> propagator matrices to reflect the current state of the <span>$K_{\sigma,l}$</span> and <span>$V_{\sigma,l}$</span> matrices as represented by the <a href="../../api/#SmoQyDQMC.FermionPathIntegral"><code>FermionPathIntegral</code></a> type. If <code>symmetric = true</code>, then the propagator matrices take the form</p><p class="math-container">\[B_{\sigma,l} = \left[ e^{-\Delta\tau K_{\sigma,l}/2} \right]^\dagger \cdot e^{-\Delta\tau V_{\sigma,l}} \cdot e^{-\Delta\tau K_{\sigma,l}/2},\]</p><p>whereas if <code>symmetric = false</code> then</p><p class="math-container">\[B_{\sigma,l} = e^{-\Delta\tau V_{\sigma,l}} \cdot e^{-\Delta\tau K_{\sigma,l}}.\]</p><p>If <code>checkerboard = true</code>, then the exponentiated kinetic energy matrices <span>$e^{-\Delta\tau K_{\sigma,l}} \ \left( \text{ or } e^{-\Delta\tau K_{\sigma,l}/2} \right)$</span> are represented using the sparse checkerboard approximation, otherwise they are computed exactly.</p><p>Next, two instances of the <a href="https://smoqysuite.github.io/JDQMCFramework.jl/stable/api/#JDQMCFramework.FermionGreensCalculator"><code>FermionGreensCalculator</code></a> type are initialized, which are used to take care of numerical stabilization behind the scenes in the DQMC simulation. Here <code>n_stab</code> is the period in imaginary-time with which numerical stabilization is performed, and is typically on the order of <span>$n_{\rm stab} \sim 10.$</span></p><p>Now we allocate and initialize the the equal-time Green&#39;s function matrix <span>$G_\sigma(0,0)$</span> for both spin species (<code>Gup</code> and <code>Gdn</code>). The initiliazation process also returns <span>$\log | \det G_\sigma(0,0) |$</span> (<code>logdetGup</code> and <code>logdetGdn</code>) and <span>${\rm sgn} \det G_\sigma(0,0)$</span> (<code>sgndetGup</code> and <code>sgndetGdn</code>).</p><p>Finally, we allocate matrices to represent the equal-time and time-displaced Green&#39;s function matrices <span>$G_\sigma(\tau,\tau)$</span> (<code>Gup_ττ</code> and <code>Gdn_ττ</code>), <span>$G_\sigma(\tau, 0)$</span> (<code>Gup_τ0</code> and <code>Gdn_τ0</code>), and <span>$G_\sigma(0,\tau)$</span> (<code>Gup_0τ</code> and <code>Gdn_0τ</code>) for <span>$\tau \ne 0$</span>. All of these various Green&#39;s function matrices are required if we want to make time-displaced correlation function measurements.</p><p>Lastly, we initialize two diagonostic parameters <code>δG</code> and <code>δθ</code> to asses numerical stability during the simulation. The <code>δG</code>  parameter is particularly important to keep track of during the simulation, and is defined as</p><p class="math-container">\[\delta G = \max \left( | G^{\rm stab.}_\sigma(0,0) - G^{\rm naive}_\sigma(0,0) | \right),\]</p><p>i.e. the maximum magnitude numerical error corrected by numerical stabilization for any Green&#39;s function matrix element. The <span>$\delta \theta$</span> diagnostic parameter reports the error in the phase of the fermion determnant as it can in general be complex, but this is less important to keep track of in most situations.</p><h2 id="Thermalize-system"><a class="docs-heading-anchor" href="#Thermalize-system">Thermalize system</a><a id="Thermalize-system-1"></a><a class="docs-heading-anchor-permalink" href="#Thermalize-system" title="Permalink"></a></h2><p>The next section of code performs updates to thermalize the system prior to beginning measurements. The structure of this function should be fairly inuitive, mainly consisting of a loop inside of which the <a href="../../api/#SmoQyDQMC.local_updates!-Union{Tuple{P}, Tuple{E}, Tuple{T}, Tuple{Matrix{T}, E, T, Matrix{T}, E, T, HubbardIsingHSParameters{E}}} where {T&lt;:Number, E&lt;:AbstractFloat, P&lt;:AbstractPropagator{T, E}}"><code>local_updates!</code></a> function is called to sweep through all imaginary-time slices and orbitals, attempting an update to each HS field. Here, <code>N_therm</code> the number of thermalization sweeps that will be performed.</p><p>Lastly, if the <a href="../../api/#SmoQyDQMC.local_updates!-Union{Tuple{P}, Tuple{E}, Tuple{T}, Tuple{Matrix{T}, E, T, Matrix{T}, E, T, HubbardIsingHSParameters{E}}} where {T&lt;:Number, E&lt;:AbstractFloat, P&lt;:AbstractPropagator{T, E}}"><code>local_updates!</code></a> argument <code>update_stabilization_frequency = true</code>, then the <code>δG_max</code> parameter acts a maximum threshold for <code>δG</code>. If <code>δG</code> exceeds <code>δG_max</code>, then <code>n_stab</code> is decrimented by one (the frequency of numerical stabilization is increased) and <code>δG</code> is reset to zero. In the case <code>update_stabilization_frequency = false</code>, then <code>δG_max</code> doesn&#39;t do anything and <code>n_stab</code> remains unchanged during the simulation, with <code>δG</code> is simply reporting the maximum observed numerical error during the simulation.</p><pre><code class="language-julia hljs">    # Initialize average acceptance rate variable.
+    additional_info[&quot;avg_acceptance_rate&quot;] = 0.0
 
-# Iterate over number of thermalization updates to perform.
-for n in 1:N_therm
-
-    # Perform sweep all imaginary-time slice and orbitals, attempting an update to every HS field.
-    (acceptance_rate, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = local_updates!(
-        Gup, logdetGup, sgndetGup, Gdn, logdetGdn, sgndetGdn,
-        hubbard_stratonovich_params,
-        fermion_path_integral_up = fermion_path_integral_up,
-        fermion_path_integral_dn = fermion_path_integral_dn,
-        fermion_greens_calculator_up = fermion_greens_calculator_up,
-        fermion_greens_calculator_dn = fermion_greens_calculator_dn,
-        Bup = Bup, Bdn = Bdn, δG_max = δG_max, δG = δG, δθ = δθ, rng = rng,
-        update_stabilization_frequency = true
-    )
-
-    # Record acceptance rate for sweep.
-    additional_info[&quot;avg_acceptance_rate&quot;] += acceptance_rate
-end</code></pre><h2 id="hubbard_square_make_measurements"><a class="docs-heading-anchor" href="#hubbard_square_make_measurements">Make measurements</a><a id="hubbard_square_make_measurements-1"></a><a class="docs-heading-anchor-permalink" href="#hubbard_square_make_measurements" title="Permalink"></a></h2><p>In this next section of code we continue to sample the HS field with <a href="../../api/#SmoQyDQMC.local_updates!-Union{Tuple{P}, Tuple{E}, Tuple{T}, Tuple{Matrix{T}, E, T, Matrix{T}, E, T, HubbardIsingHSParameters{E}}} where {T&lt;:Number, E&lt;:AbstractFloat, P&lt;:AbstractPropagator{T, E}}"><code>local_updates!</code></a> function, but begin making measurements as well. Here, <code>N_updates</code> refers to the number of times <a href="../../api/#SmoQyDQMC.local_updates!-Union{Tuple{P}, Tuple{E}, Tuple{T}, Tuple{Matrix{T}, E, T, Matrix{T}, E, T, HubbardIsingHSParameters{E}}} where {T&lt;:Number, E&lt;:AbstractFloat, P&lt;:AbstractPropagator{T, E}}"><code>local_updates!</code></a> is called, as well as the number of times measurements are made using the <a href="../../api/#SmoQyDQMC.make_measurements!"><code>make_measurements!</code></a> function. The parameter <code>N_bins</code> then controls the number of times bin-averaged measurements are written to binary <a href="https://github.com/JuliaIO/JLD2.jl.git">JLD2</a> files, subject to the constraint that <code>(N_updates % N_bins) == 0</code>. Therefore, the number of measurements that are averaged over per bin is given by <code>bin_size = N_updates ÷ N_bins</code>. The bin-averaged measurements are written to file once <code>bin_size</code> measurements are accumulated using the <a href="../../api/#SmoQyDQMC.write_measurements!"><code>write_measurements!</code></a> function.</p><pre><code class="language-julia hljs"># Reset diagonostic parameters used to monitor numerical stability to zero.
-δG = zero(logdetGup)
-δθ = zero(sgndetGup)
-
-# Calculate the bin size.
-bin_size = N_updates ÷ N_bins
-
-# Iterate over bins.
-for bin in 1:N_bins
-
-    # Iterate over update sweeps and measurements in bin.
-    for n in 1:bin_size
+    # Iterate over number of thermalization updates to perform.
+    for n in 1:N_therm
 
         # Perform sweep all imaginary-time slice and orbitals, attempting an update to every HS field.
         (acceptance_rate, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = local_updates!(
@@ -326,51 +299,78 @@ for bin in 1:N_bins
             update_stabilization_frequency = true
         )
 
-        # Record acceptance rate.
+        # Record acceptance rate for sweep.
         additional_info[&quot;avg_acceptance_rate&quot;] += acceptance_rate
+    end</code></pre><h2 id="hubbard_square_make_measurements"><a class="docs-heading-anchor" href="#hubbard_square_make_measurements">Make measurements</a><a id="hubbard_square_make_measurements-1"></a><a class="docs-heading-anchor-permalink" href="#hubbard_square_make_measurements" title="Permalink"></a></h2><p>In this next section of code we continue to sample the HS field with <a href="../../api/#SmoQyDQMC.local_updates!-Union{Tuple{P}, Tuple{E}, Tuple{T}, Tuple{Matrix{T}, E, T, Matrix{T}, E, T, HubbardIsingHSParameters{E}}} where {T&lt;:Number, E&lt;:AbstractFloat, P&lt;:AbstractPropagator{T, E}}"><code>local_updates!</code></a> function, but begin making measurements as well. Here, <code>N_updates</code> refers to the number of times <a href="../../api/#SmoQyDQMC.local_updates!-Union{Tuple{P}, Tuple{E}, Tuple{T}, Tuple{Matrix{T}, E, T, Matrix{T}, E, T, HubbardIsingHSParameters{E}}} where {T&lt;:Number, E&lt;:AbstractFloat, P&lt;:AbstractPropagator{T, E}}"><code>local_updates!</code></a> is called, as well as the number of times measurements are made using the <a href="../../api/#SmoQyDQMC.make_measurements!"><code>make_measurements!</code></a> function. The parameter <code>N_bins</code> then controls the number of times bin-averaged measurements are written to binary <a href="https://github.com/JuliaIO/JLD2.jl.git">JLD2</a> files, subject to the constraint that <code>(N_updates % N_bins) == 0</code>. Therefore, the number of measurements that are averaged over per bin is given by <code>bin_size = N_updates ÷ N_bins</code>. The bin-averaged measurements are written to file once <code>bin_size</code> measurements are accumulated using the <a href="../../api/#SmoQyDQMC.write_measurements!"><code>write_measurements!</code></a> function.</p><pre><code class="language-julia hljs">    # Reset diagonostic parameters used to monitor numerical stability to zero.
+    δG = zero(logdetGup)
+    δθ = zero(sgndetGup)
 
-        # Make measurements.
-        (logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = make_measurements!(
-            measurement_container,
-            logdetGup, sgndetGup, Gup, Gup_ττ, Gup_τ0, Gup_0τ,
-            logdetGdn, sgndetGdn, Gdn, Gdn_ττ, Gdn_τ0, Gdn_0τ,
-            fermion_path_integral_up = fermion_path_integral_up,
-            fermion_path_integral_dn = fermion_path_integral_dn,
-            fermion_greens_calculator_up = fermion_greens_calculator_up,
-            fermion_greens_calculator_dn = fermion_greens_calculator_dn,
-            Bup = Bup, Bdn = Bdn, δG_max = δG_max, δG = δG, δθ = δθ,
-            model_geometry = model_geometry, tight_binding_parameters = tight_binding_parameters,
-            coupling_parameters = (hubbard_params, hubbard_stratonovich_params)
+    # Calculate the bin size.
+    bin_size = N_updates ÷ N_bins
+
+    # Iterate over bins.
+    for bin in 1:N_bins
+
+        # Iterate over update sweeps and measurements in bin.
+        for n in 1:bin_size
+
+            # Perform sweep all imaginary-time slice and orbitals, attempting an update to every HS field.
+            (acceptance_rate, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = local_updates!(
+                Gup, logdetGup, sgndetGup, Gdn, logdetGdn, sgndetGdn,
+                hubbard_stratonovich_params,
+                fermion_path_integral_up = fermion_path_integral_up,
+                fermion_path_integral_dn = fermion_path_integral_dn,
+                fermion_greens_calculator_up = fermion_greens_calculator_up,
+                fermion_greens_calculator_dn = fermion_greens_calculator_dn,
+                Bup = Bup, Bdn = Bdn, δG_max = δG_max, δG = δG, δθ = δθ, rng = rng,
+                update_stabilization_frequency = true
+            )
+
+            # Record acceptance rate.
+            additional_info[&quot;avg_acceptance_rate&quot;] += acceptance_rate
+
+            # Make measurements.
+            (logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = make_measurements!(
+                measurement_container,
+                logdetGup, sgndetGup, Gup, Gup_ττ, Gup_τ0, Gup_0τ,
+                logdetGdn, sgndetGdn, Gdn, Gdn_ττ, Gdn_τ0, Gdn_0τ,
+                fermion_path_integral_up = fermion_path_integral_up,
+                fermion_path_integral_dn = fermion_path_integral_dn,
+                fermion_greens_calculator_up = fermion_greens_calculator_up,
+                fermion_greens_calculator_dn = fermion_greens_calculator_dn,
+                Bup = Bup, Bdn = Bdn, δG_max = δG_max, δG = δG, δθ = δθ,
+                model_geometry = model_geometry, tight_binding_parameters = tight_binding_parameters,
+                coupling_parameters = (hubbard_params, hubbard_stratonovich_params)
+            )
+        end
+
+        # Write the bin-averaged measurements to file.
+        write_measurements!(
+            measurement_container = measurement_container,
+            simulation_info = simulation_info,
+            model_geometry = model_geometry,
+            bin = bin,
+            bin_size = bin_size,
+            Δτ = Δτ
         )
     end
 
-    # Write the bin-averaged measurements to file.
-    write_measurements!(
-        measurement_container = measurement_container,
-        simulation_info = simulation_info,
-        model_geometry = model_geometry,
-        bin = bin,
-        bin_size = bin_size,
-        Δτ = Δτ
-    )
-end
+    # Normalize acceptance rate.
+    additional_info[&quot;avg_acceptance_rate&quot;] /=  (N_therm + N_updates)</code></pre><p>Record final stabilization period used at the end of the simulation.</p><pre><code class="language-julia hljs">    additional_info[&quot;n_stab_final&quot;] = fermion_greens_calculator_up.n_stab
 
-# Normalize acceptance rate.
-additional_info[&quot;avg_acceptance_rate&quot;] /=  (N_therm + N_updates)</code></pre><p>Record final stabilization period used at the end of the simulation.</p><pre><code class="language-julia hljs">additional_info[&quot;n_stab_final&quot;] = fermion_greens_calculator_up.n_stab
+    # Record largest numerical error.
+    additional_info[&quot;dG&quot;] = δG
 
-# Record largest numerical error.
-additional_info[&quot;dG&quot;] = δG
+    # Write simulation summary TOML file.
+    save_simulation_info(simulation_info, additional_info)</code></pre><h2 id="hubbard_square_process_results"><a class="docs-heading-anchor" href="#hubbard_square_process_results">Process results</a><a id="hubbard_square_process_results-1"></a><a class="docs-heading-anchor-permalink" href="#hubbard_square_process_results" title="Permalink"></a></h2><p>In this final section of code we process the binned data, calculating final estimates for the mean and error of all measured observables. The final statistics are written to CSV files using the function <a href="../../api/#SmoQyDQMC.process_measurements"><code>process_measurements</code></a> function. Inside this function the binned data gets further rebinned into <code>n_bins</code>, where <code>n_bins</code> is any positive integer satisfying the constraints <code>(N_bins ≥ n_bin)</code> and <code>(N_bins % n_bins == 0)</code>. Again, for more information on how to interpret the output refer the the <a href="../../simulation_output/#Simulation-Output-Overview">Simulation Output Overview</a> page.</p><pre><code class="language-julia hljs">    # Set the number of bins used to calculate the error in measured observables.
+    n_bins = N_bins
 
-# Write simulation summary TOML file.
-save_simulation_info(simulation_info, additional_info)</code></pre><h2 id="hubbard_square_process_results"><a class="docs-heading-anchor" href="#hubbard_square_process_results">Process results</a><a id="hubbard_square_process_results-1"></a><a class="docs-heading-anchor-permalink" href="#hubbard_square_process_results" title="Permalink"></a></h2><p>In this final section of code we process the binned data, calculating final estimates for the mean and error of all measured observables. The final statistics are written to CSV files using the function <a href="../../api/#SmoQyDQMC.process_measurements"><code>process_measurements</code></a> function. Inside this function the binned data gets further rebinned into <code>n_bins</code>, where <code>n_bins</code> is any positive integer satisfying the constraints <code>(N_bins ≥ n_bin)</code> and <code>(N_bins % n_bins == 0)</code>. Again, for more information on how to interpret the output refer the the <a href="../../simulation_output/#Simulation-Output-Overview">Simulation Output Overview</a> page.</p><pre><code class="language-julia hljs"># Set the number of bins used to calculate the error in measured observables.
-n_bins = N_bins
+    # Process the simulation results, calculating final error bars for all measurements,
+    # writing final statisitics to CSV files.
+    process_measurements(simulation_info.datafolder, n_bins)</code></pre><p>Lastly, it is worth mentioning that running many DQMC simulations will generate many seperate binary files, which can eventually exceed the file quota limit on the system. To help prevent this problem from arising, we can use the function <a href="../../api/#SmoQyDQMC.compress_jld2_bins"><code>compress_jld2_bins</code></a> to merge all the seperate <a href="https://github.com/JuliaIO/JLD2.jl.git">JLD2</a> binary files into a single compressed one. However, to go back and reanalyze the binned binary data  in the future, it will first need to be decompressed using the <a href="../../api/#SmoQyDQMC.decompress_jld2_bins"><code>decompress_jld2_bins</code></a> method. Alternately, if storage space becomes an issue and you are certain that you no longer need binary binned data, you can delete it using the <a href="../../api/#SmoQyDQMC.delete_jld2_bins"><code>delete_jld2_bins</code></a> function. Keep in mind though, once the binned binary data is deleted it cannot be recovered!</p><pre><code class="language-julia hljs">    # Merge binary files containing binned data into a single file.
+    compress_jld2_bins(folder = simulation_info.datafolder)
 
-# Process the simulation results, calculating final error bars for all measurements,
-# writing final statisitics to CSV files.
-process_measurements(simulation_info.datafolder, n_bins)</code></pre><p>Lastly, it is worth mentioning that running many DQMC simulations will generate many seperate binary files, which can eventually exceed the file quota limit on the system. To help prevent this problem from arising, we can use the function <a href="../../api/#SmoQyDQMC.compress_jld2_bins"><code>compress_jld2_bins</code></a> to merge all the seperate <a href="https://github.com/JuliaIO/JLD2.jl.git">JLD2</a> binary files into a single compressed one. However, to go back and reanalyze the binned binary data  in the future, it will first need to be decompressed using the <a href="../../api/#SmoQyDQMC.decompress_jld2_bins"><code>decompress_jld2_bins</code></a> method. Alternately, if storage space becomes an issue and you are certain that you no longer need binary binned data, you can delete it using the <a href="../../api/#SmoQyDQMC.delete_jld2_bins"><code>delete_jld2_bins</code></a> function. Keep in mind though, once the binned binary data is deleted it cannot be recovered!</p><pre><code class="language-julia hljs"># Merge binary files containing binned data into a single file.
-compress_jld2_bins(folder = simulation_info.datafolder)
-
-return nothing
+    return nothing
 end # end of run_simulation function</code></pre><h2 id="Execute-script"><a class="docs-heading-anchor" href="#Execute-script">Execute script</a><a id="Execute-script-1"></a><a class="docs-heading-anchor-permalink" href="#Execute-script" title="Permalink"></a></h2><p>DQMC simulations are typically run from the command line as jobs on a computing cluster. With this in mind, the following block of code only executes if the Julia script is run from the command line, also reading in additional command line arguments.</p><pre><code class="language-julia hljs"># Only excute if the script is run directly from the command line.
 if abspath(PROGRAM_FILE) == @__FILE__
 
@@ -386,4 +386,4 @@ if abspath(PROGRAM_FILE) == @__FILE__
         N_updates = parse(Int,     ARGS[8]),
         N_bins    = parse(Int,     ARGS[9])
     )
-end</code></pre><p>For instance, the command</p><pre><code class="nohighlight hljs">&gt; julia hubbard_square.jl 1 5.0 -0.25 -2.0 4 4.0 2500 10000 100</code></pre><p>runs a DQMC simulation of a <span>$N = 4 \times 4$</span> doped square Hubbard model at inverse temperature <span>$\beta = 4.0$</span> with interaction strength <span>$U = 5.0,$</span> chemical potential <span>$\mu = -2.0$</span> and next-nearest-neighbor hopping amplitude <span>$t^\prime = -0.25$</span>. In the DQMC simulation, <span>$2500$</span> sweeps through the lattice are be performed to thermalize the system. Then an additional <span>$10,000$</span> sweeps are performed, after each of which measurements are made. During the simulation, bin-averaged measurements are written to file <span>$100$</span> times, with each bin of data containing the average of <span>$10,000/100 = 100$</span> sequential measurements.</p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../../api/">« API</a><a class="docs-footer-nextpage" href="../holstein_honeycomb/">Honeycomb Holstein Model »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.10.1 on <span class="colophon-date" title="Thursday 10 April 2025 15:45">Thursday 10 April 2025</span>. Using Julia version 1.11.4.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+end</code></pre><p>For instance, the command</p><pre><code class="nohighlight hljs">&gt; julia hubbard_square.jl 1 5.0 -0.25 -2.0 4 4.0 2500 10000 100</code></pre><p>runs a DQMC simulation of a <span>$N = 4 \times 4$</span> doped square Hubbard model at inverse temperature <span>$\beta = 4.0$</span> with interaction strength <span>$U = 5.0,$</span> chemical potential <span>$\mu = -2.0$</span> and next-nearest-neighbor hopping amplitude <span>$t^\prime = -0.25$</span>. In the DQMC simulation, <span>$2500$</span> sweeps through the lattice are be performed to thermalize the system. Then an additional <span>$10,000$</span> sweeps are performed, after each of which measurements are made. During the simulation, bin-averaged measurements are written to file <span>$100$</span> times, with each bin of data containing the average of <span>$10,000/100 = 100$</span> sequential measurements.</p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../../api/">« API</a><a class="docs-footer-nextpage" href="../holstein_honeycomb/">Honeycomb Holstein Model »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.10.1 on <span class="colophon-date" title="Wednesday 16 April 2025 00:39">Wednesday 16 April 2025</span>. Using Julia version 1.11.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
