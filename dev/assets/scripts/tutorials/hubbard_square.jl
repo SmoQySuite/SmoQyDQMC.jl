@@ -384,7 +384,7 @@ function run_simulation(;
 
     # Process the simulation results, calculating final error bars for all measurements,
     # writing final statisitics to CSV files.
-    process_measurements(simulation_info.datafolder, n_bins)
+    process_measurements(simulation_info.datafolder, n_bins, time_displaced = false)
 
     # Merge binary files containing binned data into a single file.
     compress_jld2_bins(folder = simulation_info.datafolder)
