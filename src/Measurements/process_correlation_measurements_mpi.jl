@@ -1,5 +1,6 @@
 function process_correlation_measurements(
     comm::MPI.Comm,
+    folder::String,
     N_bins::Int,
     pIDs::Vector{Int} = Int[],
     types::Vector{String} = ["equal-time", "time-displaced", "integrated"],

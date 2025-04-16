@@ -116,7 +116,7 @@ function radial_update!(
     d = count(m -> isfinite(m), M′)
 
     # calculate standard deviation for normal distribution
-    σR = σR / sqrt(d)
+    σR = σ / sqrt(d)
 
     # randomly sample expansion/contraction coefficient
     γ = randn(rng) * σR

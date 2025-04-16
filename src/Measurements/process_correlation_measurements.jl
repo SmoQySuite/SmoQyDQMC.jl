@@ -13,6 +13,7 @@
 
     function process_correlation_measurements(
         comm::MPI.Comm,
+        folder::String,
         N_bins::Int,
         pIDs::Vector{Int} = Int[],
         types::Vector{String} = ["equal-time", "time-displaced", "integrated"],
@@ -678,33 +679,6 @@ end
 
 
 # read in equal-time or integrated correlation function
-function read_correlation_measurement(
-    folder::String,
-    correlation::String,
-    type::String,
-    space::String,
-    n_pair::Int,
-    model_geometry::ModelGeometry{D,T,N},
-    pID::Int,
-    bin_intervals::Vector{UnitRange{Int}},
-) where {D, T<:AbstractFloat, N}
-
-    @assert type in ("equal-time", "integrated")
-    @assert space in ("position", "momentum")
-
-    # get lattice size
-    lattice = model_geometry.lattice::Lattice{D}
-    L = lattice.L
-
-    # container for binned correlation data
-    binned_correlation = zeros(Complex{T}, N_bins, L...)
-
-    # read in binned correlation
-    read_correlation_measurement!(binned_correlation, folder, correlation, type, space, n_pair, pID, bin_intervals)
-
-    return binned_correlation
-end
-
 function read_correlation_measurement!(
     binned_correlation::AbstractArray{Complex{T}},
     folder::String,
@@ -753,32 +727,6 @@ end
 
 
 # read in equal-time or integrated composite correlation function
-function read_correlation_measurement(
-    folder::String,
-    correlation::String,
-    type::String,
-    space::String,
-    model_geometry::ModelGeometry{D,T,N},
-    pID::Int,
-    bin_intervals::Vector{UnitRange{Int}},
-) where {D, T<:AbstractFloat, N}
-
-    @assert type in ("equal-time", "integrated")
-    @assert space in ("position", "momentum")
-
-    # get lattice size
-    lattice = model_geometry.lattice::Lattice{D}
-    L = lattice.L
-
-    # container for binned correlation data
-    binned_correlation = zeros(Complex{T}, N_bins, L...)
-
-    # read in binned correlation
-    read_correlation_measurement!(binned_correlation, folder, correlation, type, space, pID, bin_intervals)
-
-    return binned_correlation
-end
-
 function read_correlation_measurement!(
     binned_correlation::AbstractArray{Complex{T}},
     folder::String,
@@ -826,30 +774,6 @@ end
 
 
 # read in time-displaced correlation function
-function read_correlation_measurement(
-    folder::String,
-    correlation::String,
-    l::Int,
-    space::String,
-    n_pair::Int,
-    model_geometry::ModelGeometry{D,T,N},
-    pID::Int,
-    bin_intervals::Vector{UnitRange{Int}},
-) where {D, T<:AbstractFloat, N}
-
-    # get lattice size
-    lattice = model_geometry.lattice::Lattice{D}
-    L = lattice.L
-
-    # container for binned correlation data
-    binned_correlation = zeros(Complex{T}, N_bins, L...)
-
-    # read in binned correlation
-    read_correlation_measurement!(binned_correlation, folder, correlation, l, space, n_pair, pID, bin_intervals)
-
-    return binned_correlation
-end
-
 function read_correlation_measurement!(
     binned_correlation::AbstractArray{Complex{T}},
     folder::String,
@@ -897,29 +821,6 @@ end
 
 
 # read in time-displaced composite correlation function
-function read_correlation_measurement(
-    folder::String,
-    correlation::String,
-    l::Int,
-    space::String,
-    model_geometry::ModelGeometry{D,T,N},
-    pID::Int,
-    bin_intervals::Vector{UnitRange{Int}},
-) where {D, T<:AbstractFloat, N}
-
-    # get lattice size
-    lattice = model_geometry.lattice::Lattice{D}
-    L = lattice.L
-
-    # container for binned correlation data
-    binned_correlation = zeros(Complex{T}, N_bins, L...)
-
-    # read in binned correlation
-    read_correlation_measurement!(binned_correlation, folder, correlation, l, space, pID, bin_intervals)
-
-    return binned_correlation
-end
-
 function read_correlation_measurement!(
     binned_correlation::AbstractArray{Complex{T}},
     folder::String,

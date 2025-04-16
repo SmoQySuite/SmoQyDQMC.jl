@@ -1775,10 +1775,10 @@ function make_time_displaced_measurements!(
                 bond_0 = bonds[bond_id_0]
                 bond_1 = bonds[bond_id_1]
                 # get the effective hopping amptlitudes for each of the two hopping ID's in question
-                tup0 = @view tup[bond_slices[hopping_id_0], Lτ]
-                tup0′ = reshape(tup0, lattice.L...)
-                tdn1 = @view tdn[bond_slices[hopping_id_1], mod1(l,Lτ)]
-                tdn1′ = reshape(tdn1, lattice.L...)
+                tdn0 = @view tup[bond_slices[hopping_id_0], Lτ]
+                tdn0′ = reshape(tdn0, lattice.L...)
+                tup1 = @view tdn[bond_slices[hopping_id_1], mod1(l,Lτ)]
+                tup1′ = reshape(tup1, lattice.L...)
                 # measure the current-current correlation
                 correlation_array = selectdim(correlations[i], D+1, l+1)
                 current_correlation!(correlation_array, bond_1, bond_0, tup1′, tdn0′, unit_cell, lattice,
@@ -1803,10 +1803,10 @@ function make_time_displaced_measurements!(
                 bond_0 = bonds[bond_id_0]
                 bond_1 = bonds[bond_id_1]
                 # get the effective hopping amptlitudes for each of the two hopping ID's in question
-                tdn0 = @view tdn[bond_slices[hopping_id_0], Lτ]
-                tdn0′ = reshape(tdn0, lattice.L...)
-                tup1 = @view tup[bond_slices[hopping_id_1], mod1(l,Lτ)]
-                tup1′ = reshape(tup1, lattice.L...)
+                tup0 = @view tdn[bond_slices[hopping_id_0], Lτ]
+                tup0′ = reshape(tup0, lattice.L...)
+                tdn1 = @view tdn[bond_slices[hopping_id_1], mod1(l,Lτ)]
+                tdn1′ = reshape(tdn1, lattice.L...)
                 # measure the current-current correlation
                 correlation_array = selectdim(correlations[i], D+1, l+1)
                 current_correlation!(correlation_array, bond_1, bond_0, tdn1′, tup0′, unit_cell, lattice,
@@ -2422,7 +2422,7 @@ function measure_equaltime_composite_phonon_greens!(
     X0::AbstractArray{Complex{E},P}
 ) where {T<:Number, E<:AbstractFloat, D, P, N}
 
-    @assert phonon_greens.correction == "phonon_greens"
+    @assert phonon_greens.correlation == "phonon_greens"
     ids = phonon_greens.id_pairs::Vector{Int}
     coefficients = phonon_greens.coefficients::Vector{Complex{E}}
     correlations = phonon_greens.correlations::Array{Complex{E}, D}
@@ -2546,7 +2546,7 @@ function measure_time_displaced_composite_phonon_greens!(
     X0::AbstractArray{Complex{E},P}
 ) where {T<:Number, E<:AbstractFloat, D, P, N}
 
-    @assert phonon_greens.correction == "phonon_greens"
+    @assert phonon_greens.correlation == "phonon_greens"
     ids = phonon_greens.id_pairs::Vector{Int}
     coefficients = phonon_greens.coefficients::Vector{Complex{E}}
     correlations = phonon_greens.correlations::Array{Complex{E}, D}
