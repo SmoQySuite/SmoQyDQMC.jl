@@ -595,6 +595,9 @@ function run_simulation(;
 # The final statistics are written to CSV files using the function [`process_measurements`](@ref) function.
 # Inside this function the binned data gets further rebinned into `n_bins`,
 # where `n_bins` is any positive integer satisfying the constraints `(N_bins ≥ n_bin)` and `(N_bins % n_bins == 0)`.
+# The `time_displaced` keyword argument in the [`process_measurements`](@ref) function determines whether or not final statistics are computed for the
+# time-displaced measurements. The default behavior is `time_displaced = false`, as computing these average statistics can be somewhat time-consuming,
+# but if they are required, simply set `time_displaced = true`.
 # Again, for more information on how to interpret the output refer the the [Simulation Output Overview](@ref) page.
 
     ## Set the number of bins used to calculate the error in measured observables.
@@ -602,7 +605,7 @@ function run_simulation(;
 
     ## Process the simulation results, calculating final error bars for all measurements,
     ## writing final statisitics to CSV files.
-    process_measurements(simulation_info.datafolder, n_bins)
+    process_measurements(simulation_info.datafolder, n_bins, time_displaced = false)
 
 # Lastly, it is worth mentioning that running many DQMC simulations will generate many seperate binary files, which can eventually exceed the file quota limit on the system.
 # To help prevent this problem from arising, we can use the function [`compress_jld2_bins`](@ref)
