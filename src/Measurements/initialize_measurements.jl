@@ -512,30 +512,30 @@ function initialize_measurement_directories(
     ) = measurement_container
 
     # only initialize folders if pID = 0
-    if iszero(pID) && !resuming
+    if iszero(pID)
 
         # make global measurements directory
         global_directory = joinpath(datafolder, "global")
-        mkdir(global_directory)
+        mknewdir(global_directory)
 
         # make local measurements directory
         local_directory = joinpath(datafolder, "local")
-        mkdir(local_directory)
+        mknewdir(local_directory)
 
         # make equaltime correlation directory
         eqaultime_directory = joinpath(datafolder, "equal-time")
-        mkdir(eqaultime_directory)
+        mknewdir(eqaultime_directory)
 
         # iterate over equal-time correlation measurements
         for correlation in keys(equaltime_correlations)
 
             # make directory for each individual eqaul-time correlation measurement
             equaltime_correlation_directory = joinpath(eqaultime_directory, correlation)
-            mkdir(equaltime_correlation_directory)
+            mknewdir(equaltime_correlation_directory)
 
             # create sub-directories for position and momentum space data
-            mkdir(joinpath(equaltime_correlation_directory, "position"))
-            mkdir(joinpath(equaltime_correlation_directory, "momentum"))
+            mknewdir(joinpath(equaltime_correlation_directory, "position"))
+            mknewdir(joinpath(equaltime_correlation_directory, "momentum"))
         end
 
         # iterate over equal-time composite correlation measurements
@@ -543,42 +543,42 @@ function initialize_measurement_directories(
 
             # make directory for each individual eqaul-time correlation measurement
             equaltime_correlation_directory = joinpath(eqaultime_directory, name)
-            mkdir(equaltime_correlation_directory)
+            mknewdir(equaltime_correlation_directory)
 
             # create sub-directories for position and momentum space data
-            mkdir(joinpath(equaltime_correlation_directory, "position"))
-            mkdir(joinpath(equaltime_correlation_directory, "momentum"))
+            mknewdir(joinpath(equaltime_correlation_directory, "position"))
+            mknewdir(joinpath(equaltime_correlation_directory, "momentum"))
         end
 
         # make time-displaced correlation directory
         time_displaced_directory = joinpath(datafolder, "time-displaced")
-        mkdir(time_displaced_directory)
+        mknewdir(time_displaced_directory)
 
         # make integrated correlation directory
         integrated_directory = joinpath(datafolder, "integrated")
-        mkdir(integrated_directory)
+        mknewdir(integrated_directory)
 
         # iterate over integrated correlation measurements
         for correlation in keys(integrated_correlations)
 
             # make directory for integrated correlation measurement
             integrated_correlation_directory = joinpath(integrated_directory, correlation)
-            mkdir(integrated_correlation_directory)
+            mknewdir(integrated_correlation_directory)
 
             # create sub-directories for position and momentum space time-displaced correlation measurements
-            mkdir(joinpath(integrated_correlation_directory, "position"))
-            mkdir(joinpath(integrated_correlation_directory, "momentum"))
+            mknewdir(joinpath(integrated_correlation_directory, "position"))
+            mknewdir(joinpath(integrated_correlation_directory, "momentum"))
 
             # check if also a time-displaced measurement should also be made
             if time_displaced_correlations[correlation].time_displaced
 
                 # make directory for time-displaced correlation measurement
                 time_displaced_correlation_directory = joinpath(time_displaced_directory, correlation)
-                mkdir(time_displaced_correlation_directory)
+                mknewdir(time_displaced_correlation_directory)
 
                 # create sub-directories for position and momentum space time-displaced correlation measurements
-                mkdir(joinpath(time_displaced_correlation_directory, "position"))
-                mkdir(joinpath(time_displaced_correlation_directory, "momentum"))
+                mknewdir(joinpath(time_displaced_correlation_directory, "position"))
+                mknewdir(joinpath(time_displaced_correlation_directory, "momentum"))
             end
         end
 
@@ -587,25 +587,28 @@ function initialize_measurement_directories(
 
             # make directory for integrated correlation measurement
             integrated_correlation_directory = joinpath(integrated_directory, name)
-            mkdir(integrated_correlation_directory)
+            mknewdir(integrated_correlation_directory)
 
             # create sub-directories for position and momentum space time-displaced correlation measurements
-            mkdir(joinpath(integrated_correlation_directory, "position"))
-            mkdir(joinpath(integrated_correlation_directory, "momentum"))
+            mknewdir(joinpath(integrated_correlation_directory, "position"))
+            mknewdir(joinpath(integrated_correlation_directory, "momentum"))
 
             # check if also a time-displaced measurement should also be made
             if time_displaced_composite_correlations[name].time_displaced
 
                 # make directory for time-displaced correlation measurement
                 time_displaced_correlation_directory = joinpath(time_displaced_directory, name)
-                mkdir(time_displaced_correlation_directory)
+                mknewdir(time_displaced_correlation_directory)
 
                 # create sub-directories for position and momentum space time-displaced correlation measurements
-                mkdir(joinpath(time_displaced_correlation_directory, "position"))
-                mkdir(joinpath(time_displaced_correlation_directory, "momentum"))
+                mknewdir(joinpath(time_displaced_correlation_directory, "position"))
+                mknewdir(joinpath(time_displaced_correlation_directory, "momentum"))
             end
         end
     end
 
     return nothing
 end
+
+# make a new directory if it doesn't already exist
+mknewdir(path) = isdir(path) ? nothing : mkdir(path)

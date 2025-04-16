@@ -79,7 +79,6 @@ function run_simulation(;
 ````
 
 ## [Initialize simulation](@id hubbard_square_initialize_simulation)
-
 In this first part of the script we name and initialize our simulation, creating the data folder our simulation results will be written to.
 This is done by initializing an instances of the [`SimulationInfo`](@ref) type, as well as an `additional_info` dictionary where we will store useful metadata about the simulation.
 Finally, the integer `seed` is used to initialize the random number generator `rng` that will be used to generate random numbers throughout the rest of the simulation.
@@ -278,7 +277,6 @@ completely specifying the Hamiltonian that will be simulated.
 ````
 
 ## Initialize model parameters
-
 The next step is to initialize our model parameters given the size of our finite lattice.
 To clarify, both the [`TightBindingModel`](@ref) and [`HubbardModel`](@ref) types are agnostic to the size of the lattice being simulated,
 defining the model in a translationally invariant way. As [SmoQyDQMC.jl](https://github.com/SmoQySuite/SmoQyDQMC.jl.git) supports
@@ -417,7 +415,6 @@ Again, for more information refer to the [Simulation Output Overview](@ref) page
 ````
 
 ## [Setup DQMC simulation](@id hubbard_square_setup_dqmc)
-
 This section of the code sets up the DQMC simulation by allocating the initializing the relevant types and arrays we will need in the simulation.
 
 This section of code is perhaps the most opaque and difficult to understand, and will be discussed in more detail once written.
@@ -553,7 +550,6 @@ with `δG` is simply reporting the maximum observed numerical error during the s
 ````
 
 ## [Make measurements](@id hubbard_square_make_measurements)
-
 In this next section of code we continue to sample the HS field with [`local_updates!`](@ref) function, but begin making measurements as well.
 Here, `N_updates` refers to the number of times [`local_updates!`](@ref) is called,
 as well as the number of times measurements are made using the [`make_measurements!`](@ref) function.
@@ -634,7 +630,6 @@ Record final stabilization period used at the end of the simulation.
 ````
 
 ## [Process results](@id hubbard_square_process_results)
-
 In this final section of code we process the binned data, calculating final estimates for the mean and error of all measured observables.
 The final statistics are written to CSV files using the function [`process_measurements`](@ref) function.
 Inside this function the binned data gets further rebinned into `n_bins`,
