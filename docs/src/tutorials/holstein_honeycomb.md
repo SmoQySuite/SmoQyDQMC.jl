@@ -247,7 +247,6 @@ completely specifying the Hamiltonian that will be simulated.
 ````
 
 ## Initialize model parameters
-
 The next step is to initialize our model parameters given the size of our finite lattice.
 To clarify, both the [`TightBindingModel`](@ref) and [`ElectronPhononModel`](@ref) types are agnostic to the size of the lattice being simulated,
 defining the model in a translationally invariant way. As [SmoQyDQMC.jl](https://github.com/SmoQySuite/SmoQyDQMC.jl.git) supports
@@ -273,7 +272,6 @@ For instance, we need to initialize a seperate number to represent the on-site e
 ````
 
 ## Initialize meuasurements
-
 Having initialized both our model and the corresponding model parameters,
 the next step is to initialize the various measurements we want to make during our DQMC simulation.
 For more information refer to [here.](@ref hubbard_square_initialize_measurements)
@@ -378,7 +376,6 @@ Again, for more information refer to the [Simulation Output Overview](@ref) page
 ````
 
 ## Setup DQMC simulation
-
 This section of the code sets up the DQMC simulation by allocating the initializing the relevant types and arrays we will need in the simulation.
 
 This section of code is perhaps the most opaque and difficult to understand, and will be discussed in more detail once written.
@@ -420,7 +417,6 @@ For more information refer to [here](@ref hubbard_square_setup_dqmc).
 ````
 
 ## [Setup EFA-HMC Updates](@id holstein_square_efa-hmc_updates)
-
 Before we begin the simulation, we also want to initialize an instance of the
 [`EFAHMCUpdater`](@ref) type, which will be used to perform hybrid Monte Carlo (HMC)
 udpates to the phonon fields that use exact fourier acceleration (EFA)
@@ -512,7 +508,6 @@ We will additionally initialize variables to keep track of the acceptance rate f
 ````
 
 ## Make measurements
-
 In this next section of code we continue to sample the phonon fields as above,
 but will also begin making measurements as well. For more discussion on the overall
 structure of this part of the code, refer to [here](@ref hubbard_square_make_measurements).
@@ -592,7 +587,6 @@ structure of this part of the code, refer to [here](@ref hubbard_square_make_mea
 ````
 
 ## Record simulation metadata
-
 At this point we are done sampling and taking measurements.
 Next, we want to calculate the final acceptance rate for the various types of
 udpates we performed, as well as write the simulation metadata to file,
@@ -612,7 +606,6 @@ including the contents of the `additional_info` dictionary.
 ````
 
 ## Process results
-
 In this final section of code we process the binned data, calculating final estimates for the mean and error of all measured observables.
 The final statistics are written to CSV files using the function [`process_measurements`](@ref) function.
 For more information refer to [here](@ref hubbard_square_process_results).
