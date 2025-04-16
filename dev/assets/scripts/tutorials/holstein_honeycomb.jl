@@ -210,7 +210,7 @@ function run_simulation(;
         measurement_container = measurement_container,
         model_geometry = model_geometry,
         correlation = "phonon_greens",
-        time_displaced = false,
+        time_displaced = true,
         pairs = [
             # Measure green's functions for all pairs of modes.
             (1, 1), (2, 2), (1, 2)
