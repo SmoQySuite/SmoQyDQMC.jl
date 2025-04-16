@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Honeycomb Holstein Model · SmoQyDQMC.jl</title><meta name="title" content="Honeycomb Holstein Model · SmoQyDQMC.jl"/><meta property="og:title" content="Honeycomb Holstein Model · SmoQyDQMC.jl"/><meta property="twitter:title" content="Honeycomb Holstein Model · SmoQyDQMC.jl"/><meta name="description" content="Documentation for SmoQyDQMC.jl."/><meta property="og:description" content="Documentation for SmoQyDQMC.jl."/><meta property="twitter:description" content="Documentation for SmoQyDQMC.jl."/><meta property="og:url" content="https://smoqysuite.github.io/SmoQyDQMC.jl/stable/tutorials/holstein_honeycomb/"/><meta property="twitter:url" content="https://smoqysuite.github.io/SmoQyDQMC.jl/stable/tutorials/holstein_honeycomb/"/><link rel="canonical" href="https://smoqysuite.github.io/SmoQyDQMC.jl/stable/tutorials/holstein_honeycomb/"/><script data-outdated-warner src="../../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../search_index.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-mocha.css" data-theme-name="catppuccin-mocha"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-macchiato.css" data-theme-name="catppuccin-macchiato"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-frappe.css" data-theme-name="catppuccin-frappe"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-latte.css" data-theme-name="catppuccin-latte"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../../">SmoQyDQMC.jl</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../../">Home</a></li><li><a class="tocitem" href="../../hamiltonian/">Supported Hamiltonians</a></li><li><a class="tocitem" href="../../simulation_output/">Simulation Output Overview</a></li><li><a class="tocitem" href="../../api/">API</a></li><li><span class="tocitem">Tutorials</span><ul><li><a class="tocitem" href="../hubbard_square/">Square Hubbard Model</a></li><li class="is-active"><a class="tocitem" href>Honeycomb Holstein Model</a><ul class="internal"><li><a class="tocitem" href="#Import-packages"><span>Import packages</span></a></li><li><a class="tocitem" href="#Specify-simulation-parameters"><span>Specify simulation parameters</span></a></li><li><a class="tocitem" href="#Initialize-simulation"><span>Initialize simulation</span></a></li><li><a class="tocitem" href="#Initialize-model"><span>Initialize model</span></a></li><li><a class="tocitem" href="#Initialize-model-parameters"><span>Initialize model parameters</span></a></li><li><a class="tocitem" href="#Initialize-meuasurements"><span>Initialize meuasurements</span></a></li><li><a class="tocitem" href="#Setup-DQMC-simulation"><span>Setup DQMC simulation</span></a></li><li><a class="tocitem" href="#holstein_square_efa-hmc_updates"><span>Setup EFA-HMC Updates</span></a></li><li><a class="tocitem" href="#Thermalize-system"><span>Thermalize system</span></a></li><li><a class="tocitem" href="#Make-measurements"><span>Make measurements</span></a></li><li><a class="tocitem" href="#Record-simulation-metadata"><span>Record simulation metadata</span></a></li><li><a class="tocitem" href="#Process-results"><span>Process results</span></a></li><li><a class="tocitem" href="#Execute-script"><span>Execute script</span></a></li></ul></li></ul></li><li><span class="tocitem">Examples</span><ul><li><a class="tocitem" href="../../examples/hubbard_chain/">Hubbard Chain</a></li><li><a class="tocitem" href="../../examples/hubbard_chain_mpi/">Hubbard Chain with MPI</a></li><li><a class="tocitem" href="../../examples/hubbard_chain_checkpoint/">Hubbard Chain with Checkpointing</a></li><li><a class="tocitem" href="../../examples/holstein_chain/">Holstein Chain with Density Tuning</a></li><li><a class="tocitem" href="../../examples/ossh_chain/">Optical Su-Schrieffer-Heeger Chain</a></li><li><a class="tocitem" href="../../examples/bssh_chain/">Bond Su-Schrieffer-Heeger Chain</a></li><li><a class="tocitem" href="../../examples/hubbard_holstein_square/">Square Hubbard-Holstein Model</a></li><li><a class="tocitem" href="../../examples/hubbard_threeband/">Three-Band Hubbard Model</a></li><li><a class="tocitem" href="../../examples/holstein_kagome/">Kagome Holstein Model with Density Tuning</a></li><li><a class="tocitem" href="../../examples/hubbard_honeycomb/">Honeycomb Hubbard model</a></li><li><a class="tocitem" href="../../examples/holstein_zeeman_square/">Square Holstein Model with Zeeman Splitting</a></li></ul></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Tutorials</a></li><li class="is-active"><a href>Honeycomb Holstein Model</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Honeycomb Holstein Model</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/SmoQySuite/SmoQyDQMC.jl/blob/main/tutorials/holstein_honeycomb.jl#" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><p>Download this example as a <a href="../../assets/scripts/tutorials/holstein_honeycomb.jl">Julia script</a>.</p><h1 id="Honeycomb-Holstein-Model"><a class="docs-heading-anchor" href="#Honeycomb-Holstein-Model">Honeycomb Holstein Model</a><a id="Honeycomb-Holstein-Model-1"></a><a class="docs-heading-anchor-permalink" href="#Honeycomb-Holstein-Model" title="Permalink"></a></h1><p>In this example we will work through simulating the Holstein model on a honeycomb lattice. The Holstein Hamiltonian is given by</p><p class="math-container">\[\begin{align*}
+\hat{H} = &amp; -t \sum_{\langle i, j \rangle, \sigma} (\hat{c}^{\dagger}_{\sigma,i}, \hat{c}^{\phantom \dagger}_{\sigma,j} + {\rm h.c.})
+- \mu \sum_{i,\sigma} \hat{n}_{\sigma,i} \\
+&amp; + \frac{1}{2} M \Omega^2 \sum_{i} \hat{X}_i^2 + \sum_i \frac{1}{2M} \hat{P}_i^2
++ \alpha \sum_i \hat{X}_i (\hat{n}_{\uparrow,i} + \hat{n}_{\downarrow,i} - 1)
+\end{align*}\]</p><p>where <span>$\hat{c}^\dagger_{\sigma,i} \ (\hat{c}^{\phantom \dagger}_{\sigma,i})$</span> creates (annihilates) a spin <span>$\sigma$</span> electron on site <span>$i$</span> in the lattice, and <span>$\hat{n}_{\sigma,i} = \hat{c}^\dagger_{\sigma,i} \hat{c}^{\phantom \dagger}_{\sigma,i}$</span> is the spin-<span>$\sigma$</span> electron number operator for site <span>$i$</span>. Here <span>$\mu$</span> is the chemical potential and  <span>$t$</span> is the nearest-neighbor hopping amplitude, with the sum over <span>$\langle i,j \rangle$</span> denoting a sum over all nearest-neighbor pairs of sites. A local dispersionless phonon mode is then placed on each site in the lattice, with <span>$\hat{X}_i$</span> and <span>$\hat{P}_i$</span> the corresponding phonon position and momentum operator on site <span>$i$</span> in the lattice. The phonon mass and energy are denoted <span>$M$</span> and <span>$\Omega$</span> respectively. Lastly, the phonon displacement <span>$\hat{X}_i$</span> couples to the total local density <span>$\hat{n}_{\uparrow,i} + \hat{n}_{\downarrow,i},$</span> with the parameter <span>$\alpha$</span> controlling the strength of this coupling.</p><h2 id="Import-packages"><a class="docs-heading-anchor" href="#Import-packages">Import packages</a><a id="Import-packages-1"></a><a class="docs-heading-anchor-permalink" href="#Import-packages" title="Permalink"></a></h2><p>As in the previous tutorial, we begin by importing the necessary packages; for more details refer to <a href="../hubbard_square/#hubbard_square_import_packages">here.</a></p><pre><code class="language-julia hljs">using SmoQyDQMC
+import SmoQyDQMC.LatticeUtilities as lu
+import SmoQyDQMC.JDQMCFramework as dqmcf
+
+using Random
+using Printf</code></pre><h2 id="Specify-simulation-parameters"><a class="docs-heading-anchor" href="#Specify-simulation-parameters">Specify simulation parameters</a><a id="Specify-simulation-parameters-1"></a><a class="docs-heading-anchor-permalink" href="#Specify-simulation-parameters" title="Permalink"></a></h2><p>The entire main body of the simulation we will wrapped in a top-level function named <code>run_simulation</code> that will take as keyword arguments various model and simulation parameters that we may want to change. The function arguments with default values are ones that are typically left unchanged between simulations.</p><pre><code class="language-julia hljs"># Top-level function to run simulation.
+function run_simulation(;
+    # KEYWORD ARGUMENTS
+    sID, # Simulation ID.
+    Ω, # Phonon energy.
+    α, # Electron-phonon coupling.
+    μ, # Chemical potential.
+    L, # System size.
+    β, # Inverse temperature.
+    N_therm, # Number of thermalization updates.
+    N_updates, # Total number of measurements and measurement updates.
+    N_bins, # Number of times bin-averaged measurements are written to file.
+    Δτ = 0.05, # Discretization in imaginary time.
+    n_stab = 10, # Numerical stabilization period in imaginary-time slices.
+    δG_max = 1e-6, # Threshold for numerical error corrected by stabilization.
+    symmetric = false, # Whether symmetric propagator definition is used.
+    checkerboard = false, # Whether checkerboard approximation is used.
+    seed = abs(rand(Int)), # Seed for random number generator.
+    filepath = &quot;.&quot; # Filepath to where data folder will be created.
+)</code></pre><h2 id="Initialize-simulation"><a class="docs-heading-anchor" href="#Initialize-simulation">Initialize simulation</a><a id="Initialize-simulation-1"></a><a class="docs-heading-anchor-permalink" href="#Initialize-simulation" title="Permalink"></a></h2><p>In this first part of the script we name and initialize our simulation, record important metadata about the simulation and create the data folder our simulation results will be written to. For more information refer to <a href="../hubbard_square/#hubbard_square_initialize_simulation">here.</a></p><pre><code class="language-julia hljs">    # Construct the foldername the data will be written to.
+    datafolder_prefix = @sprintf &quot;holstein_honeycomb_w%.2f_a%.2f_mu%.2f_L%d_b%.2f&quot; Ω α μ L β
+
+    # Initialize simulation info.
+    simulation_info = SimulationInfo(
+        filepath = filepath,
+        datafolder_prefix = datafolder_prefix,
+        sID = sID
+    )
+
+    # Initialize the directory the data will be written to.
+    initialize_datafolder(simulation_info)
+
+    # Initialize random number generator
+    rng = Xoshiro(seed)
+
+    # Initialize additiona_info dictionary
+    additional_info = Dict()
+
+    # Record simulation parameters.
+    additional_info[&quot;N_therm&quot;] = N_therm
+    additional_info[&quot;N_updates&quot;] = N_updates
+    additional_info[&quot;N_bins&quot;] = N_bins
+    additional_info[&quot;n_stab&quot;] = n_stab
+    additional_info[&quot;dG_max&quot;] = δG_max
+    additional_info[&quot;symmetric&quot;] = symmetric
+    additional_info[&quot;checkerboard&quot;] = checkerboard
+    additional_info[&quot;seed&quot;] = seed</code></pre><h2 id="Initialize-model"><a class="docs-heading-anchor" href="#Initialize-model">Initialize model</a><a id="Initialize-model-1"></a><a class="docs-heading-anchor-permalink" href="#Initialize-model" title="Permalink"></a></h2><p>The next step is define the model we wish to simulate. In this example the relevant model parameters the phonon energy <span>$\Omega$</span> (<code>Ω</code>), electron-phonon coupling <span>$\alpha$</span> (<code>α</code>), chemical potential <span>$\mu$</span> (<code>μ</code>), and lattice size <span>$L$</span> (<code>L</code>). The neasrest-neighbor hopping amplitude and phonon mass are normalized to unity, <span>$t = M = 1$</span>.</p><pre><code class="language-julia hljs">    # Define the unit cell.
+    unit_cell = lu.UnitCell(
+        lattice_vecs = [[3/2,√3/2],
+                        [3/2,-√3/2]],
+        basis_vecs   = [[0.,0.],
+                        [1.,0.]]
+    )
+
+    # Define finite lattice with periodic boundary conditions.
+    lattice = lu.Lattice(
+        L = [L, L],
+        periodic = [true, true]
+    )
+
+    # Initialize model geometry.
+    model_geometry = ModelGeometry(unit_cell, lattice)
+
+    # Define the first nearest-neighbor bond in a honeycomb lattice.
+    bond_1 = lu.Bond(orbitals = (1,2), displacement = [0,0])
+
+    # Add the first nearest-neighbor bond in a honeycomb lattice to the model.
+    bond_1_id = add_bond!(model_geometry, bond_1)
+
+    # Define the second nearest-neighbor bond in a honeycomb lattice.
+    bond_2 = lu.Bond(orbitals = (1,2), displacement = [-1,0])
+
+    # Add the second nearest-neighbor bond in a honeycomb lattice to the model.
+    bond_2_id = add_bond!(model_geometry, bond_2)
+
+    # Define the third nearest-neighbor bond in a honeycomb lattice.
+    bond_3 = lu.Bond(orbitals = (1,2), displacement = [0,-1])
+
+    # Add the third nearest-neighbor bond in a honeycomb lattice to the model.
+    bond_3_id = add_bond!(model_geometry, bond_3)</code></pre><p>Next we specify the Honeycomb tight-binding term in our Hamiltonian with the <a href="../../api/#SmoQyDQMC.TightBindingModel"><code>TightBindingModel</code></a> type.</p><pre><code class="language-julia hljs">    # Set neartest-neighbor hopping amplitude to unity,
+    # setting the energy scale in the model.
+    t = 1.0
+
+    # Define the honeycomb tight-binding model.
+    tight_binding_model = TightBindingModel(
+        model_geometry = model_geometry,
+        t_bonds        = [bond_1, bond_2, bond_3], # defines hopping
+        t_mean         = [t, t, t], # defines corresponding hopping amplitude
+        μ              = μ, # set chemical potential
+        ϵ_mean         = [0.0, 0.0] # set the (mean) on-site energy
+    )</code></pre><p>Now we need to initialize the electron-phonon part of the Hamiltonian with the <a href="../../api/#SmoQyDQMC.ElectronPhononModel"><code>ElectronPhononModel</code></a> type.</p><pre><code class="language-julia hljs">    # Initialize a null electron-phonon model.
+    electron_phonon_model = ElectronPhononModel(
+        model_geometry = model_geometry,
+        tight_binding_model = tight_binding_model
+    )</code></pre><p>Then we need to define and add two types phonon modes to the model, one for each orbital in the Honeycomb unit cell, using the <a href="../../api/#SmoQyDQMC.PhononMode"><code>PhononMode</code></a> type and <a href="../../api/#SmoQyDQMC.add_phonon_mode!"><code>add_phonon_mode!</code></a> function.</p><pre><code class="language-julia hljs">    # Define a dispersionless electron-phonon mode to live on each site in the lattice.
+    phonon_1 = PhononMode(orbital = 1, Ω_mean = Ω)
+
+    # Add the phonon mode definition to the electron-phonon model.
+    phonon_1_id = add_phonon_mode!(
+        electron_phonon_model = electron_phonon_model,
+        phonon_mode = phonon_1
+    )
+
+    # Define a dispersionless electron-phonon mode to live on each site in the lattice.
+    phonon_2 = PhononMode(orbital = 2, Ω_mean = Ω)
+
+    # Add the phonon mode definition to the electron-phonon model.
+    phonon_2_id = add_phonon_mode!(
+        electron_phonon_model = electron_phonon_model,
+        phonon_mode = phonon_2
+    )</code></pre><p>Now we need to define and add a local Holstein couplings to our model for each of the two phonon modes in each unit cell using the <a href="../../api/#SmoQyDQMC.HolsteinCoupling"><code>HolsteinCoupling</code></a> type and <a href="../../api/#SmoQyDQMC.add_holstein_coupling!"><code>add_holstein_coupling!</code></a> function.</p><pre><code class="language-julia hljs">    # Define first local Holstein coupling for first phonon mode.
+    holstein_coupling_1 = HolsteinCoupling(
+        model_geometry = model_geometry,
+        phonon_mode = phonon_1_id,
+        # Couple the first phonon mode to first orbital in the unit cell.
+        bond = lu.Bond(orbitals = (1,1), displacement = [0, 0]),
+        α_mean = α
+    )
+
+    # Add the first local Holstein coupling definition to the model.
+    holstein_coupling_1_id = add_holstein_coupling!(
+        electron_phonon_model = electron_phonon_model,
+        holstein_coupling = holstein_coupling_1,
+        model_geometry = model_geometry
+    )
+
+    # Define first local Holstein coupling for first phonon mode.
+    holstein_coupling_2 = HolsteinCoupling(
+        model_geometry = model_geometry,
+        phonon_mode = phonon_2_id,
+        # Couple the second phonon mode to second orbital in the unit cell.
+        bond = lu.Bond(orbitals = (2,2), displacement = [0, 0]),
+        α_mean = α
+    )
+
+    # Add the first local Holstein coupling definition to the model.
+    holstein_coupling_2_id = add_holstein_coupling!(
+        electron_phonon_model = electron_phonon_model,
+        holstein_coupling = holstein_coupling_2,
+        model_geometry = model_geometry
+    )</code></pre><p>Lastly, the <a href="../../api/#SmoQyDQMC.model_summary"><code>model_summary</code></a> function is used to write a <code>model_summary.toml</code> file, completely specifying the Hamiltonian that will be simulated.</p><pre><code class="language-julia hljs">    # Write model summary TOML file specifying Hamiltonian that will be simulated.
+    model_summary(
+        simulation_info = simulation_info,
+        β = β, Δτ = Δτ,
+        model_geometry = model_geometry,
+        tight_binding_model = tight_binding_model,
+        interactions = (electron_phonon_model,)
+    )</code></pre><h2 id="Initialize-model-parameters"><a class="docs-heading-anchor" href="#Initialize-model-parameters">Initialize model parameters</a><a id="Initialize-model-parameters-1"></a><a class="docs-heading-anchor-permalink" href="#Initialize-model-parameters" title="Permalink"></a></h2><p>The next step is to initialize our model parameters given the size of our finite lattice. To clarify, both the <a href="../../api/#SmoQyDQMC.TightBindingModel"><code>TightBindingModel</code></a> and <a href="../../api/#SmoQyDQMC.ElectronPhononModel"><code>ElectronPhononModel</code></a> types are agnostic to the size of the lattice being simulated, defining the model in a translationally invariant way. As <a href="https://github.com/SmoQySuite/SmoQyDQMC.jl.git">SmoQyDQMC.jl</a> supports random disorder in the terms appearing in the Hamiltonian, it is necessary to initialize seperate parameter values for each unit cell in the lattice. For instance, we need to initialize a seperate number to represent the on-site energy for each orbital in our finite lattice.</p><pre><code class="language-julia hljs">    # Initialize tight-binding parameters.
+    tight_binding_parameters = TightBindingParameters(
+        tight_binding_model = tight_binding_model,
+        model_geometry = model_geometry,
+        rng = rng
+    )
+
+    # Initialize electron-phonon parameters.
+    electron_phonon_parameters = ElectronPhononParameters(
+        β = β, Δτ = Δτ,
+        electron_phonon_model = electron_phonon_model,
+        tight_binding_parameters = tight_binding_parameters,
+        model_geometry = model_geometry,
+        rng = rng
+    )</code></pre><h2 id="Initialize-meuasurements"><a class="docs-heading-anchor" href="#Initialize-meuasurements">Initialize meuasurements</a><a id="Initialize-meuasurements-1"></a><a class="docs-heading-anchor-permalink" href="#Initialize-meuasurements" title="Permalink"></a></h2><p>Having initialized both our model and the corresponding model parameters, the next step is to initialize the various measurements we want to make during our DQMC simulation. For more information refer to <a href="../hubbard_square/#hubbard_square_initialize_measurements">here.</a></p><pre><code class="language-julia hljs">    # Initialize the container that measurements will be accumulated into.
+    measurement_container = initialize_measurement_container(model_geometry, β, Δτ)
+
+    # Initialize the tight-binding model related measurements, like the hopping energy.
+    initialize_measurements!(measurement_container, tight_binding_model)
+
+    # Initialize the electron-phonon interaction related measurements.
+    initialize_measurements!(measurement_container, electron_phonon_model)
+
+    # Initialize the single-particle electron Green&#39;s function measurement.
+    initialize_correlation_measurements!(
+        measurement_container = measurement_container,
+        model_geometry = model_geometry,
+        correlation = &quot;greens&quot;,
+        time_displaced = true,
+        pairs = [
+            # Measure green&#39;s functions for all pairs or orbitals.
+            (1, 1), (2, 2), (1, 2)
+        ]
+    )
+
+    # Initialize density correlation function measurement.
+    initialize_correlation_measurements!(
+        measurement_container = measurement_container,
+        model_geometry = model_geometry,
+        correlation = &quot;density&quot;,
+        time_displaced = false,
+        integrated = true,
+        pairs = [
+            (1, 1), (2, 2),
+        ]
+    )
+
+    # Initialize the pair correlation function measurement.
+    initialize_correlation_measurements!(
+        measurement_container = measurement_container,
+        model_geometry = model_geometry,
+        correlation = &quot;pair&quot;,
+        time_displaced = false,
+        integrated = true,
+        pairs = [
+            # Measure local s-wave pair susceptibility associated with
+            # each orbital in the unit cell.
+            (1, 1), (2, 2)
+        ]
+    )
+
+    # Initialize the spin-z correlation function measurement.
+    initialize_correlation_measurements!(
+        measurement_container = measurement_container,
+        model_geometry = model_geometry,
+        correlation = &quot;spin_z&quot;,
+        time_displaced = false,
+        integrated = true,
+        pairs = [
+            (1, 1), (2, 2)
+        ]
+    )</code></pre><p>It is also useful to initialize more specialized composite correlation function measurements. Specifically, to detect the formation of charge-density wave order where the electrons preferentially localize on one of the two sub-lattices of the honeycomb lattice, it is useful to measure the correlation function</p><p class="math-container">\[C_\text{cdw}(\mathbf{r},\tau) = \frac{1}{L^2}\sum_{\mathbf{i}} \langle \hat{\Phi}^{\dagger}_{\mathbf{i}+\mathbf{r}}(\tau) \hat{\Phi}^{\phantom\dagger}_{\mathbf{i}}(0) \rangle,\]</p><p>where</p><p class="math-container">\[\hat{\Phi}_{\mathbf{i}}(\tau) = \hat{n}_{\mathbf{i},A}(\tau) - \hat{n}_{\mathbf{i},B}(\tau)\]</p><p>and <span>$\hat{n}_{\mathbf{i},\gamma} = (\hat{n}_{\uparrow,\mathbf{i},o} + \hat{n}_{\downarrow,\mathbf{i},o})$</span> is the total electron number operator for orbital <span>$\gamma \in \{A,B\}$</span> in unit cell <span>$\mathbf{i}$</span>. It is then also useful to calculate the corresponding structure factor <span>$S_\text{cdw}(\mathbf{q},\tau)$</span> and susceptibility <span>$\chi_\text{cdw}(\mathbf{q}).$</span> This can all be easily calculated using the <a href="../../api/#SmoQyDQMC.initialize_composite_correlation_measurement!"><code>initialize_composite_correlation_measurement!</code></a> function, as shown below.</p><pre><code class="language-julia hljs">    # Initialize CDW correlation measurement.
+    initialize_composite_correlation_measurement!(
+        measurement_container = measurement_container,
+        model_geometry = model_geometry,
+        name = &quot;cdw&quot;,
+        correlation = &quot;density&quot;,
+        ids = [1, 2],
+        coefficients = [1.0, -1.0],
+        time_displaced = false,
+        integrated = true
+    )</code></pre><p>The <a href="../../api/#SmoQyDQMC.initialize_measurement_directories"><code>initialize_measurement_directories</code></a> can now be used used to initialize the various subdirectories in the data folder that the measurements will be written to. Again, for more information refer to the <a href="../../simulation_output/#Simulation-Output-Overview">Simulation Output Overview</a> page.</p><pre><code class="language-julia hljs">    # Initialize the sub-directories to which the various measurements will be written.
+    initialize_measurement_directories(simulation_info, measurement_container)</code></pre><h2 id="Setup-DQMC-simulation"><a class="docs-heading-anchor" href="#Setup-DQMC-simulation">Setup DQMC simulation</a><a id="Setup-DQMC-simulation-1"></a><a class="docs-heading-anchor-permalink" href="#Setup-DQMC-simulation" title="Permalink"></a></h2><p>This section of the code sets up the DQMC simulation by allocating the initializing the relevant types and arrays we will need in the simulation.</p><p>This section of code is perhaps the most opaque and difficult to understand, and will be discussed in more detail once written. That said, you do not need to fully comprehend everything that goes on in this section as most of it is fairly boilerplate, and will not need to be changed much once written. This is true even if you want to modify this script to perform a DQMC simulation for a different Hamiltonian. For more information refer to <a href="../hubbard_square/#hubbard_square_setup_dqmc">here</a>.</p><pre><code class="language-julia hljs">    # Allocate a single FermionPathIntegral for both spin-up and down electrons.
+    fermion_path_integral = FermionPathIntegral(tight_binding_parameters = tight_binding_parameters, β = β, Δτ = Δτ)
+
+    # Initialize FermionPathIntegral type to account for electron-phonon interaction.
+    initialize!(fermion_path_integral, electron_phonon_parameters)
+
+    # Initialize imaginary-time propagators for all imaginary-time slices.
+    B = initialize_propagators(fermion_path_integral, symmetric=symmetric, checkerboard=checkerboard)
+
+    # Initialize FermionGreensCalculator type.
+    fermion_greens_calculator = dqmcf.FermionGreensCalculator(B, β, Δτ, n_stab)
+
+    # Initialize alternate fermion greens calculator required for performing EFA-HMC, reflection and swap updates below.
+    fermion_greens_calculator_alt = dqmcf.FermionGreensCalculator(fermion_greens_calculator)
+
+    # Allcoate equal-time electron Green&#39;s function matrix.
+    G = zeros(eltype(B[1]), size(B[1]))
+
+    # Initialize electron Green&#39;s function matrx, also calculating the matrix determinant as the same time.
+    logdetG, sgndetG = dqmcf.calculate_equaltime_greens!(G, fermion_greens_calculator)
+
+    # Allocate matrices for various time-displaced Green&#39;s function matrices.
+    G_ττ = similar(G) # G(τ,τ)
+    G_τ0 = similar(G) # G(τ,0)
+    G_0τ = similar(G) # G(0,τ)
+
+    # Initialize diagonostic parameters to asses numerical stability.
+    δG = zero(logdetG)
+    δθ = zero(sgndetG)</code></pre><h2 id="holstein_square_efa-hmc_updates"><a class="docs-heading-anchor" href="#holstein_square_efa-hmc_updates">Setup EFA-HMC Updates</a><a id="holstein_square_efa-hmc_updates-1"></a><a class="docs-heading-anchor-permalink" href="#holstein_square_efa-hmc_updates" title="Permalink"></a></h2><p>Before we begin the simulation, we also want to initialize an instance of the <a href="../../api/#SmoQyDQMC.EFAHMCUpdater"><code>EFAHMCUpdater</code></a> type, which will be used to perform hybrid Monte Carlo (HMC) udpates to the phonon fields that use exact fourier acceleration (EFA) to further reduce autocorrelation times.</p><p>The two main parameters that need to be specified are the time-step size <span>$\Delta t$</span> and number of time-steps <span>$N_t$</span> performed in the HMC update, with the corresponding integrated trajectory time then equalling <span>$T_t = N_t \cdot \Delta t.$</span> Note that the computational cost of an HMC update is linearly proportional to <span>$N_t,$</span> while the acceptance rate is inversely proportional to <span>$\Delta t.$</span></p><p><a href="https://arxiv.org/abs/2404.09723">Previous studies</a> have shown that a good place to start with the integrated trajectory time <span>$T_t$</span> is a quarter the period of the bare phonon mode, <span>$T_t \approx \frac{1}{4} \left( \frac{2\pi}{\Omega} \right) = \pi/(2\Omega).$</span> It is also important to keep the acceptance rate for the HMC updates above <span>$\sim 90\%$</span> to help prevent numerical instabilities from occuring.</p><p>Based on user experience, a good (conservative) starting place is to set the number of time-step to <span>$N_t \approx 10,$</span> and then set the time-step size to <span>$\Delta t \approx \pi/(2\Omega N_t),$</span> effectively setting the integrated trajectory time to <span>$T_t = \pi/(2\Omega).$</span> Then, if the acceptance rate is too low you increase <span>$N_t,$</span> which results in a reduction of <span>$\Delta t.$</span> Conversely, if the acceptance rate is very high <span>$(\gtrsim 99 \% )$</span> it can be useful to decrease <span>$N_t$</span>, thereby increasing <span>$\Delta t,$</span> as this will reduce the computational cost of performing an EFA-HMC update.</p><pre><code class="language-julia hljs">    # Number of fermionic time-steps in HMC update.
+    Nt = 10
+
+    # Fermionic time-step used in HMC update.
+    Δt = π/(2*Ω*Nt)
+
+    # Initialize Hamitlonian/Hybrid monte carlo (HMC) updater.
+    hmc_updater = EFAHMCUpdater(
+        electron_phonon_parameters = electron_phonon_parameters,
+        G = G, Nt = Nt, Δt = Δt
+    )</code></pre><h2 id="Thermalize-system"><a class="docs-heading-anchor" href="#Thermalize-system">Thermalize system</a><a id="Thermalize-system-1"></a><a class="docs-heading-anchor-permalink" href="#Thermalize-system" title="Permalink"></a></h2><p>The next section of code performs updates to thermalize the system prior to beginning measurements. In addition to EFA-HMC updates that will be performed using the <a href="../../api/#SmoQyDQMC.EFAHMCUpdater"><code>EFAHMCUpdater</code></a> type initialized above and the <a href="../../api/#SmoQyDQMC.hmc_update!-Union{Tuple{P}, Tuple{E}, Tuple{T}, Tuple{Matrix{T}, E, T, Matrix{T}, E, T, ElectronPhononParameters{T, E}, HMCUpdater{T, E}}} where {T&lt;:Number, E&lt;:AbstractFloat, P&lt;:AbstractPropagator{T, E}}"><code>hmc_update!</code></a> function below, we will also perform reflection and swap updates using the <a href="../../api/#SmoQyDQMC.reflection_update!-Union{Tuple{P}, Tuple{E}, Tuple{T}, Tuple{Matrix{T}, E, T, Matrix{T}, E, T, HubbardIsingHSParameters{E}}} where {T&lt;:Number, E&lt;:AbstractFloat, P&lt;:AbstractPropagator{T, E}}"><code>reflection_update!</code></a> and <a href="../../api/#SmoQyDQMC.swap_update!-Union{Tuple{P}, Tuple{E}, Tuple{T}, Tuple{Matrix{T}, E, T, Matrix{T}, E, T, HubbardIsingHSParameters{E}}} where {T&lt;:Number, E&lt;:AbstractFloat, P&lt;:AbstractPropagator{T, E}}"><code>swap_update!</code></a> functions respectively. We will additionally initialize variables to keep track of the acceptance rate for these three types of updates.</p><pre><code class="language-julia hljs">    # Initialize variables to record acceptance rates for various udpates.
+    additional_info[&quot;hmc_acceptance_rate&quot;] = 0.0
+    additional_info[&quot;reflection_acceptance_rate&quot;] = 0.0
+    additional_info[&quot;swap_acceptance_rate&quot;] = 0.0
+
+    # Iterate over number of thermalization updates to perform.
+    for n in 1:N_therm
+
+        # Perform a reflection update.
+        (accepted, logdetG, sgndetG) = reflection_update!(
+            G, logdetG, sgndetG, electron_phonon_parameters,
+            fermion_path_integral = fermion_path_integral,
+            fermion_greens_calculator = fermion_greens_calculator,
+            fermion_greens_calculator_alt = fermion_greens_calculator_alt,
+            B = B, rng = rng
+        )
+
+        # Record whether the reflection update was accepted or rejected.
+        additional_info[&quot;reflection_acceptance_rate&quot;] += accepted
+
+        # Perform a swap update.
+        (accepted, logdetG, sgndetG) = swap_update!(
+            G, logdetG, sgndetG, electron_phonon_parameters,
+            fermion_path_integral = fermion_path_integral,
+            fermion_greens_calculator = fermion_greens_calculator,
+            fermion_greens_calculator_alt = fermion_greens_calculator_alt,
+            B = B, rng = rng
+        )
+
+        # Record whether the reflection update was accepted or rejected.
+        additional_info[&quot;swap_acceptance_rate&quot;] += accepted
+
+        # Perform an HMC update.
+        (accepted, logdetG, sgndetG, δG, δθ) = hmc_update!(
+            G, logdetG, sgndetG, electron_phonon_parameters, hmc_updater,
+            fermion_path_integral = fermion_path_integral,
+            fermion_greens_calculator = fermion_greens_calculator,
+            fermion_greens_calculator_alt = fermion_greens_calculator_alt,
+            B = B, δG_max = δG_max, δG = δG, δθ = δθ, rng = rng
+        )
+
+        # Record whether the HMC update was accepted or rejected.
+        additional_info[&quot;hmc_acceptance_rate&quot;] += accepted
+    end</code></pre><h2 id="Make-measurements"><a class="docs-heading-anchor" href="#Make-measurements">Make measurements</a><a id="Make-measurements-1"></a><a class="docs-heading-anchor-permalink" href="#Make-measurements" title="Permalink"></a></h2><p>In this next section of code we continue to sample the phonon fields as above, but will also begin making measurements as well. For more discussion on the overall structure of this part of the code, refer to <a href="../hubbard_square/#hubbard_square_make_measurements">here</a>.</p><pre><code class="language-julia hljs">    # Reset diagonostic parameters used to monitor numerical stability to zero.
+    δG = zero(logdetG)
+    δθ = zero(sgndetG)
+
+    # Calculate the bin size.
+    bin_size = N_updates ÷ N_bins
+
+    # Iterate over bins.
+    for bin in 1:N_bins
+
+        # Iterate over update sweeps and measurements in bin.
+        for n in 1:bin_size
+
+            # Perform a reflection update.
+            (accepted, logdetG, sgndetG) = reflection_update!(
+                G, logdetG, sgndetG, electron_phonon_parameters,
+                fermion_path_integral = fermion_path_integral,
+                fermion_greens_calculator = fermion_greens_calculator,
+                fermion_greens_calculator_alt = fermion_greens_calculator_alt,
+                B = B, rng = rng
+            )
+
+            # Record whether the reflection update was accepted or rejected.
+            additional_info[&quot;reflection_acceptance_rate&quot;] += accepted
+
+            # Perform a swap update.
+            (accepted, logdetG, sgndetG) = swap_update!(
+                G, logdetG, sgndetG, electron_phonon_parameters,
+                fermion_path_integral = fermion_path_integral,
+                fermion_greens_calculator = fermion_greens_calculator,
+                fermion_greens_calculator_alt = fermion_greens_calculator_alt,
+                B = B, rng = rng
+            )
+
+            # Record whether the reflection update was accepted or rejected.
+            additional_info[&quot;swap_acceptance_rate&quot;] += accepted
+
+            # Perform an HMC update.
+            (accepted, logdetG, sgndetG, δG, δθ) = hmc_update!(
+                G, logdetG, sgndetG, electron_phonon_parameters, hmc_updater,
+                fermion_path_integral = fermion_path_integral,
+                fermion_greens_calculator = fermion_greens_calculator,
+                fermion_greens_calculator_alt = fermion_greens_calculator_alt,
+                B = B, δG_max = δG_max, δG = δG, δθ = δθ, rng = rng
+            )
+
+            # Record whether the HMC update was accepted or rejected.
+            additional_info[&quot;hmc_acceptance_rate&quot;] += accepted
+
+            # Make measurements.
+            (logdetG, sgndetG, δG, δθ) = make_measurements!(
+                measurement_container,
+                logdetG, sgndetG, G, G_ττ, G_τ0, G_0τ,
+                fermion_path_integral = fermion_path_integral,
+                fermion_greens_calculator = fermion_greens_calculator,
+                B = B, δG_max = δG_max, δG = δG, δθ = δθ,
+                model_geometry = model_geometry, tight_binding_parameters = tight_binding_parameters,
+                coupling_parameters = (electron_phonon_parameters,)
+            )
+        end
+
+        # Write the bin-averaged measurements to file.
+        write_measurements!(
+            measurement_container = measurement_container,
+            simulation_info = simulation_info,
+            model_geometry = model_geometry,
+            bin = bin,
+            bin_size = bin_size,
+            Δτ = Δτ
+        )
+    end</code></pre><h2 id="Record-simulation-metadata"><a class="docs-heading-anchor" href="#Record-simulation-metadata">Record simulation metadata</a><a id="Record-simulation-metadata-1"></a><a class="docs-heading-anchor-permalink" href="#Record-simulation-metadata" title="Permalink"></a></h2><p>At this point we are done sampling and taking measurements. Next, we want to calculate the final acceptance rate for the various types of udpates we performed, as well as write the simulation metadata to file, including the contents of the <code>additional_info</code> dictionary.</p><pre><code class="language-julia hljs">    # Calculate acceptance rates.
+    additional_info[&quot;hmc_acceptance_rate&quot;] /= (N_updates + N_therm)
+    additional_info[&quot;reflection_acceptance_rate&quot;] /= (N_updates + N_therm)
+    additional_info[&quot;swap_acceptance_rate&quot;] /= (N_updates + N_therm)
+
+    # Record largest numerical error encountered during simulation.
+    additional_info[&quot;dG&quot;] = δG
+
+    # Write simulation metadata to simulation_info.toml file.
+    save_simulation_info(simulation_info, additional_info)</code></pre><h2 id="Process-results"><a class="docs-heading-anchor" href="#Process-results">Process results</a><a id="Process-results-1"></a><a class="docs-heading-anchor-permalink" href="#Process-results" title="Permalink"></a></h2><p>In this final section of code we process the binned data, calculating final estimates for the mean and error of all measured observables. The final statistics are written to CSV files using the function <a href="../../api/#SmoQyDQMC.process_measurements"><code>process_measurements</code></a> function. For more information refer to <a href="../hubbard_square/#hubbard_square_process_results">here</a>.</p><pre><code class="language-julia hljs">    # Process the simulation results, calculating final error bars for all measurements,
+    # writing final statisitics to CSV files.
+    process_measurements(simulation_info.datafolder, N_bins)
+
+    # Merge binary files containing binned data into a single file.
+    compress_jld2_bins(folder = simulation_info.datafolder)
+
+    return nothing
+end # end of run_simulation function</code></pre><h2 id="Execute-script"><a class="docs-heading-anchor" href="#Execute-script">Execute script</a><a id="Execute-script-1"></a><a class="docs-heading-anchor-permalink" href="#Execute-script" title="Permalink"></a></h2><p>DQMC simulations are typically run from the command line as jobs on a computing cluster. With this in mind, the following block of code only executes if the Julia script is run from the command line, also reading in additional command line arguments.</p><pre><code class="language-julia hljs"># Only excute if the script is run directly from the command line.
+if abspath(PROGRAM_FILE) == @__FILE__
+
+    # Run the simulation.
+    run_simulation(;
+        sID       = parse(Int,     ARGS[1]), # Simulation ID.
+        Ω         = parse(Float64, ARGS[2]), # Phonon energy.
+        α         = parse(Float64, ARGS[3]), # Electron-phonon coupling.
+        μ         = parse(Float64, ARGS[4]), # Chemical potential.
+        L         = parse(Int,     ARGS[5]), # System size.
+        β         = parse(Float64, ARGS[6]), # Inverse temperature.
+        N_therm   = parse(Int,     ARGS[7]), # Number of thermalization updates.
+        N_updates = parse(Int,     ARGS[8]), # Total number of measurements and measurement updates.
+        N_bins    = parse(Int,     ARGS[9])  # Number of times bin-averaged measurements are written to file.
+    )
+end</code></pre><p>For instance, the command</p><pre><code class="nohighlight hljs">&gt; julia holstein_honeycomb.jl 1 1.0 1.5 0.0 3 4.0 5000 10000 100</code></pre><p>runs a DQMC simulation of a Holstein model on a <span>$3 \times 3$</span> unit cell (<code>N = 2 \times 3^2 = 18</code> site) honeycomb lattice at half-filling <span>$(\mu = 0)$</span> and inverse temperature <span>$\beta = 4.0$</span>. The phonon energy is set to <span>$\Omega = 1.0$</span> and the electron-phonon coupling is set to <span>$\alpha = 1.5.$</span> In the DQMC simulation, 5,000 EFA-HMC, reflection and swap updates are performed to thermalize the system. Then an additional 10,000 such udpates are performed, after each of set of which measurements are made. During the simulation, bin-averaged measurements are written to file 100 times, with each bin of data containing the average of 10,000/100 = 100 sequential measurements.</p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../hubbard_square/">« Square Hubbard Model</a><a class="docs-footer-nextpage" href="../../examples/hubbard_chain/">Hubbard Chain »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.10.1 on <span class="colophon-date" title="Wednesday 16 April 2025 01:01">Wednesday 16 April 2025</span>. Using Julia version 1.11.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
