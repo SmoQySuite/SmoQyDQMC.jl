@@ -57,36 +57,33 @@ function run_simulation(
         pID = pID
     )
 
-    ## Initialize the directory the data will be written to.
-    initialize_datafolder(simulation_info)
+    ## Initialize the directory the data will be written to if one does not already exist.
+    initialize_datafolder(comm, simulation_info)
 
-    ## Synchronize all the MPI processes.
-    MPI.Barrier(comm)
-
-    ## If starting a new simulation
-    if !isdir(simulation_info.datafolder)
+    ## If starting a new simulation i.e. not resuming a previous simulation.
+    if !simulation_info.resuming
 
         ## Initialize random number generator
         rng = Xoshiro(seed)
 
         ## Initialize additiona_info dictionary
-        additional_info = Dict()
+        metadata = Dict()
 
         ## Record simulation parameters.
-        additional_info["N_therm"] = N_therm
-        additional_info["N_updates"] = N_updates
-        additional_info["N_bins"] = N_bins
-        additional_info["n_stab_init"] = n_stab
-        additional_info["dG_max"] = δG_max
-        additional_info["symmetric"] = symmetric
-        additional_info["checkerboard"] = checkerboard
-        additional_info["seed"] = seed
+        metadata["N_therm"] = N_therm
+        metadata["N_updates"] = N_updates
+        metadata["N_bins"] = N_bins
+        metadata["n_stab_init"] = n_stab
+        metadata["dG_max"] = δG_max
+        metadata["symmetric"] = symmetric
+        metadata["checkerboard"] = checkerboard
+        metadata["seed"] = seed
 
         # Begin thermalization updates from start.
         n_therm = 1
 
         # Begin measurement updates from start.
-        n_update = 1
+        n_updates = 1
 
         ## Define unit cell.
         unit_cell = lu.UnitCell(
@@ -295,10 +292,10 @@ function run_simulation(
         hubbard_stratonovich_params = checkpoint["hubbard_stratonovich_params"]
         measurement_container = checkpoint["measurement_container"]
         model_geometry = checkpoint["model_geometry"]
-        additional_info = checkpoint["additional_info"]
+        metadata = checkpoint["metadata"]
         rng = checkpoint["rng"]
         n_therm = checkpoint["n_therm"]
-        n_update = checkpoint["n_update"]
+        n_updates = checkpoint["n_updates"]
     end
 
     ## Synchronize all the MPI processes.
@@ -345,7 +342,7 @@ function run_simulation(
     δθ = zero(sgndetGup)
 
     ## Initialize average acceptance rate variable.
-    additional_info["avg_acceptance_rate"] = 0.0
+    metadata["avg_acceptance_rate"] = 0.0
 
     ## Write initial checkpoint file.
     checkpoint_timestamp = write_jld2_checkpoint(
@@ -356,9 +353,9 @@ function run_simulation(
         start_timestamp = start_timestamp,
         runtime_limit = runtime_limit,
         ## Contents of checkpoint file below.
-        n_therm, n_update,
+        n_therm, n_updates,
         tight_binding_parameters, hubbard_params, hubbard_stratonovich_params,
-        measurement_container, model_geometry, additional_info, rng
+        measurement_container, model_geometry, metadata, rng
     )
 
     ## Iterate over number of thermalization updates to perform.
@@ -377,7 +374,7 @@ function run_simulation(
         )
 
         ## Record acceptance rate for sweep.
-        additional_info["avg_acceptance_rate"] += acceptance_rate
+        metadata["avg_acceptance_rate"] += acceptance_rate
 
         ## Write checkpoint file.
         checkpoint_timestamp = write_jld2_checkpoint(
@@ -389,9 +386,9 @@ function run_simulation(
             runtime_limit = runtime_limit,
             ## Contents of checkpoint file below.
             n_therm = update + 1,
-            n_update = 1,
+            n_updates = 1,
             tight_binding_parameters, hubbard_params, hubbard_stratonovich_params,
-            measurement_container, model_geometry, additional_info, rng
+            measurement_container, model_geometry, metadata, rng
         )
     end
 
@@ -418,7 +415,7 @@ function run_simulation(
         )
 
         ## Record acceptance rate.
-        additional_info["avg_acceptance_rate"] += acceptance_rate
+        metadata["avg_acceptance_rate"] += acceptance_rate
 
         ## Make measurements.
         (logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = make_measurements!(
@@ -458,22 +455,22 @@ function run_simulation(
             runtime_limit = runtime_limit,
             ## Contents of checkpoint file below.
             n_therm  = N_therm + 1,
-            n_update = update + 1,
+            n_updates = update + 1,
             tight_binding_parameters, hubbard_params, hubbard_stratonovich_params,
-            measurement_container, model_geometry, additional_info, rng
+            measurement_container, model_geometry, metadata, rng
         )
     end
 
     ## Normalize acceptance rate.
-    additional_info["avg_acceptance_rate"] /=  (N_therm + N_updates)
+    metadata["avg_acceptance_rate"] /=  (N_therm + N_updates)
 
-    additional_info["n_stab_final"] = fermion_greens_calculator_up.n_stab
+    metadata["n_stab_final"] = fermion_greens_calculator_up.n_stab
 
     ## Record largest numerical error.
-    additional_info["dG"] = δG
+    metadata["dG"] = δG
 
     ## Write simulation summary TOML file.
-    save_simulation_info(simulation_info, additional_info)
+    save_simulation_info(simulation_info, metadata)
 
     ## Synchronize all the MPI processes.
     MPI.Barrier(comm)
@@ -535,7 +532,7 @@ if abspath(PROGRAM_FILE) == @__FILE__
         N_updates       = parse(Int,     ARGS[8]),
         N_bins          = parse(Int,     ARGS[9]),
         checkpoint_freq = parse(Float64, ARGS[10]),
-        runtime_limt    = parse(Float64, ARGS[11])
+        runtime_limit   = parse(Float64, ARGS[11])
     )
 
     ## Finalize MPI.

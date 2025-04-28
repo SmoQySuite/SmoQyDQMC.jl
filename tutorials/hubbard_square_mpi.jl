@@ -73,10 +73,7 @@ function run_simulation(
     )
 
     ## Initialize the directory the data will be written to.
-    initialize_datafolder(simulation_info)
-
-    ## Synchronize all the MPI processes.
-    MPI.Barrier(comm)
+    initialize_datafolder(comm, simulation_info)
 
 # ## Initialize simulation metadata
 # No changes need to made to this section of the code from the previous [1a) Square Hubbard Model](@ref) tutorial.
@@ -85,17 +82,17 @@ function run_simulation(
     rng = Xoshiro(seed)
 
     ## Initialize additiona_info dictionary
-    additional_info = Dict()
+    metadata = Dict()
 
     ## Record simulation parameters.
-    additional_info["N_therm"] = N_therm
-    additional_info["N_updates"] = N_updates
-    additional_info["N_bins"] = N_bins
-    additional_info["n_stab_init"] = n_stab
-    additional_info["dG_max"] = δG_max
-    additional_info["symmetric"] = symmetric
-    additional_info["checkerboard"] = checkerboard
-    additional_info["seed"] = seed
+    metadata["N_therm"] = N_therm
+    metadata["N_updates"] = N_updates
+    metadata["N_bins"] = N_bins
+    metadata["n_stab_init"] = n_stab
+    metadata["dG_max"] = δG_max
+    metadata["symmetric"] = symmetric
+    metadata["checkerboard"] = checkerboard
+    metadata["seed"] = seed
 
 # ## Initialize Model
 # In this section of the script only one small change needs to be made, adding a call
@@ -354,7 +351,7 @@ function run_simulation(
 # No changes need to made to this section of the code from the previous [1a) Square Hubbard Model](@ref) tutorial.
 
     ## Initialize average acceptance rate variable.
-    additional_info["avg_acceptance_rate"] = 0.0
+    metadata["avg_acceptance_rate"] = 0.0
 
     ## Iterate over number of thermalization updates to perform.
     for n in 1:N_therm
@@ -372,7 +369,7 @@ function run_simulation(
         )
 
         ## Record acceptance rate for sweep.
-        additional_info["avg_acceptance_rate"] += acceptance_rate
+        metadata["avg_acceptance_rate"] += acceptance_rate
     end
 
 # ## Make measurements
@@ -404,7 +401,7 @@ function run_simulation(
             )
 
             ## Record acceptance rate.
-            additional_info["avg_acceptance_rate"] += acceptance_rate
+            metadata["avg_acceptance_rate"] += acceptance_rate
 
             ## Make measurements.
             (logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = make_measurements!(
@@ -433,15 +430,15 @@ function run_simulation(
     end
 
     ## Normalize acceptance rate.
-    additional_info["avg_acceptance_rate"] /=  (N_therm + N_updates)
+    metadata["avg_acceptance_rate"] /=  (N_therm + N_updates)
 
-    additional_info["n_stab_final"] = fermion_greens_calculator_up.n_stab
+    metadata["n_stab_final"] = fermion_greens_calculator_up.n_stab
 
     ## Record largest numerical error.
-    additional_info["dG"] = δG
+    metadata["dG"] = δG
 
     ## Write simulation summary TOML file.
-    save_simulation_info(simulation_info, additional_info)
+    save_simulation_info(simulation_info, metadata)
 
 # ## Process results
 # We need start with section with a call to the [`MPI.Barrier`](https://juliaparallel.org/MPI.jl/stable/reference/comm/#MPI.Barrier)

@@ -477,12 +477,13 @@ end
 
 @doc raw"""
     initialize_measurement_directories(;
+        # Keyword Arguments
         simulation_info::SimulationInfo,
         measurement_container::NamedTuple
     )
 
-    initialize_measurement_directories(;
-        # Keyword Arguments
+    initialize_measurement_directories(
+        # Arguments
         simulation_info::SimulationInfo,
         measurement_container::NamedTuple
     )
@@ -490,6 +491,7 @@ end
 Initialize the measurement directories for simulation.
 """
 function initialize_measurement_directories(;
+    # Keyword Arguments
     simulation_info::SimulationInfo,
     measurement_container::NamedTuple
 )
@@ -498,6 +500,7 @@ function initialize_measurement_directories(;
 end
 
 function initialize_measurement_directories(
+    # Arguments
     simulation_info::SimulationInfo,
     measurement_container::NamedTuple
 )
@@ -512,7 +515,7 @@ function initialize_measurement_directories(
     ) = measurement_container
 
     # only initialize folders if pID = 0
-    if iszero(pID)
+    if iszero(pID) && !resuming
 
         # make global measurements directory
         global_directory = joinpath(datafolder, "global")

@@ -300,14 +300,14 @@ function rename_complete_simulation(
     if delete_jld2_checkpoints
 
         # get the files in the data folder
-        files = readdir(simulation_info.datafolder, join = true)
+        files = readdir(simulation_info_complete.datafolder, join = true)
 
-        # get ending of checkpoint file name based on pID
-        ending = "pID-$(pID).jld2"
+        # construct checkpoint filename
+        checkpoint_file = "checkpoint_pID-$(pID).jld2"
 
         # iterate over files, deleting the checkpoint filed
         for file in files
-            if startswith(file, "checkpoint") && endswith(file, ending)
+            if basename(file) == checkpoint_file
                 # delete checkpoint file
                 rm(file, force = true)
             end
@@ -344,11 +344,14 @@ function rename_complete_simulation(
     if delete_jld2_checkpoints
 
         # get the files in the data folder
-        files = readdir(simulation_info.datafolder, join = true)
+        files = readdir(simulation_info_complete.datafolder, join = true)
+
+        # construct checkpoint filename
+        checkpoint_file = "checkpoint_pID-$(pID).jld2"
 
         # iterate over files, deleting the checkpoint filed
         for file in files
-            if startswith(file, "checkpoint")
+            if basename(file) == checkpoint_file
                 # delete checkpoint file
                 rm(file, force = true)
             end
