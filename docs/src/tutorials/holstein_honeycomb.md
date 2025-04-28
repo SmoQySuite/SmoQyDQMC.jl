@@ -4,7 +4,7 @@ EditURL = "../../../tutorials/holstein_honeycomb.jl"
 
 Download this example as a [Julia script](../assets/scripts/tutorials/holstein_honeycomb.jl).
 
-# Honeycomb Holstein Model
+# 2a) Honeycomb Holstein Model
 
 In this example we will work through simulating the Holstein model on a honeycomb lattice.
 The Holstein Hamiltonian is given by
@@ -294,6 +294,18 @@ For more information refer to [here.](@ref hubbard_square_initialize_measurement
         time_displaced = true,
         pairs = [
             # Measure green's functions for all pairs or orbitals.
+            (1, 1), (2, 2), (1, 2)
+        ]
+    )
+
+    # Initialize the single-particle electron Green's function measurement.
+    initialize_correlation_measurements!(
+        measurement_container = measurement_container,
+        model_geometry = model_geometry,
+        correlation = "phonon_greens",
+        time_displaced = true,
+        pairs = [
+            # Measure green's functions for all pairs of modes.
             (1, 1), (2, 2), (1, 2)
         ]
     )
@@ -613,7 +625,7 @@ For more information refer to [here](@ref hubbard_square_process_results).
 ````julia
     # Process the simulation results, calculating final error bars for all measurements,
     # writing final statisitics to CSV files.
-    process_measurements(simulation_info.datafolder, N_bins)
+    process_measurements(simulation_info.datafolder, N_bins, time_displaced = true)
 
     # Merge binary files containing binned data into a single file.
     compress_jld2_bins(folder = simulation_info.datafolder)

@@ -1,4 +1,4 @@
-# # Honeycomb Holstein Model
+# # 2a) Honeycomb Holstein Model
 
 # In this example we will work through simulating the Holstein model on a honeycomb lattice.
 # The Holstein Hamiltonian is given by

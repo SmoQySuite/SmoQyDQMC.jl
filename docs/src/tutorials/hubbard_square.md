@@ -4,7 +4,7 @@ EditURL = "../../../tutorials/hubbard_square.jl"
 
 Download this example as a [Julia script](../assets/scripts/tutorials/hubbard_square.jl).
 
-# Square Hubbard Model
+# 1a) Square Hubbard Model
 
 In this example we will work through simulating the repulsive Hubbard model on a square lattice.
 The Hubbard Hamiltonian for a square lattice given by
@@ -80,11 +80,10 @@ function run_simulation(;
 
 ## [Initialize simulation](@id hubbard_square_initialize_simulation)
 In this first part of the script we name and initialize our simulation, creating the data folder our simulation results will be written to.
-This is done by initializing an instances of the [`SimulationInfo`](@ref) type, as well as an `additional_info` dictionary where we will store useful metadata about the simulation.
-Finally, the integer `seed` is used to initialize the random number generator `rng` that will be used to generate random numbers throughout the rest of the simulation.
+This is done by initializing an instances of the [`SimulationInfo`](@ref) type, and then calling the [`initialize_datafolder`](@ref) function.
 
-Next we record relevant simulation parameters to the `additional_info` dictionary.
-Think of the `additional_info` dictionary as a place to record any additional information during the simulation that will not otherwise be automatically recorded and written to file.
+Next we record relevant simulation parameters to the `metadata` dictionary.
+Think of the `metadata` dictionary as a place to record any additional information during the simulation that will not otherwise be automatically recorded and written to file.
 
 ````julia
     # Construct the foldername the data will be written to.
@@ -99,22 +98,29 @@ Think of the `additional_info` dictionary as a place to record any additional in
 
     # Initialize the directory the data will be written to.
     initialize_datafolder(simulation_info)
+````
 
+## Initialize simulation metadata
+In this section of the code we record important metadata about the simulation, including initializing the random number
+generator that will be used throughout the simulation.
+The important metadata within the simulation will be recorded in the `metadata` dictionary.
+
+````julia
     # Initialize random number generator
     rng = Xoshiro(seed)
 
     # Initialize additiona_info dictionary
-    additional_info = Dict()
+    metadata = Dict()
 
     # Record simulation parameters.
-    additional_info["N_therm"] = N_therm
-    additional_info["N_updates"] = N_updates
-    additional_info["N_bins"] = N_bins
-    additional_info["n_stab_init"] = n_stab
-    additional_info["dG_max"] = δG_max
-    additional_info["symmetric"] = symmetric
-    additional_info["checkerboard"] = checkerboard
-    additional_info["seed"] = seed
+    metadata["N_therm"] = N_therm
+    metadata["N_updates"] = N_updates
+    metadata["N_bins"] = N_bins
+    metadata["n_stab_init"] = n_stab
+    metadata["dG_max"] = δG_max
+    metadata["symmetric"] = symmetric
+    metadata["checkerboard"] = checkerboard
+    metadata["seed"] = seed
 ````
 
 In the above, `sID` stands for simulation ID, which is used to distinguish simulations that would otherwise be identical i.e. to
@@ -527,7 +533,7 @@ with `δG` is simply reporting the maximum observed numerical error during the s
 
 ````julia
     # Initialize average acceptance rate variable.
-    additional_info["avg_acceptance_rate"] = 0.0
+    metadata["avg_acceptance_rate"] = 0.0
 
     # Iterate over number of thermalization updates to perform.
     for n in 1:N_therm
@@ -545,7 +551,7 @@ with `δG` is simply reporting the maximum observed numerical error during the s
         )
 
         # Record acceptance rate for sweep.
-        additional_info["avg_acceptance_rate"] += acceptance_rate
+        metadata["avg_acceptance_rate"] += acceptance_rate
     end
 ````
 
@@ -557,6 +563,8 @@ The parameter `N_bins` then controls the number of times bin-averaged measuremen
 [JLD2](https://github.com/JuliaIO/JLD2.jl.git) files, subject to the constraint that `(N_updates % N_bins) == 0`.
 Therefore, the number of measurements that are averaged over per bin is given by `bin_size = N_updates ÷ N_bins`.
 The bin-averaged measurements are written to file once `bin_size` measurements are accumulated using the [`write_measurements!`](@ref) function.
+At the end of this section we write an initial version of a simulation summary TOML file using the [`save_simulation_info`](@ref) function,
+which includes all the information currently stored in the `metadata` dictionary.
 
 ````julia
     # Reset diagonostic parameters used to monitor numerical stability to zero.
@@ -585,7 +593,7 @@ The bin-averaged measurements are written to file once `bin_size` measurements a
             )
 
             # Record acceptance rate.
-            additional_info["avg_acceptance_rate"] += acceptance_rate
+            metadata["avg_acceptance_rate"] += acceptance_rate
 
             # Make measurements.
             (logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = make_measurements!(
@@ -614,26 +622,26 @@ The bin-averaged measurements are written to file once `bin_size` measurements a
     end
 
     # Normalize acceptance rate.
-    additional_info["avg_acceptance_rate"] /=  (N_therm + N_updates)
-````
+    metadata["avg_acceptance_rate"] /=  (N_therm + N_updates)
 
-Record final stabilization period used at the end of the simulation.
-
-````julia
-    additional_info["n_stab_final"] = fermion_greens_calculator_up.n_stab
+    # Record final stabilization period used at the end of the simulation.
+    metadata["n_stab_final"] = fermion_greens_calculator_up.n_stab
 
     # Record largest numerical error.
-    additional_info["dG"] = δG
+    metadata["dG"] = δG
 
     # Write simulation summary TOML file.
-    save_simulation_info(simulation_info, additional_info)
+    save_simulation_info(simulation_info, metadata)
 ````
 
 ## [Process results](@id hubbard_square_process_results)
-In this final section of code we process the binned data, calculating final estimates for the mean and error of all measured observables.
-The final statistics are written to CSV files using the function [`process_measurements`](@ref) function.
+In this final section of code we process the binned data, calculating final estimates for the mean and error of all measured observables,
+which get written to CSV files using the function [`process_measurements`](@ref) function.
 Inside this function the binned data gets further rebinned into `n_bins`,
 where `n_bins` is any positive integer satisfying the constraints `(N_bins ≥ n_bin)` and `(N_bins % n_bins == 0)`.
+The `time_displaced` keyword argument in the [`process_measurements`](@ref) function determines whether or not final statistics are computed for the
+time-displaced measurements. The default behavior is `time_displaced = false`, as computing these average statistics can be somewhat time-consuming,
+but if they are required, simply set `time_displaced = true`.
 Again, for more information on how to interpret the output refer the the [Simulation Output Overview](@ref) page.
 
 ````julia
@@ -642,8 +650,53 @@ Again, for more information on how to interpret the output refer the the [Simula
 
     # Process the simulation results, calculating final error bars for all measurements,
     # writing final statisitics to CSV files.
-    process_measurements(simulation_info.datafolder, n_bins)
+    process_measurements(simulation_info.datafolder, n_bins, time_displaced = false)
 ````
+
+A common measurements that needs to be reconstructed at the end of a DQMC simulation is something called the correlation
+ratio with respect to the ordering wave-vector for a specified type of correlation function measured during the simulation.
+In the case of the square Hubbard model, we are interested in measureing the correlation ratio
+```math
+R_z(\mathbf{Q}_\text{AFM}) = 1 - \frac{1}{4} \sum_{\delta\mathbf{q}} \frac{S_z(\mathbf{Q}_\text{AFM} + \delta\mathbf{q})}{S_z(\mathbf{Q}_\text{AFM})}
+```
+with respect to the equal-time antiferromagnetic (AFM) structure factor ``S_z(\mathbf{Q}_\text{AFM})``, where ``S_z(\mathbf{q})`` is the spin-``z``
+equal-time structure factor and ``\mathbf{Q}_\text{AFM} = (\pi/a, \pi/a)`` is the AFM ordering wave-vector.
+The sum over ``\delta\mathbf{q}`` runs over the four wavevectors that neigboring ``\mathbf{Q}_\text{AFM}.``
+Here we use the [`compute_correlation_ratio`](@ref) function to calculate this correlation ratio, and then we record the mean and error for this
+measurement in the `metadata` dictionary.
+
+````julia
+    # Calculate AFM correlation ratio.
+    Rafm, ΔRafm = compute_correlation_ratio(
+        folder = simulation_info.datafolder,
+        correlation = "spin_z",
+        type = "equal-time",
+        id_pairs = [(1, 1)],
+        coefs = [1.0],
+        k_point = (L÷2, L÷2), # Corresponds to Q_afm = (π/a, π/a).
+        num_bins = n_bins
+    )
+````
+
+Next, we record the measurement in the `metadata` dictionary, and then write a new version of the simulation summary TOML file that
+contains this new information using the [`save_simulation_info`](@ref) function.
+
+````julia
+    # Record the AFM correlation ratio mean and standard deviation.
+    metadata["Rafm_real_mean"] = real(Rafm)
+    metadata["Rafm_imag_mean"] = imag(Rafm)
+    metadata["Rafm_std"]       = ΔRafm
+
+    # Write simulation summary TOML file.
+    save_simulation_info(simulation_info, metadata)
+````
+
+The convention used for specifying the ordering wave-vector ``\mathbf{Q}_\text{AFM}`` using the `k_point` keyword argument
+in the [`compute_correlation_ratio`](@ref) function call are described [here](@ref vector_reporting_conventions) in the [Simulation Output Overview](@ref) page.
+
+Note that as long as the binned data generated by the simulation persists in an uncompressed format (see below), the [`process_measurements`](@ref),
+and [`compute_correlation_ratio`](@ref) functions can be called multiple times to recompute the final statistics for the measurements without needing
+to rerun the simulation.
 
 Lastly, it is worth mentioning that running many DQMC simulations will generate many seperate binary files, which can eventually exceed the file quota limit on the system.
 To help prevent this problem from arising, we can use the function [`compress_jld2_bins`](@ref)
