@@ -3,9 +3,10 @@
         simulation_info::SimulationInfo
     )
 
-Read in a checkpoint file written using the [`write_jld2_checkpoint`](@ref) function
-and return its contents as a dictionary. Behind the scenes, the
-[JLD2.jl](https://github.com/JuliaIO/JLD2.jl.git) package is used to read (and write)
+Read in a checkpoint file written using the [`write_jld2_checkpoint`](@ref) function and return its contents as a dictionary.
+This function returns the tuple `(checkpoint, checkpoint_timestamp)` where `checkpoint` is a dictionary containing the contents of the checkpoint file
+and `checkpoint_timestamp` is the epoch timestamp corresponding to when the checkpoint file was read in.
+Behind the scenes, the [JLD2.jl](https://github.com/JuliaIO/JLD2.jl.git) package is used to read (and write)
 the checkpoint files.
 """
 function read_jld2_checkpoint(
@@ -73,7 +74,10 @@ function read_jld2_checkpoint(
         error("No JLD2 checkpoint file was successfully loaded from $(datafolder) for process ID (pID) $(pID).")
     end
 
-    return checkpoint
+    # record the checkpoint timestamp as the current time
+    checkpoint_timestamp = time()
+
+    return checkpoint, checkpoint_timestamp
 end
 
 
@@ -121,6 +125,11 @@ The checkpoint file is a [JLD2](https://github.com/JuliaIO/JLD2.jl) binary file.
 - `runtime_limit::T = Inf`: (optional) Maximum runtime of simulation in seconds; if this much time has elapsed since the beginning of the simulation after writing new checkpoint file then the simulation is terminated.
 - `error_code::Int = 13`: (optional) Error code used to exit simulation if the runtime limit is exceeded.
 - `kwargs...`: Additional keyword arguments containing the information that will stored in the checkpoint file; keyword arguments can point to arbitrary Julia objects.
+
+# Notes
+
+The default values for the `checkpoint_timestamp`, `checkpoint_freq`, `start_timestamp`, and `runtime_limit` keyword arguments
+result in there being no runtime limit for the simulation and a new checkpoint file being written every time this function is called.
 """
 function write_jld2_checkpoint(
     # Arguments

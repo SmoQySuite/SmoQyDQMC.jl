@@ -1,3 +1,12 @@
+# # 1c) Square Hubbard Model with Checkpointing
+# In this tutorial we demonstrate how to introduce checkpointing to the previous tutorial
+# [1b) Square Hubbard Model with MPI Parallelization](@ref), allowing for simulations to be
+# terminated and then resumed later.
+
+# ## Import Packages
+# No changes need to made to this section of the code from the previous
+# [1b) Square Hubbard Model with MPI Parallelization](@ref) tutorial.
+
 using SmoQyDQMC
 import SmoQyDQMC.LatticeUtilities as lu
 import SmoQyDQMC.JDQMCFramework as dqmcf
@@ -5,7 +14,12 @@ import SmoQyDQMC.JDQMCFramework as dqmcf
 using Random
 using Printf
 using MPI
-using JLD2
+
+# ## Specify simulation parameters
+# Compared to the previous [1b) Square Hubbard Model with MPI Parallelization](@ref) tutorial, we have added
+# two new keyword arguments to the `run_simulation` function:
+# - `checkpoint_freq`: When going to write a new checkpoint file, only write one if more than `checkpoint_freq` hours have passed since the last checkpoint file was written.
+# - `runtime_limit`: If after writing a new checkpoint file more than `runtime_limit` hours have passed since the simulation started, terminate the simulation.
 
 ## Top-level function to run simulation.
 function run_simulation(
@@ -31,11 +45,14 @@ function run_simulation(
     filepath = "." # Filepath to where data folder will be created.
 )
 
+# ## Initialize simulation
+# We need to make a few modifications to this portion of the code as compared to the previous tutorial
+# in order for checkpointing to work. First, we record need to record the simulation start time,
+# which we do by initializing a variable `start_timestamp = time()`.
+# Second, we need to convert the `checkpoint_freq` and `runtime_limit` from hours to seconds.
+
     ## Record when the simulation began.
     start_timestamp = time()
-
-    ## Initialize checkpoint timestamp to zero.
-    checkpoint_timestamp = 0.0
 
     ## Convert runtime limit from hours to seconds.
     runtime_limit = runtime_limit * 60.0^2
@@ -60,8 +77,27 @@ function run_simulation(
     ## Initialize the directory the data will be written to if one does not already exist.
     initialize_datafolder(comm, simulation_info)
 
+# ## Initialize simulation metadata
+# At this point we need to introduce branching logic to handle whether a new simulation is being started,
+# or a previous simulation is being resumed.
+# We do this by checking the `simulation_info.resuming` boolean value.
+# If `simulation_info.resuming = true`, then we are resuming a previous simulation, while
+# `simulation_info.resuming = false` indicates we are starting a new simulation.
+# Therefore, the section of code immediately below handles the case that we are starting a new simulation.
+
+# We also introduce and initialize two new variables `n_therm = 1` and `n_updates = 1` which will keep track
+# of how many rounds of thermalization and measurement updates have been performed. These two variables will
+# needed to be included in the checkpoint files we write later in the simulation, as they will indicate
+# where to resume a previously terminated simulation.
+
     ## If starting a new simulation i.e. not resuming a previous simulation.
     if !simulation_info.resuming
+
+        # Begin thermalization updates from start.
+        n_therm = 1
+
+        # Begin measurement updates from start.
+        n_updates = 1
 
         ## Initialize random number generator
         rng = Xoshiro(seed)
@@ -78,12 +114,11 @@ function run_simulation(
         metadata["symmetric"] = symmetric
         metadata["checkerboard"] = checkerboard
         metadata["seed"] = seed
+        metadata["avg_acceptance_rate"] = 0.0
 
-        # Begin thermalization updates from start.
-        n_therm = 1
-
-        # Begin measurement updates from start.
-        n_updates = 1
+# ## Initialize Model
+# No changes need to made to this section of the code from the previous
+# [1b) Square Hubbard Model with MPI Parallelization](@ref) tutorial.
 
         ## Define unit cell.
         unit_cell = lu.UnitCell(
@@ -197,6 +232,10 @@ function run_simulation(
             interactions = (hubbard_model,)
         )
 
+# ## Initialize model parameters
+# No changes need to made to this section of the code from the previous
+# [1b) Square Hubbard Model with MPI Parallelization](@ref) tutorial.
+
         ## Initialize tight-binding parameters.
         tight_binding_parameters = TightBindingParameters(
             tight_binding_model = tight_binding_model,
@@ -218,6 +257,10 @@ function run_simulation(
             hubbard_parameters = hubbard_params,
             rng = rng
         )
+
+# ## Initialize measurements
+# No changes need to made to this section of the code from the previous
+# [1b) Square Hubbard Model with MPI Parallelization](@ref) tutorial.
 
         ## Initialize the container that measurements will be accumulated into.
         measurement_container = initialize_measurement_container(model_geometry, β, Δτ)
@@ -282,21 +325,51 @@ function run_simulation(
         ## Initialize the sub-directories to which the various measurements will be written.
         initialize_measurement_directories(simulation_info, measurement_container)
 
+# ## Write first checkpoint
+# This section of code needs to be added so that a first checkpoint file is written before
+# beginning a new simulation. We do this using the [`write_jld2_checkpoint`](@ref) function.
+# This function all return the epoch timestamp `checkpoint_timestamp` corresponding to when
+# the checkpoint file was written.
+
+        ## Write initial checkpoint file.
+        checkpoint_timestamp = write_jld2_checkpoint(
+            comm,
+            simulation_info;
+            checkpoint_freq = checkpoint_freq,
+            start_timestamp = start_timestamp,
+            runtime_limit = runtime_limit,
+            ## Contents of checkpoint file below.
+            n_therm, n_updates,
+            tight_binding_parameters, hubbard_params, hubbard_stratonovich_params,
+            measurement_container, model_geometry, metadata, rng
+        )
+
+# ## Load checkpoint
+# If we are resuming a simulation that was previously terminated prior to completion, then
+# we need to load the most recent checkpoint file using the [`read_jld2_checkpoint`](@ref) function.
+# The cotents of the checkpoint file are returned as a dictionary `checkpoint` by the [`read_jld2_checkpoint`](@ref) function.
+# We then extract the cotents of the checkpoint file from the `checkpoint` dictionary.
+
     ## If resuming a previous simulation.
     else
 
-        # Load the checkpoint file.
-        checkpoint = read_jld2_checkpoint(simulation_info)
-        tight_binding_parameters = checkpoint["tight_binding_parameters"]
-        hubbard_params = checkpoint["hubbard_params"]
+        ## Load the checkpoint file.
+        checkpoint, checkpoint_timestamp = read_jld2_checkpoint(simulation_info)
+
+        ## Unpack contents of checkpoint dictionary.
+        tight_binding_parameters    = checkpoint["tight_binding_parameters"]
+        hubbard_params              = checkpoint["hubbard_params"]
         hubbard_stratonovich_params = checkpoint["hubbard_stratonovich_params"]
-        measurement_container = checkpoint["measurement_container"]
-        model_geometry = checkpoint["model_geometry"]
-        metadata = checkpoint["metadata"]
-        rng = checkpoint["rng"]
-        n_therm = checkpoint["n_therm"]
-        n_updates = checkpoint["n_updates"]
+        measurement_container       = checkpoint["measurement_container"]
+        model_geometry              = checkpoint["model_geometry"]
+        metadata                    = checkpoint["metadata"]
+        rng                         = checkpoint["rng"]
+        n_therm                     = checkpoint["n_therm"]
+        n_updates                   = checkpoint["n_updates"]
     end
+
+# ## Setup DQMC simulation
+# No changes need to made to this section of the code from the previous [1a) Square Hubbard Model](@ref) tutorial.
 
     ## Synchronize all the MPI processes.
     MPI.Barrier(comm)
@@ -341,22 +414,14 @@ function run_simulation(
     δG = zero(logdetGup)
     δθ = zero(sgndetGup)
 
-    ## Initialize average acceptance rate variable.
-    metadata["avg_acceptance_rate"] = 0.0
-
-    ## Write initial checkpoint file.
-    checkpoint_timestamp = write_jld2_checkpoint(
-        comm,
-        simulation_info;
-        checkpoint_timestamp = checkpoint_timestamp,
-        checkpoint_freq = checkpoint_freq,
-        start_timestamp = start_timestamp,
-        runtime_limit = runtime_limit,
-        ## Contents of checkpoint file below.
-        n_therm, n_updates,
-        tight_binding_parameters, hubbard_params, hubbard_stratonovich_params,
-        measurement_container, model_geometry, metadata, rng
-    )
+# ## Thermalize system
+# The only change we need to make to this section of the code from the previous [1b) Square Hubbard Model with MPI Parallelization](@ref) tutorial
+# is to add a call to the [`write_jld2_checkpoint`](@ref) function at the end of each iteration of the
+# for-loop in which we perform the thermalization updates.
+# When calling this function we need to pass it the timestamp for the previous checkpoint `checkpoint_timestamp`
+# so that the function can determine if a new checkpoint file needs to be written.
+# If a new checkpoint file is written then the `checkpoint_timestamp` variable will be updated to reflect this,
+# otherwise it will remain unchanged.
 
     ## Iterate over number of thermalization updates to perform.
     for update in n_therm:N_therm
@@ -391,6 +456,14 @@ function run_simulation(
             measurement_container, model_geometry, metadata, rng
         )
     end
+
+# ## Make measurements
+# Again, the only change we need to make to this section of the code from the previous
+# [1b) Square Hubbard Model with MPI Parallelization](@ref) tutorial
+# is to add a call to the [`write_jld2_checkpoint`](@ref) function at the end of each iteration of the
+# for-loop in which we perform updates and measurements.
+# Note that we set `n_therm = N_therm + 1` when writing the checkpoint file to ensure that when the simulation
+# is resumed the thermalization updates are not repeated.
 
     ## Reset diagonostic parameters used to monitor numerical stability to zero.
     δG = zero(logdetGup)
@@ -472,6 +545,13 @@ function run_simulation(
     ## Write simulation summary TOML file.
     save_simulation_info(simulation_info, metadata)
 
+# ## Process results
+# From the last [1b) Square Hubbard Model with MPI Parallelization](@ref) tutorial, we now need to add
+# a call to the [`rename_complete_simulation`](@ref) function once the results are processed.
+# This function renames the data folder to begin with `complete_*`, making it simple to identify which
+# simulations ran to completion and which ones need to be resumed from the last checkpoint file.
+# This function also deletes the checkpoint files that were written during the simulation.
+
     ## Synchronize all the MPI processes.
     MPI.Barrier(comm)
 
@@ -506,10 +586,34 @@ function run_simulation(
     compress_jld2_bins(comm, folder = simulation_info.datafolder)
 
     ## Rename the data folder to indicate the simulation is complete.
-    simulation_info = rename_complete_simulation(comm, simulation_info)
+    simulation_info = rename_complete_simulation(
+        comm, simulation_info,
+        delete_jld2_checkpoints = true
+    )
 
     return nothing
 end # end of run_simulation function
+
+# ## Execute script
+# To execute the script, we have added two new command line arguments allowing for the assignment of both
+# the `checkpoint_freq` and `runtime_limit` values.
+# Therefore, a simulation can be run with the command
+# ```bash
+# mpiexecjl -n 16 julia hubbard_square_mpi.jl 1 5.0 -0.25 -2.0 4 4.0 2500 10000 100 1.0 48.0
+# ```
+# or 
+# ```bash
+# srun julia hubbard_square_mpi.jl 1 5.0 -0.25 -2.0 4 4.0 2500 10000 100 1.0 48.0
+# ```
+# Refer to the previous [1b) Square Hubbard Model with MPI Parallelization](@ref) tutorial for more details on how to run the simulation
+# script using MPI.
+
+# In the example calls above the code will write a new checkpoint if more than 1 hour has passed since the last checkpoint file was written
+# and the simulation will terminate after writing a new checkpoint file if more than 48 hours (two days) has passed since the
+# simulation started.
+# Note that these same commands are used to both begin a new simulation and also resume a previous simulation.
+# This is a useful feature when submitting jobs on a cluster, as it allows the same job file to be used for
+# both starting new simulations and resuming ones that still need to finish.
 
 if abspath(PROGRAM_FILE) == @__FILE__
 
