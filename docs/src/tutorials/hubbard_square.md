@@ -121,6 +121,7 @@ The important metadata within the simulation will be recorded in the `metadata` 
     metadata["symmetric"] = symmetric
     metadata["checkerboard"] = checkerboard
     metadata["seed"] = seed
+    metadata["avg_acceptance_rate"] = 0.0
 ````
 
 In the above, `sID` stands for simulation ID, which is used to distinguish simulations that would otherwise be identical i.e. to
@@ -532,9 +533,6 @@ then `δG_max` doesn't do anything and `n_stab` remains unchanged during the sim
 with `δG` is simply reporting the maximum observed numerical error during the simulation.
 
 ````julia
-    # Initialize average acceptance rate variable.
-    metadata["avg_acceptance_rate"] = 0.0
-
     # Iterate over number of thermalization updates to perform.
     for n in 1:N_therm
 

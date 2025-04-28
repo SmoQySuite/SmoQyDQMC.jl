@@ -63,10 +63,9 @@ MPI process ID `pID`, which can be retrieved using the
 [`MPI.Comm_rank`](https://juliaparallel.org/MPI.jl/stable/reference/comm/#MPI.Comm_rank)
 function.
 
-We also use the [`MPI.Barrier`](https://juliaparallel.org/MPI.jl/stable/reference/comm/#MPI.Barrier)
-function to synchronize all the MPI processes, ensuring that none of the MPI processes proceed until
-the data folder directory the results will be written to is initialized using
-the [`initialize_datafolder`](@ref) function.
+We also the [`initialize_datafolder`](@ref) function such that it takes the `comm` as the
+first argument. This ensures that all the MPI processes remained synchronized, and none
+try proceeding beyond this point until the data folder has been initialized.
 
 ````julia
     # Construct the foldername the data will be written to.
@@ -84,10 +83,7 @@ the [`initialize_datafolder`](@ref) function.
     )
 
     # Initialize the directory the data will be written to.
-    initialize_datafolder(simulation_info)
-
-    # Synchronize all the MPI processes.
-    MPI.Barrier(comm)
+    initialize_datafolder(comm, simulation_info)
 ````
 
 ## Initialize simulation metadata
@@ -98,20 +94,21 @@ No changes need to made to this section of the code from the previous [1a) Squar
     rng = Xoshiro(seed)
 
     # Initialize additiona_info dictionary
-    additional_info = Dict()
+    metadata = Dict()
 
     # Record simulation parameters.
-    additional_info["N_therm"] = N_therm
-    additional_info["N_updates"] = N_updates
-    additional_info["N_bins"] = N_bins
-    additional_info["n_stab_init"] = n_stab
-    additional_info["dG_max"] = δG_max
-    additional_info["symmetric"] = symmetric
-    additional_info["checkerboard"] = checkerboard
-    additional_info["seed"] = seed
+    metadata["N_therm"] = N_therm
+    metadata["N_updates"] = N_updates
+    metadata["N_bins"] = N_bins
+    metadata["n_stab_init"] = n_stab
+    metadata["dG_max"] = δG_max
+    metadata["symmetric"] = symmetric
+    metadata["checkerboard"] = checkerboard
+    metadata["seed"] = seed
+    metadata["avg_acceptance_rate"] = 0.0
 ````
 
-## Initialize Model
+## Initialize model
 In this section of the script only one small change needs to be made, adding a call
 to the [`MPI.Barrier`](https://juliaparallel.org/MPI.jl/stable/reference/comm/#MPI.Barrier) function
 at the end. This is described more below.
@@ -228,7 +225,12 @@ at the end. This is described more below.
         tight_binding_model = tight_binding_model,
         interactions = (hubbard_model,)
     )
+````
 
+## Initialize model parameters
+No changes need to made to this section of the code from the previous [1a) Square Hubbard Model](@ref) tutorial.
+
+````julia
     # Initialize tight-binding parameters.
     tight_binding_parameters = TightBindingParameters(
         tight_binding_model = tight_binding_model,
@@ -250,7 +252,12 @@ at the end. This is described more below.
         hubbard_parameters = hubbard_params,
         rng = rng
     )
+````
 
+## Initialize meuasurements
+No changes need to made to this section of the code from the previous [1a) Square Hubbard Model](@ref) tutorial.
+
+````julia
     # Initialize the container that measurements will be accumulated into.
     measurement_container = initialize_measurement_container(model_geometry, β, Δτ)
 
@@ -310,25 +317,21 @@ at the end. This is described more below.
         time_displaced = false,
         integrated = true
     )
-````
 
-Here again we need to add a call to [`MPI.Barrier`](https://juliaparallel.org/MPI.jl/stable/reference/comm/#MPI.Barrier)
-to synchronize all the MPI processes, ensuring that none of the MPI processes proceed until
-measurement subdirectories are initialized inside the data folder using the
-[`initialize_measurement_directories`](@ref) function.
-
-````julia
     # Initialize the sub-directories to which the various measurements will be written.
     initialize_measurement_directories(simulation_info, measurement_container)
-
-    # Synchronize all the MPI processes.
-    MPI.Barrier(comm)
 ````
 
 ## Setup DQMC simulation
-No changes need to made to this section of the code from the previous [1a) Square Hubbard Model](@ref) tutorial.
+In this section of the code we only need to make one very minor change in adding a call to the
+[`MPI.Barrier`](https://juliaparallel.org/MPI.jl/stable/reference/comm/#MPI.Barrier) function
+to synchronize all the MPI processes.
+This ensures that the proper directory structure for the simulation is in place before the simulation begins.
 
 ````julia
+    # Synchronize all the MPI processes.
+    MPI.Barrier(comm)
+
     # Allocate FermionPathIntegral type for both the spin-up and spin-down electrons.
     fermion_path_integral_up = FermionPathIntegral(tight_binding_parameters = tight_binding_parameters, β = β, Δτ = Δτ)
     fermion_path_integral_dn = FermionPathIntegral(tight_binding_parameters = tight_binding_parameters, β = β, Δτ = Δτ)
@@ -374,9 +377,6 @@ No changes need to made to this section of the code from the previous [1a) Squar
 No changes need to made to this section of the code from the previous [1a) Square Hubbard Model](@ref) tutorial.
 
 ````julia
-    # Initialize average acceptance rate variable.
-    additional_info["avg_acceptance_rate"] = 0.0
-
     # Iterate over number of thermalization updates to perform.
     for n in 1:N_therm
 
@@ -393,7 +393,7 @@ No changes need to made to this section of the code from the previous [1a) Squar
         )
 
         # Record acceptance rate for sweep.
-        additional_info["avg_acceptance_rate"] += acceptance_rate
+        metadata["avg_acceptance_rate"] += acceptance_rate
     end
 ````
 
@@ -427,7 +427,7 @@ No changes need to made to this section of the code from the previous [1a) Squar
             )
 
             # Record acceptance rate.
-            additional_info["avg_acceptance_rate"] += acceptance_rate
+            metadata["avg_acceptance_rate"] += acceptance_rate
 
             # Make measurements.
             (logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = make_measurements!(
@@ -456,15 +456,15 @@ No changes need to made to this section of the code from the previous [1a) Squar
     end
 
     # Normalize acceptance rate.
-    additional_info["avg_acceptance_rate"] /=  (N_therm + N_updates)
+    metadata["avg_acceptance_rate"] /=  (N_therm + N_updates)
 
-    additional_info["n_stab_final"] = fermion_greens_calculator_up.n_stab
+    metadata["n_stab_final"] = fermion_greens_calculator_up.n_stab
 
     # Record largest numerical error.
-    additional_info["dG"] = δG
+    metadata["dG"] = δG
 
     # Write simulation summary TOML file.
-    save_simulation_info(simulation_info, additional_info)
+    save_simulation_info(simulation_info, metadata)
 ````
 
 ## Process results

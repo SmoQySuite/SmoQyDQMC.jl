@@ -5,22 +5,13 @@ EditURL = "../../../tutorials/hubbard_square_checkpoint.jl"
 Download this example as a [Julia script](../assets/scripts/tutorials/hubbard_square_checkpoint.jl).
 
 # 1c) Square Hubbard Model with Checkpointing
-This tutorial builds on the previous [1b) Square Hubbard Model with MPI Parallelization](@ref) tutorial,
-demonstrating one way to introduce checkpointing into your script. Here we will assume the script is written
-to allow for parallelization using MPI.
-
-As a general comment, [SmoQyDQMC](https://github.com/SmoQySuite/SmoQyDQMC.jl.git) doesn't explicilty or directly support
-checkpointing. Rather, because of its scripting interface, it is possible to implement checkpointing yourself with a simulation script.
-In this example we will set up a script so that a fixed number of checkpoints are written during the simulation,
-but alternative schemes based on alternative criteria like elapsed wall clock time are possible.
-
-The exposition in this tutorial will focus on the parts of the code that handle checkpointing.
-For a more detailed discussion of other aspects of the code please refer to the two previous tutorials
-in this series, [1a) Square Hubbard Model](@ref) and [1b) Square Hubbard Model with MPI Parallelization](@ref).
+In this tutorial we demonstrate how to introduce checkpointing to the previous tutorial
+[1b) Square Hubbard Model with MPI Parallelization](@ref), allowing for simulations to be
+terminated and then resumed later.
 
 ## Import Packages
-To write our checkpoint files we will use the [JLD2.jl](https://github.com/JuliaIO/JLD2.jl.git) package,
-which provides functionality for writing and reading arbitary Julia objects to and from `*.jld2` binary file.
+No changes need to made to this section of the code from the previous
+[1b) Square Hubbard Model with MPI Parallelization](@ref) tutorial.
 
 ````julia
 using SmoQyDQMC
@@ -30,9 +21,15 @@ import SmoQyDQMC.JDQMCFramework as dqmcf
 using Random
 using Printf
 using MPI
-using JLD2
+````
 
+## Specify simulation parameters
+Compared to the previous [1b) Square Hubbard Model with MPI Parallelization](@ref) tutorial, we have added
+two new keyword arguments to the `run_simulation` function:
+- `checkpoint_freq`: When going to write a new checkpoint file, only write one if more than `checkpoint_freq` hours have passed since the last checkpoint file was written.
+- `runtime_limit`: If after writing a new checkpoint file more than `runtime_limit` hours have passed since the simulation started, terminate the simulation.
 
+````julia
 # Top-level function to run simulation.
 function run_simulation(
     comm::MPI.Comm; # MPI communicator.
@@ -46,6 +43,8 @@ function run_simulation(
     N_therm, # Number of thermalization updates.
     N_updates, # Total number of measurements and measurement updates.
     N_bins, # Number of times bin-averaged measurements are written to file.
+    checkpoint_freq, # Frequency with which checkpoint files are written in hours.
+    runtime_limit, # Simulation runtime limit in hours.
     Δτ = 0.05, # Discretization in imaginary time.
     n_stab = 10, # Numerical stabilization period in imaginary-time slices.
     δG_max = 1e-6, # Threshold for numerical error corrected by stabilization.
@@ -54,6 +53,23 @@ function run_simulation(
     seed = abs(rand(Int)), # Seed for random number generator.
     filepath = "." # Filepath to where data folder will be created.
 )
+````
+
+## Initialize simulation
+We need to make a few modifications to this portion of the code as compared to the previous tutorial
+in order for checkpointing to work. First, we record need to record the simulation start time,
+which we do by initializing a variable `start_timestamp = time()`.
+Second, we need to convert the `checkpoint_freq` and `runtime_limit` from hours to seconds.
+
+````julia
+    # Record when the simulation began.
+    start_timestamp = time()
+
+    # Convert runtime limit from hours to seconds.
+    runtime_limit = runtime_limit * 60.0^2
+
+    # Convert checkpoint frequency from hours to seconds.
+    checkpoint_freq = checkpoint_freq * 60.0^2
 
     # Construct the foldername the data will be written to.
     datafolder_prefix = @sprintf "hubbard_square_U%.2f_tp%.2f_mu%.2f_L%d_b%.2f" U t′ μ L β
@@ -69,225 +85,323 @@ function run_simulation(
         pID = pID
     )
 
-    # Initialize the directory the data will be written to.
-    initialize_datafolder(simulation_info)
+    # Initialize the directory the data will be written to if one does not already exist.
+    initialize_datafolder(comm, simulation_info)
+````
 
-    # Synchronize all the MPI processes.
-    MPI.Barrier(comm)
+## Initialize simulation metadata
+At this point we need to introduce branching logic to handle whether a new simulation is being started,
+or a previous simulation is being resumed.
+We do this by checking the `simulation_info.resuming` boolean value.
+If `simulation_info.resuming = true`, then we are resuming a previous simulation, while
+`simulation_info.resuming = false` indicates we are starting a new simulation.
+Therefore, the section of code immediately below handles the case that we are starting a new simulation.
 
-    # Initialize random number generator
-    rng = Xoshiro(seed)
+We also introduce and initialize two new variables `n_therm = 1` and `n_updates = 1` which will keep track
+of how many rounds of thermalization and measurement updates have been performed. These two variables will
+needed to be included in the checkpoint files we write later in the simulation, as they will indicate
+where to resume a previously terminated simulation.
 
-    # Initialize additiona_info dictionary
-    additional_info = Dict()
+````julia
+    # If starting a new simulation i.e. not resuming a previous simulation.
+    if !simulation_info.resuming
+````
 
-    # Record simulation parameters.
-    additional_info["N_therm"] = N_therm
-    additional_info["N_updates"] = N_updates
-    additional_info["N_bins"] = N_bins
-    additional_info["n_stab_init"] = n_stab
-    additional_info["dG_max"] = δG_max
-    additional_info["symmetric"] = symmetric
-    additional_info["checkerboard"] = checkerboard
-    additional_info["seed"] = seed
+Begin thermalization updates from start.
 
-    # Define unit cell.
-    unit_cell = lu.UnitCell(
-        lattice_vecs = [[1.0, 0.0],
-                        [0.0, 1.0]],
-        basis_vecs = [[0.0, 0.0]]
-    )
+````julia
+        n_therm = 1
+````
 
-    # Define finite lattice with periodic boundary conditions.
-    lattice = lu.Lattice(
-        L = [L, L],
-        periodic = [true, true]
-    )
+Begin measurement updates from start.
 
-    # Initialize model geometry.
-    model_geometry = ModelGeometry(
-        unit_cell, lattice
-    )
+````julia
+        n_updates = 1
 
-    # Define the nearest-neighbor bond in +x direction.
-    bond_px = lu.Bond(
-        orbitals = (1,1),
-        displacement = [1, 0]
-    )
+        # Initialize random number generator
+        rng = Xoshiro(seed)
 
-    # Add this bond definition to the model, by adding it the model_geometry.
-    bond_px_id = add_bond!(model_geometry, bond_px)
+        # Initialize additiona_info dictionary
+        metadata = Dict()
 
-    # Define the nearest-neighbor bond in +y direction.
-    bond_py = lu.Bond(
-        orbitals = (1,1),
-        displacement = [0, 1]
-    )
+        # Record simulation parameters.
+        metadata["N_therm"] = N_therm
+        metadata["N_updates"] = N_updates
+        metadata["N_bins"] = N_bins
+        metadata["n_stab_init"] = n_stab
+        metadata["dG_max"] = δG_max
+        metadata["symmetric"] = symmetric
+        metadata["checkerboard"] = checkerboard
+        metadata["seed"] = seed
+        metadata["avg_acceptance_rate"] = 0.0
+````
 
-    # Add this bond definition to the model, by adding it the model_geometry.
-    bond_py_id = add_bond!(model_geometry, bond_py)
+## Initialize Model
+No changes need to made to this section of the code from the previous
+[1b) Square Hubbard Model with MPI Parallelization](@ref) tutorial.
 
-    # Define the next-nearest-neighbor bond in +x+y direction.
-    bond_pxpy = lu.Bond(
-        orbitals = (1,1),
-        displacement = [1, 1]
-    )
+````julia
+        # Define unit cell.
+        unit_cell = lu.UnitCell(
+            lattice_vecs = [[1.0, 0.0],
+                            [0.0, 1.0]],
+            basis_vecs = [[0.0, 0.0]]
+        )
 
-    # Define the nearest-neighbor bond in -x direction.
-    # Will be used to make measurements later in this tutorial.
-    bond_nx = lu.Bond(
-        orbitals = (1,1),
-        displacement = [-1, 0]
-    )
+        # Define finite lattice with periodic boundary conditions.
+        lattice = lu.Lattice(
+            L = [L, L],
+            periodic = [true, true]
+        )
 
-    # Add this bond definition to the model, by adding it the model_geometry.
-    bond_nx_id = add_bond!(model_geometry, bond_nx)
+        # Initialize model geometry.
+        model_geometry = ModelGeometry(
+            unit_cell, lattice
+        )
 
-    # Define the nearest-neighbor bond in -y direction.
-    # Will be used to make measurements later in this tutorial.
-    bond_ny = lu.Bond(
-        orbitals = (1,1),
-        displacement = [0, -1]
-    )
+        # Define the nearest-neighbor bond in +x direction.
+        bond_px = lu.Bond(
+            orbitals = (1,1),
+            displacement = [1, 0]
+        )
 
-    # Add this bond definition to the model, by adding it the model_geometry.
-    bond_ny_id = add_bond!(model_geometry, bond_ny)
+        # Add this bond definition to the model, by adding it the model_geometry.
+        bond_px_id = add_bond!(model_geometry, bond_px)
 
-    # Define the next-nearest-neighbor bond in +x+y direction.
-    bond_pxpy = lu.Bond(
-        orbitals = (1,1),
-        displacement = [1, 1]
-    )
+        # Define the nearest-neighbor bond in +y direction.
+        bond_py = lu.Bond(
+            orbitals = (1,1),
+            displacement = [0, 1]
+        )
 
-    # Add this bond definition to the model, by adding it the model_geometry.
-    bond_pxpy_id = add_bond!(model_geometry, bond_pxpy)
+        # Add this bond definition to the model, by adding it the model_geometry.
+        bond_py_id = add_bond!(model_geometry, bond_py)
 
-    # Define the next-nearest-neighbor bond in +x-y direction.
-    bond_pxny = lu.Bond(
-        orbitals = (1,1),
-        displacement = [1, -1]
-    )
+        # Define the next-nearest-neighbor bond in +x+y direction.
+        bond_pxpy = lu.Bond(
+            orbitals = (1,1),
+            displacement = [1, 1]
+        )
 
-    # Add this bond definition to the model, by adding it the model_geometry.
-    bond_pxny_id = add_bond!(model_geometry, bond_pxny)
+        # Define the nearest-neighbor bond in -x direction.
+        # Will be used to make measurements later in this tutorial.
+        bond_nx = lu.Bond(
+            orbitals = (1,1),
+            displacement = [-1, 0]
+        )
 
-    # Set neartest-neighbor hopping amplitude to unity,
-    # setting the energy scale in the model.
-    t = 1.0
+        # Add this bond definition to the model, by adding it the model_geometry.
+        bond_nx_id = add_bond!(model_geometry, bond_nx)
 
-    # Define the non-interacting tight-binding model.
-    tight_binding_model = TightBindingModel(
-        model_geometry = model_geometry,
-        t_bonds = [bond_px, bond_py, bond_pxpy, bond_pxny], # defines hopping
-        t_mean  = [t, t, t′, t′], # defines corresponding mean hopping amplitude
-        t_std   = [0., 0., 0., 0.], # defines corresponding standard deviation in hopping amplitude
-        ϵ_mean  = [0.], # set mean on-site energy for each orbital in unit cell
-        ϵ_std   = [0.], # set standard deviation of on-site energy or each orbital in unit cell
-        μ       = μ # set chemical potential
-    )
+        # Define the nearest-neighbor bond in -y direction.
+        # Will be used to make measurements later in this tutorial.
+        bond_ny = lu.Bond(
+            orbitals = (1,1),
+            displacement = [0, -1]
+        )
 
-    # Define the Hubbard interaction in the model.
-    hubbard_model = HubbardModel(
-        shifted   = false, # if true, then Hubbard interaction is instead parameterized as U⋅nup⋅ndn
-        U_orbital = [1], # orbitals in unit cell with Hubbard interaction.
-        U_mean    = [U], # mean Hubbard interaction strength for corresponding orbital species in unit cell.
-        U_std     = [0.], # standard deviation of Hubbard interaction strength for corresponding orbital species in unit cell.
-    )
+        # Add this bond definition to the model, by adding it the model_geometry.
+        bond_ny_id = add_bond!(model_geometry, bond_ny)
 
-    # Write model summary TOML file specifying Hamiltonian that will be simulated.
-    model_summary(
-        simulation_info = simulation_info,
-        β = β, Δτ = Δτ,
-        model_geometry = model_geometry,
-        tight_binding_model = tight_binding_model,
-        interactions = (hubbard_model,)
-    )
+        # Define the next-nearest-neighbor bond in +x+y direction.
+        bond_pxpy = lu.Bond(
+            orbitals = (1,1),
+            displacement = [1, 1]
+        )
 
-    # Initialize tight-binding parameters.
-    tight_binding_parameters = TightBindingParameters(
-        tight_binding_model = tight_binding_model,
-        model_geometry = model_geometry,
-        rng = rng
-    )
+        # Add this bond definition to the model, by adding it the model_geometry.
+        bond_pxpy_id = add_bond!(model_geometry, bond_pxpy)
 
-    # Initialize Hubbard interaction parameters.
-    hubbard_params = HubbardParameters(
-        model_geometry = model_geometry,
-        hubbard_model = hubbard_model,
-        rng = rng
-    )
+        # Define the next-nearest-neighbor bond in +x-y direction.
+        bond_pxny = lu.Bond(
+            orbitals = (1,1),
+            displacement = [1, -1]
+        )
 
-    # Apply Ising Hubbard-Stranonvich (HS) transformation to decouple the Hubbard interaction,
-    # and initialize the corresponding HS fields that will be sampled in the DQMC simulation.
-    hubbard_stratonovich_params = HubbardIsingHSParameters(
-        β = β, Δτ = Δτ,
-        hubbard_parameters = hubbard_params,
-        rng = rng
-    )
+        # Add this bond definition to the model, by adding it the model_geometry.
+        bond_pxny_id = add_bond!(model_geometry, bond_pxny)
 
-    # Initialize the container that measurements will be accumulated into.
-    measurement_container = initialize_measurement_container(model_geometry, β, Δτ)
+        # Set neartest-neighbor hopping amplitude to unity,
+        # setting the energy scale in the model.
+        t = 1.0
 
-    # Initialize the tight-binding model related measurements, like the hopping energy.
-    initialize_measurements!(measurement_container, tight_binding_model)
+        # Define the non-interacting tight-binding model.
+        tight_binding_model = TightBindingModel(
+            model_geometry = model_geometry,
+            t_bonds = [bond_px, bond_py, bond_pxpy, bond_pxny], # defines hopping
+            t_mean  = [t, t, t′, t′], # defines corresponding mean hopping amplitude
+            t_std   = [0., 0., 0., 0.], # defines corresponding standard deviation in hopping amplitude
+            ϵ_mean  = [0.], # set mean on-site energy for each orbital in unit cell
+            ϵ_std   = [0.], # set standard deviation of on-site energy or each orbital in unit cell
+            μ       = μ # set chemical potential
+        )
 
-    # Initialize the Hubbard interaction related measurements.
-    initialize_measurements!(measurement_container, hubbard_model)
+        # Define the Hubbard interaction in the model.
+        hubbard_model = HubbardModel(
+            shifted   = false, # if true, then Hubbard interaction is instead parameterized as U⋅nup⋅ndn
+            U_orbital = [1], # orbitals in unit cell with Hubbard interaction.
+            U_mean    = [U], # mean Hubbard interaction strength for corresponding orbital species in unit cell.
+            U_std     = [0.], # standard deviation of Hubbard interaction strength for corresponding orbital species in unit cell.
+        )
 
-    # Initialize the single-particle electron Green's function measurement.
-    initialize_correlation_measurements!(
-        measurement_container = measurement_container,
-        model_geometry = model_geometry,
-        correlation = "greens",
-        time_displaced = true,
-        pairs = [(1, 1)]
-    )
+        # Write model summary TOML file specifying Hamiltonian that will be simulated.
+        model_summary(
+            simulation_info = simulation_info,
+            β = β, Δτ = Δτ,
+            model_geometry = model_geometry,
+            tight_binding_model = tight_binding_model,
+            interactions = (hubbard_model,)
+        )
+````
 
-    # Initialize density correlation function measurement.
-    initialize_correlation_measurements!(
-        measurement_container = measurement_container,
-        model_geometry = model_geometry,
-        correlation = "density",
-        time_displaced = false,
-        integrated = true,
-        pairs = [(1, 1)]
-    )
+## Initialize model parameters
+No changes need to made to this section of the code from the previous
+[1b) Square Hubbard Model with MPI Parallelization](@ref) tutorial.
 
-    # Initialize the pair correlation function measurement.
-    initialize_correlation_measurements!(
-        measurement_container = measurement_container,
-        model_geometry = model_geometry,
-        correlation = "pair",
-        time_displaced = false,
-        integrated = true,
-        pairs = [(1, 1)]
-    )
+````julia
+        # Initialize tight-binding parameters.
+        tight_binding_parameters = TightBindingParameters(
+            tight_binding_model = tight_binding_model,
+            model_geometry = model_geometry,
+            rng = rng
+        )
 
-    # Initialize the spin-z correlation function measurement.
-    initialize_correlation_measurements!(
-        measurement_container = measurement_container,
-        model_geometry = model_geometry,
-        correlation = "spin_z",
-        time_displaced = false,
-        integrated = true,
-        pairs = [(1, 1)]
-    )
+        # Initialize Hubbard interaction parameters.
+        hubbard_params = HubbardParameters(
+            model_geometry = model_geometry,
+            hubbard_model = hubbard_model,
+            rng = rng
+        )
 
-    # Initialize the d-wave pair susceptibility measurement.
-    initialize_composite_correlation_measurement!(
-        measurement_container = measurement_container,
-        model_geometry = model_geometry,
-        name = "d-wave",
-        correlation = "pair",
-        ids = [bond_px_id, bond_nx_id, bond_py_id, bond_ny_id],
-        coefficients = [0.5, 0.5, -0.5, -0.5],
-        time_displaced = false,
-        integrated = true
-    )
+        # Apply Ising Hubbard-Stranonvich (HS) transformation to decouple the Hubbard interaction,
+        # and initialize the corresponding HS fields that will be sampled in the DQMC simulation.
+        hubbard_stratonovich_params = HubbardIsingHSParameters(
+            β = β, Δτ = Δτ,
+            hubbard_parameters = hubbard_params,
+            rng = rng
+        )
+````
 
-    # Initialize the sub-directories to which the various measurements will be written.
-    initialize_measurement_directories(simulation_info, measurement_container)
+## Initialize measurements
+No changes need to made to this section of the code from the previous
+[1b) Square Hubbard Model with MPI Parallelization](@ref) tutorial.
 
+````julia
+        # Initialize the container that measurements will be accumulated into.
+        measurement_container = initialize_measurement_container(model_geometry, β, Δτ)
+
+        # Initialize the tight-binding model related measurements, like the hopping energy.
+        initialize_measurements!(measurement_container, tight_binding_model)
+
+        # Initialize the Hubbard interaction related measurements.
+        initialize_measurements!(measurement_container, hubbard_model)
+
+        # Initialize the single-particle electron Green's function measurement.
+        initialize_correlation_measurements!(
+            measurement_container = measurement_container,
+            model_geometry = model_geometry,
+            correlation = "greens",
+            time_displaced = true,
+            pairs = [(1, 1)]
+        )
+
+        # Initialize density correlation function measurement.
+        initialize_correlation_measurements!(
+            measurement_container = measurement_container,
+            model_geometry = model_geometry,
+            correlation = "density",
+            time_displaced = false,
+            integrated = true,
+            pairs = [(1, 1)]
+        )
+
+        # Initialize the pair correlation function measurement.
+        initialize_correlation_measurements!(
+            measurement_container = measurement_container,
+            model_geometry = model_geometry,
+            correlation = "pair",
+            time_displaced = false,
+            integrated = true,
+            pairs = [(1, 1)]
+        )
+
+        # Initialize the spin-z correlation function measurement.
+        initialize_correlation_measurements!(
+            measurement_container = measurement_container,
+            model_geometry = model_geometry,
+            correlation = "spin_z",
+            time_displaced = false,
+            integrated = true,
+            pairs = [(1, 1)]
+        )
+
+        # Initialize the d-wave pair susceptibility measurement.
+        initialize_composite_correlation_measurement!(
+            measurement_container = measurement_container,
+            model_geometry = model_geometry,
+            name = "d-wave",
+            correlation = "pair",
+            ids = [bond_px_id, bond_nx_id, bond_py_id, bond_ny_id],
+            coefficients = [0.5, 0.5, -0.5, -0.5],
+            time_displaced = false,
+            integrated = true
+        )
+
+        # Initialize the sub-directories to which the various measurements will be written.
+        initialize_measurement_directories(simulation_info, measurement_container)
+````
+
+## Write first checkpoint
+This section of code needs to be added so that a first checkpoint file is written before
+beginning a new simulation. We do this using the [`write_jld2_checkpoint`](@ref) function.
+This function all return the epoch timestamp `checkpoint_timestamp` corresponding to when
+the checkpoint file was written.
+
+````julia
+        # Write initial checkpoint file.
+        checkpoint_timestamp = write_jld2_checkpoint(
+            comm,
+            simulation_info;
+            checkpoint_freq = checkpoint_freq,
+            start_timestamp = start_timestamp,
+            runtime_limit = runtime_limit,
+            # Contents of checkpoint file below.
+            n_therm, n_updates,
+            tight_binding_parameters, hubbard_params, hubbard_stratonovich_params,
+            measurement_container, model_geometry, metadata, rng
+        )
+````
+
+## Load checkpoint
+If we are resuming a simulation that was previously terminated prior to completion, then
+we need to load the most recent checkpoint file using the [`read_jld2_checkpoint`](@ref) function.
+The cotents of the checkpoint file are returned as a dictionary `checkpoint` by the [`read_jld2_checkpoint`](@ref) function.
+We then extract the cotents of the checkpoint file from the `checkpoint` dictionary.
+
+````julia
+    # If resuming a previous simulation.
+    else
+
+        # Load the checkpoint file.
+        checkpoint, checkpoint_timestamp = read_jld2_checkpoint(simulation_info)
+
+        # Unpack contents of checkpoint dictionary.
+        tight_binding_parameters    = checkpoint["tight_binding_parameters"]
+        hubbard_params              = checkpoint["hubbard_params"]
+        hubbard_stratonovich_params = checkpoint["hubbard_stratonovich_params"]
+        measurement_container       = checkpoint["measurement_container"]
+        model_geometry              = checkpoint["model_geometry"]
+        metadata                    = checkpoint["metadata"]
+        rng                         = checkpoint["rng"]
+        n_therm                     = checkpoint["n_therm"]
+        n_updates                   = checkpoint["n_updates"]
+    end
+````
+
+## Setup DQMC simulation
+No changes need to made to this section of the code from the previous [1a) Square Hubbard Model](@ref) tutorial.
+
+````julia
     # Synchronize all the MPI processes.
     MPI.Barrier(comm)
 
@@ -330,12 +444,20 @@ function run_simulation(
     # Initialize diagonostic parameters to asses numerical stability.
     δG = zero(logdetGup)
     δθ = zero(sgndetGup)
+````
 
-    # Initialize average acceptance rate variable.
-    additional_info["avg_acceptance_rate"] = 0.0
+## Thermalize system
+The only change we need to make to this section of the code from the previous [1b) Square Hubbard Model with MPI Parallelization](@ref) tutorial
+is to add a call to the [`write_jld2_checkpoint`](@ref) function at the end of each iteration of the
+for-loop in which we perform the thermalization updates.
+When calling this function we need to pass it the timestamp for the previous checkpoint `checkpoint_timestamp`
+so that the function can determine if a new checkpoint file needs to be written.
+If a new checkpoint file is written then the `checkpoint_timestamp` variable will be updated to reflect this,
+otherwise it will remain unchanged.
 
+````julia
     # Iterate over number of thermalization updates to perform.
-    for n in 1:N_therm
+    for update in n_therm:N_therm
 
         # Perform sweep all imaginary-time slice and orbitals, attempting an update to every HS field.
         (acceptance_rate, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = local_updates!(
@@ -350,9 +472,34 @@ function run_simulation(
         )
 
         # Record acceptance rate for sweep.
-        additional_info["avg_acceptance_rate"] += acceptance_rate
-    end
+        metadata["avg_acceptance_rate"] += acceptance_rate
 
+        # Write checkpoint file.
+        checkpoint_timestamp = write_jld2_checkpoint(
+            comm,
+            simulation_info;
+            checkpoint_timestamp = checkpoint_timestamp,
+            checkpoint_freq = checkpoint_freq,
+            start_timestamp = start_timestamp,
+            runtime_limit = runtime_limit,
+            # Contents of checkpoint file below.
+            n_therm = update + 1,
+            n_updates = 1,
+            tight_binding_parameters, hubbard_params, hubbard_stratonovich_params,
+            measurement_container, model_geometry, metadata, rng
+        )
+    end
+````
+
+## Make measurements
+Again, the only change we need to make to this section of the code from the previous
+[1b) Square Hubbard Model with MPI Parallelization](@ref) tutorial
+is to add a call to the [`write_jld2_checkpoint`](@ref) function at the end of each iteration of the
+for-loop in which we perform updates and measurements.
+Note that we set `n_therm = N_therm + 1` when writing the checkpoint file to ensure that when the simulation
+is resumed the thermalization updates are not repeated.
+
+````julia
     # Reset diagonostic parameters used to monitor numerical stability to zero.
     δG = zero(logdetGup)
     δθ = zero(sgndetGup)
@@ -361,63 +508,87 @@ function run_simulation(
     bin_size = N_updates ÷ N_bins
 
     # Iterate over bins.
-    for bin in 1:N_bins
+    for update in n_updates:N_updates
 
-        # Iterate over update sweeps and measurements in bin.
-        for n in 1:bin_size
+        # Perform sweep all imaginary-time slice and orbitals, attempting an update to every HS field.
+        (acceptance_rate, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = local_updates!(
+            Gup, logdetGup, sgndetGup, Gdn, logdetGdn, sgndetGdn,
+            hubbard_stratonovich_params,
+            fermion_path_integral_up = fermion_path_integral_up,
+            fermion_path_integral_dn = fermion_path_integral_dn,
+            fermion_greens_calculator_up = fermion_greens_calculator_up,
+            fermion_greens_calculator_dn = fermion_greens_calculator_dn,
+            Bup = Bup, Bdn = Bdn, δG_max = δG_max, δG = δG, δθ = δθ, rng = rng,
+            update_stabilization_frequency = true
+        )
 
-            # Perform sweep all imaginary-time slice and orbitals, attempting an update to every HS field.
-            (acceptance_rate, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = local_updates!(
-                Gup, logdetGup, sgndetGup, Gdn, logdetGdn, sgndetGdn,
-                hubbard_stratonovich_params,
-                fermion_path_integral_up = fermion_path_integral_up,
-                fermion_path_integral_dn = fermion_path_integral_dn,
-                fermion_greens_calculator_up = fermion_greens_calculator_up,
-                fermion_greens_calculator_dn = fermion_greens_calculator_dn,
-                Bup = Bup, Bdn = Bdn, δG_max = δG_max, δG = δG, δθ = δθ, rng = rng,
-                update_stabilization_frequency = true
-            )
+        # Record acceptance rate.
+        metadata["avg_acceptance_rate"] += acceptance_rate
 
-            # Record acceptance rate.
-            additional_info["avg_acceptance_rate"] += acceptance_rate
+        # Make measurements.
+        (logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = make_measurements!(
+            measurement_container,
+            logdetGup, sgndetGup, Gup, Gup_ττ, Gup_τ0, Gup_0τ,
+            logdetGdn, sgndetGdn, Gdn, Gdn_ττ, Gdn_τ0, Gdn_0τ,
+            fermion_path_integral_up = fermion_path_integral_up,
+            fermion_path_integral_dn = fermion_path_integral_dn,
+            fermion_greens_calculator_up = fermion_greens_calculator_up,
+            fermion_greens_calculator_dn = fermion_greens_calculator_dn,
+            Bup = Bup, Bdn = Bdn, δG_max = δG_max, δG = δG, δθ = δθ,
+            model_geometry = model_geometry, tight_binding_parameters = tight_binding_parameters,
+            coupling_parameters = (hubbard_params, hubbard_stratonovich_params)
+        )
 
-            # Make measurements.
-            (logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = make_measurements!(
-                measurement_container,
-                logdetGup, sgndetGup, Gup, Gup_ττ, Gup_τ0, Gup_0τ,
-                logdetGdn, sgndetGdn, Gdn, Gdn_ττ, Gdn_τ0, Gdn_0τ,
-                fermion_path_integral_up = fermion_path_integral_up,
-                fermion_path_integral_dn = fermion_path_integral_dn,
-                fermion_greens_calculator_up = fermion_greens_calculator_up,
-                fermion_greens_calculator_dn = fermion_greens_calculator_dn,
-                Bup = Bup, Bdn = Bdn, δG_max = δG_max, δG = δG, δθ = δθ,
-                model_geometry = model_geometry, tight_binding_parameters = tight_binding_parameters,
-                coupling_parameters = (hubbard_params, hubbard_stratonovich_params)
+        # Check if bin averaged measurements need to be written to file.
+        if update % bin_size == 0
+
+            # Write the bin-averaged measurements to file.
+            write_measurements!(
+                measurement_container = measurement_container,
+                simulation_info = simulation_info,
+                model_geometry = model_geometry,
+                bin = update ÷ bin_size,
+                bin_size = bin_size,
+                Δτ = Δτ
             )
         end
 
-        # Write the bin-averaged measurements to file.
-        write_measurements!(
-            measurement_container = measurement_container,
-            simulation_info = simulation_info,
-            model_geometry = model_geometry,
-            bin = bin,
-            bin_size = bin_size,
-            Δτ = Δτ
+        # Write checkpoint file.
+        checkpoint_timestamp = write_jld2_checkpoint(
+            comm,
+            simulation_info;
+            checkpoint_timestamp = checkpoint_timestamp,
+            checkpoint_freq = checkpoint_freq,
+            start_timestamp = start_timestamp,
+            runtime_limit = runtime_limit,
+            # Contents of checkpoint file below.
+            n_therm  = N_therm + 1,
+            n_updates = update + 1,
+            tight_binding_parameters, hubbard_params, hubbard_stratonovich_params,
+            measurement_container, model_geometry, metadata, rng
         )
     end
 
     # Normalize acceptance rate.
-    additional_info["avg_acceptance_rate"] /=  (N_therm + N_updates)
+    metadata["avg_acceptance_rate"] /=  (N_therm + N_updates)
 
-    additional_info["n_stab_final"] = fermion_greens_calculator_up.n_stab
+    metadata["n_stab_final"] = fermion_greens_calculator_up.n_stab
 
     # Record largest numerical error.
-    additional_info["dG"] = δG
+    metadata["dG"] = δG
 
     # Write simulation summary TOML file.
-    save_simulation_info(simulation_info, additional_info)
+    save_simulation_info(simulation_info, metadata)
+````
 
+## Process results
+From the last [1b) Square Hubbard Model with MPI Parallelization](@ref) tutorial, we now need to add
+a call to the [`rename_complete_simulation`](@ref) function once the results are processed.
+This function renames the data folder to begin with `complete_*`, making it simple to identify which
+simulations ran to completion and which ones need to be resumed from the last checkpoint file.
+This function also deletes the checkpoint files that were written during the simulation.
+
+````julia
     # Synchronize all the MPI processes.
     MPI.Barrier(comm)
 
@@ -451,9 +622,38 @@ function run_simulation(
     # Merge binary files containing binned data into a single file.
     compress_jld2_bins(comm, folder = simulation_info.datafolder)
 
+    # Rename the data folder to indicate the simulation is complete.
+    simulation_info = rename_complete_simulation(
+        comm, simulation_info,
+        delete_jld2_checkpoints = true
+    )
+
     return nothing
 end # end of run_simulation function
+````
 
+## Execute script
+To execute the script, we have added two new command line arguments allowing for the assignment of both
+the `checkpoint_freq` and `runtime_limit` values.
+Therefore, a simulation can be run with the command
+```bash
+mpiexecjl -n 16 julia hubbard_square_mpi.jl 1 5.0 -0.25 -2.0 4 4.0 2500 10000 100 1.0 48.0
+```
+or
+```bash
+srun julia hubbard_square_mpi.jl 1 5.0 -0.25 -2.0 4 4.0 2500 10000 100 1.0 48.0
+```
+Refer to the previous [1b) Square Hubbard Model with MPI Parallelization](@ref) tutorial for more details on how to run the simulation
+script using MPI.
+
+In the example calls above the code will write a new checkpoint if more than 1 hour has passed since the last checkpoint file was written
+and the simulation will terminate after writing a new checkpoint file if more than 48 hours (two days) has passed since the
+simulation started.
+Note that these same commands are used to both begin a new simulation and also resume a previous simulation.
+This is a useful feature when submitting jobs on a cluster, as it allows the same job file to be used for
+both starting new simulations and resuming ones that still need to finish.
+
+````julia
 if abspath(PROGRAM_FILE) == @__FILE__
 
     # Initialize MPI
@@ -465,15 +665,17 @@ if abspath(PROGRAM_FILE) == @__FILE__
     # Run the simulation, reading in command line arguments.
     run_simulation(
         comm;
-        sID       = parse(Int,     ARGS[1]),
-        U         = parse(Float64, ARGS[2]),
-        t′        = parse(Float64, ARGS[3]),
-        μ         = parse(Float64, ARGS[4]),
-        L         = parse(Int,     ARGS[5]),
-        β         = parse(Float64, ARGS[6]),
-        N_therm   = parse(Int,     ARGS[7]),
-        N_updates = parse(Int,     ARGS[8]),
-        N_bins    = parse(Int,     ARGS[9])
+        sID             = parse(Int,     ARGS[1]),
+        U               = parse(Float64, ARGS[2]),
+        t′              = parse(Float64, ARGS[3]),
+        μ               = parse(Float64, ARGS[4]),
+        L               = parse(Int,     ARGS[5]),
+        β               = parse(Float64, ARGS[6]),
+        N_therm         = parse(Int,     ARGS[7]),
+        N_updates       = parse(Int,     ARGS[8]),
+        N_bins          = parse(Int,     ARGS[9]),
+        checkpoint_freq = parse(Float64, ARGS[10]),
+        runtime_limit   = parse(Float64, ARGS[11])
     )
 
     # Finalize MPI.

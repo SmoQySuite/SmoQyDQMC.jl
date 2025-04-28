@@ -265,7 +265,7 @@ save_density_tuning_profile
 
 - [`write_jld2_checkpoint`](@ref)
 - [`read_jld2_checkpoint`](@ref)
-- [`reanme_complete_simulation`](@ref)
+- [`rename_complete_simulation`](@ref)
 
 **Process Measurements**
 
@@ -312,7 +312,7 @@ write_measurements!
 
 ## Checkpointing Utilities
 
-```@doc
+```@docs
 write_jld2_checkpoint
 read_jld2_checkpoint
 rename_complete_simulation
