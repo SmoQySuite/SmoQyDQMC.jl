@@ -122,7 +122,7 @@ The checkpoint file is a [JLD2](https://github.com/JuliaIO/JLD2.jl) binary file.
 - `checkpoint_timestamp::T = 0.0`: (optional) Epoch timestap of previously written checkpoint file.
 - `checkpoint_freq::T = 0.0`: (optional) Frequency with with checkpoint files are written; new checkpoint is written only if this many seconds has elapsed since previous checkpoint.
 - `start_timestamp::T = 0.0`: (optional) Epoch timestamp of the start time of the simulation.
-- `runtime_limit::T = Inf`: (optional) Maximum runtime of simulation in seconds; if this much time has elapsed since the beginning of the simulation after writing new checkpoint file then the simulation is terminated.
+- `runtime_limit::T = Inf`: (optional) Maximum runtime for simulation in seconds; if after writing a new checkpoint file the next checkpoint file that would be written in the future exceeds the runtime limit then exit the simulation.
 - `error_code::Int = 13`: (optional) Error code used to exit simulation if the runtime limit is exceeded.
 - `kwargs...`: Additional keyword arguments containing the information that will stored in the checkpoint file; keyword arguments can point to arbitrary Julia objects.
 
@@ -151,8 +151,8 @@ function write_jld2_checkpoint(
         kwargs...
     )
 
-    # if time limit for simulation has been exceeded
-    if (checkpoint_timestamp - start_timestamp) ≥ runtime_limit
+    # if time limit for simulation is exceeded for next future checkpoint
+    if (checkpoint_timestamp + checkpoint_freq - start_timestamp) ≥ runtime_limit
 
         # syncrhonize MPI processes before exiting simulation
         MPI.Barrier(comm)
@@ -183,8 +183,8 @@ function write_jld2_checkpoint(
         kwargs...
     )
 
-    # if time limit for simulation has been exceeded
-    if (checkpoint_timestamp - start_timestamp) ≥ runtime_limit
+    # if time limit for simulation is exceeded for next future checkpoint
+    if (checkpoint_timestamp + checkpoint_freq - start_timestamp) ≥ runtime_limit
 
         # exit simulation
         exit(error_code)

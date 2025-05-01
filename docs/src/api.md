@@ -261,7 +261,7 @@ save_density_tuning_profile
 
 - [`write_measurements!`](@ref)
 
-## Checkpointing Utilities
+**Checkpointing Utilities**
 
 - [`write_jld2_checkpoint`](@ref)
 - [`read_jld2_checkpoint`](@ref)

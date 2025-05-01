@@ -618,7 +618,15 @@ which includes all the information currently stored in the `metadata` dictionary
             Δτ = Δτ
         )
     end
+````
 
+## Record simulation metadata
+At this point we are done sampling and taking measurements.
+Next, we want to calculate the final acceptance rate for the Monte Carlo updates,
+as well as write the simulation metadata to file, including the contents of the `metadata` dictionary.
+This is done using the [`save_simulation_info`](@ref) function.
+
+````julia
     # Normalize acceptance rate.
     metadata["avg_acceptance_rate"] /=  (N_therm + N_updates)
 

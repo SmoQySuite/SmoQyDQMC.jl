@@ -568,7 +568,12 @@ is resumed the thermalization updates are not repeated.
             measurement_container, model_geometry, metadata, rng
         )
     end
+````
 
+## Record simulation metadata
+No changes need to made to this section of the code from the previous [1b) Square Hubbard Model with MPI Parallelization](@ref) tutorial.
+
+````julia
     # Normalize acceptance rate.
     metadata["avg_acceptance_rate"] /=  (N_therm + N_updates)
 
@@ -637,11 +642,11 @@ To execute the script, we have added two new command line arguments allowing for
 the `checkpoint_freq` and `runtime_limit` values.
 Therefore, a simulation can be run with the command
 ```bash
-mpiexecjl -n 16 julia hubbard_square_mpi.jl 1 5.0 -0.25 -2.0 4 4.0 2500 10000 100 1.0 48.0
+mpiexecjl -n 16 julia hubbard_square_checkpoint.jl 1 5.0 -0.25 -2.0 4 4.0 2500 10000 100 1.0 48.0
 ```
 or
 ```bash
-srun julia hubbard_square_mpi.jl 1 5.0 -0.25 -2.0 4 4.0 2500 10000 100 1.0 48.0
+srun julia hubbard_square_checkpoint.jl 1 5.0 -0.25 -2.0 4 4.0 2500 10000 100 1.0 48.0
 ```
 Refer to the previous [1b) Square Hubbard Model with MPI Parallelization](@ref) tutorial for more details on how to run the simulation
 script using MPI.

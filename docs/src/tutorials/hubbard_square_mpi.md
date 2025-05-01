@@ -109,9 +109,7 @@ No changes need to made to this section of the code from the previous [1a) Squar
 ````
 
 ## Initialize model
-In this section of the script only one small change needs to be made, adding a call
-to the [`MPI.Barrier`](https://juliaparallel.org/MPI.jl/stable/reference/comm/#MPI.Barrier) function
-at the end. This is described more below.
+No changes need to made to this section of the code from the previous [1a) Square Hubbard Model](@ref) tutorial.
 
 ````julia
     # Define unit cell.
@@ -454,7 +452,12 @@ No changes need to made to this section of the code from the previous [1a) Squar
             Δτ = Δτ
         )
     end
+````
 
+## Record simulation metadata
+No changes need to made to this section of the code from the previous [1a) Square Hubbard Model](@ref) tutorial.
+
+````julia
     # Normalize acceptance rate.
     metadata["avg_acceptance_rate"] /=  (N_therm + N_updates)
 

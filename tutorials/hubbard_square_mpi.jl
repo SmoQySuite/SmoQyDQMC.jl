@@ -95,9 +95,7 @@ function run_simulation(
     metadata["avg_acceptance_rate"] = 0.0
 
 # ## Initialize model
-# In this section of the script only one small change needs to be made, adding a call
-# to the [`MPI.Barrier`](https://juliaparallel.org/MPI.jl/stable/reference/comm/#MPI.Barrier) function
-# at the end. This is described more below.
+# No changes need to made to this section of the code from the previous [1a) Square Hubbard Model](@ref) tutorial.
 
     ## Define unit cell.
     unit_cell = lu.UnitCell(
@@ -383,52 +381,55 @@ function run_simulation(
     ## Calculate the bin size.
     bin_size = N_updates ÷ N_bins
 
-    ## Iterate over bins.
-    for bin in 1:N_bins
+    ## Iterate over updates and measurements.
+    for update in 1:N_updates
 
-        ## Iterate over update sweeps and measurements in bin.
-        for n in 1:bin_size
+        ## Perform sweep all imaginary-time slice and orbitals, attempting an update to every HS field.
+        (acceptance_rate, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = local_updates!(
+            Gup, logdetGup, sgndetGup, Gdn, logdetGdn, sgndetGdn,
+            hubbard_stratonovich_params,
+            fermion_path_integral_up = fermion_path_integral_up,
+            fermion_path_integral_dn = fermion_path_integral_dn,
+            fermion_greens_calculator_up = fermion_greens_calculator_up,
+            fermion_greens_calculator_dn = fermion_greens_calculator_dn,
+            Bup = Bup, Bdn = Bdn, δG_max = δG_max, δG = δG, δθ = δθ, rng = rng,
+            update_stabilization_frequency = true
+        )
 
-            ## Perform sweep all imaginary-time slice and orbitals, attempting an update to every HS field.
-            (acceptance_rate, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = local_updates!(
-                Gup, logdetGup, sgndetGup, Gdn, logdetGdn, sgndetGdn,
-                hubbard_stratonovich_params,
-                fermion_path_integral_up = fermion_path_integral_up,
-                fermion_path_integral_dn = fermion_path_integral_dn,
-                fermion_greens_calculator_up = fermion_greens_calculator_up,
-                fermion_greens_calculator_dn = fermion_greens_calculator_dn,
-                Bup = Bup, Bdn = Bdn, δG_max = δG_max, δG = δG, δθ = δθ, rng = rng,
-                update_stabilization_frequency = true
-            )
+        ## Record acceptance rate.
+        metadata["avg_acceptance_rate"] += acceptance_rate
 
-            ## Record acceptance rate.
-            metadata["avg_acceptance_rate"] += acceptance_rate
+        ## Make measurements.
+        (logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = make_measurements!(
+            measurement_container,
+            logdetGup, sgndetGup, Gup, Gup_ττ, Gup_τ0, Gup_0τ,
+            logdetGdn, sgndetGdn, Gdn, Gdn_ττ, Gdn_τ0, Gdn_0τ,
+            fermion_path_integral_up = fermion_path_integral_up,
+            fermion_path_integral_dn = fermion_path_integral_dn,
+            fermion_greens_calculator_up = fermion_greens_calculator_up,
+            fermion_greens_calculator_dn = fermion_greens_calculator_dn,
+            Bup = Bup, Bdn = Bdn, δG_max = δG_max, δG = δG, δθ = δθ,
+            model_geometry = model_geometry, tight_binding_parameters = tight_binding_parameters,
+            coupling_parameters = (hubbard_params, hubbard_stratonovich_params)
+        )
 
-            ## Make measurements.
-            (logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = make_measurements!(
-                measurement_container,
-                logdetGup, sgndetGup, Gup, Gup_ττ, Gup_τ0, Gup_0τ,
-                logdetGdn, sgndetGdn, Gdn, Gdn_ττ, Gdn_τ0, Gdn_0τ,
-                fermion_path_integral_up = fermion_path_integral_up,
-                fermion_path_integral_dn = fermion_path_integral_dn,
-                fermion_greens_calculator_up = fermion_greens_calculator_up,
-                fermion_greens_calculator_dn = fermion_greens_calculator_dn,
-                Bup = Bup, Bdn = Bdn, δG_max = δG_max, δG = δG, δθ = δθ,
-                model_geometry = model_geometry, tight_binding_parameters = tight_binding_parameters,
-                coupling_parameters = (hubbard_params, hubbard_stratonovich_params)
+        ## Check if bin averaged measurements need to be written to file.
+        if update % bin_size == 0
+
+            ## Write the bin-averaged measurements to file.
+            write_measurements!(
+                measurement_container = measurement_container,
+                simulation_info = simulation_info,
+                model_geometry = model_geometry,
+                bin = update ÷ bin_size,
+                bin_size = bin_size,
+                Δτ = Δτ
             )
         end
-
-        ## Write the bin-averaged measurements to file.
-        write_measurements!(
-            measurement_container = measurement_container,
-            simulation_info = simulation_info,
-            model_geometry = model_geometry,
-            bin = bin,
-            bin_size = bin_size,
-            Δτ = Δτ
-        )
     end
+
+# ## Record simulation metadata
+# No changes need to made to this section of the code from the previous [1a) Square Hubbard Model](@ref) tutorial.
 
     ## Normalize acceptance rate.
     metadata["avg_acceptance_rate"] /=  (N_therm + N_updates)
@@ -441,7 +442,7 @@ function run_simulation(
     ## Write simulation summary TOML file.
     save_simulation_info(simulation_info, metadata)
 
-# ## Process results
+# ## Post-rocess results
 # We need start with section with a call to the [`MPI.Barrier`](https://juliaparallel.org/MPI.jl/stable/reference/comm/#MPI.Barrier)
 # function to ensure that we don't begin processing the results until all the simulations running in parallel have finished.
 # Additionally, we need to make sure to call the 
@@ -523,7 +524,7 @@ end
 # mpiexecjl -n 16 julia hubbard_square_mpi.jl 1 5.0 -0.25 -2.0 4 4.0 2500 10000 100
 # ```
 # This will 16 MPI processes, each running and independent simulation using a different random seed
-# the the final results arrived at by averaging over all 16 walkers.
+# the final results arrived at by averaging over all 16 walkers.
 # Here `mpiexecjl` is the MPI exectuable that can be easily install using the directions
 # found [here](https://juliaparallel.org/MPI.jl/stable/usage/#Julia-wrapper-for-mpiexec) in the
 # [MPI.jl](https://github.com/JuliaParallel/MPI.jl) documentation. However, you can substitute a
