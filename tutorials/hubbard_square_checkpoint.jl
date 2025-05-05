@@ -94,10 +94,10 @@ function run_simulation(
     ## If starting a new simulation i.e. not resuming a previous simulation.
     if !simulation_info.resuming
 
-        # Begin thermalization updates from start.
+        ## Begin thermalization updates from start.
         n_therm = 1
 
-        # Begin measurement updates from start.
+        ## Begin measurement updates from start.
         n_updates = 1
 
         ## Initialize random number generator
@@ -324,7 +324,7 @@ function run_simulation(
         )
 
         ## Initialize the sub-directories to which the various measurements will be written.
-        initialize_measurement_directories(simulation_info, measurement_container)
+        initialize_measurement_directories(comm, simulation_info, measurement_container)
 
 # ## Write first checkpoint
 # This section of code needs to be added so that a first checkpoint file is written before
@@ -371,9 +371,6 @@ function run_simulation(
 
 # ## Setup DQMC simulation
 # No changes need to made to this section of the code from the previous [1a) Square Hubbard Model](@ref) tutorial.
-
-    ## Synchronize all the MPI processes.
-    MPI.Barrier(comm)
 
     ## Allocate FermionPathIntegral type for both the spin-up and spin-down electrons.
     fermion_path_integral_up = FermionPathIntegral(tight_binding_parameters = tight_binding_parameters, β = β, Δτ = Δτ)
@@ -507,19 +504,15 @@ function run_simulation(
             coupling_parameters = (hubbard_params, hubbard_stratonovich_params)
         )
 
-        ## Check if bin averaged measurements need to be written to file.
-        if update % bin_size == 0
-
-            ## Write the bin-averaged measurements to file.
-            write_measurements!(
-                measurement_container = measurement_container,
-                simulation_info = simulation_info,
-                model_geometry = model_geometry,
-                bin = update ÷ bin_size,
-                bin_size = bin_size,
-                Δτ = Δτ
-            )
-        end
+        ## Write the bin-averaged measurements to file if update ÷ bin_size == 0.
+        write_measurements!(
+            measurement_container = measurement_container,
+            simulation_info = simulation_info,
+            model_geometry = model_geometry,
+            update = update,
+            bin_size = bin_size,
+            Δτ = Δτ
+        )
 
         ## Write checkpoint file.
         checkpoint_timestamp = write_jld2_checkpoint(
@@ -557,9 +550,6 @@ function run_simulation(
 # This function renames the data folder to begin with `complete_*`, making it simple to identify which
 # simulations ran to completion and which ones need to be resumed from the last checkpoint file.
 # This function also deletes the checkpoint files that were written during the simulation.
-
-    ## Synchronize all the MPI processes.
-    MPI.Barrier(comm)
 
     ## Set the number of bins used to calculate the error in measured observables.
     n_bins = N_bins
@@ -630,16 +620,16 @@ if abspath(PROGRAM_FILE) == @__FILE__
     ## Run the simulation, reading in command line arguments.
     run_simulation(
         comm;
-        sID             = parse(Int,     ARGS[1]),
-        U               = parse(Float64, ARGS[2]),
-        t′              = parse(Float64, ARGS[3]),
-        μ               = parse(Float64, ARGS[4]),
-        L               = parse(Int,     ARGS[5]),
-        β               = parse(Float64, ARGS[6]),
-        N_therm         = parse(Int,     ARGS[7]),
-        N_updates       = parse(Int,     ARGS[8]),
-        N_bins          = parse(Int,     ARGS[9]),
-        checkpoint_freq = parse(Float64, ARGS[10])
+        sID             = parse(Int,     ARGS[1]), # Simulation ID.
+        U               = parse(Float64, ARGS[2]), # Hubbard interaction.
+        t′              = parse(Float64, ARGS[3]), # Next-nearest-neighbor hopping amplitude.
+        μ               = parse(Float64, ARGS[4]), # Chemical potential.
+        L               = parse(Int,     ARGS[5]), # System size.
+        β               = parse(Float64, ARGS[6]), # Inverse temperature.
+        N_therm         = parse(Int,     ARGS[7]), # Number of thermalization updates.
+        N_updates       = parse(Int,     ARGS[8]), # Total number of measurements and measurement updates.
+        N_bins          = parse(Int,     ARGS[9]), # Number of times bin-averaged measurements are written to file.
+        checkpoint_freq = parse(Float64, ARGS[10]) # Frequency with which checkpoint files are written in hours.
     )
 
     ## Finalize MPI.

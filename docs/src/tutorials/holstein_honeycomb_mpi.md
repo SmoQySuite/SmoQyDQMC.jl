@@ -4,7 +4,7 @@ EditURL = "../../../tutorials/holstein_honeycomb_mpi.jl"
 
 Download this example as a [Julia script](../assets/scripts/tutorials/holstein_honeycomb_mpi.jl).
 
-# 2a) Honeycomb Holstein Model with MPI Parallelization
+# 2b) Honeycomb Holstein Model with MPI Parallelization
 
 ## Import packages
 We now need to import the [MPI.jl](https://github.com/JuliaParallel/MPI.jl.git) package as well.
@@ -72,15 +72,15 @@ try proceeding beyond this point until the data folder has been initialized.
         sID = sID,
         pID = pID
     )
+
+    # Initialize the directory the data will be written to.
+    initialize_datafolder(comm, simulation_info)
 ````
 
 ## Initialize simulation metadata
 No changes need to made to this section of the code from the previous [2a) Honeycomb Holstein Model](@ref) tutorial.
 
 ````julia
-    # Initialize the directory the data will be written to.
-    initialize_datafolder(comm, simulation_info)
-
     # Initialize random number generator
     rng = Xoshiro(seed)
 
@@ -241,7 +241,9 @@ No changes need to made to this section of the code from the previous [2a) Honey
 ````
 
 ## Initialize meuasurements
-No changes need to made to this section of the code from the previous [2a) Honeycomb Holstein Model](@ref) tutorial.
+The only change we need to make to this section of the code from the previous [2a) Honeycomb Holstein Model](@ref) tutorial
+is to add the `comm` as the first argument to the [`initialize_measurement_directories`](@ref) function.
+The ensures that not of the MPI processes proceed beyond that point until the directory structure has been initialized.
 
 ````julia
     # Initialize the container that measurements will be accumulated into.
@@ -328,19 +330,13 @@ No changes need to made to this section of the code from the previous [2a) Honey
     )
 
     # Initialize the sub-directories to which the various measurements will be written.
-    initialize_measurement_directories(simulation_info, measurement_container)
+    initialize_measurement_directories(comm, simulation_info, measurement_container)
 ````
 
 ## Setup DQMC simulation
-In this section of the code we only need to make one very minor change in adding a call to the
-[`MPI.Barrier`](https://juliaparallel.org/MPI.jl/stable/reference/comm/#MPI.Barrier) function
-to synchronize all the MPI processes.
-This ensures that the proper directory structure for the simulation is in place before the simulation begins.
+No changes need to made to this section of the code from the previous [2a) Honeycomb Holstein Model](@ref) tutorial.
 
 ````julia
-    # Synchronize all the MPI processes.
-    MPI.Barrier(comm)
-
     # Allocate a single FermionPathIntegral for both spin-up and down electrons.
     fermion_path_integral = FermionPathIntegral(tight_binding_parameters = tight_binding_parameters, β = β, Δτ = Δτ)
 
@@ -394,7 +390,7 @@ No changes need to made to this section of the code from the previous [2a) Honey
 
 ````julia
     # Iterate over number of thermalization updates to perform.
-    for n in 1:N_therm
+    for update in 1:N_therm
 
         # Perform a reflection update.
         (accepted, logdetG, sgndetG) = reflection_update!(
@@ -445,66 +441,62 @@ No changes need to made to this section of the code from the previous [2a) Honey
     # Calculate the bin size.
     bin_size = N_updates ÷ N_bins
 
-    # Iterate over bins.
-    for bin in 1:N_bins
+    # Iterate over updates and measurements.
+    for update in 1:N_updates
 
-        # Iterate over update sweeps and measurements in bin.
-        for n in 1:bin_size
+        # Perform a reflection update.
+        (accepted, logdetG, sgndetG) = reflection_update!(
+            G, logdetG, sgndetG, electron_phonon_parameters,
+            fermion_path_integral = fermion_path_integral,
+            fermion_greens_calculator = fermion_greens_calculator,
+            fermion_greens_calculator_alt = fermion_greens_calculator_alt,
+            B = B, rng = rng
+        )
 
-            # Perform a reflection update.
-            (accepted, logdetG, sgndetG) = reflection_update!(
-                G, logdetG, sgndetG, electron_phonon_parameters,
-                fermion_path_integral = fermion_path_integral,
-                fermion_greens_calculator = fermion_greens_calculator,
-                fermion_greens_calculator_alt = fermion_greens_calculator_alt,
-                B = B, rng = rng
-            )
+        # Record whether the reflection update was accepted or rejected.
+        metadata["reflection_acceptance_rate"] += accepted
 
-            # Record whether the reflection update was accepted or rejected.
-            metadata["reflection_acceptance_rate"] += accepted
+        # Perform a swap update.
+        (accepted, logdetG, sgndetG) = swap_update!(
+            G, logdetG, sgndetG, electron_phonon_parameters,
+            fermion_path_integral = fermion_path_integral,
+            fermion_greens_calculator = fermion_greens_calculator,
+            fermion_greens_calculator_alt = fermion_greens_calculator_alt,
+            B = B, rng = rng
+        )
 
-            # Perform a swap update.
-            (accepted, logdetG, sgndetG) = swap_update!(
-                G, logdetG, sgndetG, electron_phonon_parameters,
-                fermion_path_integral = fermion_path_integral,
-                fermion_greens_calculator = fermion_greens_calculator,
-                fermion_greens_calculator_alt = fermion_greens_calculator_alt,
-                B = B, rng = rng
-            )
+        # Record whether the reflection update was accepted or rejected.
+        metadata["swap_acceptance_rate"] += accepted
 
-            # Record whether the reflection update was accepted or rejected.
-            metadata["swap_acceptance_rate"] += accepted
+        # Perform an HMC update.
+        (accepted, logdetG, sgndetG, δG, δθ) = hmc_update!(
+            G, logdetG, sgndetG, electron_phonon_parameters, hmc_updater,
+            fermion_path_integral = fermion_path_integral,
+            fermion_greens_calculator = fermion_greens_calculator,
+            fermion_greens_calculator_alt = fermion_greens_calculator_alt,
+            B = B, δG_max = δG_max, δG = δG, δθ = δθ, rng = rng
+        )
 
-            # Perform an HMC update.
-            (accepted, logdetG, sgndetG, δG, δθ) = hmc_update!(
-                G, logdetG, sgndetG, electron_phonon_parameters, hmc_updater,
-                fermion_path_integral = fermion_path_integral,
-                fermion_greens_calculator = fermion_greens_calculator,
-                fermion_greens_calculator_alt = fermion_greens_calculator_alt,
-                B = B, δG_max = δG_max, δG = δG, δθ = δθ, rng = rng
-            )
+        # Record whether the HMC update was accepted or rejected.
+        metadata["hmc_acceptance_rate"] += accepted
 
-            # Record whether the HMC update was accepted or rejected.
-            metadata["hmc_acceptance_rate"] += accepted
+        # Make measurements.
+        (logdetG, sgndetG, δG, δθ) = make_measurements!(
+            measurement_container,
+            logdetG, sgndetG, G, G_ττ, G_τ0, G_0τ,
+            fermion_path_integral = fermion_path_integral,
+            fermion_greens_calculator = fermion_greens_calculator,
+            B = B, δG_max = δG_max, δG = δG, δθ = δθ,
+            model_geometry = model_geometry, tight_binding_parameters = tight_binding_parameters,
+            coupling_parameters = (electron_phonon_parameters,)
+        )
 
-            # Make measurements.
-            (logdetG, sgndetG, δG, δθ) = make_measurements!(
-                measurement_container,
-                logdetG, sgndetG, G, G_ττ, G_τ0, G_0τ,
-                fermion_path_integral = fermion_path_integral,
-                fermion_greens_calculator = fermion_greens_calculator,
-                B = B, δG_max = δG_max, δG = δG, δθ = δθ,
-                model_geometry = model_geometry, tight_binding_parameters = tight_binding_parameters,
-                coupling_parameters = (electron_phonon_parameters,)
-            )
-        end
-
-        # Write the bin-averaged measurements to file.
+        # Write the bin-averaged measurements to file if update ÷ bin_size == 0.
         write_measurements!(
             measurement_container = measurement_container,
             simulation_info = simulation_info,
             model_geometry = model_geometry,
-            bin = bin,
+            update = update,
             bin_size = bin_size,
             Δτ = Δτ
         )
@@ -527,10 +519,8 @@ No changes need to made to this section of the code from the previous [2a) Honey
     save_simulation_info(simulation_info, metadata)
 ````
 
-## Process results
-We need start with section with a call to the [`MPI.Barrier`](https://juliaparallel.org/MPI.jl/stable/reference/comm/#MPI.Barrier)
-function to ensure that we don't begin processing the results until all the simulations running in parallel have finished.
-Additionally, we need to make sure to call the
+## Post-process results
+The main change we need to make from the previos [2a) Honeycomb Holstein Model](@ref) tutorial is to call
 the [`process_measurements`](@ref), [`compute_correlation_ratio`](@ref) and [`compress_jld2_bins`](@ref) function
 such that the first argument is the `comm` object, thereby ensuring a parallelized version of each method is called.
 

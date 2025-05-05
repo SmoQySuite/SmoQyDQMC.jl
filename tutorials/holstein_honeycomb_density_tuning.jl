@@ -1,26 +1,30 @@
-# # 2c) Honeycomb Holstein Model with Checkpointing
-# In this tutorial we demonstrate how to introduce checkpointing to the previous
-# [2b) Honeycomb Holstein Model with MPI Parallelization](@ref) tutorial, allowing for simulations to be
-# resumed if terminated prior to completion.
+# # 2d) Honeycomb Holstein Model with Density Tuning
+# In this example we demonstrate how to introduce chemical potential and density tuning to the previous
+# [2c) Honeycomb Holstein Model with Checkpointing](@ref) tutorial.
+# Specifically, we show how to use the algorithm introduced in
+# [Phys. Rev. E 105, 045311](https://journals.aps.org/pre/abstract/10.1103/PhysRevE.105.045311)
+# for dynamically adjusting the chemical potential during the simulation in order to achieve a target
+# electron density or filling fraction.
 
-# ## Import packages
-# No changes need to made to this section of the code from the previous
-# [2b) Honeycomb Holstein Model with MPI Parallelization](@ref) tutorial.
+# ## Import Packages
+# Compared to the previouse [1c) Square Hubbard Model with Checkpointing](@ref) tutorial,
+# we now need to import the [MuTuner.jl](https://github.com/cohensbw/MuTuner.jl.git)
+# package, which is reexported by [SmoQyDQMC.jl](https://github.com/SmoQySuite/SmoQyDQMC.jl.git)
 
 using SmoQyDQMC
 import SmoQyDQMC.LatticeUtilities as lu
 import SmoQyDQMC.JDQMCFramework as dqmcf
+import SmoQyDQMC.MuTuner as mt
 
 using Random
 using Printf
 using MPI
 
 # ## Specify simulation parameters
-# Compared to the previous [2b) Honeycomb Holstein Model with MPI Parallelization](@ref) tutorial, we have added
-# two new keyword arguments to the `run_simulation` function:
-# - `checkpoint_freq`: When going to write a new checkpoint file, only write one if more than `checkpoint_freq` hours have passed since the last checkpoint file was written.
-# - `runtime_limit`: If after writing a new checkpoint file more than `runtime_limit` hours have passed since the simulation started, terminate the simulation.
-# The `runtime_limit = Inf` default behavior means there is no runtime limit for the simulation.
+# Here we introduce the keyword argument `n` to the `run_simulation` function
+# which specifies the target electron density we want to achieve in the simulation.
+# Now the `μ` argument specifies the initial chemical potential we begin the simulation with,
+# but of course it will be adjusted during the simulation to achieve the target density `n`.
 
 ## Top-level function to run simulation.
 function run_simulation(
@@ -29,7 +33,8 @@ function run_simulation(
     sID, # Simulation ID.
     Ω, # Phonon energy.
     α, # Electron-phonon coupling.
-    μ, # Chemical potential.
+    n, # Target density.
+    μ, # Initial chemical potential.
     L, # System size.
     β, # Inverse temperature.
     N_therm, # Number of thermalization updates.
@@ -47,10 +52,8 @@ function run_simulation(
 )
 
 # ## Initialize simulation
-# We need to make a few modifications to this portion of the code as compared to the previous tutorial
-# in order for checkpointing to work. First, we record need to record the simulation start time,
-# which we do by initializing a variable `start_timestamp = time()`.
-# Second, we need to convert the `checkpoint_freq` and `runtime_limit` from hours to seconds.
+# No changes need to made to this section of the code from the previous
+# [2c) Honeycomb Holstein Model with Checkpointing](@ref) tutorial.
 
     ## Record when the simulation began.
     start_timestamp = time()
@@ -79,17 +82,8 @@ function run_simulation(
     initialize_datafolder(comm, simulation_info)
 
 # ## Initialize simulation metadata
-# At this point we need to introduce branching logic to handle whether a new simulation is being started,
-# or a previous simulation is being resumed.
-# We do this by checking the `simulation_info.resuming` boolean value.
-# If `simulation_info.resuming = true`, then we are resuming a previous simulation, while
-# `simulation_info.resuming = false` indicates we are starting a new simulation.
-# Therefore, the section of code immediately below handles the case that we are starting a new simulation.
-
-# We also introduce and initialize two new variables `n_therm = 1` and `n_updates = 1` which will keep track
-# of how many rounds of thermalization and measurement updates have been performed. These two variables will
-# needed to be included in the checkpoint files we write later in the simulation, as they will indicate
-# where to resume a previously terminated simulation.
+# Here it is useful to record the initial chemical potential `μ` used during the simulation
+# in the metadata dictionary.
 
     ## If starting a new simulation i.e. not resuming a previous simulation.
     if !simulation_info.resuming
@@ -107,6 +101,7 @@ function run_simulation(
         metadata = Dict()
 
         ## Record simulation parameters.
+        metadata["mu"] = μ
         metadata["N_therm"] = N_therm
         metadata["N_updates"] = N_updates
         metadata["N_bins"] = N_bins
@@ -121,7 +116,7 @@ function run_simulation(
 
 # ## Initialize model
 # No changes need to made to this section of the code from the previous
-# [2b) Honeycomb Holstein Model with MPI Parallelization](@ref) tutorial.
+# [2c) Honeycomb Holstein Model with Checkpointing](@ref) tutorial.
 
         ## Define the unit cell.
         unit_cell = lu.UnitCell(
@@ -237,8 +232,13 @@ function run_simulation(
         )
 
 # ## Initialize model parameters
-# No changes need to made to this section of the code from the previous
-# [2b) Honeycomb Holstein Model with MPI Parallelization](@ref) tutorial.
+# In this section we need to make use of the [MuTuner.jl](https://github.com/cohensbw/MuTuner.jl.git)
+# package, initializing an instance of the
+# [`MuTuner.MuTunerLogger`](https://cohensbw.github.io/MuTuner.jl/stable/api/)
+# type using the
+# [`MuTuner.init_mutunerlogger`](https://cohensbw.github.io/MuTuner.jl/stable/api/)
+# function. Note that we use the [`LatticeUtilities.nsites`](@extref)
+# function to calculate the total number of orbitals in our system.
 
         ## Initialize tight-binding parameters.
         tight_binding_parameters = TightBindingParameters(
@@ -256,9 +256,19 @@ function run_simulation(
             rng = rng
         )
 
+        ## Initialize MuTunerLogger type that will be used to dynamically adjust the
+        ## chemicaml potential during the simulation.
+        chemical_potential_tuner = mt.init_mutunerlogger(
+            target_density = n,
+            inverse_temperature = β,
+            system_size = lu.nsites(unit_cell, lattice),
+            initial_chemical_potential = μ,
+            complex_sign_problem = false
+        )
+
 # ## Initialize meuasurements
 # No changes need to made to this section of the code from the previous
-# [2b) Honeycomb Holstein Model with MPI Parallelization](@ref) tutorial.
+# [2c) Honeycomb Holstein Model with Checkpointing](@ref) tutorial.
 
         ## Initialize the container that measurements will be accumulated into.
         measurement_container = initialize_measurement_container(model_geometry, β, Δτ)
@@ -347,10 +357,9 @@ function run_simulation(
         initialize_measurement_directories(comm, simulation_info, measurement_container)
 
 # ## Write first checkpoint
-# This section of code needs to be added so that a first checkpoint file is written before
-# beginning a new simulation. We do this using the [`write_jld2_checkpoint`](@ref) function.
-# This function all return the epoch timestamp `checkpoint_timestamp` corresponding to when
-# the checkpoint file was written.
+# Here we need to add the
+# [`MuTuner.MuTunerLogger`](https://cohensbw.github.io/MuTuner.jl/stable/api/)
+# instance `chemical_potential_tuner` to the checkpoint file.
 
         ## Write initial checkpoint file.
         checkpoint_timestamp = write_jld2_checkpoint(
@@ -361,15 +370,13 @@ function run_simulation(
             runtime_limit = runtime_limit,
             ## Contents of checkpoint file below.
             n_therm, n_updates,
-            tight_binding_parameters, electron_phonon_parameters,
+            tight_binding_parameters, electron_phonon_parameters, chemical_potential_tuner,
             measurement_container, model_geometry, metadata, rng
         )
 
 # ## Load checkpoint
-# If we are resuming a simulation that was previously terminated prior to completion, then
-# we need to load the most recent checkpoint file using the [`read_jld2_checkpoint`](@ref) function.
-# The cotents of the checkpoint file are returned as a dictionary `checkpoint` by the [`read_jld2_checkpoint`](@ref) function.
-# We then extract the cotents of the checkpoint file from the `checkpoint` dictionary.
+# Here we need to make sure to load the [`MuTuner.MuTunerLogger`](https://cohensbw.github.io/MuTuner.jl/stable/api/)
+# instance `chemical_potential_tuner` from the checkpoint file.
 
     ## If resuming a previous simulation.
     else
@@ -380,6 +387,7 @@ function run_simulation(
         ## Unpack contents of checkpoint dictionary.
         tight_binding_parameters    = checkpoint["tight_binding_parameters"]
         electron_phonon_parameters  = checkpoint["electron_phonon_parameters"]
+        chemical_potential_tuner    = checkpoint["chemical_potential_tuner"]
         measurement_container       = checkpoint["measurement_container"]
         model_geometry              = checkpoint["model_geometry"]
         metadata                    = checkpoint["metadata"]
@@ -390,7 +398,7 @@ function run_simulation(
 
 # ## Setup DQMC simulation
 # No changes need to made to this section of the code from the previous
-# [2b) Honeycomb Holstein Model with MPI Parallelization](@ref) tutorial.
+# [2c) Honeycomb Holstein Model with Checkpointing](@ref) tutorial.
 
     ## Allocate a single FermionPathIntegral for both spin-up and down electrons.
     fermion_path_integral = FermionPathIntegral(tight_binding_parameters = tight_binding_parameters, β = β, Δτ = Δτ)
@@ -424,7 +432,7 @@ function run_simulation(
 
 # ## Setup EFA-HMC Updates
 # No changes need to made to this section of the code from the previous
-# [2b) Honeycomb Holstein Model with MPI Parallelization](@ref) tutorial.
+# [2c) Honeycomb Holstein Model with Checkpointing](@ref) tutorial.
 
     ## Number of fermionic time-steps in HMC update.
     Nt = 10
@@ -439,14 +447,9 @@ function run_simulation(
     )
 
 # ## Thermalize system
-# The first change we need to make to this section is to have the for-loop iterate from `n_therm:N_therm` instead of `1:N_therm`.
-# The other change we need make to this section of the code from the previous [1b) Square Hubbard Model with MPI Parallelization](@ref) tutorial
-# is to add a call to the [`write_jld2_checkpoint`](@ref) function at the end of each iteration of the
-# for-loop in which we perform the thermalization updates.
-# When calling this function we need to pass it the timestamp for the previous checkpoint `checkpoint_timestamp`
-# so that the function can determine if a new checkpoint file needs to be written.
-# If a new checkpoint file is written then the `checkpoint_timestamp` variable will be updated to reflect this,
-# otherwise it will remain unchanged.
+# Here we need to add a call to the [`update_chemical_potential!`](@ref) function
+# after completeing the updates but before writing the checkpoint file is written.
+# And again, we need to make sure the include the `chemical_potential_tuner` in the checkpoint file.
 
     ## Iterate over number of thermalization updates to perform.
     for update in n_therm:N_therm
@@ -487,6 +490,16 @@ function run_simulation(
         ## Record whether the HMC update was accepted or rejected.
         metadata["hmc_acceptance_rate"] += accepted
 
+        ## Update the chemical potential to achieve the target density.
+        (logdetG, sgndetG) = update_chemical_potential!(
+            G, logdetG, sgndetG;
+            chemical_potential_tuner = chemical_potential_tuner,
+            tight_binding_parameters = tight_binding_parameters,
+            fermion_path_integral = fermion_path_integral,
+            fermion_greens_calculator = fermion_greens_calculator,
+            B = B
+        )
+
         ## Write checkpoint file.
         checkpoint_timestamp = write_jld2_checkpoint(
             comm,
@@ -498,19 +511,15 @@ function run_simulation(
             ## Contents of checkpoint file below.
             n_therm  = n_therm + 1,
             n_updates = 1,
-            tight_binding_parameters, electron_phonon_parameters,
+            tight_binding_parameters, electron_phonon_parameters, chemical_potential_tuner,
             measurement_container, model_geometry, metadata, rng
         )
     end
 
 # ## Make measurements
-# Again, we need to modify the for-loop so that it runs from `n_updates:N_updates` instead of `1:N_updates`.
-# The only other change we need to make to this section of the code from the previous
-# [2b) Honeycomb Holstein Model with MPI Parallelization](@ref) tutorial
-# is to add a call to the [`write_jld2_checkpoint`](@ref) function at the end of each iteration of the
-# for-loop in which we perform updates and measurements.
-# Note that we set `n_therm = N_therm + 1` when writing the checkpoint file to ensure that when the simulation
-# is resumed the thermalization updates are not repeated.
+# Here we need to add a call to the [`update_chemical_potential!`](@ref) function
+# after making and writing measurements but before writing the checkpoint file is written.
+# And again, we need to make sure the include the `chemical_potential_tuner` in the checkpoint file.
 
     ## Reset diagonostic parameters used to monitor numerical stability to zero.
     δG = zero(logdetG)
@@ -579,6 +588,16 @@ function run_simulation(
             Δτ = Δτ
         )
 
+        ## Update the chemical potential to achieve the target density.
+        (logdetG, sgndetG) = update_chemical_potential!(
+            G, logdetG, sgndetG;
+            chemical_potential_tuner = chemical_potential_tuner,
+            tight_binding_parameters = tight_binding_parameters,
+            fermion_path_integral = fermion_path_integral,
+            fermion_greens_calculator = fermion_greens_calculator,
+            B = B
+        )
+
         ## Write checkpoint file.
         checkpoint_timestamp = write_jld2_checkpoint(
             comm,
@@ -590,14 +609,14 @@ function run_simulation(
             ## Contents of checkpoint file below.
             n_therm  = N_therm + 1,
             n_updates = update + 1,
-            tight_binding_parameters, electron_phonon_parameters,
+            tight_binding_parameters, electron_phonon_parameters, chemical_potential_tuner,
             measurement_container, model_geometry, metadata, rng
         )
     end
 
 # ## Record simulation metadata
-# No changes need to made to this section of the code from the previous
-# [2b) Honeycomb Holstein Model with MPI Parallelization](@ref) tutorial.
+# Here we can add a call to the [`save_density_tuning_profile`](@ref), which records the full history
+# of the chemical potential and density tuning process.
 
     ## Calculate acceptance rates.
     metadata["hmc_acceptance_rate"] /= (N_updates + N_therm)
@@ -610,12 +629,12 @@ function run_simulation(
     ## Write simulation metadata to simulation_info.toml file.
     save_simulation_info(simulation_info, metadata)
 
+    ## Save the density tuning profile to file.
+    save_density_tuning_profile(simulation_info, chemical_potential_tuner)
+
 # ## Post-process results
-# From the last [2b) Honeycomb Holstein Model with MPI Parallelization](@ref) tutorial, we now need to add
-# a call to the [`rename_complete_simulation`](@ref) function once the results are processed.
-# This function renames the data folder to begin with `complete_*`, making it simple to identify which
-# simulations ran to completion and which ones need to be resumed from the last checkpoint file.
-# This function also deletes the checkpoint files that were written during the simulation.
+# No changes need to made to this section of the code from the previous
+# [2c) Honeycomb Holstein Model with Checkpointing](@ref) tutorial.
 
     ## Process the simulation results, calculating final error bars for all measurements,
     ## writing final statisitics to CSV files.
@@ -634,23 +653,17 @@ function run_simulation(
 end # end of run_simulation function
 
 # ## Execute script
-# To execute the script, we have added two new command line arguments allowing for the assignment of both
-# the `checkpoint_freq` and `runtime_limit` values.
-# Therefore, a simulation can be run with the command
+# Here we add an additional command line argument to specify the target density `n` we want to achieve in the simulation.
+# Now the `μ` command line argument specifies the initial chemical potential we begin the simulation with.
+# For instance, a simulation can be run with the command
 # ```bash
-# mpiexecjl -n 16 julia holstein_honeycomb_checkpoint.jl 1 1.0 1.5 0.0 3 4.0 5000 10000 100 0.5
+# mpiexecjl -n 16 julia holstein_honeycomb_density_tuning.jl 1 1.0 1.5 0.8 0.0 3 4.0 5000 10000 100 0.5
 # ```
 # or 
 # ```bash
-# srun julia holstein_honeycomb_checkpoint.jl 1 1.0 1.5 0.0 3 4.0 5000 10000 100 0.5
+# srun julia holstein_honeycomb_density_tuning.jl 1 1.0 1.5 0.8 0.0 3 4.0 5000 10000 100 0.5
 # ```
-# Refer to the previous [1b) Square Hubbard Model with MPI Parallelization](@ref) tutorial for more details on how to run the simulation
-# script using MPI.
-
-# In the example calls above the code will write a new checkpoint if more than 30 minutes (0.5 hours) has passed since the last checkpoint file was written.
-# Note that these same commands are used to both begin a new simulation and also resume a previous simulation.
-# This is a useful feature when submitting jobs on a cluster, as it allows the same job file to be used for
-# both starting new simulations and resuming ones that still need to finish.
+# where the target density is ``\langle n \rangle = 0.8`` and the initial chemical potential is ``\mu = 0.0``.
 
 ## Only excute if the script is run directly from the command line.
 if abspath(PROGRAM_FILE) == @__FILE__
@@ -667,13 +680,14 @@ if abspath(PROGRAM_FILE) == @__FILE__
         sID             = parse(Int,     ARGS[1]),  # Simulation ID.
         Ω               = parse(Float64, ARGS[2]),  # Phonon energy.
         α               = parse(Float64, ARGS[3]),  # Electron-phonon coupling.
-        μ               = parse(Float64, ARGS[4]),  # Chemical potential.
-        L               = parse(Int,     ARGS[5]),  # System size.
-        β               = parse(Float64, ARGS[6]),  # Inverse temperature.
-        N_therm         = parse(Int,     ARGS[7]),  # Number of thermalization updates.
-        N_updates       = parse(Int,     ARGS[8]),  # Total number of measurements and measurement updates.
-        N_bins          = parse(Int,     ARGS[9]),  # Number of times bin-averaged measurements are written to file.
-        checkpoint_freq = parse(Float64, ARGS[10]), # Frequency with which checkpoint files are written in hours.
+        n               = parse(Float64, ARGS[4]),  # Target density.
+        μ               = parse(Float64, ARGS[5]),  # Initial chemical potential.
+        L               = parse(Int,     ARGS[6]),  # System size.
+        β               = parse(Float64, ARGS[7]),  # Inverse temperature.
+        N_therm         = parse(Int,     ARGS[8]),  # Number of thermalization updates.
+        N_updates       = parse(Int,     ARGS[9]),  # Total number of measurements and measurement updates.
+        N_bins          = parse(Int,     ARGS[10]), # Number of times bin-averaged measurements are written to file.
+        checkpoint_freq = parse(Float64, ARGS[11]), # Frequency with which checkpoint files are written in hours.
     )
 
     ## Finalize MPI.

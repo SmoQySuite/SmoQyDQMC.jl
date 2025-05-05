@@ -253,7 +253,9 @@ No changes need to made to this section of the code from the previous [1a) Squar
 ````
 
 ## Initialize meuasurements
-No changes need to made to this section of the code from the previous [1a) Square Hubbard Model](@ref) tutorial.
+The only change we need to make to this section of the code from the previous [1a) Square Hubbard Model](@ref) tutorial
+is to add the `comm` as the first argument to the [`initialize_measurement_directories`](@ref) function.
+The ensures that not of the MPI processes proceed beyond that point until the directory structure has been initialized.
 
 ````julia
     # Initialize the container that measurements will be accumulated into.
@@ -317,19 +319,13 @@ No changes need to made to this section of the code from the previous [1a) Squar
     )
 
     # Initialize the sub-directories to which the various measurements will be written.
-    initialize_measurement_directories(simulation_info, measurement_container)
+    initialize_measurement_directories(comm, simulation_info, measurement_container)
 ````
 
 ## Setup DQMC simulation
-In this section of the code we only need to make one very minor change in adding a call to the
-[`MPI.Barrier`](https://juliaparallel.org/MPI.jl/stable/reference/comm/#MPI.Barrier) function
-to synchronize all the MPI processes.
-This ensures that the proper directory structure for the simulation is in place before the simulation begins.
+No changes need to made to this section of the code from the previous [1a) Square Hubbard Model](@ref) tutorial.
 
 ````julia
-    # Synchronize all the MPI processes.
-    MPI.Barrier(comm)
-
     # Allocate FermionPathIntegral type for both the spin-up and spin-down electrons.
     fermion_path_integral_up = FermionPathIntegral(tight_binding_parameters = tight_binding_parameters, β = β, Δτ = Δτ)
     fermion_path_integral_dn = FermionPathIntegral(tight_binding_parameters = tight_binding_parameters, β = β, Δτ = Δτ)
@@ -406,48 +402,44 @@ No changes need to made to this section of the code from the previous [1a) Squar
     # Calculate the bin size.
     bin_size = N_updates ÷ N_bins
 
-    # Iterate over bins.
-    for bin in 1:N_bins
+    # Iterate over updates and measurements.
+    for update in 1:N_updates
 
-        # Iterate over update sweeps and measurements in bin.
-        for n in 1:bin_size
+        # Perform sweep all imaginary-time slice and orbitals, attempting an update to every HS field.
+        (acceptance_rate, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = local_updates!(
+            Gup, logdetGup, sgndetGup, Gdn, logdetGdn, sgndetGdn,
+            hubbard_stratonovich_params,
+            fermion_path_integral_up = fermion_path_integral_up,
+            fermion_path_integral_dn = fermion_path_integral_dn,
+            fermion_greens_calculator_up = fermion_greens_calculator_up,
+            fermion_greens_calculator_dn = fermion_greens_calculator_dn,
+            Bup = Bup, Bdn = Bdn, δG_max = δG_max, δG = δG, δθ = δθ, rng = rng,
+            update_stabilization_frequency = true
+        )
 
-            # Perform sweep all imaginary-time slice and orbitals, attempting an update to every HS field.
-            (acceptance_rate, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = local_updates!(
-                Gup, logdetGup, sgndetGup, Gdn, logdetGdn, sgndetGdn,
-                hubbard_stratonovich_params,
-                fermion_path_integral_up = fermion_path_integral_up,
-                fermion_path_integral_dn = fermion_path_integral_dn,
-                fermion_greens_calculator_up = fermion_greens_calculator_up,
-                fermion_greens_calculator_dn = fermion_greens_calculator_dn,
-                Bup = Bup, Bdn = Bdn, δG_max = δG_max, δG = δG, δθ = δθ, rng = rng,
-                update_stabilization_frequency = true
-            )
+        # Record acceptance rate.
+        metadata["avg_acceptance_rate"] += acceptance_rate
 
-            # Record acceptance rate.
-            metadata["avg_acceptance_rate"] += acceptance_rate
+        # Make measurements.
+        (logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = make_measurements!(
+            measurement_container,
+            logdetGup, sgndetGup, Gup, Gup_ττ, Gup_τ0, Gup_0τ,
+            logdetGdn, sgndetGdn, Gdn, Gdn_ττ, Gdn_τ0, Gdn_0τ,
+            fermion_path_integral_up = fermion_path_integral_up,
+            fermion_path_integral_dn = fermion_path_integral_dn,
+            fermion_greens_calculator_up = fermion_greens_calculator_up,
+            fermion_greens_calculator_dn = fermion_greens_calculator_dn,
+            Bup = Bup, Bdn = Bdn, δG_max = δG_max, δG = δG, δθ = δθ,
+            model_geometry = model_geometry, tight_binding_parameters = tight_binding_parameters,
+            coupling_parameters = (hubbard_params, hubbard_stratonovich_params)
+        )
 
-            # Make measurements.
-            (logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = make_measurements!(
-                measurement_container,
-                logdetGup, sgndetGup, Gup, Gup_ττ, Gup_τ0, Gup_0τ,
-                logdetGdn, sgndetGdn, Gdn, Gdn_ττ, Gdn_τ0, Gdn_0τ,
-                fermion_path_integral_up = fermion_path_integral_up,
-                fermion_path_integral_dn = fermion_path_integral_dn,
-                fermion_greens_calculator_up = fermion_greens_calculator_up,
-                fermion_greens_calculator_dn = fermion_greens_calculator_dn,
-                Bup = Bup, Bdn = Bdn, δG_max = δG_max, δG = δG, δθ = δθ,
-                model_geometry = model_geometry, tight_binding_parameters = tight_binding_parameters,
-                coupling_parameters = (hubbard_params, hubbard_stratonovich_params)
-            )
-        end
-
-        # Write the bin-averaged measurements to file.
+        # Write the bin-averaged measurements to file if update ÷ bin_size == 0.
         write_measurements!(
             measurement_container = measurement_container,
             simulation_info = simulation_info,
             model_geometry = model_geometry,
-            bin = bin,
+            update = update,
             bin_size = bin_size,
             Δτ = Δτ
         )
@@ -470,17 +462,12 @@ No changes need to made to this section of the code from the previous [1a) Squar
     save_simulation_info(simulation_info, metadata)
 ````
 
-## Process results
-We need start with section with a call to the [`MPI.Barrier`](https://juliaparallel.org/MPI.jl/stable/reference/comm/#MPI.Barrier)
-function to ensure that we don't begin processing the results until all the simulations running in parallel have finished.
-Additionally, we need to make sure to call the
+## Post-rocess results
+The main change we need to make from the previos [1a) Square Hubbard Model](@ref) tutorial is to call
 the [`process_measurements`](@ref), [`compute_correlation_ratio`](@ref) and [`compress_jld2_bins`](@ref) function
 such that the first argument is the `comm` object, thereby ensuring a parallelized version of each method is called.
 
 ````julia
-    # Synchronize all the MPI processes.
-    MPI.Barrier(comm)
-
     # Set the number of bins used to calculate the error in measured observables.
     n_bins = N_bins
 
@@ -536,15 +523,15 @@ if abspath(PROGRAM_FILE) == @__FILE__
     # Run the simulation, reading in command line arguments.
     run_simulation(
         comm;
-        sID       = parse(Int,     ARGS[1]),
-        U         = parse(Float64, ARGS[2]),
-        t′        = parse(Float64, ARGS[3]),
-        μ         = parse(Float64, ARGS[4]),
-        L         = parse(Int,     ARGS[5]),
-        β         = parse(Float64, ARGS[6]),
-        N_therm   = parse(Int,     ARGS[7]),
-        N_updates = parse(Int,     ARGS[8]),
-        N_bins    = parse(Int,     ARGS[9])
+        sID       = parse(Int,     ARGS[1]), # Simulation ID.
+        U         = parse(Float64, ARGS[2]), # Hubbard interaction.
+        t′        = parse(Float64, ARGS[3]), # Next-nearest-neighbor hopping amplitude.
+        μ         = parse(Float64, ARGS[4]), # Chemical potential.
+        L         = parse(Int,     ARGS[5]), # System size.
+        β         = parse(Float64, ARGS[6]), # Inverse temperature.
+        N_therm   = parse(Int,     ARGS[7]), # Number of thermalization updates.
+        N_updates = parse(Int,     ARGS[8]), # Total number of measurements and measurement updates.
+        N_bins    = parse(Int,     ARGS[9])  # Number of times bin-averaged measurements are written to file.
     )
 
     # Finalize MPI.
@@ -557,7 +544,7 @@ Here is an example of what the command to run this script might look like:
 mpiexecjl -n 16 julia hubbard_square_mpi.jl 1 5.0 -0.25 -2.0 4 4.0 2500 10000 100
 ```
 This will 16 MPI processes, each running and independent simulation using a different random seed
-the the final results arrived at by averaging over all 16 walkers.
+the final results arrived at by averaging over all 16 walkers.
 Here `mpiexecjl` is the MPI exectuable that can be easily install using the directions
 found [here](https://juliaparallel.org/MPI.jl/stable/usage/#Julia-wrapper-for-mpiexec) in the
 [MPI.jl](https://github.com/JuliaParallel/MPI.jl) documentation. However, you can substitute a

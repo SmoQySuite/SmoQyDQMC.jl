@@ -235,7 +235,9 @@ function run_simulation(
     )
 
 # ## Initialize meuasurements
-# No changes need to made to this section of the code from the previous [1a) Square Hubbard Model](@ref) tutorial.
+# The only change we need to make to this section of the code from the previous [1a) Square Hubbard Model](@ref) tutorial
+# is to add the `comm` as the first argument to the [`initialize_measurement_directories`](@ref) function.
+# The ensures that not of the MPI processes proceed beyond that point until the directory structure has been initialized.
 
     ## Initialize the container that measurements will be accumulated into.
     measurement_container = initialize_measurement_container(model_geometry, β, Δτ)
@@ -298,16 +300,10 @@ function run_simulation(
     )
 
     ## Initialize the sub-directories to which the various measurements will be written.
-    initialize_measurement_directories(simulation_info, measurement_container)
+    initialize_measurement_directories(comm, simulation_info, measurement_container)
 
 # ## Setup DQMC simulation
-# In this section of the code we only need to make one very minor change in adding a call to the
-# [`MPI.Barrier`](https://juliaparallel.org/MPI.jl/stable/reference/comm/#MPI.Barrier) function
-# to synchronize all the MPI processes.
-# This ensures that the proper directory structure for the simulation is in place before the simulation begins.
-
-    ## Synchronize all the MPI processes.
-    MPI.Barrier(comm)
+# No changes need to made to this section of the code from the previous [1a) Square Hubbard Model](@ref) tutorial.
 
     ## Allocate FermionPathIntegral type for both the spin-up and spin-down electrons.
     fermion_path_integral_up = FermionPathIntegral(tight_binding_parameters = tight_binding_parameters, β = β, Δτ = Δτ)
@@ -413,19 +409,15 @@ function run_simulation(
             coupling_parameters = (hubbard_params, hubbard_stratonovich_params)
         )
 
-        ## Check if bin averaged measurements need to be written to file.
-        if update % bin_size == 0
-
-            ## Write the bin-averaged measurements to file.
-            write_measurements!(
-                measurement_container = measurement_container,
-                simulation_info = simulation_info,
-                model_geometry = model_geometry,
-                bin = update ÷ bin_size,
-                bin_size = bin_size,
-                Δτ = Δτ
-            )
-        end
+        ## Write the bin-averaged measurements to file if update ÷ bin_size == 0.
+        write_measurements!(
+            measurement_container = measurement_container,
+            simulation_info = simulation_info,
+            model_geometry = model_geometry,
+            update = update,
+            bin_size = bin_size,
+            Δτ = Δτ
+        )
     end
 
 # ## Record simulation metadata
@@ -443,14 +435,9 @@ function run_simulation(
     save_simulation_info(simulation_info, metadata)
 
 # ## Post-rocess results
-# We need start with section with a call to the [`MPI.Barrier`](https://juliaparallel.org/MPI.jl/stable/reference/comm/#MPI.Barrier)
-# function to ensure that we don't begin processing the results until all the simulations running in parallel have finished.
-# Additionally, we need to make sure to call the 
+# The main change we need to make from the previos [1a) Square Hubbard Model](@ref) tutorial is to call
 # the [`process_measurements`](@ref), [`compute_correlation_ratio`](@ref) and [`compress_jld2_bins`](@ref) function
 # such that the first argument is the `comm` object, thereby ensuring a parallelized version of each method is called.
-
-    ## Synchronize all the MPI processes.
-    MPI.Barrier(comm)
 
     ## Set the number of bins used to calculate the error in measured observables.
     n_bins = N_bins
@@ -504,15 +491,15 @@ if abspath(PROGRAM_FILE) == @__FILE__
     ## Run the simulation, reading in command line arguments.
     run_simulation(
         comm;
-        sID       = parse(Int,     ARGS[1]),
-        U         = parse(Float64, ARGS[2]),
-        t′        = parse(Float64, ARGS[3]),
-        μ         = parse(Float64, ARGS[4]),
-        L         = parse(Int,     ARGS[5]),
-        β         = parse(Float64, ARGS[6]),
-        N_therm   = parse(Int,     ARGS[7]),
-        N_updates = parse(Int,     ARGS[8]),
-        N_bins    = parse(Int,     ARGS[9])
+        sID       = parse(Int,     ARGS[1]), # Simulation ID.
+        U         = parse(Float64, ARGS[2]), # Hubbard interaction.
+        t′        = parse(Float64, ARGS[3]), # Next-nearest-neighbor hopping amplitude.
+        μ         = parse(Float64, ARGS[4]), # Chemical potential.
+        L         = parse(Int,     ARGS[5]), # System size.
+        β         = parse(Float64, ARGS[6]), # Inverse temperature.
+        N_therm   = parse(Int,     ARGS[7]), # Number of thermalization updates.
+        N_updates = parse(Int,     ARGS[8]), # Total number of measurements and measurement updates.
+        N_bins    = parse(Int,     ARGS[9])  # Number of times bin-averaged measurements are written to file.
     )
 
     ## Finalize MPI.

@@ -1,22 +1,32 @@
 ```@meta
-EditURL = "../../../tutorials/hubbard_square_checkpoint.jl"
+EditURL = "../../../tutorials/hubbard_square_density_tuning.jl"
 ```
 
-Download this example as a [Julia script](../assets/scripts/tutorials/hubbard_square_checkpoint.jl).
+Download this example as a [Julia script](../assets/scripts/tutorials/hubbard_square_density_tuning.jl).
 
-# 1c) Square Hubbard Model with Checkpointing
-In this tutorial we demonstrate how to introduce checkpointing to the previous
-[1b) Square Hubbard Model with MPI Parallelization](@ref) tutorial, allowing for simulations to be
-resumed if terminated prior to completion.
+# 1d) Square Hubbard Model with Density Tuning
+In this example we demonstrate how to introduce chemical potential and density tuning to the previous
+[1c) Square Hubbard Model with Checkpointing](@ref) tutorial.
+Specifically, we show how to use the algorithm introduced in
+[Phys. Rev. E 105, 045311](https://journals.aps.org/pre/abstract/10.1103/PhysRevE.105.045311)
+for dynamically adjusting the chemical potential during the simulation in order to achieve a target
+electron density or filling fraction.
+
+Note that when you dope the Hubbard model away from half-filling a sign problem is introduced.
+As with making measurements, if the sign problem becomes severe the density tuning algorithm will
+become very inefficient as simply providing an accurate measurement of the density and
+compressibility (which is used to adjust the chemical potential) will become challenging.
 
 ## Import Packages
-No changes need to made to this section of the code from the previous
-[1b) Square Hubbard Model with MPI Parallelization](@ref) tutorial.
+Compared to the previouse [1c) Square Hubbard Model with Checkpointing](@ref) tutorial,
+we now need to import the [MuTuner.jl](https://github.com/cohensbw/MuTuner.jl.git)
+package, which is reexported by [SmoQyDQMC.jl](https://github.com/SmoQySuite/SmoQyDQMC.jl.git)
 
 ````julia
 using SmoQyDQMC
 import SmoQyDQMC.LatticeUtilities as lu
 import SmoQyDQMC.JDQMCFramework as dqmcf
+import SmoQyDQMC.MuTuner as mt
 
 using Random
 using Printf
@@ -24,11 +34,10 @@ using MPI
 ````
 
 ## Specify simulation parameters
-Compared to the previous [1b) Square Hubbard Model with MPI Parallelization](@ref) tutorial, we have added
-two new keyword arguments to the `run_simulation` function:
-- `checkpoint_freq`: When going to write a new checkpoint file, only write one if more than `checkpoint_freq` hours have passed since the last checkpoint file was written.
-- `runtime_limit = Inf`: If after writing a new checkpoint file more than `runtime_limit` hours have passed since the simulation started, terminate the simulation.
-The `runtime_limit = Inf` default behavior means there is no runtime limit for the simulation.
+Here we introduce the keyword argument `n` to the `run_simulation` function
+which specifies the target electron density we want to achieve in the simulation.
+Now the `μ` argument specifies the initial chemical potential we begin the simulation with,
+but of course it will be adjusted during the simulation to achieve the target density `n`.
 
 ````julia
 # Top-level function to run simulation.
@@ -38,7 +47,8 @@ function run_simulation(
     sID, # Simulation ID.
     U, # Hubbard interaction.
     t′, # Next-nearest-neighbor hopping amplitude.
-    μ, # Chemical potential.
+    n, # Target density.
+    μ, # Initial chemical potential.
     L, # System size.
     β, # Inverse temperature.
     N_therm, # Number of thermalization updates.
@@ -57,10 +67,8 @@ function run_simulation(
 ````
 
 ## Initialize simulation
-We need to make a few modifications to this portion of the code as compared to the previous tutorial
-in order for checkpointing to work. First, we record need to record the simulation start time,
-which we do by initializing a variable `start_timestamp = time()`.
-Second, we need to convert the `checkpoint_freq` and `runtime_limit` from hours to seconds.
+No changes need to made to this section of the code from the previous
+[1c) Square Hubbard Model with Checkpointing](@ref) tutorial.
 
 ````julia
     # Record when the simulation began.
@@ -73,7 +81,7 @@ Second, we need to convert the `checkpoint_freq` and `runtime_limit` from hours 
     checkpoint_freq = checkpoint_freq * 60.0^2
 
     # Construct the foldername the data will be written to.
-    datafolder_prefix = @sprintf "hubbard_square_U%.2f_tp%.2f_mu%.2f_L%d_b%.2f" U t′ μ L β
+    datafolder_prefix = @sprintf "hubbard_square_U%.2f_tp%.2f_n%.2f_L%d_b%.2f" U t′ n L β
 
     # Get MPI process ID.
     pID = MPI.Comm_rank(comm)
@@ -91,17 +99,8 @@ Second, we need to convert the `checkpoint_freq` and `runtime_limit` from hours 
 ````
 
 ## Initialize simulation metadata
-At this point we need to introduce branching logic to handle whether a new simulation is being started,
-or a previous simulation is being resumed.
-We do this by checking the `simulation_info.resuming` boolean value.
-If `simulation_info.resuming = true`, then we are resuming a previous simulation, while
-`simulation_info.resuming = false` indicates we are starting a new simulation.
-Therefore, the section of code immediately below handles the case that we are starting a new simulation.
-
-We also introduce and initialize two new variables `n_therm = 1` and `n_updates = 1` which will keep track
-of how many rounds of thermalization and measurement updates have been performed. These two variables will
-needed to be included in the checkpoint files we write later in the simulation, as they will indicate
-where to resume a previously terminated simulation.
+Here it is useful to record the initial chemical potential `μ` used during the simulation
+in the metadata dictionary.
 
 ````julia
     # If starting a new simulation i.e. not resuming a previous simulation.
@@ -120,6 +119,7 @@ where to resume a previously terminated simulation.
         metadata = Dict()
 
         # Record simulation parameters.
+        metadata["mu"] = μ
         metadata["N_therm"] = N_therm
         metadata["N_updates"] = N_updates
         metadata["N_bins"] = N_bins
@@ -133,7 +133,7 @@ where to resume a previously terminated simulation.
 
 ## Initialize Model
 No changes need to made to this section of the code from the previous
-[1b) Square Hubbard Model with MPI Parallelization](@ref) tutorial.
+[1c) Square Hubbard Model with Checkpointing](@ref) tutorial.
 
 ````julia
         # Define unit cell.
@@ -250,8 +250,13 @@ No changes need to made to this section of the code from the previous
 ````
 
 ## Initialize model parameters
-No changes need to made to this section of the code from the previous
-[1b) Square Hubbard Model with MPI Parallelization](@ref) tutorial.
+In this section we need to make use of the [MuTuner.jl](https://github.com/cohensbw/MuTuner.jl.git)
+package, initializing an instance of the
+[`MuTuner.MuTunerLogger`](https://cohensbw.github.io/MuTuner.jl/stable/api/)
+type using the
+[`MuTuner.init_mutunerlogger`](https://cohensbw.github.io/MuTuner.jl/stable/api/)
+function. Note that we use the [`LatticeUtilities.nsites`](@extref)
+function to calculate the total number of orbitals in our system.
 
 ````julia
         # Initialize tight-binding parameters.
@@ -275,11 +280,21 @@ No changes need to made to this section of the code from the previous
             hubbard_parameters = hubbard_params,
             rng = rng
         )
+
+        # Initialize MuTunerLogger type that will be used to dynamically adjust the
+        # chemicaml potential during the simulation.
+        chemical_potential_tuner = mt.init_mutunerlogger(
+            target_density = n,
+            inverse_temperature = β,
+            system_size = lu.nsites(unit_cell, lattice),
+            initial_chemical_potential = μ,
+            complex_sign_problem = false
+        )
 ````
 
 ## Initialize measurements
 No changes need to made to this section of the code from the previous
-[1b) Square Hubbard Model with MPI Parallelization](@ref) tutorial.
+[1c) Square Hubbard Model with Checkpointing](@ref) tutorial.
 
 ````julia
         # Initialize the container that measurements will be accumulated into.
@@ -347,10 +362,9 @@ No changes need to made to this section of the code from the previous
 ````
 
 ## Write first checkpoint
-This section of code needs to be added so that a first checkpoint file is written before
-beginning a new simulation. We do this using the [`write_jld2_checkpoint`](@ref) function.
-This function all return the epoch timestamp `checkpoint_timestamp` corresponding to when
-the checkpoint file was written.
+Here we need to add the
+[`MuTuner.MuTunerLogger`](https://cohensbw.github.io/MuTuner.jl/stable/api/)
+instance `chemical_potential_tuner` to the checkpoint file.
 
 ````julia
         # Write initial checkpoint file.
@@ -363,15 +377,13 @@ the checkpoint file was written.
             # Contents of checkpoint file below.
             n_therm, n_updates,
             tight_binding_parameters, hubbard_params, hubbard_stratonovich_params,
-            measurement_container, model_geometry, metadata, rng
+            chemical_potential_tuner, measurement_container, model_geometry, metadata, rng
         )
 ````
 
 ## Load checkpoint
-If we are resuming a simulation that was previously terminated prior to completion, then
-we need to load the most recent checkpoint file using the [`read_jld2_checkpoint`](@ref) function.
-The cotents of the checkpoint file are returned as a dictionary `checkpoint` by the [`read_jld2_checkpoint`](@ref) function.
-We then extract the cotents of the checkpoint file from the `checkpoint` dictionary.
+Here we need to make sure to load the [`MuTuner.MuTunerLogger`](https://cohensbw.github.io/MuTuner.jl/stable/api/)
+instance `chemical_potential_tuner` from the checkpoint file.
 
 ````julia
     # If resuming a previous simulation.
@@ -384,6 +396,7 @@ We then extract the cotents of the checkpoint file from the `checkpoint` diction
         tight_binding_parameters    = checkpoint["tight_binding_parameters"]
         hubbard_params              = checkpoint["hubbard_params"]
         hubbard_stratonovich_params = checkpoint["hubbard_stratonovich_params"]
+        chemical_potential_tuner    = checkpoint["chemical_potential_tuner"]
         measurement_container       = checkpoint["measurement_container"]
         model_geometry              = checkpoint["model_geometry"]
         metadata                    = checkpoint["metadata"]
@@ -394,7 +407,8 @@ We then extract the cotents of the checkpoint file from the `checkpoint` diction
 ````
 
 ## Setup DQMC simulation
-No changes need to made to this section of the code from the previous [1a) Square Hubbard Model](@ref) tutorial.
+No changes need to made to this section of the code from the previous
+[1c) Square Hubbard Model with Checkpointing](@ref) tutorial.
 
 ````julia
     # Allocate FermionPathIntegral type for both the spin-up and spin-down electrons.
@@ -439,14 +453,9 @@ No changes need to made to this section of the code from the previous [1a) Squar
 ````
 
 ## Thermalize system
-The first change we need to make to this section is to have the for-loop iterate from `n_therm:N_therm` instead of `1:N_therm`.
-The other change we need make to this section of the code from the previous [1b) Square Hubbard Model with MPI Parallelization](@ref) tutorial
-is to add a call to the [`write_jld2_checkpoint`](@ref) function at the end of each iteration of the
-for-loop in which we perform the thermalization updates.
-When calling this function we need to pass it the timestamp for the previous checkpoint `checkpoint_timestamp`
-so that the function can determine if a new checkpoint file needs to be written.
-If a new checkpoint file is written then the `checkpoint_timestamp` variable will be updated to reflect this,
-otherwise it will remain unchanged.
+Here we need to add a call to the [`update_chemical_potential!`](@ref) function
+after completeing the updates but before writing the checkpoint file is written.
+And again, we need to make sure the include the `chemical_potential_tuner` in the checkpoint file.
 
 ````julia
     # Iterate over number of thermalization updates to perform.
@@ -467,6 +476,19 @@ otherwise it will remain unchanged.
         # Record acceptance rate for sweep.
         metadata["avg_acceptance_rate"] += acceptance_rate
 
+        # Update the chemical potential to achieve the target density.
+        (logdetGup, sgndetGup, logdetGdn, sgndetGdn) = update_chemical_potential!(
+            Gup, logdetGup, sgndetGup,
+            Gdn, logdetGdn, sgndetGdn;
+            chemical_potential_tuner = chemical_potential_tuner,
+            tight_binding_parameters = tight_binding_parameters,
+            fermion_path_integral_up = fermion_path_integral_up,
+            fermion_path_integral_dn = fermion_path_integral_dn,
+            fermion_greens_calculator_up = fermion_greens_calculator_up,
+            fermion_greens_calculator_dn = fermion_greens_calculator_dn,
+            Bup = Bup, Bdn = Bdn
+        )
+
         # Write checkpoint file.
         checkpoint_timestamp = write_jld2_checkpoint(
             comm,
@@ -479,19 +501,15 @@ otherwise it will remain unchanged.
             n_therm = update + 1,
             n_updates = 1,
             tight_binding_parameters, hubbard_params, hubbard_stratonovich_params,
-            measurement_container, model_geometry, metadata, rng
+            chemical_potential_tuner, measurement_container, model_geometry, metadata, rng
         )
     end
 ````
 
 ## Make measurements
-Again, we need to modify the for-loop so that it runs from `n_updates:N_updates` instead of `1:N_updates`.
-The only other change we need to make to this section of the code from the previous
-[1b) Square Hubbard Model with MPI Parallelization](@ref) tutorial
-is to add a call to the [`write_jld2_checkpoint`](@ref) function at the end of each iteration of the
-for-loop in which we perform updates and measurements.
-Note that we set `n_therm = N_therm + 1` when writing the checkpoint file to ensure that when the simulation
-is resumed the thermalization updates are not repeated.
+Here we need to add a call to the [`update_chemical_potential!`](@ref) function
+after making and writing measurements but before writing the checkpoint file is written.
+And again, we need to make sure the include the `chemical_potential_tuner` in the checkpoint file.
 
 ````julia
     # Reset diagonostic parameters used to monitor numerical stability to zero.
@@ -543,6 +561,19 @@ is resumed the thermalization updates are not repeated.
             Δτ = Δτ
         )
 
+        # Update the chemical potential to achieve the target density.
+        (logdetGup, sgndetGup, logdetGdn, sgndetGdn) = update_chemical_potential!(
+            Gup, logdetGup, sgndetGup,
+            Gdn, logdetGdn, sgndetGdn;
+            chemical_potential_tuner = chemical_potential_tuner,
+            tight_binding_parameters = tight_binding_parameters,
+            fermion_path_integral_up = fermion_path_integral_up,
+            fermion_path_integral_dn = fermion_path_integral_dn,
+            fermion_greens_calculator_up = fermion_greens_calculator_up,
+            fermion_greens_calculator_dn = fermion_greens_calculator_dn,
+            Bup = Bup, Bdn = Bdn
+        )
+
         # Write checkpoint file.
         checkpoint_timestamp = write_jld2_checkpoint(
             comm,
@@ -555,13 +586,14 @@ is resumed the thermalization updates are not repeated.
             n_therm  = N_therm + 1,
             n_updates = update + 1,
             tight_binding_parameters, hubbard_params, hubbard_stratonovich_params,
-            measurement_container, model_geometry, metadata, rng
+            chemical_potential_tuner, measurement_container, model_geometry, metadata, rng
         )
     end
 ````
 
 ## Record simulation metadata
-No changes need to made to this section of the code from the previous [1b) Square Hubbard Model with MPI Parallelization](@ref) tutorial.
+Here we can add a call to the [`save_density_tuning_profile`](@ref), which records the full history
+of the chemical potential and density tuning process.
 
 ````julia
     # Normalize acceptance rate.
@@ -574,14 +606,14 @@ No changes need to made to this section of the code from the previous [1b) Squar
 
     # Write simulation summary TOML file.
     save_simulation_info(simulation_info, metadata)
+
+    # Save the density tuning profile to file.
+    save_density_tuning_profile(simulation_info, chemical_potential_tuner)
 ````
 
 ## Post-process results
-From the last [1b) Square Hubbard Model with MPI Parallelization](@ref) tutorial, we now need to add
-a call to the [`rename_complete_simulation`](@ref) function once the results are processed.
-This function renames the data folder to begin with `complete_*`, making it simple to identify which
-simulations ran to completion and which ones need to be resumed from the last checkpoint file.
-This function also deletes the checkpoint files that were written during the simulation.
+No changes need to made to this section of the code from the previous
+[1c) Square Hubbard Model with Checkpointing](@ref) tutorial.
 
 ````julia
     # Set the number of bins used to calculate the error in measured observables.
@@ -625,23 +657,17 @@ end # end of run_simulation function
 ````
 
 ## Execute script
-To execute the script, we have added two new command line arguments allowing for the assignment of both
-the `checkpoint_freq` and `runtime_limit` values.
-Therefore, a simulation can be run with the command
+Here we add an additional command line argument to specify the target density `n` we want to achieve in the simulation.
+Now the `μ` command line argument specifies the initial chemical potential we begin the simulation with.
+For instance, a simulation can be run with the command
 ```bash
-mpiexecjl -n 16 julia hubbard_square_checkpoint.jl 1 5.0 -0.25 -2.0 4 4.0 2500 10000 100 1.0
+mpiexecjl -n 16 julia hubbard_square_checkpoint.jl 1 5.0 -0.25 0.8 0.0 4 4.0 2500 10000 100 1.0
 ```
 or
 ```bash
-srun julia hubbard_square_checkpoint.jl 1 5.0 -0.25 -2.0 4 4.0 2500 10000 100 1.0
+srun julia hubbard_square_checkpoint.jl 1 5.0 -0.25 0.8 0.0 4 4.0 2500 10000 100 1.0
 ```
-Refer to the previous [1b) Square Hubbard Model with MPI Parallelization](@ref) tutorial for more details on how to run the simulation
-script using MPI.
-
-In the example calls above the code will write a new checkpoint if more than 1 hour has passed since the last checkpoint file was written.
-Note that these same commands are used to both begin a new simulation and also resume a previous simulation.
-This is a useful feature when submitting jobs on a cluster, as it allows the same job file to be used for
-both starting new simulations and resuming ones that still need to finish.
+where the target density is ``\langle n \rangle = 0.8`` and the initial chemical potential is ``\mu = 0.0``.
 
 ````julia
 if abspath(PROGRAM_FILE) == @__FILE__
@@ -655,16 +681,17 @@ if abspath(PROGRAM_FILE) == @__FILE__
     # Run the simulation, reading in command line arguments.
     run_simulation(
         comm;
-        sID             = parse(Int,     ARGS[1]), # Simulation ID.
-        U               = parse(Float64, ARGS[2]), # Hubbard interaction.
-        t′              = parse(Float64, ARGS[3]), # Next-nearest-neighbor hopping amplitude.
-        μ               = parse(Float64, ARGS[4]), # Chemical potential.
-        L               = parse(Int,     ARGS[5]), # System size.
-        β               = parse(Float64, ARGS[6]), # Inverse temperature.
-        N_therm         = parse(Int,     ARGS[7]), # Number of thermalization updates.
-        N_updates       = parse(Int,     ARGS[8]), # Total number of measurements and measurement updates.
-        N_bins          = parse(Int,     ARGS[9]), # Number of times bin-averaged measurements are written to file.
-        checkpoint_freq = parse(Float64, ARGS[10]) # Frequency with which checkpoint files are written in hours.
+        sID             = parse(Int,     ARGS[1]),  # Simulation ID.
+        U               = parse(Float64, ARGS[2]),  # Hubbard interaction.
+        t′              = parse(Float64, ARGS[3]),  # Next-nearest-neighbor hopping amplitude.
+        n               = parse(Float64, ARGS[4]),  # Target density.
+        μ               = parse(Float64, ARGS[5]),  # Initial chemical potential.
+        L               = parse(Int,     ARGS[6]),  # System size.
+        β               = parse(Float64, ARGS[7]),  # Inverse temperature.
+        N_therm         = parse(Int,     ARGS[8]),  # Number of thermalization updates.
+        N_updates       = parse(Int,     ARGS[9]),  # Total number of measurements and measurement updates.
+        N_bins          = parse(Int,     ARGS[10]), # Number of times bin-averaged measurements are written to file.
+        checkpoint_freq = parse(Float64, ARGS[11])  # Frequency with which checkpoint files are written in hours.
     )
 
     # Finalize MPI.

@@ -547,19 +547,15 @@ function run_simulation(;
             coupling_parameters = (electron_phonon_parameters,)
         )
 
-        ## Check if bin averaged measurements need to be written to file.
-        if update % bin_size == 0
-
-            ## Write the bin-averaged measurements to file.
-            write_measurements!(
-                measurement_container = measurement_container,
-                simulation_info = simulation_info,
-                model_geometry = model_geometry,
-                bin = update ÷ bin_size,
-                bin_size = bin_size,
-                Δτ = Δτ
-            )
-        end
+        ## Write the bin-averaged measurements to file if update ÷ bin_size == 0.
+        write_measurements!(
+            measurement_container = measurement_container,
+            simulation_info = simulation_info,
+            model_geometry = model_geometry,
+            update = update,
+            bin_size = bin_size,
+            Δτ = Δτ
+        )
     end
 
 # ## Record simulation metadata

@@ -127,7 +127,7 @@ The important metadata within the simulation will be recorded in the `metadata` 
 In the above, `sID` stands for simulation ID, which is used to distinguish simulations that would otherwise be identical i.e. to
 distinguish simulations that use the same parameters and are only different in the random seed used to initialize the simulation.
 A valid `sID` is any positive integer greater than zero, and is used when naming the data folder the simulation results will be written to.
-Specifically, the the actual data folder created above will be `"$(filepath)/$(datafolder_prefix)-$(sID)"`.
+Specifically, the actual data folder created above will be `"$(filepath)/$(datafolder_prefix)-$(sID)"`.
 Note that if you set `sID = 0`, then it will instead be assigned smallest previously unused integer value. For instance, suppose the directory
 `"$(filepath)/$(datafolder_prefix)-1"` already exits. Then if you pass `sID = 0` to [`SimulationInfo`](@ref), then the simulation ID
 `sID = 2` will be used instead, and a directory `"$(filepath)/$(datafolder_prefix)-2"` will be created.
@@ -504,7 +504,7 @@ Next, two instances of the [`FermionGreensCalculator`](https://smoqysuite.github
 type are initialized, which are used to take care of numerical stabilization behind the scenes in the DQMC simulation.
 Here `n_stab` is the period in imaginary-time with which numerical stabilization is performed, and is typically on the order of ``n_{\rm stab} \sim 10.``
 
-Now we allocate and initialize the the equal-time Green's function matrix ``G_\sigma(0,0)`` for both spin species (`Gup` and `Gdn`).
+Now we allocate and initialize the equal-time Green's function matrix ``G_\sigma(0,0)`` for both spin species (`Gup` and `Gdn`).
 The initiliazation process also returns ``\log | \det G_\sigma(0,0) |`` (`logdetGup` and `logdetGdn`) and ``{\rm sgn} \det G_\sigma(0,0)`` (`sgndetGup` and `sgndetGdn`).
 
 Finally, we allocate matrices to represent the equal-time and time-displaced Green's function matrices ``G_\sigma(\tau,\tau)`` (`Gup_ττ` and `Gdn_ττ`),
@@ -561,8 +561,6 @@ The parameter `N_bins` then controls the number of times bin-averaged measuremen
 [JLD2](https://github.com/JuliaIO/JLD2.jl.git) files, subject to the constraint that `(N_updates % N_bins) == 0`.
 Therefore, the number of measurements that are averaged over per bin is given by `bin_size = N_updates ÷ N_bins`.
 The bin-averaged measurements are written to file once `bin_size` measurements are accumulated using the [`write_measurements!`](@ref) function.
-At the end of this section we write an initial version of a simulation summary TOML file using the [`save_simulation_info`](@ref) function,
-which includes all the information currently stored in the `metadata` dictionary.
 
 ````julia
     # Reset diagonostic parameters used to monitor numerical stability to zero.
@@ -572,48 +570,44 @@ which includes all the information currently stored in the `metadata` dictionary
     # Calculate the bin size.
     bin_size = N_updates ÷ N_bins
 
-    # Iterate over bins.
-    for bin in 1:N_bins
+    # Iterate over updates and measurements.
+    for update in 1:N_updates
 
-        # Iterate over update sweeps and measurements in bin.
-        for n in 1:bin_size
+        # Perform sweep all imaginary-time slice and orbitals, attempting an update to every HS field.
+        (acceptance_rate, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = local_updates!(
+            Gup, logdetGup, sgndetGup, Gdn, logdetGdn, sgndetGdn,
+            hubbard_stratonovich_params,
+            fermion_path_integral_up = fermion_path_integral_up,
+            fermion_path_integral_dn = fermion_path_integral_dn,
+            fermion_greens_calculator_up = fermion_greens_calculator_up,
+            fermion_greens_calculator_dn = fermion_greens_calculator_dn,
+            Bup = Bup, Bdn = Bdn, δG_max = δG_max, δG = δG, δθ = δθ, rng = rng,
+            update_stabilization_frequency = true
+        )
 
-            # Perform sweep all imaginary-time slice and orbitals, attempting an update to every HS field.
-            (acceptance_rate, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = local_updates!(
-                Gup, logdetGup, sgndetGup, Gdn, logdetGdn, sgndetGdn,
-                hubbard_stratonovich_params,
-                fermion_path_integral_up = fermion_path_integral_up,
-                fermion_path_integral_dn = fermion_path_integral_dn,
-                fermion_greens_calculator_up = fermion_greens_calculator_up,
-                fermion_greens_calculator_dn = fermion_greens_calculator_dn,
-                Bup = Bup, Bdn = Bdn, δG_max = δG_max, δG = δG, δθ = δθ, rng = rng,
-                update_stabilization_frequency = true
-            )
+        # Record acceptance rate.
+        metadata["avg_acceptance_rate"] += acceptance_rate
 
-            # Record acceptance rate.
-            metadata["avg_acceptance_rate"] += acceptance_rate
+        # Make measurements.
+        (logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = make_measurements!(
+            measurement_container,
+            logdetGup, sgndetGup, Gup, Gup_ττ, Gup_τ0, Gup_0τ,
+            logdetGdn, sgndetGdn, Gdn, Gdn_ττ, Gdn_τ0, Gdn_0τ,
+            fermion_path_integral_up = fermion_path_integral_up,
+            fermion_path_integral_dn = fermion_path_integral_dn,
+            fermion_greens_calculator_up = fermion_greens_calculator_up,
+            fermion_greens_calculator_dn = fermion_greens_calculator_dn,
+            Bup = Bup, Bdn = Bdn, δG_max = δG_max, δG = δG, δθ = δθ,
+            model_geometry = model_geometry, tight_binding_parameters = tight_binding_parameters,
+            coupling_parameters = (hubbard_params, hubbard_stratonovich_params)
+        )
 
-            # Make measurements.
-            (logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = make_measurements!(
-                measurement_container,
-                logdetGup, sgndetGup, Gup, Gup_ττ, Gup_τ0, Gup_0τ,
-                logdetGdn, sgndetGdn, Gdn, Gdn_ττ, Gdn_τ0, Gdn_0τ,
-                fermion_path_integral_up = fermion_path_integral_up,
-                fermion_path_integral_dn = fermion_path_integral_dn,
-                fermion_greens_calculator_up = fermion_greens_calculator_up,
-                fermion_greens_calculator_dn = fermion_greens_calculator_dn,
-                Bup = Bup, Bdn = Bdn, δG_max = δG_max, δG = δG, δθ = δθ,
-                model_geometry = model_geometry, tight_binding_parameters = tight_binding_parameters,
-                coupling_parameters = (hubbard_params, hubbard_stratonovich_params)
-            )
-        end
-
-        # Write the bin-averaged measurements to file.
+        # Write the bin-averaged measurements to file if update ÷ bin_size == 0.
         write_measurements!(
             measurement_container = measurement_container,
             simulation_info = simulation_info,
             model_geometry = model_geometry,
-            bin = bin,
+            update = update,
             bin_size = bin_size,
             Δτ = Δτ
         )
@@ -640,15 +634,16 @@ This is done using the [`save_simulation_info`](@ref) function.
     save_simulation_info(simulation_info, metadata)
 ````
 
-## [Process results](@id hubbard_square_process_results)
-In this final section of code we process the binned data, calculating final estimates for the mean and error of all measured observables,
+## [Post-process results](@id hubbard_square_process_results)
+In this final section of code we post-process the binned data.
+This includes calculating the final estimates for the mean and error of all measured observables,
 which get written to CSV files using the function [`process_measurements`](@ref) function.
 Inside this function the binned data gets further rebinned into `n_bins`,
 where `n_bins` is any positive integer satisfying the constraints `(N_bins ≥ n_bin)` and `(N_bins % n_bins == 0)`.
 The `time_displaced` keyword argument in the [`process_measurements`](@ref) function determines whether or not final statistics are computed for the
 time-displaced measurements. The default behavior is `time_displaced = false`, as computing these average statistics can be somewhat time-consuming,
 but if they are required, simply set `time_displaced = true`.
-Again, for more information on how to interpret the output refer the the [Simulation Output Overview](@ref) page.
+Again, for more information on how to interpret the output refer the [Simulation Output Overview](@ref) page.
 
 ````julia
     # Set the number of bins used to calculate the error in measured observables.
@@ -731,15 +726,15 @@ if abspath(PROGRAM_FILE) == @__FILE__
 
     # Run the simulation, reading in command line arguments.
     run_simulation(;
-        sID       = parse(Int,     ARGS[1]),
-        U         = parse(Float64, ARGS[2]),
-        t′        = parse(Float64, ARGS[3]),
-        μ         = parse(Float64, ARGS[4]),
-        L         = parse(Int,     ARGS[5]),
-        β         = parse(Float64, ARGS[6]),
-        N_therm   = parse(Int,     ARGS[7]),
-        N_updates = parse(Int,     ARGS[8]),
-        N_bins    = parse(Int,     ARGS[9])
+        sID       = parse(Int,     ARGS[1]), # Simulation ID.
+        U         = parse(Float64, ARGS[2]), # Hubbard interaction strength.
+        t′        = parse(Float64, ARGS[3]), # Next-nearest-neighbor hopping amplitude.
+        μ         = parse(Float64, ARGS[4]), # Chemical potential.
+        L         = parse(Int,     ARGS[5]), # Lattice size.
+        β         = parse(Float64, ARGS[6]), # Inverse temperature.
+        N_therm   = parse(Int,     ARGS[7]), # Number of thermalization sweeps.
+        N_updates = parse(Int,     ARGS[8]), # Number of measurement sweeps.
+        N_bins    = parse(Int,     ARGS[9])  # Number times binned data is written to file.
     )
 end
 ````

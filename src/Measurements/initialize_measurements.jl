@@ -477,19 +477,61 @@ end
 
 @doc raw"""
     initialize_measurement_directories(;
-        # Keyword Arguments
+        # KEYWORD ARGUMENTS
         simulation_info::SimulationInfo,
         measurement_container::NamedTuple
     )
 
     initialize_measurement_directories(
-        # Arguments
+            # ARGUMENTS
+            comm::MPI.Comm;
+            # KEYWORD ARGUMENTS
+            simulation_info::SimulationInfo,
+            measurement_container::NamedTuple
+    )
+
+    initialize_measurement_directories(
+        # ARGUMENTS
         simulation_info::SimulationInfo,
         measurement_container::NamedTuple
     )
 
-Initialize the measurement directories for simulation.
+    initialize_measurement_directories(
+            # ARGUMENTS
+            comm::MPI.Comm,
+            simulation_info::SimulationInfo,
+            measurement_container::NamedTuple
+    )
+
+Initialize the measurement directories for simulation. If using MPI and a `comm::MPI.Comm` object is passed
+as the first argument, then none of the MPI processes will proceed beyond this function call until the measurement
+directories have been initialized.
 """
+function initialize_measurement_directories(
+        # Arguments
+        comm::MPI.Comm;
+        # Keyword Arguments
+        simulation_info::SimulationInfo,
+        measurement_container::NamedTuple
+)
+
+    initialize_measurement_directories(simulation_info, measurement_container)
+    MPI.Barrier(comm)
+    return nothing
+end
+
+function initialize_measurement_directories(
+        # Arguments
+        comm::MPI.Comm,
+        simulation_info::SimulationInfo,
+        measurement_container::NamedTuple
+)
+
+    initialize_measurement_directories(simulation_info, measurement_container)
+    MPI.Barrier(comm)
+    return nothing
+end
+
 function initialize_measurement_directories(;
     # Keyword Arguments
     simulation_info::SimulationInfo,

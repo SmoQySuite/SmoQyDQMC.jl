@@ -1,6 +1,7 @@
 using SmoQyDQMC
 using Documenter
 using DocumenterCitations
+using DocumenterInterLinks
 using Literate
 using LatticeUtilities
 using JDQMCFramework
@@ -74,8 +75,8 @@ bib = CitationBibliography(
 DocMeta.setdocmeta!(SmoQyDQMC, :DocTestSetup, :(using SmoQyDQMC); recursive=true)
 
 tutorials = [
-    "hubbard_square", "hubbard_square_mpi", "hubbard_square_checkpoint",
-    "holstein_honeycomb", "holstein_honeycomb_mpi"
+    "hubbard_square", "hubbard_square_mpi", "hubbard_square_checkpoint", "hubbard_square_density_tuning",
+    "holstein_honeycomb", "holstein_honeycomb_mpi", "holstein_honeycomb_checkpoint", "holstein_honeycomb_density_tuning"
 ]
 tutorials_sources = [joinpath(pkgdir(SmoQyDQMC, "tutorials"), tutorial*".jl") for tutorial in tutorials]
 tutorial_mds = build_examples(tutorials_sources, "tutorials")
@@ -86,9 +87,14 @@ examples = ["hubbard_chain", "hubbard_chain_mpi", "hubbard_chain_checkpoint", "h
 example_sources = [joinpath(pkgdir(SmoQyDQMC, "examples"), example*".jl") for example in examples]
 example_mds = build_examples(example_sources, "examples")
 
+# link to external package APIs
+links = InterLinks(
+    "LatticeUtilities" => "https://smoqysuite.github.io/LatticeUtilities.jl/stable/",
+)
+
 makedocs(;
     clean = false,
-    plugins=[bib],
+    plugins=[bib, links],
     modules=[SmoQyDQMC],
     authors="Benjamin Cohen-Stead <benwcs@gmail.com>",
     repo="https://github.com/SmoQySuite/SmoQyDQMC.jl/blob/{commit}{path}#{line}",
@@ -109,7 +115,6 @@ makedocs(;
         "Tutorials" => tutorial_mds,
         "Examples" => example_mds,
     ],
-    draft = true
 )
 
 deploydocs(;

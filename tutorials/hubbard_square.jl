@@ -565,19 +565,15 @@ function run_simulation(;
             coupling_parameters = (hubbard_params, hubbard_stratonovich_params)
         )
 
-        ## Check if bin averaged measurements need to be written to file.
-        if update % bin_size == 0
-
-            ## Write the bin-averaged measurements to file.
-            write_measurements!(
-                measurement_container = measurement_container,
-                simulation_info = simulation_info,
-                model_geometry = model_geometry,
-                bin = update ÷ bin_size,
-                bin_size = bin_size,
-                Δτ = Δτ
-            )
-        end
+        ## Write the bin-averaged measurements to file if update ÷ bin_size == 0.
+        write_measurements!(
+            measurement_container = measurement_container,
+            simulation_info = simulation_info,
+            model_geometry = model_geometry,
+            update = update,
+            bin_size = bin_size,
+            Δτ = Δτ
+        )
     end
 
 # ## Record simulation metadata
@@ -681,15 +677,15 @@ if abspath(PROGRAM_FILE) == @__FILE__
 
     ## Run the simulation, reading in command line arguments.
     run_simulation(;
-        sID       = parse(Int,     ARGS[1]),
-        U         = parse(Float64, ARGS[2]),
-        t′        = parse(Float64, ARGS[3]),
-        μ         = parse(Float64, ARGS[4]),
-        L         = parse(Int,     ARGS[5]),
-        β         = parse(Float64, ARGS[6]),
-        N_therm   = parse(Int,     ARGS[7]),
-        N_updates = parse(Int,     ARGS[8]),
-        N_bins    = parse(Int,     ARGS[9])
+        sID       = parse(Int,     ARGS[1]), # Simulation ID.
+        U         = parse(Float64, ARGS[2]), # Hubbard interaction strength.
+        t′        = parse(Float64, ARGS[3]), # Next-nearest-neighbor hopping amplitude.
+        μ         = parse(Float64, ARGS[4]), # Chemical potential.
+        L         = parse(Int,     ARGS[5]), # Lattice size.
+        β         = parse(Float64, ARGS[6]), # Inverse temperature.
+        N_therm   = parse(Int,     ARGS[7]), # Number of thermalization sweeps.
+        N_updates = parse(Int,     ARGS[8]), # Number of measurement sweeps.
+        N_bins    = parse(Int,     ARGS[9])  # Number times binned data is written to file.
     )
 end
 

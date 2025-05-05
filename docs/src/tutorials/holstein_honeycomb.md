@@ -84,7 +84,14 @@ For more information refer to [here.](@ref hubbard_square_initialize_simulation)
 
     # Initialize the directory the data will be written to.
     initialize_datafolder(simulation_info)
+````
 
+## Initialize simulation metadata
+In this section of the code we record important metadata about the simulation, including initializing the random number
+generator that will be used throughout the simulation.
+The important metadata within the simulation will be recorded in the `metadata` dictionary.
+
+````julia
     # Initialize random number generator
     rng = Xoshiro(seed)
 
@@ -535,66 +542,62 @@ structure of this part of the code, refer to [here](@ref hubbard_square_make_mea
     # Calculate the bin size.
     bin_size = N_updates ÷ N_bins
 
-    # Iterate over bins.
-    for bin in 1:N_bins
+    # Iterate over updates and measurements.
+    for update in 1:N_updates
 
-        # Iterate over update sweeps and measurements in bin.
-        for n in 1:bin_size
+        # Perform a reflection update.
+        (accepted, logdetG, sgndetG) = reflection_update!(
+            G, logdetG, sgndetG, electron_phonon_parameters,
+            fermion_path_integral = fermion_path_integral,
+            fermion_greens_calculator = fermion_greens_calculator,
+            fermion_greens_calculator_alt = fermion_greens_calculator_alt,
+            B = B, rng = rng
+        )
 
-            # Perform a reflection update.
-            (accepted, logdetG, sgndetG) = reflection_update!(
-                G, logdetG, sgndetG, electron_phonon_parameters,
-                fermion_path_integral = fermion_path_integral,
-                fermion_greens_calculator = fermion_greens_calculator,
-                fermion_greens_calculator_alt = fermion_greens_calculator_alt,
-                B = B, rng = rng
-            )
+        # Record whether the reflection update was accepted or rejected.
+        metadata["reflection_acceptance_rate"] += accepted
 
-            # Record whether the reflection update was accepted or rejected.
-            metadata["reflection_acceptance_rate"] += accepted
+        # Perform a swap update.
+        (accepted, logdetG, sgndetG) = swap_update!(
+            G, logdetG, sgndetG, electron_phonon_parameters,
+            fermion_path_integral = fermion_path_integral,
+            fermion_greens_calculator = fermion_greens_calculator,
+            fermion_greens_calculator_alt = fermion_greens_calculator_alt,
+            B = B, rng = rng
+        )
 
-            # Perform a swap update.
-            (accepted, logdetG, sgndetG) = swap_update!(
-                G, logdetG, sgndetG, electron_phonon_parameters,
-                fermion_path_integral = fermion_path_integral,
-                fermion_greens_calculator = fermion_greens_calculator,
-                fermion_greens_calculator_alt = fermion_greens_calculator_alt,
-                B = B, rng = rng
-            )
+        # Record whether the reflection update was accepted or rejected.
+        metadata["swap_acceptance_rate"] += accepted
 
-            # Record whether the reflection update was accepted or rejected.
-            metadata["swap_acceptance_rate"] += accepted
+        # Perform an HMC update.
+        (accepted, logdetG, sgndetG, δG, δθ) = hmc_update!(
+            G, logdetG, sgndetG, electron_phonon_parameters, hmc_updater,
+            fermion_path_integral = fermion_path_integral,
+            fermion_greens_calculator = fermion_greens_calculator,
+            fermion_greens_calculator_alt = fermion_greens_calculator_alt,
+            B = B, δG_max = δG_max, δG = δG, δθ = δθ, rng = rng
+        )
 
-            # Perform an HMC update.
-            (accepted, logdetG, sgndetG, δG, δθ) = hmc_update!(
-                G, logdetG, sgndetG, electron_phonon_parameters, hmc_updater,
-                fermion_path_integral = fermion_path_integral,
-                fermion_greens_calculator = fermion_greens_calculator,
-                fermion_greens_calculator_alt = fermion_greens_calculator_alt,
-                B = B, δG_max = δG_max, δG = δG, δθ = δθ, rng = rng
-            )
+        # Record whether the HMC update was accepted or rejected.
+        metadata["hmc_acceptance_rate"] += accepted
 
-            # Record whether the HMC update was accepted or rejected.
-            metadata["hmc_acceptance_rate"] += accepted
+        # Make measurements.
+        (logdetG, sgndetG, δG, δθ) = make_measurements!(
+            measurement_container,
+            logdetG, sgndetG, G, G_ττ, G_τ0, G_0τ,
+            fermion_path_integral = fermion_path_integral,
+            fermion_greens_calculator = fermion_greens_calculator,
+            B = B, δG_max = δG_max, δG = δG, δθ = δθ,
+            model_geometry = model_geometry, tight_binding_parameters = tight_binding_parameters,
+            coupling_parameters = (electron_phonon_parameters,)
+        )
 
-            # Make measurements.
-            (logdetG, sgndetG, δG, δθ) = make_measurements!(
-                measurement_container,
-                logdetG, sgndetG, G, G_ττ, G_τ0, G_0τ,
-                fermion_path_integral = fermion_path_integral,
-                fermion_greens_calculator = fermion_greens_calculator,
-                B = B, δG_max = δG_max, δG = δG, δθ = δθ,
-                model_geometry = model_geometry, tight_binding_parameters = tight_binding_parameters,
-                coupling_parameters = (electron_phonon_parameters,)
-            )
-        end
-
-        # Write the bin-averaged measurements to file.
+        # Write the bin-averaged measurements to file if update ÷ bin_size == 0.
         write_measurements!(
             measurement_container = measurement_container,
             simulation_info = simulation_info,
             model_geometry = model_geometry,
-            bin = bin,
+            update = update,
             bin_size = bin_size,
             Δτ = Δτ
         )
@@ -620,8 +623,9 @@ including the contents of the `metadata` dictionary.
     save_simulation_info(simulation_info, metadata)
 ````
 
-## Process results
-In this final section of code we process the binned data, calculating final estimates for the mean and error of all measured observables.
+## Post-process results
+In this final section of code we post-process the binned data.
+This includes calculating final estimates for the mean and error of all measured observables.
 The final statistics are written to CSV files using the function [`process_measurements`](@ref) function.
 For more information refer to [here](@ref hubbard_square_process_results).
 
