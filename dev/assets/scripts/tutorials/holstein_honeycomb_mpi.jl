@@ -4,9 +4,11 @@ import SmoQyDQMC.JDQMCFramework as dqmcf
 
 using Random
 using Printf
+using MPI
 
 # Top-level function to run simulation.
-function run_simulation(;
+function run_simulation(
+    comm::MPI.Comm; # MPI communicator.
     # KEYWORD ARGUMENTS
     sID, # Simulation ID.
     Ω, # Phonon energy.
@@ -29,15 +31,19 @@ function run_simulation(;
     # Construct the foldername the data will be written to.
     datafolder_prefix = @sprintf "holstein_honeycomb_w%.2f_a%.2f_mu%.2f_L%d_b%.2f" Ω α μ L β
 
+    # Get MPI process ID.
+    pID = MPI.Comm_rank(comm)
+
     # Initialize simulation info.
     simulation_info = SimulationInfo(
         filepath = filepath,
         datafolder_prefix = datafolder_prefix,
-        sID = sID
+        sID = sID,
+        pID = pID
     )
 
     # Initialize the directory the data will be written to.
-    initialize_datafolder(simulation_info)
+    initialize_datafolder(comm, simulation_info)
 
     # Initialize random number generator
     rng = Xoshiro(seed)
@@ -54,7 +60,6 @@ function run_simulation(;
     metadata["symmetric"] = symmetric
     metadata["checkerboard"] = checkerboard
     metadata["seed"] = seed
-
     metadata["hmc_acceptance_rate"] = 0.0
     metadata["reflection_acceptance_rate"] = 0.0
     metadata["swap_acceptance_rate"] = 0.0
@@ -272,7 +277,7 @@ function run_simulation(;
     )
 
     # Initialize the sub-directories to which the various measurements will be written.
-    initialize_measurement_directories(simulation_info, measurement_container)
+    initialize_measurement_directories(comm, simulation_info, measurement_container)
 
     # Allocate a single FermionPathIntegral for both spin-up and down electrons.
     fermion_path_integral = FermionPathIntegral(tight_binding_parameters = tight_binding_parameters, β = β, Δτ = Δτ)
@@ -317,7 +322,7 @@ function run_simulation(;
     )
 
     # Iterate over number of thermalization updates to perform.
-    for n in 1:N_therm
+    for update in 1:N_therm
 
         # Perform a reflection update.
         (accepted, logdetG, sgndetG) = reflection_update!(
@@ -437,10 +442,10 @@ function run_simulation(;
 
     # Process the simulation results, calculating final error bars for all measurements,
     # writing final statisitics to CSV files.
-    process_measurements(simulation_info.datafolder, N_bins, time_displaced = true)
+    process_measurements(comm, simulation_info.datafolder, N_bins, time_displaced = true)
 
     # Merge binary files containing binned data into a single file.
-    compress_jld2_bins(folder = simulation_info.datafolder)
+    compress_jld2_bins(comm, folder = simulation_info.datafolder)
 
     return nothing
 end # end of run_simulation function
@@ -448,8 +453,15 @@ end # end of run_simulation function
 # Only excute if the script is run directly from the command line.
 if abspath(PROGRAM_FILE) == @__FILE__
 
+    # Initialize MPI
+    MPI.Init()
+
+    # Initialize the MPI communicator.
+    comm = MPI.COMM_WORLD
+
     # Run the simulation.
-    run_simulation(;
+    run_simulation(
+        comm;
         sID       = parse(Int,     ARGS[1]), # Simulation ID.
         Ω         = parse(Float64, ARGS[2]), # Phonon energy.
         α         = parse(Float64, ARGS[3]), # Electron-phonon coupling.
@@ -460,4 +472,7 @@ if abspath(PROGRAM_FILE) == @__FILE__
         N_updates = parse(Int,     ARGS[8]), # Total number of measurements and measurement updates.
         N_bins    = parse(Int,     ARGS[9])  # Number of times bin-averaged measurements are written to file.
     )
+
+    # Finalize MPI.
+    MPI.Finalize()
 end

@@ -4,9 +4,11 @@ import SmoQyDQMC.JDQMCFramework as dqmcf
 
 using Random
 using Printf
+using MPI
 
 # Top-level function to run simulation.
-function run_simulation(;
+function run_simulation(
+    comm::MPI.Comm; # MPI communicator.
     # KEYWORD ARGUMENTS
     sID, # Simulation ID.
     U, # Hubbard interaction.
@@ -29,15 +31,19 @@ function run_simulation(;
     # Construct the foldername the data will be written to.
     datafolder_prefix = @sprintf "hubbard_square_U%.2f_tp%.2f_mu%.2f_L%d_b%.2f" U t′ μ L β
 
+    # Get MPI process ID.
+    pID = MPI.Comm_rank(comm)
+
     # Initialize simulation info.
     simulation_info = SimulationInfo(
         filepath = filepath,
         datafolder_prefix = datafolder_prefix,
-        sID = sID
+        sID = sID,
+        pID = pID
     )
 
     # Initialize the directory the data will be written to.
-    initialize_datafolder(simulation_info)
+    initialize_datafolder(comm, simulation_info)
 
     # Initialize random number generator
     rng = Xoshiro(seed)
@@ -251,7 +257,7 @@ function run_simulation(;
     )
 
     # Initialize the sub-directories to which the various measurements will be written.
-    initialize_measurement_directories(simulation_info, measurement_container)
+    initialize_measurement_directories(comm, simulation_info, measurement_container)
 
     # Allocate FermionPathIntegral type for both the spin-up and spin-down electrons.
     fermion_path_integral_up = FermionPathIntegral(tight_binding_parameters = tight_binding_parameters, β = β, Δτ = Δτ)
@@ -365,7 +371,6 @@ function run_simulation(;
     # Normalize acceptance rate.
     metadata["avg_acceptance_rate"] /=  (N_therm + N_updates)
 
-    # Record final stabilization period used at the end of the simulation.
     metadata["n_stab_final"] = fermion_greens_calculator_up.n_stab
 
     # Record largest numerical error.
@@ -379,10 +384,11 @@ function run_simulation(;
 
     # Process the simulation results, calculating final error bars for all measurements,
     # writing final statisitics to CSV files.
-    process_measurements(simulation_info.datafolder, n_bins, time_displaced = false)
+    process_measurements(comm, simulation_info.datafolder, n_bins, time_displaced = false)
 
     # Calculate AFM correlation ratio.
     Rafm, ΔRafm = compute_correlation_ratio(
+        comm;
         folder = simulation_info.datafolder,
         correlation = "spin_z",
         type = "equal-time",
@@ -401,24 +407,33 @@ function run_simulation(;
     save_simulation_info(simulation_info, metadata)
 
     # Merge binary files containing binned data into a single file.
-    compress_jld2_bins(folder = simulation_info.datafolder)
+    compress_jld2_bins(comm, folder = simulation_info.datafolder)
 
     return nothing
 end # end of run_simulation function
 
-# Only excute if the script is run directly from the command line.
 if abspath(PROGRAM_FILE) == @__FILE__
 
+    # Initialize MPI
+    MPI.Init()
+
+    # Initialize the MPI communicator.
+    comm = MPI.COMM_WORLD
+
     # Run the simulation, reading in command line arguments.
-    run_simulation(;
+    run_simulation(
+        comm;
         sID       = parse(Int,     ARGS[1]), # Simulation ID.
-        U         = parse(Float64, ARGS[2]), # Hubbard interaction strength.
+        U         = parse(Float64, ARGS[2]), # Hubbard interaction.
         t′        = parse(Float64, ARGS[3]), # Next-nearest-neighbor hopping amplitude.
         μ         = parse(Float64, ARGS[4]), # Chemical potential.
-        L         = parse(Int,     ARGS[5]), # Lattice size.
+        L         = parse(Int,     ARGS[5]), # System size.
         β         = parse(Float64, ARGS[6]), # Inverse temperature.
-        N_therm   = parse(Int,     ARGS[7]), # Number of thermalization sweeps.
-        N_updates = parse(Int,     ARGS[8]), # Number of measurement sweeps.
-        N_bins    = parse(Int,     ARGS[9])  # Number times binned data is written to file.
+        N_therm   = parse(Int,     ARGS[7]), # Number of thermalization updates.
+        N_updates = parse(Int,     ARGS[8]), # Total number of measurements and measurement updates.
+        N_bins    = parse(Int,     ARGS[9])  # Number of times bin-averaged measurements are written to file.
     )
+
+    # Finalize MPI.
+    MPI.Finalize()
 end
