@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>1d) Square Hubbard Model with Density Tuning · SmoQyDQMC.jl</title><meta name="title" content="1d) Square Hubbard Model with Density Tuning · SmoQyDQMC.jl"/><meta property="og:title" content="1d) Square Hubbard Model with Density Tuning · SmoQyDQMC.jl"/><meta property="twitter:title" content="1d) Square Hubbard Model with Density Tuning · SmoQyDQMC.jl"/><meta name="description" content="Documentation for SmoQyDQMC.jl."/><meta property="og:description" content="Documentation for SmoQyDQMC.jl."/><meta property="twitter:description" content="Documentation for SmoQyDQMC.jl."/><meta property="og:url" content="https://smoqysuite.github.io/SmoQyDQMC.jl/stable/tutorials/hubbard_square_density_tuning/"/><meta property="twitter:url" content="https://smoqysuite.github.io/SmoQyDQMC.jl/stable/tutorials/hubbard_square_density_tuning/"/><link rel="canonical" href="https://smoqysuite.github.io/SmoQyDQMC.jl/stable/tutorials/hubbard_square_density_tuning/"/><script data-outdated-warner src="../../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../search_index.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-mocha.css" data-theme-name="catppuccin-mocha"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-macchiato.css" data-theme-name="catppuccin-macchiato"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-frappe.css" data-theme-name="catppuccin-frappe"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-latte.css" data-theme-name="catppuccin-latte"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../../">SmoQyDQMC.jl</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../../">Home</a></li><li><a class="tocitem" href="../../hamiltonian/">Supported Hamiltonians</a></li><li><a class="tocitem" href="../../simulation_output/">Simulation Output Overview</a></li><li><a class="tocitem" href="../../api/">API</a></li><li><span class="tocitem">Tutorials</span><ul><li><a class="tocitem" href="../hubbard_square/">1a) Square Hubbard Model</a></li><li><a class="tocitem" href="../hubbard_square_mpi/">1b) Square Hubbard Model with MPI Parallelization</a></li><li><a class="tocitem" href="../hubbard_square_checkpoint/">1c) Square Hubbard Model with Checkpointing</a></li><li class="is-active"><a class="tocitem" href>1d) Square Hubbard Model with Density Tuning</a><ul class="internal"><li><a class="tocitem" href="#Import-Packages"><span>Import Packages</span></a></li><li><a class="tocitem" href="#Specify-simulation-parameters"><span>Specify simulation parameters</span></a></li><li><a class="tocitem" href="#Initialize-simulation"><span>Initialize simulation</span></a></li><li><a class="tocitem" href="#Initialize-simulation-metadata"><span>Initialize simulation metadata</span></a></li><li><a class="tocitem" href="#Initialize-Model"><span>Initialize Model</span></a></li><li><a class="tocitem" href="#Initialize-model-parameters"><span>Initialize model parameters</span></a></li><li><a class="tocitem" href="#Initialize-measurements"><span>Initialize measurements</span></a></li><li><a class="tocitem" href="#Write-first-checkpoint"><span>Write first checkpoint</span></a></li><li><a class="tocitem" href="#Load-checkpoint"><span>Load checkpoint</span></a></li><li><a class="tocitem" href="#Setup-DQMC-simulation"><span>Setup DQMC simulation</span></a></li><li><a class="tocitem" href="#Thermalize-system"><span>Thermalize system</span></a></li><li><a class="tocitem" href="#Make-measurements"><span>Make measurements</span></a></li><li><a class="tocitem" href="#Record-simulation-metadata"><span>Record simulation metadata</span></a></li><li><a class="tocitem" href="#Post-process-results"><span>Post-process results</span></a></li><li><a class="tocitem" href="#Execute-script"><span>Execute script</span></a></li></ul></li><li><a class="tocitem" href="../holstein_honeycomb/">2a) Honeycomb Holstein Model</a></li><li><a class="tocitem" href="../holstein_honeycomb_mpi/">2b) Honeycomb Holstein Model with MPI Parallelization</a></li><li><a class="tocitem" href="../holstein_honeycomb_checkpoint/">2c) Honeycomb Holstein Model with Checkpointing</a></li><li><a class="tocitem" href="../holstein_honeycomb_density_tuning/">2d) Honeycomb Holstein Model with Density Tuning</a></li></ul></li><li><span class="tocitem">Examples</span><ul><li><a class="tocitem" href="../../examples/hubbard_chain/">Hubbard Chain</a></li><li><a class="tocitem" href="../../examples/hubbard_chain_mpi/">Hubbard Chain with MPI</a></li><li><a class="tocitem" href="../../examples/hubbard_chain_checkpoint/">Hubbard Chain with Checkpointing</a></li><li><a class="tocitem" href="../../examples/holstein_chain/">Holstein Chain with Density Tuning</a></li><li><a class="tocitem" href="../../examples/ossh_chain/">Optical Su-Schrieffer-Heeger Chain</a></li><li><a class="tocitem" href="../../examples/bssh_chain/">Bond Su-Schrieffer-Heeger Chain</a></li><li><a class="tocitem" href="../../examples/hubbard_holstein_square/">Square Hubbard-Holstein Model</a></li><li><a class="tocitem" href="../../examples/hubbard_threeband/">Three-Band Hubbard Model</a></li><li><a class="tocitem" href="../../examples/holstein_kagome/">Kagome Holstein Model with Density Tuning</a></li><li><a class="tocitem" href="../../examples/hubbard_honeycomb/">Honeycomb Hubbard model</a></li><li><a class="tocitem" href="../../examples/holstein_zeeman_square/">Square Holstein Model with Zeeman Splitting</a></li></ul></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Tutorials</a></li><li class="is-active"><a href>1d) Square Hubbard Model with Density Tuning</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>1d) Square Hubbard Model with Density Tuning</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/SmoQySuite/SmoQyDQMC.jl/blob/main/tutorials/hubbard_square_density_tuning.jl#" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><p>Download this example as a <a href="../../assets/scripts/tutorials/hubbard_square_density_tuning.jl">Julia script</a>.</p><h1 id="1d)-Square-Hubbard-Model-with-Density-Tuning"><a class="docs-heading-anchor" href="#1d)-Square-Hubbard-Model-with-Density-Tuning">1d) Square Hubbard Model with Density Tuning</a><a id="1d)-Square-Hubbard-Model-with-Density-Tuning-1"></a><a class="docs-heading-anchor-permalink" href="#1d)-Square-Hubbard-Model-with-Density-Tuning" title="Permalink"></a></h1><p>In this example we demonstrate how to introduce chemical potential and density tuning to the previous <a href="../hubbard_square_checkpoint/#1c)-Square-Hubbard-Model-with-Checkpointing">1c) Square Hubbard Model with Checkpointing</a> tutorial. Specifically, we show how to use the algorithm introduced in <a href="https://journals.aps.org/pre/abstract/10.1103/PhysRevE.105.045311">Phys. Rev. E 105, 045311</a> for dynamically adjusting the chemical potential during the simulation in order to achieve a target electron density or filling fraction.</p><p>Note that when you dope the Hubbard model away from half-filling a sign problem is introduced. As with making measurements, if the sign problem becomes severe the density tuning algorithm will become very inefficient as simply providing an accurate measurement of the density and compressibility (which is used to adjust the chemical potential) will become challenging.</p><h2 id="Import-Packages"><a class="docs-heading-anchor" href="#Import-Packages">Import Packages</a><a id="Import-Packages-1"></a><a class="docs-heading-anchor-permalink" href="#Import-Packages" title="Permalink"></a></h2><p>Compared to the previouse <a href="../hubbard_square_checkpoint/#1c)-Square-Hubbard-Model-with-Checkpointing">1c) Square Hubbard Model with Checkpointing</a> tutorial, we now need to import the <a href="https://github.com/cohensbw/MuTuner.jl.git">MuTuner.jl</a> package, which is reexported by <a href="https://github.com/SmoQySuite/SmoQyDQMC.jl.git">SmoQyDQMC.jl</a></p><pre><code class="language-julia hljs">using SmoQyDQMC
+import SmoQyDQMC.LatticeUtilities as lu
+import SmoQyDQMC.JDQMCFramework as dqmcf
+import SmoQyDQMC.MuTuner as mt
+
+using Random
+using Printf
+using MPI</code></pre><h2 id="Specify-simulation-parameters"><a class="docs-heading-anchor" href="#Specify-simulation-parameters">Specify simulation parameters</a><a id="Specify-simulation-parameters-1"></a><a class="docs-heading-anchor-permalink" href="#Specify-simulation-parameters" title="Permalink"></a></h2><p>Here we introduce the keyword argument <code>n</code> to the <code>run_simulation</code> function which specifies the target electron density we want to achieve in the simulation. Now the <code>μ</code> argument specifies the initial chemical potential we begin the simulation with, but of course it will be adjusted during the simulation to achieve the target density <code>n</code>.</p><pre><code class="language-julia hljs"># Top-level function to run simulation.
+function run_simulation(
+    comm::MPI.Comm; # MPI communicator.
+    # KEYWORD ARGUMENTS
+    sID, # Simulation ID.
+    U, # Hubbard interaction.
+    t′, # Next-nearest-neighbor hopping amplitude.
+    n, # Target density.
+    μ, # Initial chemical potential.
+    L, # System size.
+    β, # Inverse temperature.
+    N_therm, # Number of thermalization updates.
+    N_updates, # Total number of measurements and measurement updates.
+    N_bins, # Number of times bin-averaged measurements are written to file.
+    checkpoint_freq, # Frequency with which checkpoint files are written in hours.
+    runtime_limit = Inf, # Simulation runtime limit in hours.
+    Δτ = 0.05, # Discretization in imaginary time.
+    n_stab = 10, # Numerical stabilization period in imaginary-time slices.
+    δG_max = 1e-6, # Threshold for numerical error corrected by stabilization.
+    symmetric = false, # Whether symmetric propagator definition is used.
+    checkerboard = false, # Whether checkerboard approximation is used.
+    seed = abs(rand(Int)), # Seed for random number generator.
+    filepath = &quot;.&quot; # Filepath to where data folder will be created.
+)</code></pre><h2 id="Initialize-simulation"><a class="docs-heading-anchor" href="#Initialize-simulation">Initialize simulation</a><a id="Initialize-simulation-1"></a><a class="docs-heading-anchor-permalink" href="#Initialize-simulation" title="Permalink"></a></h2><p>No changes need to made to this section of the code from the previous <a href="../hubbard_square_checkpoint/#1c)-Square-Hubbard-Model-with-Checkpointing">1c) Square Hubbard Model with Checkpointing</a> tutorial.</p><pre><code class="language-julia hljs">    # Record when the simulation began.
+    start_timestamp = time()
+
+    # Convert runtime limit from hours to seconds.
+    runtime_limit = runtime_limit * 60.0^2
+
+    # Convert checkpoint frequency from hours to seconds.
+    checkpoint_freq = checkpoint_freq * 60.0^2
+
+    # Construct the foldername the data will be written to.
+    datafolder_prefix = @sprintf &quot;hubbard_square_U%.2f_tp%.2f_n%.2f_L%d_b%.2f&quot; U t′ n L β
+
+    # Get MPI process ID.
+    pID = MPI.Comm_rank(comm)
+
+    # Initialize simulation info.
+    simulation_info = SimulationInfo(
+        filepath = filepath,
+        datafolder_prefix = datafolder_prefix,
+        sID = sID,
+        pID = pID
+    )
+
+    # Initialize the directory the data will be written to if one does not already exist.
+    initialize_datafolder(comm, simulation_info)</code></pre><h2 id="Initialize-simulation-metadata"><a class="docs-heading-anchor" href="#Initialize-simulation-metadata">Initialize simulation metadata</a><a id="Initialize-simulation-metadata-1"></a><a class="docs-heading-anchor-permalink" href="#Initialize-simulation-metadata" title="Permalink"></a></h2><p>Here it is useful to record the initial chemical potential <code>μ</code> used during the simulation in the metadata dictionary.</p><pre><code class="language-julia hljs">    # If starting a new simulation i.e. not resuming a previous simulation.
+    if !simulation_info.resuming
+
+        # Begin thermalization updates from start.
+        n_therm = 1
+
+        # Begin measurement updates from start.
+        n_updates = 1
+
+        # Initialize random number generator
+        rng = Xoshiro(seed)
+
+        # Initialize additiona_info dictionary
+        metadata = Dict()
+
+        # Record simulation parameters.
+        metadata[&quot;mu&quot;] = μ
+        metadata[&quot;N_therm&quot;] = N_therm
+        metadata[&quot;N_updates&quot;] = N_updates
+        metadata[&quot;N_bins&quot;] = N_bins
+        metadata[&quot;n_stab_init&quot;] = n_stab
+        metadata[&quot;dG_max&quot;] = δG_max
+        metadata[&quot;symmetric&quot;] = symmetric
+        metadata[&quot;checkerboard&quot;] = checkerboard
+        metadata[&quot;seed&quot;] = seed
+        metadata[&quot;avg_acceptance_rate&quot;] = 0.0</code></pre><h2 id="Initialize-Model"><a class="docs-heading-anchor" href="#Initialize-Model">Initialize Model</a><a id="Initialize-Model-1"></a><a class="docs-heading-anchor-permalink" href="#Initialize-Model" title="Permalink"></a></h2><p>No changes need to made to this section of the code from the previous <a href="../hubbard_square_checkpoint/#1c)-Square-Hubbard-Model-with-Checkpointing">1c) Square Hubbard Model with Checkpointing</a> tutorial.</p><pre><code class="language-julia hljs">        # Define unit cell.
+        unit_cell = lu.UnitCell(
+            lattice_vecs = [[1.0, 0.0],
+                            [0.0, 1.0]],
+            basis_vecs = [[0.0, 0.0]]
+        )
+
+        # Define finite lattice with periodic boundary conditions.
+        lattice = lu.Lattice(
+            L = [L, L],
+            periodic = [true, true]
+        )
+
+        # Initialize model geometry.
+        model_geometry = ModelGeometry(
+            unit_cell, lattice
+        )
+
+        # Define the nearest-neighbor bond in +x direction.
+        bond_px = lu.Bond(
+            orbitals = (1,1),
+            displacement = [1, 0]
+        )
+
+        # Add this bond definition to the model, by adding it the model_geometry.
+        bond_px_id = add_bond!(model_geometry, bond_px)
+
+        # Define the nearest-neighbor bond in +y direction.
+        bond_py = lu.Bond(
+            orbitals = (1,1),
+            displacement = [0, 1]
+        )
+
+        # Add this bond definition to the model, by adding it the model_geometry.
+        bond_py_id = add_bond!(model_geometry, bond_py)
+
+        # Define the next-nearest-neighbor bond in +x+y direction.
+        bond_pxpy = lu.Bond(
+            orbitals = (1,1),
+            displacement = [1, 1]
+        )
+
+        # Define the nearest-neighbor bond in -x direction.
+        # Will be used to make measurements later in this tutorial.
+        bond_nx = lu.Bond(
+            orbitals = (1,1),
+            displacement = [-1, 0]
+        )
+
+        # Add this bond definition to the model, by adding it the model_geometry.
+        bond_nx_id = add_bond!(model_geometry, bond_nx)
+
+        # Define the nearest-neighbor bond in -y direction.
+        # Will be used to make measurements later in this tutorial.
+        bond_ny = lu.Bond(
+            orbitals = (1,1),
+            displacement = [0, -1]
+        )
+
+        # Add this bond definition to the model, by adding it the model_geometry.
+        bond_ny_id = add_bond!(model_geometry, bond_ny)
+
+        # Define the next-nearest-neighbor bond in +x+y direction.
+        bond_pxpy = lu.Bond(
+            orbitals = (1,1),
+            displacement = [1, 1]
+        )
+
+        # Add this bond definition to the model, by adding it the model_geometry.
+        bond_pxpy_id = add_bond!(model_geometry, bond_pxpy)
+
+        # Define the next-nearest-neighbor bond in +x-y direction.
+        bond_pxny = lu.Bond(
+            orbitals = (1,1),
+            displacement = [1, -1]
+        )
+
+        # Add this bond definition to the model, by adding it the model_geometry.
+        bond_pxny_id = add_bond!(model_geometry, bond_pxny)
+
+        # Set neartest-neighbor hopping amplitude to unity,
+        # setting the energy scale in the model.
+        t = 1.0
+
+        # Define the non-interacting tight-binding model.
+        tight_binding_model = TightBindingModel(
+            model_geometry = model_geometry,
+            t_bonds = [bond_px, bond_py, bond_pxpy, bond_pxny], # defines hopping
+            t_mean  = [t, t, t′, t′], # defines corresponding mean hopping amplitude
+            t_std   = [0., 0., 0., 0.], # defines corresponding standard deviation in hopping amplitude
+            ϵ_mean  = [0.], # set mean on-site energy for each orbital in unit cell
+            ϵ_std   = [0.], # set standard deviation of on-site energy or each orbital in unit cell
+            μ       = μ # set chemical potential
+        )
+
+        # Define the Hubbard interaction in the model.
+        hubbard_model = HubbardModel(
+            shifted   = false, # if true, then Hubbard interaction is instead parameterized as U⋅nup⋅ndn
+            U_orbital = [1], # orbitals in unit cell with Hubbard interaction.
+            U_mean    = [U], # mean Hubbard interaction strength for corresponding orbital species in unit cell.
+            U_std     = [0.], # standard deviation of Hubbard interaction strength for corresponding orbital species in unit cell.
+        )
+
+        # Write model summary TOML file specifying Hamiltonian that will be simulated.
+        model_summary(
+            simulation_info = simulation_info,
+            β = β, Δτ = Δτ,
+            model_geometry = model_geometry,
+            tight_binding_model = tight_binding_model,
+            interactions = (hubbard_model,)
+        )</code></pre><h2 id="Initialize-model-parameters"><a class="docs-heading-anchor" href="#Initialize-model-parameters">Initialize model parameters</a><a id="Initialize-model-parameters-1"></a><a class="docs-heading-anchor-permalink" href="#Initialize-model-parameters" title="Permalink"></a></h2><p>In this section we need to make use of the <a href="https://github.com/cohensbw/MuTuner.jl.git">MuTuner.jl</a> package, initializing an instance of the <a href="https://cohensbw.github.io/MuTuner.jl/stable/api/"><code>MuTuner.MuTunerLogger</code></a> type using the <a href="https://cohensbw.github.io/MuTuner.jl/stable/api/"><code>MuTuner.init_mutunerlogger</code></a> function. Note that we use the <a href="https://smoqysuite.github.io/LatticeUtilities.jl/stable/api/#LatticeUtilities.nsites-Union%7BTuple%7BD%7D%2C%20Tuple%7BUnitCell%7BD%7D%2C%20Lattice%7BD%7D%7D%7D%20where%20D"><code>LatticeUtilities.nsites</code></a> function to calculate the total number of orbitals in our system.</p><pre><code class="language-julia hljs">        # Initialize tight-binding parameters.
+        tight_binding_parameters = TightBindingParameters(
+            tight_binding_model = tight_binding_model,
+            model_geometry = model_geometry,
+            rng = rng
+        )
+
+        # Initialize Hubbard interaction parameters.
+        hubbard_params = HubbardParameters(
+            model_geometry = model_geometry,
+            hubbard_model = hubbard_model,
+            rng = rng
+        )
+
+        # Apply Ising Hubbard-Stranonvich (HS) transformation to decouple the Hubbard interaction,
+        # and initialize the corresponding HS fields that will be sampled in the DQMC simulation.
+        hubbard_stratonovich_params = HubbardIsingHSParameters(
+            β = β, Δτ = Δτ,
+            hubbard_parameters = hubbard_params,
+            rng = rng
+        )
+
+        # Initialize MuTunerLogger type that will be used to dynamically adjust the
+        # chemicaml potential during the simulation.
+        chemical_potential_tuner = mt.init_mutunerlogger(
+            target_density = n,
+            inverse_temperature = β,
+            system_size = lu.nsites(unit_cell, lattice),
+            initial_chemical_potential = μ,
+            complex_sign_problem = false
+        )</code></pre><h2 id="Initialize-measurements"><a class="docs-heading-anchor" href="#Initialize-measurements">Initialize measurements</a><a id="Initialize-measurements-1"></a><a class="docs-heading-anchor-permalink" href="#Initialize-measurements" title="Permalink"></a></h2><p>No changes need to made to this section of the code from the previous <a href="../hubbard_square_checkpoint/#1c)-Square-Hubbard-Model-with-Checkpointing">1c) Square Hubbard Model with Checkpointing</a> tutorial.</p><pre><code class="language-julia hljs">        # Initialize the container that measurements will be accumulated into.
+        measurement_container = initialize_measurement_container(model_geometry, β, Δτ)
+
+        # Initialize the tight-binding model related measurements, like the hopping energy.
+        initialize_measurements!(measurement_container, tight_binding_model)
+
+        # Initialize the Hubbard interaction related measurements.
+        initialize_measurements!(measurement_container, hubbard_model)
+
+        # Initialize the single-particle electron Green&#39;s function measurement.
+        initialize_correlation_measurements!(
+            measurement_container = measurement_container,
+            model_geometry = model_geometry,
+            correlation = &quot;greens&quot;,
+            time_displaced = true,
+            pairs = [(1, 1)]
+        )
+
+        # Initialize density correlation function measurement.
+        initialize_correlation_measurements!(
+            measurement_container = measurement_container,
+            model_geometry = model_geometry,
+            correlation = &quot;density&quot;,
+            time_displaced = false,
+            integrated = true,
+            pairs = [(1, 1)]
+        )
+
+        # Initialize the pair correlation function measurement.
+        initialize_correlation_measurements!(
+            measurement_container = measurement_container,
+            model_geometry = model_geometry,
+            correlation = &quot;pair&quot;,
+            time_displaced = false,
+            integrated = true,
+            pairs = [(1, 1)]
+        )
+
+        # Initialize the spin-z correlation function measurement.
+        initialize_correlation_measurements!(
+            measurement_container = measurement_container,
+            model_geometry = model_geometry,
+            correlation = &quot;spin_z&quot;,
+            time_displaced = false,
+            integrated = true,
+            pairs = [(1, 1)]
+        )
+
+        # Initialize the d-wave pair susceptibility measurement.
+        initialize_composite_correlation_measurement!(
+            measurement_container = measurement_container,
+            model_geometry = model_geometry,
+            name = &quot;d-wave&quot;,
+            correlation = &quot;pair&quot;,
+            ids = [bond_px_id, bond_nx_id, bond_py_id, bond_ny_id],
+            coefficients = [0.5, 0.5, -0.5, -0.5],
+            time_displaced = false,
+            integrated = true
+        )
+
+        # Initialize the sub-directories to which the various measurements will be written.
+        initialize_measurement_directories(comm, simulation_info, measurement_container)</code></pre><h2 id="Write-first-checkpoint"><a class="docs-heading-anchor" href="#Write-first-checkpoint">Write first checkpoint</a><a id="Write-first-checkpoint-1"></a><a class="docs-heading-anchor-permalink" href="#Write-first-checkpoint" title="Permalink"></a></h2><p>Here we need to add the <a href="https://cohensbw.github.io/MuTuner.jl/stable/api/"><code>MuTuner.MuTunerLogger</code></a> instance <code>chemical_potential_tuner</code> to the checkpoint file.</p><pre><code class="language-julia hljs">        # Write initial checkpoint file.
+        checkpoint_timestamp = write_jld2_checkpoint(
+            comm,
+            simulation_info;
+            checkpoint_freq = checkpoint_freq,
+            start_timestamp = start_timestamp,
+            runtime_limit = runtime_limit,
+            # Contents of checkpoint file below.
+            n_therm, n_updates,
+            tight_binding_parameters, hubbard_params, hubbard_stratonovich_params,
+            chemical_potential_tuner, measurement_container, model_geometry, metadata, rng
+        )</code></pre><h2 id="Load-checkpoint"><a class="docs-heading-anchor" href="#Load-checkpoint">Load checkpoint</a><a id="Load-checkpoint-1"></a><a class="docs-heading-anchor-permalink" href="#Load-checkpoint" title="Permalink"></a></h2><p>Here we need to make sure to load the <a href="https://cohensbw.github.io/MuTuner.jl/stable/api/"><code>MuTuner.MuTunerLogger</code></a> instance <code>chemical_potential_tuner</code> from the checkpoint file.</p><pre><code class="language-julia hljs">    # If resuming a previous simulation.
+    else
+
+        # Load the checkpoint file.
+        checkpoint, checkpoint_timestamp = read_jld2_checkpoint(simulation_info)
+
+        # Unpack contents of checkpoint dictionary.
+        tight_binding_parameters    = checkpoint[&quot;tight_binding_parameters&quot;]
+        hubbard_params              = checkpoint[&quot;hubbard_params&quot;]
+        hubbard_stratonovich_params = checkpoint[&quot;hubbard_stratonovich_params&quot;]
+        chemical_potential_tuner    = checkpoint[&quot;chemical_potential_tuner&quot;]
+        measurement_container       = checkpoint[&quot;measurement_container&quot;]
+        model_geometry              = checkpoint[&quot;model_geometry&quot;]
+        metadata                    = checkpoint[&quot;metadata&quot;]
+        rng                         = checkpoint[&quot;rng&quot;]
+        n_therm                     = checkpoint[&quot;n_therm&quot;]
+        n_updates                   = checkpoint[&quot;n_updates&quot;]
+    end</code></pre><h2 id="Setup-DQMC-simulation"><a class="docs-heading-anchor" href="#Setup-DQMC-simulation">Setup DQMC simulation</a><a id="Setup-DQMC-simulation-1"></a><a class="docs-heading-anchor-permalink" href="#Setup-DQMC-simulation" title="Permalink"></a></h2><p>No changes need to made to this section of the code from the previous <a href="../hubbard_square_checkpoint/#1c)-Square-Hubbard-Model-with-Checkpointing">1c) Square Hubbard Model with Checkpointing</a> tutorial.</p><pre><code class="language-julia hljs">    # Allocate FermionPathIntegral type for both the spin-up and spin-down electrons.
+    fermion_path_integral_up = FermionPathIntegral(tight_binding_parameters = tight_binding_parameters, β = β, Δτ = Δτ)
+    fermion_path_integral_dn = FermionPathIntegral(tight_binding_parameters = tight_binding_parameters, β = β, Δτ = Δτ)
+
+    # Initialize FermionPathIntegral type for both the spin-up and spin-down electrons to account for Hubbard interaction.
+    initialize!(fermion_path_integral_up, fermion_path_integral_dn, hubbard_params)
+
+    # Initialize FermionPathIntegral type for both the spin-up and spin-down electrons to account for the current
+    # Hubbard-Stratonovich field configuration.
+    initialize!(fermion_path_integral_up, fermion_path_integral_dn, hubbard_stratonovich_params)
+
+    # Initialize imaginary-time propagators for all imaginary-time slices for spin-up and spin-down electrons.
+    Bup = initialize_propagators(fermion_path_integral_up, symmetric=symmetric, checkerboard=checkerboard)
+    Bdn = initialize_propagators(fermion_path_integral_dn, symmetric=symmetric, checkerboard=checkerboard)
+
+    # Initialize FermionGreensCalculator type for spin-up and spin-down electrons.
+    fermion_greens_calculator_up = dqmcf.FermionGreensCalculator(Bup, β, Δτ, n_stab)
+    fermion_greens_calculator_dn = dqmcf.FermionGreensCalculator(Bdn, β, Δτ, n_stab)
+
+    # Allcoate matrices for spin-up and spin-down electron Green&#39;s function matrices.
+    Gup = zeros(eltype(Bup[1]), size(Bup[1]))
+    Gdn = zeros(eltype(Bdn[1]), size(Bdn[1]))
+
+    # Initialize the spin-up and spin-down electron Green&#39;s function matrices, also
+    # calculating their respective determinants as the same time.
+    logdetGup, sgndetGup = dqmcf.calculate_equaltime_greens!(Gup, fermion_greens_calculator_up)
+    logdetGdn, sgndetGdn = dqmcf.calculate_equaltime_greens!(Gdn, fermion_greens_calculator_dn)
+
+    # Allocate matrices for various time-displaced Green&#39;s function matrices.
+    Gup_ττ = similar(Gup) # Gup(τ,τ)
+    Gup_τ0 = similar(Gup) # Gup(τ,0)
+    Gup_0τ = similar(Gup) # Gup(0,τ)
+    Gdn_ττ = similar(Gdn) # Gdn(τ,τ)
+    Gdn_τ0 = similar(Gdn) # Gdn(τ,0)
+    Gdn_0τ = similar(Gdn) # Gdn(0,τ)
+
+    # Initialize diagonostic parameters to asses numerical stability.
+    δG = zero(logdetGup)
+    δθ = zero(sgndetGup)</code></pre><h2 id="Thermalize-system"><a class="docs-heading-anchor" href="#Thermalize-system">Thermalize system</a><a id="Thermalize-system-1"></a><a class="docs-heading-anchor-permalink" href="#Thermalize-system" title="Permalink"></a></h2><p>Here we need to add a call to the <a href="../../api/#SmoQyDQMC.update_chemical_potential!"><code>update_chemical_potential!</code></a> function after completeing the updates but before writing the checkpoint file is written. And again, we need to make sure the include the <code>chemical_potential_tuner</code> in the checkpoint file.</p><pre><code class="language-julia hljs">    # Iterate over number of thermalization updates to perform.
+    for update in n_therm:N_therm
+
+        # Perform sweep all imaginary-time slice and orbitals, attempting an update to every HS field.
+        (acceptance_rate, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = local_updates!(
+            Gup, logdetGup, sgndetGup, Gdn, logdetGdn, sgndetGdn,
+            hubbard_stratonovich_params,
+            fermion_path_integral_up = fermion_path_integral_up,
+            fermion_path_integral_dn = fermion_path_integral_dn,
+            fermion_greens_calculator_up = fermion_greens_calculator_up,
+            fermion_greens_calculator_dn = fermion_greens_calculator_dn,
+            Bup = Bup, Bdn = Bdn, δG_max = δG_max, δG = δG, δθ = δθ, rng = rng,
+            update_stabilization_frequency = true
+        )
+
+        # Record acceptance rate for sweep.
+        metadata[&quot;avg_acceptance_rate&quot;] += acceptance_rate
+
+        # Update the chemical potential to achieve the target density.
+        (logdetGup, sgndetGup, logdetGdn, sgndetGdn) = update_chemical_potential!(
+            Gup, logdetGup, sgndetGup,
+            Gdn, logdetGdn, sgndetGdn;
+            chemical_potential_tuner = chemical_potential_tuner,
+            tight_binding_parameters = tight_binding_parameters,
+            fermion_path_integral_up = fermion_path_integral_up,
+            fermion_path_integral_dn = fermion_path_integral_dn,
+            fermion_greens_calculator_up = fermion_greens_calculator_up,
+            fermion_greens_calculator_dn = fermion_greens_calculator_dn,
+            Bup = Bup, Bdn = Bdn
+        )
+
+        # Write checkpoint file.
+        checkpoint_timestamp = write_jld2_checkpoint(
+            comm,
+            simulation_info;
+            checkpoint_timestamp = checkpoint_timestamp,
+            checkpoint_freq = checkpoint_freq,
+            start_timestamp = start_timestamp,
+            runtime_limit = runtime_limit,
+            # Contents of checkpoint file below.
+            n_therm = update + 1,
+            n_updates = 1,
+            tight_binding_parameters, hubbard_params, hubbard_stratonovich_params,
+            chemical_potential_tuner, measurement_container, model_geometry, metadata, rng
+        )
+    end</code></pre><h2 id="Make-measurements"><a class="docs-heading-anchor" href="#Make-measurements">Make measurements</a><a id="Make-measurements-1"></a><a class="docs-heading-anchor-permalink" href="#Make-measurements" title="Permalink"></a></h2><p>Here we need to add a call to the <a href="../../api/#SmoQyDQMC.update_chemical_potential!"><code>update_chemical_potential!</code></a> function after making and writing measurements but before writing the checkpoint file is written. And again, we need to make sure the include the <code>chemical_potential_tuner</code> in the checkpoint file.</p><pre><code class="language-julia hljs">    # Reset diagonostic parameters used to monitor numerical stability to zero.
+    δG = zero(logdetGup)
+    δθ = zero(sgndetGup)
+
+    # Calculate the bin size.
+    bin_size = N_updates ÷ N_bins
+
+    # Iterate over updates and measurements.
+    for update in n_updates:N_updates
+
+        # Perform sweep all imaginary-time slice and orbitals, attempting an update to every HS field.
+        (acceptance_rate, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = local_updates!(
+            Gup, logdetGup, sgndetGup, Gdn, logdetGdn, sgndetGdn,
+            hubbard_stratonovich_params,
+            fermion_path_integral_up = fermion_path_integral_up,
+            fermion_path_integral_dn = fermion_path_integral_dn,
+            fermion_greens_calculator_up = fermion_greens_calculator_up,
+            fermion_greens_calculator_dn = fermion_greens_calculator_dn,
+            Bup = Bup, Bdn = Bdn, δG_max = δG_max, δG = δG, δθ = δθ, rng = rng,
+            update_stabilization_frequency = true
+        )
+
+        # Record acceptance rate.
+        metadata[&quot;avg_acceptance_rate&quot;] += acceptance_rate
+
+        # Make measurements.
+        (logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = make_measurements!(
+            measurement_container,
+            logdetGup, sgndetGup, Gup, Gup_ττ, Gup_τ0, Gup_0τ,
+            logdetGdn, sgndetGdn, Gdn, Gdn_ττ, Gdn_τ0, Gdn_0τ,
+            fermion_path_integral_up = fermion_path_integral_up,
+            fermion_path_integral_dn = fermion_path_integral_dn,
+            fermion_greens_calculator_up = fermion_greens_calculator_up,
+            fermion_greens_calculator_dn = fermion_greens_calculator_dn,
+            Bup = Bup, Bdn = Bdn, δG_max = δG_max, δG = δG, δθ = δθ,
+            model_geometry = model_geometry, tight_binding_parameters = tight_binding_parameters,
+            coupling_parameters = (hubbard_params, hubbard_stratonovich_params)
+        )
+
+        # Write the bin-averaged measurements to file if update ÷ bin_size == 0.
+        write_measurements!(
+            measurement_container = measurement_container,
+            simulation_info = simulation_info,
+            model_geometry = model_geometry,
+            update = update,
+            bin_size = bin_size,
+            Δτ = Δτ
+        )
+
+        # Update the chemical potential to achieve the target density.
+        (logdetGup, sgndetGup, logdetGdn, sgndetGdn) = update_chemical_potential!(
+            Gup, logdetGup, sgndetGup,
+            Gdn, logdetGdn, sgndetGdn;
+            chemical_potential_tuner = chemical_potential_tuner,
+            tight_binding_parameters = tight_binding_parameters,
+            fermion_path_integral_up = fermion_path_integral_up,
+            fermion_path_integral_dn = fermion_path_integral_dn,
+            fermion_greens_calculator_up = fermion_greens_calculator_up,
+            fermion_greens_calculator_dn = fermion_greens_calculator_dn,
+            Bup = Bup, Bdn = Bdn
+        )
+
+        # Write checkpoint file.
+        checkpoint_timestamp = write_jld2_checkpoint(
+            comm,
+            simulation_info;
+            checkpoint_timestamp = checkpoint_timestamp,
+            checkpoint_freq = checkpoint_freq,
+            start_timestamp = start_timestamp,
+            runtime_limit = runtime_limit,
+            # Contents of checkpoint file below.
+            n_therm  = N_therm + 1,
+            n_updates = update + 1,
+            tight_binding_parameters, hubbard_params, hubbard_stratonovich_params,
+            chemical_potential_tuner, measurement_container, model_geometry, metadata, rng
+        )
+    end</code></pre><h2 id="Record-simulation-metadata"><a class="docs-heading-anchor" href="#Record-simulation-metadata">Record simulation metadata</a><a id="Record-simulation-metadata-1"></a><a class="docs-heading-anchor-permalink" href="#Record-simulation-metadata" title="Permalink"></a></h2><p>Here we can add a call to the <a href="../../api/#SmoQyDQMC.save_density_tuning_profile"><code>save_density_tuning_profile</code></a>, which records the full history of the chemical potential and density tuning process.</p><pre><code class="language-julia hljs">    # Normalize acceptance rate.
+    metadata[&quot;avg_acceptance_rate&quot;] /=  (N_therm + N_updates)
+
+    metadata[&quot;n_stab_final&quot;] = fermion_greens_calculator_up.n_stab
+
+    # Record largest numerical error.
+    metadata[&quot;dG&quot;] = δG
+
+    # Write simulation summary TOML file.
+    save_simulation_info(simulation_info, metadata)
+
+    # Save the density tuning profile to file.
+    save_density_tuning_profile(simulation_info, chemical_potential_tuner)</code></pre><h2 id="Post-process-results"><a class="docs-heading-anchor" href="#Post-process-results">Post-process results</a><a id="Post-process-results-1"></a><a class="docs-heading-anchor-permalink" href="#Post-process-results" title="Permalink"></a></h2><p>No changes need to made to this section of the code from the previous <a href="../hubbard_square_checkpoint/#1c)-Square-Hubbard-Model-with-Checkpointing">1c) Square Hubbard Model with Checkpointing</a> tutorial.</p><pre><code class="language-julia hljs">    # Set the number of bins used to calculate the error in measured observables.
+    n_bins = N_bins
+
+    # Process the simulation results, calculating final error bars for all measurements,
+    # writing final statisitics to CSV files.
+    process_measurements(comm, simulation_info.datafolder, n_bins, time_displaced = false)
+
+    # Calculate AFM correlation ratio.
+    Rafm, ΔRafm = compute_correlation_ratio(
+        comm;
+        folder = simulation_info.datafolder,
+        correlation = &quot;spin_z&quot;,
+        type = &quot;equal-time&quot;,
+        id_pairs = [(1, 1)],
+        coefs = [1.0],
+        k_point = (L÷2, L÷2), # Corresponds to Q_afm = (π/a, π/a).
+        num_bins = n_bins
+    )
+
+    # Record the AFM correlation ratio mean and standard deviation.
+    metadata[&quot;Rafm_real_mean&quot;] = real(Rafm)
+    metadata[&quot;Rafm_imag_mean&quot;] = imag(Rafm)
+    metadata[&quot;Rafm_std&quot;]       = ΔRafm
+
+    # Write simulation summary TOML file.
+    save_simulation_info(simulation_info, metadata)
+
+    # Merge binary files containing binned data into a single file.
+    compress_jld2_bins(comm, folder = simulation_info.datafolder)
+
+    # Rename the data folder to indicate the simulation is complete.
+    simulation_info = rename_complete_simulation(
+        comm, simulation_info,
+        delete_jld2_checkpoints = true
+    )
+
+    return nothing
+end # end of run_simulation function</code></pre><h2 id="Execute-script"><a class="docs-heading-anchor" href="#Execute-script">Execute script</a><a id="Execute-script-1"></a><a class="docs-heading-anchor-permalink" href="#Execute-script" title="Permalink"></a></h2><p>Here we add an additional command line argument to specify the target density <code>n</code> we want to achieve in the simulation. Now the <code>μ</code> command line argument specifies the initial chemical potential we begin the simulation with. For instance, a simulation can be run with the command</p><pre><code class="language-bash hljs">mpiexecjl -n 16 julia hubbard_square_density_tuning.jl 1 5.0 -0.25 0.8 0.0 4 4.0 2500 10000 100 1.0</code></pre><p>or</p><pre><code class="language-bash hljs">srun julia hubbard_square_density_tuning.jl 1 5.0 -0.25 0.8 0.0 4 4.0 2500 10000 100 1.0</code></pre><p>where the target density is <span>$\langle n \rangle = 0.8$</span> and the initial chemical potential is <span>$\mu = 0.0$</span>.</p><pre><code class="language-julia hljs">if abspath(PROGRAM_FILE) == @__FILE__
+
+    # Initialize MPI
+    MPI.Init()
+
+    # Initialize the MPI communicator.
+    comm = MPI.COMM_WORLD
+
+    # Run the simulation, reading in command line arguments.
+    run_simulation(
+        comm;
+        sID             = parse(Int,     ARGS[1]),  # Simulation ID.
+        U               = parse(Float64, ARGS[2]),  # Hubbard interaction.
+        t′              = parse(Float64, ARGS[3]),  # Next-nearest-neighbor hopping amplitude.
+        n               = parse(Float64, ARGS[4]),  # Target density.
+        μ               = parse(Float64, ARGS[5]),  # Initial chemical potential.
+        L               = parse(Int,     ARGS[6]),  # System size.
+        β               = parse(Float64, ARGS[7]),  # Inverse temperature.
+        N_therm         = parse(Int,     ARGS[8]),  # Number of thermalization updates.
+        N_updates       = parse(Int,     ARGS[9]),  # Total number of measurements and measurement updates.
+        N_bins          = parse(Int,     ARGS[10]), # Number of times bin-averaged measurements are written to file.
+        checkpoint_freq = parse(Float64, ARGS[11])  # Frequency with which checkpoint files are written in hours.
+    )
+
+    # Finalize MPI.
+    MPI.Finalize()
+end</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../hubbard_square_checkpoint/">« 1c) Square Hubbard Model with Checkpointing</a><a class="docs-footer-nextpage" href="../holstein_honeycomb/">2a) Honeycomb Holstein Model »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.10.2 on <span class="colophon-date" title="Monday 5 May 2025 20:51">Monday 5 May 2025</span>. Using Julia version 1.11.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
