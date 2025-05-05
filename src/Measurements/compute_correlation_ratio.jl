@@ -4,8 +4,7 @@
         folder::String,
         correlation::String,
         type::String,
-        ids,
-        id_pairs::Vector{NTuple{2,Int}} = NTuple{2,Int}[],
+        id_pairs::Vector{NTuple{2,Int}},
         coefs,
         k_point,
         num_bins::Int = 0,
@@ -17,8 +16,7 @@
         folder::String,
         correlation::String,
         type::String,
-        ids,
-        id_pairs::Vector{NTuple{2,Int}} = NTuple{2,Int}[],
+        id_pairs::Vector{NTuple{2,Int}},
         coefs,
         k_point,
         num_bins::Int = 0,
@@ -26,8 +24,7 @@
     )
 
 Compute the correlation ratio at the ``\mathbf{k}``-point using a linear combination of standard correlation function measurements.
-The linear combination of correlation functions used is defined by `id_pairs` and `coefs`. If `id_pairs` is empty,
-then all possible combinations of ID pairs are construct based passed `ids`, with coefficients similarly expanded out.
+The linear combination of correlation functions used is defined by `id_pairs` and `coefs`.
 If `type` is `"equal-time"` or `"time-displaced"` then the equal-time correlation ratio is calculated.
 If `type` is "integrated" then the integrated correlation ratio is calculated.
 """
@@ -37,8 +34,7 @@ function compute_correlation_ratio(
     folder::String,
     correlation::String,
     type::String,
-    ids,
-    id_pairs::Vector{NTuple{2,Int}} = NTuple{2,Int}[],
+    id_pairs::Vector{NTuple{2,Int}},
     coefs,
     k_point,
     num_bins::Int = 0,
@@ -51,7 +47,7 @@ function compute_correlation_ratio(
     if isempty(pIDs)
 
         # get the number of MPI walkers
-        N_walkers = get_num_walkers(folder)
+        N_walkers = MPI.Comm_size(comm)
 
         # get the pIDs
         pIDs = collect(0:(N_walkers-1))
@@ -66,20 +62,9 @@ function compute_correlation_ratio(
     # calculate relevent k-points
     @assert length(k_point) == ndims(lattice)
 
-    # construct id pairs if not given
-    if isempty(id_pairs)
-        @assert length(ids) == length(coefs)
-        coefficients = Complex{real(eltype(coefs))}[]
-        for j in eachindex(ids)
-            for i in eachindex(ids)
-                push!(id_pairs, (ids[j],ids[i]))
-                push!(coefficients, conj(coefs[i]) * coefs[j])
-            end
-        end
-    else
-        @assert length(coefs) == length(id_pairs)
-        coefficients = Complex{real(eltype(coefs))}[coefs...]
-    end
+    # get coefficients as vector of complex numbers
+    @assert length(coefs) == length(id_pairs)
+    coefficients = Complex{real(eltype(coefs))}[coefs...]
 
     # get central k-point and 2⋅D neighboring k-points
     k = tuple(k_point...)
@@ -109,7 +94,7 @@ function compute_correlation_ratio(
     R    = R / N_mpi
     ΔR   = sqrt(varR) / N_mpi
 
-    return R, ΔR
+    return R, real(ΔR)
 end
 
 # compute correlation ratio using single process
@@ -118,8 +103,7 @@ function compute_correlation_ratio(;
     folder::String,
     correlation::String,
     type::String,
-    ids,
-    id_pairs::Vector{NTuple{2,Int}} = NTuple{2,Int}[],
+    id_pairs::Vector{NTuple{2,Int}},
     coefs,
     k_point,
     num_bins::Int = 0,
@@ -147,20 +131,9 @@ function compute_correlation_ratio(;
     # calculate relevent k-points
     @assert length(k_point) == ndims(lattice)
 
-    # construct id pairs if not given
-    if isempty(id_pairs)
-        @assert length(ids) == length(coefs)
-        coefficients = Complex{real(eltype(coefs))}[]
-        for j in eachindex(ids)
-            for i in eachindex(ids)
-                push!(id_pairs, (ids[j],ids[i]))
-                push!(coefficients, conj(coefs[i]) * coefs[j])
-            end
-        end
-    else
-        @assert length(coefs) == length(id_pairs)
-        coefficients = Complex{real(eltype(coefs))}[coefs...]
-    end
+    # get coefficients as vector of complex numbers
+    @assert length(coefs) == length(id_pairs)
+    coefficients = Complex{real(eltype(coefs))}[coefs...]
 
     # get central k-point and 2⋅D neighboring k-points
     k = tuple(k_point...)
@@ -184,7 +157,7 @@ function compute_correlation_ratio(;
     R /= length(pIDs)
     ΔR = sqrt(varR) / length(pIDs)
 
-    return R, ΔR
+    return R, real(ΔR)
 end
 
 # compute the correlation ratio for a single walker (single pID)
@@ -240,7 +213,7 @@ function _compute_correlation_ratio(
     # calculate correlation ratio
     R, ΔR = jackknife((Skpdq, Sk, s) -> 1 - abs(Skpdq/s)/abs(Sk/s), S_kneighbors_bins, S_k_point_bins, binned_sign)
 
-    return R, ΔR
+    return R, real(ΔR)
 end
 
 
@@ -330,7 +303,7 @@ function compute_composite_correlation_ratio(
     R    = R / N_mpi
     ΔR   = sqrt(varR) / N_mpi
 
-    return R, ΔR
+    return R, real(ΔR)
 end
 
 # compute correlation ratio using single process
@@ -387,7 +360,7 @@ function compute_composite_correlation_ratio(;
     R /= length(pIDs)
     ΔR = sqrt(varR) / length(pIDs)
 
-    return R, ΔR
+    return R, real(ΔR)
 end
 
 

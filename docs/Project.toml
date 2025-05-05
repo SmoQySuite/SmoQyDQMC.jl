@@ -1,13 +1,12 @@
 [deps]
-
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
 DocumenterCitations = "daee34ce-89f3-4625-b898-19384cb65244"
+DocumenterInterLinks = "d12716ef-a0f6-4df4-a9f1-a5a34e75c656"
 JDQMCFramework = "72315111-4c7c-4639-8a62-af4b2dda42e0"
 LatticeUtilities = "33fcf0eb-3ae3-43db-bfbc-1d92a3639bd1"
 Literate = "98b081ad-f1c9-55d3-8b20-4c87d4299306"
 SmoQyDQMC = "00e12d65-277b-447e-9c1d-a17422dd36f5"
 
 [compat]
-
 Documenter = "1.1"
 DocumenterCitations = "1.3"

@@ -132,13 +132,17 @@ end
 
 
 @doc raw"""
-    save_density_tuning_profile(simulation_info::SimulationInfo,
-                                chemical_potential_tuner::MuTunerLogger{E,T}) where {E,T}
+    save_density_tuning_profile(
+        simulation_info::SimulationInfo,
+        chemical_potential_tuner::MuTunerLogger{E,T}
+    ) where {E,T}
 
 Write the full density tuning history to a CSV file, typically done at the end of a simulation.
 """
-function save_density_tuning_profile(simulation_info::SimulationInfo,
-                                     chemical_potential_tuner::MuTunerLogger{E,T}) where {E,T}
+function save_density_tuning_profile(
+    simulation_info::SimulationInfo,
+    chemical_potential_tuner::MuTunerLogger{E,T}
+) where {E,T}
 
     # write the density tuning to file
     (; datafolder, pID) = simulation_info
