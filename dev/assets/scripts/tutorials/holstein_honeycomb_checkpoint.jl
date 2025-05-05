@@ -419,7 +419,7 @@ function run_simulation(
             start_timestamp = start_timestamp,
             runtime_limit = runtime_limit,
             # Contents of checkpoint file below.
-            n_therm  = n_therm + 1,
+            n_therm  = update + 1,
             n_updates = 1,
             tight_binding_parameters, electron_phonon_parameters,
             measurement_container, model_geometry, metadata, rng
@@ -434,7 +434,7 @@ function run_simulation(
     bin_size = N_updates ÷ N_bins
 
     # Iterate over updates and measurements.
-    for update in 1:N_updates
+    for update in n_updates:N_updates
 
         # Perform a reflection update.
         (accepted, logdetG, sgndetG) = reflection_update!(
