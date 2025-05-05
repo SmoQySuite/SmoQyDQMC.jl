@@ -215,12 +215,16 @@ include("Measurements/process_composite_correlation.jl")
 export composite_correlation_stat
 
 # process results to calculate composite correlation ratio
-include("Measurements/process_correlation_ratio.jl")
+include("Measurements/compute_correlation_ratio.jl")
 export compute_correlation_ratio, compute_composite_correlation_ratio
 
 # tools for converted binned data, that is saved as *.jld2 binary files, to single csv file
 include("Measurements/binned_data_to_csv.jl")
 export global_measurement_bins_to_csv, local_measurement_bins_to_csv, correlation_bins_to_csv
+
+# utilties for checkpoint simulations
+include("Measurements/checkpointing_utilities.jl")
+export write_jld2_checkpoint, read_jld2_checkpoint, rename_complete_simulation
 
 # functions to compress & decompress JLD2 binary files
 include("Measurements/compress_decompress_bins.jl")

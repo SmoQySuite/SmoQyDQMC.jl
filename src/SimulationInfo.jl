@@ -106,10 +106,35 @@ end
 
 
 @doc raw"""
+    initialize_datafolder(comm::MPI.Comm, sim_info::SimulationInfo)
+
     initialize_datafolder(sim_info::SimulationInfo)
 
 Initalize `sim_info.datafolder` directory if it does not already exist.
+If `comm::MPI.Comm` is passed as the first argument, this this function will synchronize
+all the MPI processes, ensuring that none proceed beyond this function call until
+the data folder that results will be written to is successfully initialized.
 """
+function initialize_datafolder(comm::MPI.Comm, sim_info::SimulationInfo)
+
+    (; pID, datafolder, resuming) = sim_info
+
+    # synchrnize MPI walkers
+    MPI.Barrier(comm)
+
+    # if main process and starting new simulation (not resuming an existing simulation)
+    if iszero(pID) && !resuming
+
+        # make data folder diretory
+        mkdir(datafolder)
+    end
+
+    # synchrnize MPI walkers
+    MPI.Barrier(comm)
+
+    return nothing
+end
+
 function initialize_datafolder(sim_info::SimulationInfo)
 
     (; pID, datafolder, resuming) = sim_info

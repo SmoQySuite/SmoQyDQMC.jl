@@ -107,7 +107,7 @@ function composite_correlation_stat(
     if isempty(pIDs)
 
         # get the number of MPI walkers
-        N_walkers = get_num_walkers(folder)
+        N_walkers = MPI.Comm_size(comm)
 
         # get the pIDs
         pIDs = collect(0:(N_walkers-1))

@@ -4,7 +4,7 @@ EditURL = "../../../tutorials/hubbard_square.jl"
 
 Download this example as a [Julia script](../assets/scripts/tutorials/hubbard_square.jl).
 
-# Square Hubbard Model
+# 1a) Square Hubbard Model
 
 In this example we will work through simulating the repulsive Hubbard model on a square lattice.
 The Hubbard Hamiltonian for a square lattice given by
@@ -80,11 +80,10 @@ function run_simulation(;
 
 ## [Initialize simulation](@id hubbard_square_initialize_simulation)
 In this first part of the script we name and initialize our simulation, creating the data folder our simulation results will be written to.
-This is done by initializing an instances of the [`SimulationInfo`](@ref) type, as well as an `additional_info` dictionary where we will store useful metadata about the simulation.
-Finally, the integer `seed` is used to initialize the random number generator `rng` that will be used to generate random numbers throughout the rest of the simulation.
+This is done by initializing an instances of the [`SimulationInfo`](@ref) type, and then calling the [`initialize_datafolder`](@ref) function.
 
-Next we record relevant simulation parameters to the `additional_info` dictionary.
-Think of the `additional_info` dictionary as a place to record any additional information during the simulation that will not otherwise be automatically recorded and written to file.
+Next we record relevant simulation parameters to the `metadata` dictionary.
+Think of the `metadata` dictionary as a place to record any additional information during the simulation that will not otherwise be automatically recorded and written to file.
 
 ````julia
     # Construct the foldername the data will be written to.
@@ -99,28 +98,36 @@ Think of the `additional_info` dictionary as a place to record any additional in
 
     # Initialize the directory the data will be written to.
     initialize_datafolder(simulation_info)
+````
 
+## Initialize simulation metadata
+In this section of the code we record important metadata about the simulation, including initializing the random number
+generator that will be used throughout the simulation.
+The important metadata within the simulation will be recorded in the `metadata` dictionary.
+
+````julia
     # Initialize random number generator
     rng = Xoshiro(seed)
 
     # Initialize additiona_info dictionary
-    additional_info = Dict()
+    metadata = Dict()
 
     # Record simulation parameters.
-    additional_info["N_therm"] = N_therm
-    additional_info["N_updates"] = N_updates
-    additional_info["N_bins"] = N_bins
-    additional_info["n_stab_init"] = n_stab
-    additional_info["dG_max"] = δG_max
-    additional_info["symmetric"] = symmetric
-    additional_info["checkerboard"] = checkerboard
-    additional_info["seed"] = seed
+    metadata["N_therm"] = N_therm
+    metadata["N_updates"] = N_updates
+    metadata["N_bins"] = N_bins
+    metadata["n_stab_init"] = n_stab
+    metadata["dG_max"] = δG_max
+    metadata["symmetric"] = symmetric
+    metadata["checkerboard"] = checkerboard
+    metadata["seed"] = seed
+    metadata["avg_acceptance_rate"] = 0.0
 ````
 
 In the above, `sID` stands for simulation ID, which is used to distinguish simulations that would otherwise be identical i.e. to
 distinguish simulations that use the same parameters and are only different in the random seed used to initialize the simulation.
 A valid `sID` is any positive integer greater than zero, and is used when naming the data folder the simulation results will be written to.
-Specifically, the the actual data folder created above will be `"$(filepath)/$(datafolder_prefix)-$(sID)"`.
+Specifically, the actual data folder created above will be `"$(filepath)/$(datafolder_prefix)-$(sID)"`.
 Note that if you set `sID = 0`, then it will instead be assigned smallest previously unused integer value. For instance, suppose the directory
 `"$(filepath)/$(datafolder_prefix)-1"` already exits. Then if you pass `sID = 0` to [`SimulationInfo`](@ref), then the simulation ID
 `sID = 2` will be used instead, and a directory `"$(filepath)/$(datafolder_prefix)-2"` will be created.
@@ -497,7 +504,7 @@ Next, two instances of the [`FermionGreensCalculator`](https://smoqysuite.github
 type are initialized, which are used to take care of numerical stabilization behind the scenes in the DQMC simulation.
 Here `n_stab` is the period in imaginary-time with which numerical stabilization is performed, and is typically on the order of ``n_{\rm stab} \sim 10.``
 
-Now we allocate and initialize the the equal-time Green's function matrix ``G_\sigma(0,0)`` for both spin species (`Gup` and `Gdn`).
+Now we allocate and initialize the equal-time Green's function matrix ``G_\sigma(0,0)`` for both spin species (`Gup` and `Gdn`).
 The initiliazation process also returns ``\log | \det G_\sigma(0,0) |`` (`logdetGup` and `logdetGdn`) and ``{\rm sgn} \det G_\sigma(0,0)`` (`sgndetGup` and `sgndetGdn`).
 
 Finally, we allocate matrices to represent the equal-time and time-displaced Green's function matrices ``G_\sigma(\tau,\tau)`` (`Gup_ττ` and `Gdn_ττ`),
@@ -526,9 +533,6 @@ then `δG_max` doesn't do anything and `n_stab` remains unchanged during the sim
 with `δG` is simply reporting the maximum observed numerical error during the simulation.
 
 ````julia
-    # Initialize average acceptance rate variable.
-    additional_info["avg_acceptance_rate"] = 0.0
-
     # Iterate over number of thermalization updates to perform.
     for n in 1:N_therm
 
@@ -545,7 +549,7 @@ with `δG` is simply reporting the maximum observed numerical error during the s
         )
 
         # Record acceptance rate for sweep.
-        additional_info["avg_acceptance_rate"] += acceptance_rate
+        metadata["avg_acceptance_rate"] += acceptance_rate
     end
 ````
 
@@ -566,75 +570,80 @@ The bin-averaged measurements are written to file once `bin_size` measurements a
     # Calculate the bin size.
     bin_size = N_updates ÷ N_bins
 
-    # Iterate over bins.
-    for bin in 1:N_bins
+    # Iterate over updates and measurements.
+    for update in 1:N_updates
 
-        # Iterate over update sweeps and measurements in bin.
-        for n in 1:bin_size
+        # Perform sweep all imaginary-time slice and orbitals, attempting an update to every HS field.
+        (acceptance_rate, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = local_updates!(
+            Gup, logdetGup, sgndetGup, Gdn, logdetGdn, sgndetGdn,
+            hubbard_stratonovich_params,
+            fermion_path_integral_up = fermion_path_integral_up,
+            fermion_path_integral_dn = fermion_path_integral_dn,
+            fermion_greens_calculator_up = fermion_greens_calculator_up,
+            fermion_greens_calculator_dn = fermion_greens_calculator_dn,
+            Bup = Bup, Bdn = Bdn, δG_max = δG_max, δG = δG, δθ = δθ, rng = rng,
+            update_stabilization_frequency = true
+        )
 
-            # Perform sweep all imaginary-time slice and orbitals, attempting an update to every HS field.
-            (acceptance_rate, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = local_updates!(
-                Gup, logdetGup, sgndetGup, Gdn, logdetGdn, sgndetGdn,
-                hubbard_stratonovich_params,
-                fermion_path_integral_up = fermion_path_integral_up,
-                fermion_path_integral_dn = fermion_path_integral_dn,
-                fermion_greens_calculator_up = fermion_greens_calculator_up,
-                fermion_greens_calculator_dn = fermion_greens_calculator_dn,
-                Bup = Bup, Bdn = Bdn, δG_max = δG_max, δG = δG, δθ = δθ, rng = rng,
-                update_stabilization_frequency = true
-            )
+        # Record acceptance rate.
+        metadata["avg_acceptance_rate"] += acceptance_rate
 
-            # Record acceptance rate.
-            additional_info["avg_acceptance_rate"] += acceptance_rate
+        # Make measurements.
+        (logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = make_measurements!(
+            measurement_container,
+            logdetGup, sgndetGup, Gup, Gup_ττ, Gup_τ0, Gup_0τ,
+            logdetGdn, sgndetGdn, Gdn, Gdn_ττ, Gdn_τ0, Gdn_0τ,
+            fermion_path_integral_up = fermion_path_integral_up,
+            fermion_path_integral_dn = fermion_path_integral_dn,
+            fermion_greens_calculator_up = fermion_greens_calculator_up,
+            fermion_greens_calculator_dn = fermion_greens_calculator_dn,
+            Bup = Bup, Bdn = Bdn, δG_max = δG_max, δG = δG, δθ = δθ,
+            model_geometry = model_geometry, tight_binding_parameters = tight_binding_parameters,
+            coupling_parameters = (hubbard_params, hubbard_stratonovich_params)
+        )
 
-            # Make measurements.
-            (logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = make_measurements!(
-                measurement_container,
-                logdetGup, sgndetGup, Gup, Gup_ττ, Gup_τ0, Gup_0τ,
-                logdetGdn, sgndetGdn, Gdn, Gdn_ττ, Gdn_τ0, Gdn_0τ,
-                fermion_path_integral_up = fermion_path_integral_up,
-                fermion_path_integral_dn = fermion_path_integral_dn,
-                fermion_greens_calculator_up = fermion_greens_calculator_up,
-                fermion_greens_calculator_dn = fermion_greens_calculator_dn,
-                Bup = Bup, Bdn = Bdn, δG_max = δG_max, δG = δG, δθ = δθ,
-                model_geometry = model_geometry, tight_binding_parameters = tight_binding_parameters,
-                coupling_parameters = (hubbard_params, hubbard_stratonovich_params)
-            )
-        end
-
-        # Write the bin-averaged measurements to file.
+        # Write the bin-averaged measurements to file if update ÷ bin_size == 0.
         write_measurements!(
             measurement_container = measurement_container,
             simulation_info = simulation_info,
             model_geometry = model_geometry,
-            bin = bin,
+            update = update,
             bin_size = bin_size,
             Δτ = Δτ
         )
     end
-
-    # Normalize acceptance rate.
-    additional_info["avg_acceptance_rate"] /=  (N_therm + N_updates)
 ````
 
-Record final stabilization period used at the end of the simulation.
+## Record simulation metadata
+At this point we are done sampling and taking measurements.
+Next, we want to calculate the final acceptance rate for the Monte Carlo updates,
+as well as write the simulation metadata to file, including the contents of the `metadata` dictionary.
+This is done using the [`save_simulation_info`](@ref) function.
 
 ````julia
-    additional_info["n_stab_final"] = fermion_greens_calculator_up.n_stab
+    # Normalize acceptance rate.
+    metadata["avg_acceptance_rate"] /=  (N_therm + N_updates)
+
+    # Record final stabilization period used at the end of the simulation.
+    metadata["n_stab_final"] = fermion_greens_calculator_up.n_stab
 
     # Record largest numerical error.
-    additional_info["dG"] = δG
+    metadata["dG"] = δG
 
     # Write simulation summary TOML file.
-    save_simulation_info(simulation_info, additional_info)
+    save_simulation_info(simulation_info, metadata)
 ````
 
-## [Process results](@id hubbard_square_process_results)
-In this final section of code we process the binned data, calculating final estimates for the mean and error of all measured observables.
-The final statistics are written to CSV files using the function [`process_measurements`](@ref) function.
+## [Post-process results](@id hubbard_square_process_results)
+In this final section of code we post-process the binned data.
+This includes calculating the final estimates for the mean and error of all measured observables,
+which get written to CSV files using the function [`process_measurements`](@ref) function.
 Inside this function the binned data gets further rebinned into `n_bins`,
 where `n_bins` is any positive integer satisfying the constraints `(N_bins ≥ n_bin)` and `(N_bins % n_bins == 0)`.
-Again, for more information on how to interpret the output refer the the [Simulation Output Overview](@ref) page.
+The `time_displaced` keyword argument in the [`process_measurements`](@ref) function determines whether or not final statistics are computed for the
+time-displaced measurements. The default behavior is `time_displaced = false`, as computing these average statistics can be somewhat time-consuming,
+but if they are required, simply set `time_displaced = true`.
+Again, for more information on how to interpret the output refer the [Simulation Output Overview](@ref) page.
 
 ````julia
     # Set the number of bins used to calculate the error in measured observables.
@@ -642,8 +651,53 @@ Again, for more information on how to interpret the output refer the the [Simula
 
     # Process the simulation results, calculating final error bars for all measurements,
     # writing final statisitics to CSV files.
-    process_measurements(simulation_info.datafolder, n_bins)
+    process_measurements(simulation_info.datafolder, n_bins, time_displaced = false)
 ````
+
+A common measurements that needs to be reconstructed at the end of a DQMC simulation is something called the correlation
+ratio with respect to the ordering wave-vector for a specified type of correlation function measured during the simulation.
+In the case of the square Hubbard model, we are interested in measureing the correlation ratio
+```math
+R_z(\mathbf{Q}_\text{AFM}) = 1 - \frac{1}{4} \sum_{\delta\mathbf{q}} \frac{S_z(\mathbf{Q}_\text{AFM} + \delta\mathbf{q})}{S_z(\mathbf{Q}_\text{AFM})}
+```
+with respect to the equal-time antiferromagnetic (AFM) structure factor ``S_z(\mathbf{Q}_\text{AFM})``, where ``S_z(\mathbf{q})`` is the spin-``z``
+equal-time structure factor and ``\mathbf{Q}_\text{AFM} = (\pi/a, \pi/a)`` is the AFM ordering wave-vector.
+The sum over ``\delta\mathbf{q}`` runs over the four wavevectors that neigboring ``\mathbf{Q}_\text{AFM}.``
+Here we use the [`compute_correlation_ratio`](@ref) function to calculate this correlation ratio, and then we record the mean and error for this
+measurement in the `metadata` dictionary.
+
+````julia
+    # Calculate AFM correlation ratio.
+    Rafm, ΔRafm = compute_correlation_ratio(
+        folder = simulation_info.datafolder,
+        correlation = "spin_z",
+        type = "equal-time",
+        id_pairs = [(1, 1)],
+        coefs = [1.0],
+        k_point = (L÷2, L÷2), # Corresponds to Q_afm = (π/a, π/a).
+        num_bins = n_bins
+    )
+````
+
+Next, we record the measurement in the `metadata` dictionary, and then write a new version of the simulation summary TOML file that
+contains this new information using the [`save_simulation_info`](@ref) function.
+
+````julia
+    # Record the AFM correlation ratio mean and standard deviation.
+    metadata["Rafm_real_mean"] = real(Rafm)
+    metadata["Rafm_imag_mean"] = imag(Rafm)
+    metadata["Rafm_std"]       = ΔRafm
+
+    # Write simulation summary TOML file.
+    save_simulation_info(simulation_info, metadata)
+````
+
+The convention used for specifying the ordering wave-vector ``\mathbf{Q}_\text{AFM}`` using the `k_point` keyword argument
+in the [`compute_correlation_ratio`](@ref) function call are described [here](@ref vector_reporting_conventions) in the [Simulation Output Overview](@ref) page.
+
+Note that as long as the binned data generated by the simulation persists in an uncompressed format (see below), the [`process_measurements`](@ref),
+and [`compute_correlation_ratio`](@ref) functions can be called multiple times to recompute the final statistics for the measurements without needing
+to rerun the simulation.
 
 Lastly, it is worth mentioning that running many DQMC simulations will generate many seperate binary files, which can eventually exceed the file quota limit on the system.
 To help prevent this problem from arising, we can use the function [`compress_jld2_bins`](@ref)
@@ -672,15 +726,15 @@ if abspath(PROGRAM_FILE) == @__FILE__
 
     # Run the simulation, reading in command line arguments.
     run_simulation(;
-        sID       = parse(Int,     ARGS[1]),
-        U         = parse(Float64, ARGS[2]),
-        t′        = parse(Float64, ARGS[3]),
-        μ         = parse(Float64, ARGS[4]),
-        L         = parse(Int,     ARGS[5]),
-        β         = parse(Float64, ARGS[6]),
-        N_therm   = parse(Int,     ARGS[7]),
-        N_updates = parse(Int,     ARGS[8]),
-        N_bins    = parse(Int,     ARGS[9])
+        sID       = parse(Int,     ARGS[1]), # Simulation ID.
+        U         = parse(Float64, ARGS[2]), # Hubbard interaction strength.
+        t′        = parse(Float64, ARGS[3]), # Next-nearest-neighbor hopping amplitude.
+        μ         = parse(Float64, ARGS[4]), # Chemical potential.
+        L         = parse(Int,     ARGS[5]), # Lattice size.
+        β         = parse(Float64, ARGS[6]), # Inverse temperature.
+        N_therm   = parse(Int,     ARGS[7]), # Number of thermalization sweeps.
+        N_updates = parse(Int,     ARGS[8]), # Number of measurement sweeps.
+        N_bins    = parse(Int,     ARGS[9])  # Number times binned data is written to file.
     )
 end
 ````

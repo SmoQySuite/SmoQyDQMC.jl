@@ -188,7 +188,7 @@ and in `momentum` space by
 \chi_{\nu,\gamma}(\mathbf{q}) = \int_0^\beta d\tau \ C_{\nu,\gamma}(\mathbf{q},\tau).
 ```
 
-### Displacement Vector and Momentum Reporting Conventions
+### [Displacement Vector and Momentum Reporting Conventions](@id vector_reporting_conventions)
 
 Consider a ``D`` dimensional finite periodic lattice, where ``\mathbf{a}_d`` and ``\mathbf{b}_d`` denote the corresponding lattice vectors and reciprocal lattice vectors, where ``d \in [1,D]``.
 The extent of the lattice in unit cells in the direction of each of the lattice vectors is denoted by ``L_d``.
