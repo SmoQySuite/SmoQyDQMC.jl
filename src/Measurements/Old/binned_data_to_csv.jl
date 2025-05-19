@@ -126,7 +126,7 @@ function local_measurement_bins_to_csv(
     if pID == -1
         filename = joinpath(folder, @sprintf("%s_bins.csv", measurement))
     else
-        filename = joinpath(folder, @sprintf("%s_pID-%d_bins.csv", measurement, pID))
+        filename = joinpath(folder, @sprintf("%s_bins_pID-%d.csv", measurement, pID))
     end
 
     # get pID's to iterate over
@@ -225,7 +225,7 @@ function correlation_bins_to_csv(
     if pID == -1
         filename = @sprintf "%s_%s_%s_bins.csv" correlation space type
     else
-        filename = @sprintf "%s_%s_%s_pID-%d_bins.csv" correlation space type pID
+        filename = @sprintf "%s_%s_%s_bins_pID-%d.csv" correlation space type pID
     end
 
     # get the number of processes that ran during simulation

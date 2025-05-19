@@ -16,6 +16,8 @@ using PkgVersion
 using TOML
 using Glob
 using MPI
+using Format
+using HDF5
 
 # import "our" packages
 using MuTuner
@@ -198,37 +200,58 @@ export make_measurements!
 include("Measurements/write_measurements.jl")
 export write_measurements!
 
-# process measurements at end of the simulation to get final averages and error bars for all measurements
-include("Measurements/process_measurements_utils.jl")
-include("Measurements/process_global_measurements.jl")
-export process_global_measurements
-include("Measurements/process_local_measurements.jl")
-export process_local_measurements
-include("Measurements/process_correlation_measurements.jl")
-include("Measurements/process_correlation_measurements_mpi.jl")
-export process_correlation_measurement, process_correlation_measurements
-include("Measurements/process_measurements.jl")
-export process_measurements
+# implements function to merge HDF5 bin files for a given pID (process ID)
+# into a single HDF5 file. Also includes functions to delete all binned data.
+include("Measurements/merge_bins.jl")
+export merge_bins, rm_bins
 
-# process composite correlation measurements i.e. calculate functions of correlation functions
-include("Measurements/process_composite_correlation.jl")
-export composite_correlation_stat
+# implementes utility function for converting numbers to string
+include("Measurements/num_to_string_formatter.jl")
 
-# process results to calculate composite correlation ratio
-include("Measurements/compute_correlation_ratio.jl")
-export compute_correlation_ratio, compute_composite_correlation_ratio
+# functions for exporting binned global measurements to file
+include("Measurements/export_global_bins.jl")
+export export_global_bins_to_h5, export_global_bins_to_csv
 
-# tools for converted binned data, that is saved as *.jld2 binary files, to single csv file
-include("Measurements/binned_data_to_csv.jl")
-export global_measurement_bins_to_csv, local_measurement_bins_to_csv, correlation_bins_to_csv
+# functions for exporting binned local measurements to file
+include("Measurements/export_local_bins.jl")
+export export_local_bins_to_h5, export_local_bins_to_csv
+
+# function for exporting binned correlation data to HDF5 file
+include("Measurements/export_correlation_bins_to_h5.jl")
+export export_correlation_bins_to_h5
+
+# function for exporting binned correlation data to CSV file
+include("Measurements/export_correlation_bins_to_csv.jl")
+export export_correlation_bins_to_csv
+
+# function for exporting global measurement stats to csv file
+include("Measurements/export_global_stats_to_csv.jl")
+export export_global_stats_to_csv
+
+# function for exporting global measurement stats to csv file
+include("Measurements/export_local_stats_to_csv.jl")
+export export_local_stats_to_csv
+
+# function for exporting correlation measurement stats to csv file
+include("Measurements/export_correlation_stats_to_csv.jl")
+export export_correlation_stats_to_csv
+
+# internal functions for processing the binned data to calculate final
+# statistics using a single process
+include("Measurements/process_measurements_internals.jl")
+
+# internal functions for processing the binned data to calculate final
+# statistics using MPI parallelization to accelerate the computation
+include("Measurements/process_measurements_internals_mpi.jl")
+
+# public api functions for processing measurements
+# include("Measurements/process_measurements.jl")
+# export process_measurements
 
 # utilties for checkpoint simulations
 include("Measurements/checkpointing_utilities.jl")
-export write_jld2_checkpoint, read_jld2_checkpoint, rename_complete_simulation
-
-# functions to compress & decompress JLD2 binary files
-include("Measurements/compress_decompress_bins.jl")
-export compress_jld2_bins, decompress_jld2_bins, delete_jld2_bins
+export write_jld2_checkpoint, read_jld2_checkpoint
+export rm_jld2_checkpoints, rename_complete_simulation
 
 ############################
 ## PACKAGE INITIALIZATION ##

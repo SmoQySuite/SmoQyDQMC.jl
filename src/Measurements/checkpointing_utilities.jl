@@ -252,6 +252,47 @@ end
 
 
 @doc raw"""
+    rm_jld2_checkpoints(
+        # ARGUMENTS
+        comm::MPI.Comm,
+        simulation_info::SimulationInfo
+    )
+
+    rm_jld2_checkpoints(
+        # ARGUMENTS
+        simulation_info::SimulationInfo
+    )
+
+Delete the JLD2 checkpoint files.
+"""
+function rm_jld2_checkpoints(
+    simulation_info::SimulationInfo
+)
+
+    (; datafolder, pID) = simulation_info
+
+    # get the files in the data folder
+    files = readdir(datafolder, join = true)
+
+    # end of checkpoint filename
+    ending = @sprintf("_pID-%d.jld2", pID)
+
+    # iterate over files
+    for file in files
+        # get file base name
+        name = basename(file)
+        # if a checkpoint file
+        if startswith(name, "checkpoint_") && endswith(name, ending)
+            # delete the checkpoint file
+            rm(file, force = true)
+        end
+    end
+
+    return nothing
+end
+
+
+@doc raw"""
     rename_complete_simulation(
         # Arguments
         comm::MPI.Comm,
@@ -308,19 +349,8 @@ function rename_complete_simulation(
     # if deleting checkpoing files
     if delete_jld2_checkpoints
 
-        # get the files in the data folder
-        files = readdir(simulation_info_complete.datafolder, join = true)
-
-        # construct checkpoint filename
-        checkpoint_file = "checkpoint_pID-$(pID).jld2"
-
-        # iterate over files, deleting the checkpoint filed
-        for file in files
-            if basename(file) == checkpoint_file
-                # delete checkpoint file
-                rm(file, force = true)
-            end
-        end
+        # delete checkpoint files
+        rm_jld2_checkpoints(simulation_info_complete)
     end
 
     return simulation_info_complete
@@ -349,22 +379,11 @@ function rename_complete_simulation(
     # rename data folder
     mv(datafolder, simulation_info_complete.datafolder, force = true)
 
-    # if deleteing checkpoing files
+    # if deleting checkpoing files
     if delete_jld2_checkpoints
 
-        # get the files in the data folder
-        files = readdir(simulation_info_complete.datafolder, join = true)
-
-        # construct checkpoint filename
-        checkpoint_file = "checkpoint_pID-$(pID).jld2"
-
-        # iterate over files, deleting the checkpoint filed
-        for file in files
-            if basename(file) == checkpoint_file
-                # delete checkpoint file
-                rm(file, force = true)
-            end
-        end
+        # delete checkpoint files
+        rm_jld2_checkpoints(simulation_info_complete)
     end
 
     return simulation_info_complete
