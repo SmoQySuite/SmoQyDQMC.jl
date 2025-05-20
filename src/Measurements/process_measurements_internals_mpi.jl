@@ -50,12 +50,29 @@ function _process_measurements(
     N_bins = isnothing(N_bins) ? N_data_bins : N_bins
     @assert (N_data_bins % N_bins) == 0
 
+    # get all equal-time correlations if necessary
+    if process_all_equal_time_measurements
+        standard_equal_time  = keys(H5BinFile["CORRELATIONS/STANDARD/EQUAL-TIME"])
+        composite_equal_time = keys(H5BinFile["CORRELATIONS/COMPOSITE/EQUAL-TIME"])
+    end
+
+    # get all time-displaced correlations if necessary
+    if process_all_time_displaced_measurements
+        standard_time_displaced = keys(H5BinFile["CORRELATIONS/STANDARD/TIME-DISPLACED"])
+        composite_time_displaced = keys(H5BinFile["CORRELATIONS/COMPOSITE/TIME-DISPLACED"])
+    end
+
+    # get all integrated correlations if necessary
+    if process_all_integrated_measurements
+        standard_integrated  = keys(H5BinFile["CORRELATIONS/STANDARD/INTEGRATED"])
+        composite_integrated = keys(H5BinFile["CORRELATIONS/COMPOSITE/INTEGRATED"])
+    end
+
     # allocate HDF5 stats file if root process
     if isroot
         allocate_stats_file!(
             H5StatsFile, H5BinFile,
             process_global_measurements, process_local_measurements,
-            process_all_equal_time_measurements, process_all_time_displaced_measurements, process_all_integrated_measurements,
             standard_equal_time, standard_time_displaced, standard_integrated,
             composite_equal_time, composite_time_displaced, composite_integrated
         )
@@ -174,6 +191,7 @@ function _process_measurements(
     process_correlations!(
         comm, H5StatsFile, H5BinFile,
         "CORRELATIONS/STANDARD/EQUAL-TIME",
+        standard_equal_time,
         binned_sign, jackknife_samples, jackknife_g
     )
 
@@ -181,6 +199,7 @@ function _process_measurements(
     process_correlations!(
         comm, H5StatsFile, H5BinFile,
         "CORRELATIONS/STANDARD/TIME-DISPLACED",
+        standard_time_displaced,
         binned_sign, jackknife_samples, jackknife_g
     )
 
@@ -188,6 +207,7 @@ function _process_measurements(
     process_correlations!(
         comm, H5StatsFile, H5BinFile,
         "CORRELATIONS/STANDARD/INTEGRATED",
+        standard_integrated,
         binned_sign, jackknife_samples, jackknife_g
     )
 
@@ -195,6 +215,7 @@ function _process_measurements(
     process_correlations!(
         comm, H5StatsFile, H5BinFile,
         "CORRELATIONS/COMPOSITE/EQUAL-TIME",
+        composite_equal_time,
         binned_sign, jackknife_samples, jackknife_g
     )
 
@@ -202,6 +223,7 @@ function _process_measurements(
     process_correlations!(
         comm, H5StatsFile, H5BinFile,
         "CORRELATIONS/COMPOSITE/TIME-DISPLACED",
+        composite_time_displaced,
         binned_sign, jackknife_samples, jackknife_g
     )
 
@@ -209,6 +231,7 @@ function _process_measurements(
     process_correlations!(
         comm, H5StatsFile, H5BinFile,
         "CORRELATIONS/COMPOSITE/INTEGRATED",
+        composite_integrated,
         binned_sign, jackknife_samples, jackknife_g
     )
 
@@ -225,6 +248,7 @@ function process_correlations!(
     H5StatsFile::Union{HDF5.File,Nothing},
     H5BinFile::HDF5.File,
     correlation_type::String,
+    correlations::Vector{String},
     binned_sign::Vector{Complex{T}},
     jackknife_samples = (similar(binned_signs), similar(binned_signs)),
     jackknife_g = similar(binned_signs)
@@ -236,7 +260,7 @@ function process_correlations!(
     Correlations_In = H5BinFile[correlation_type]
     Correlations_Out = isnothing(H5StatsFile) ? nothing : H5StatsFile[correlation_type]
     # iterate over correlations
-    for key in keys(Correlations_In)
+    for key in correlations
         # input correlations
         Correlation_In = Correlations_In[key]
         Position_In = Correlation_In["POSITION"]

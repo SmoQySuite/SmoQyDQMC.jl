@@ -312,7 +312,7 @@ function _merge_bins(
 
     pIDs = isempty(pIDs) ? collect(0:MPI.Comm_size(comm)-1) : pIDs
     pID = pIDs[MPI.Comm_rank(comm) + 1]
-    if isdir(joinpath(folder,"bins","pID-$(pID)"))
+    if isdir(joinpath(datafolder,"bins","pID-$(pID)"))
         merge_bins(datafolder = datafolder, pID = pID)
     end
 
@@ -327,7 +327,11 @@ function _merge_bins(
 )
 
     pIDs = isa(pIDs, Int) ? [pIDs,] : pIDs
-    pIDs = isempty(pIDs) ? collect(parse(Int,split(f,"-")[end]) for f in filter(isdir,readdir(joinpath(datafolder,"bins")))) : pIDs
+    if isempty(pIDs)
+        contents = readdir(joinpath(datafolder,"bins"), join = true)
+        dirs = filter(isdir, contents)
+        pIDs = collect(parse(Int,split(f,"-")[end]) for f in dirs)
+    end
     for pID in pIDs
         merge_bins(datafolder = datafolder, pID = pID)
     end

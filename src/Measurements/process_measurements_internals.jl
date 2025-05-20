@@ -31,11 +31,28 @@ function _process_measurements(
     # open all the input HDF5 bin files
     H5BinFiles = [h5open(file, "r") for file in h5_bin_filenames]
 
+    # get all equal-time correlations if necessary
+    if process_all_equal_time_measurements
+        standard_equal_time  = keys(H5BinFiles[1]["CORRELATIONS/STANDARD/EQUAL-TIME"])
+        composite_equal_time = keys(H5BinFiles[1]["CORRELATIONS/COMPOSITE/EQUAL-TIME"])
+    end
+
+    # get all time-displaced correlations if necessary
+    if process_all_time_displaced_measurements
+        standard_time_displaced = keys(H5BinFiles[1]["CORRELATIONS/STANDARD/TIME-DISPLACED"])
+        composite_time_displaced = keys(H5BinFiles[1]["CORRELATIONS/COMPOSITE/TIME-DISPLACED"])
+    end
+
+    # get all integrated correlations if necessary
+    if process_all_integrated_measurements
+        standard_integrated  = keys(H5BinFiles[1]["CORRELATIONS/STANDARD/INTEGRATED"])
+        composite_integrated = keys(H5BinFiles[1]["CORRELATIONS/COMPOSITE/INTEGRATED"])
+    end
+
     # initialize the HDF5 stats file
     allocate_stats_file!(
         H5StatsFile, H5BinFiles[1],
         process_global_measurements, process_local_measurements,
-        process_all_equal_time_measurements, process_all_time_displaced_measurements, process_all_integrated_measurements,
         standard_equal_time, standard_time_displaced, standard_integrated,
         composite_equal_time, composite_time_displaced, composite_integrated
     )
@@ -47,7 +64,7 @@ function _process_measurements(
     N_pIDs = length(pIDs)
 
     # get the number of bins
-    N_data_bins = read(H5BinFile, "N_BINS")
+    N_data_bins = read(H5BinFiles[1], "N_BINS")
     N_bins = isnothing(N_bins) ? N_data_bins : N_bins
     @assert (N_data_bins % N_bins) == 0
 
@@ -283,9 +300,6 @@ function allocate_stats_file!(
     H5BinFile::HDF5.File,
     process_global_measurements::Bool,
     process_local_measurements::Bool,
-    process_all_equal_time_measurements::Bool,
-    process_all_time_displaced_measurements::Bool,
-    process_all_integrated_measurements::Bool,
     standard_equal_time::Vector{String},
     standard_time_displaced::Vector{String},
     standard_integrated::Vector{String},
@@ -312,24 +326,6 @@ function allocate_stats_file!(
             Local_Measurement_Out = create_group(Local_Out, key)
             Local_Measurement_Out["ID_TYPE"] = read_attribute(Local_Measurement_In, "ID_TYPE")
         end
-    end
-
-    # get all equal-time correlations if necessary
-    if process_all_equal_time_measurements
-        standard_equal_time  = keys(H5BinFile["CORRELATIONS/STANDARD/EQUAL-TIME"])
-        composite_equal_time = keys(H5BinFile["CORRELATIONS/COMPOSITE/EQUAL-TIME"])
-    end
-
-    # get all time-displaced correlations if necessary
-    if process_all_time_displaced_measurements
-        standard_time_displaced = keys(H5BinFile["CORRELATIONS/STANDARD/TIME-DISPLACED"])
-        composite_time_displaced = keys(H5BinFile["CORRELATIONS/COMPOSITE/TIME-DISPLACED"])
-    end
-
-    # get all integrated correlations if necessary
-    if process_all_integrated_measurements
-        standard_integrated  = keys(H5BinFile["CORRELATIONS/STANDARD/INTEGRATED"])
-        composite_integrated = keys(H5BinFile["CORRELATIONS/COMPOSITE/INTEGRATED"])
     end
 
     # create groups to contain correlation measurements

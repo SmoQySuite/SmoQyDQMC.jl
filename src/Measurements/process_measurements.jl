@@ -180,10 +180,8 @@ function process_measurements(
     MPI.Barrier(comm)
 
     # process bins to compute stats
-    h5filename = _process_measurements(
-        comm,
+    h5filename = _process_measurements(comm,
         datafolder, filename, pIDs, N_bins, rm_binned_data,
-        export_to_csv, scientific_notation, decimals, delimiter,
         process_global_measurements, process_local_measurements,
         process_all_equal_time_measurements,
         process_all_time_displaced_measurements,
@@ -202,69 +200,69 @@ function process_measurements(
         h5open(h5filename, "r") do H5File
 
             # export global stats to csv file
-            _export_global_stats_to_csv(datafolder, "global", H5File, String[], formatter, delimiter)
+            _export_global_stats_to_csv(datafolder, "global", H5File, String[], delimiter, formatter)
 
             # export local stats to csv file
-            _export_local_stats_to_csv(datafolder, "local", H5File, String[], formatter, delimiter)
+            _export_local_stats_to_csv(datafolder, "local", H5File, String[], delimiter, formatter)
 
             # iterate over standard equal-time correlation measurements
             for correlation in keys(H5File["CORRELATIONS"]["STANDARD"]["EQUAL-TIME"])
 
                 # export position-space correlation to csv file
-                _export_correlation_stats_to_csv(datafolder, correlation, "equal-time", "position", H5File, delimitter, formatter)
+                _export_correlation_stats_to_csv(datafolder, correlation, "equal-time", "position", H5File, delimiter, formatter)
 
                 # export momentum-space correlation to csv file
-                _export_correlation_stats_to_csv(datafolder, correlation, "equal-time", "momentum", H5File, delimitter, formatter)
+                _export_correlation_stats_to_csv(datafolder, correlation, "equal-time", "momentum", H5File, delimiter, formatter)
             end
 
             # iterate over composite equal-time correlation measurements
             for correlation in keys(H5File["CORRELATIONS"]["COMPOSITE"]["EQUAL-TIME"])
 
                 # export position-space correlation to csv file
-                _export_correlation_stats_to_csv(datafolder, correlation, "equal-time", "position", H5File, delimitter, formatter)
+                _export_correlation_stats_to_csv(datafolder, correlation, "equal-time", "position", H5File, delimiter, formatter)
 
                 # export momentum-space correlation to csv file
-                _export_correlation_stats_to_csv(datafolder, correlation, "equal-time", "momentum", H5File, delimitter, formatter)
+                _export_correlation_stats_to_csv(datafolder, correlation, "equal-time", "momentum", H5File, delimiter, formatter)
             end
 
             # iterate over standard time-displaced correlation measurements
             for correlation in keys(H5File["CORRELATIONS"]["STANDARD"]["TIME-DISPLACED"])
 
                 # export position-space correlation to csv file
-                _export_correlation_stats_to_csv(datafolder, correlation, "time-displaced", "position", H5File, delimitter, formatter)
+                _export_correlation_stats_to_csv(datafolder, correlation, "time-displaced", "position", H5File, delimiter, formatter)
 
                 # export momentum-space correlation to csv file
-                _export_correlation_stats_to_csv(datafolder, correlation, "time-displaced", "momentum", H5File, delimitter, formatter)
+                _export_correlation_stats_to_csv(datafolder, correlation, "time-displaced", "momentum", H5File, delimiter, formatter)
             end
 
             # iterate over composite time-displaced correlation measurements
             for correlation in keys(H5File["CORRELATIONS"]["COMPOSITE"]["TIME-DISPLACED"])
 
                 # export position-space correlation to csv file
-                _export_correlation_stats_to_csv(datafolder, correlation, "time-displaced", "position", H5File, delimitter, formatter)
+                _export_correlation_stats_to_csv(datafolder, correlation, "time-displaced", "position", H5File, delimiter, formatter)
 
                 # export momentum-space correlation to csv file
-                _export_correlation_stats_to_csv(datafolder, correlation, "time-displaced", "momentum", H5File, delimitter, formatter)
+                _export_correlation_stats_to_csv(datafolder, correlation, "time-displaced", "momentum", H5File, delimiter, formatter)
             end
 
             # iterate over standard integrated correlation measurements
             for correlation in keys(H5File["CORRELATIONS"]["STANDARD"]["INTEGRATED"])
 
                 # export position-space correlation to csv file
-                _export_correlation_stats_to_csv(datafolder, correlation, "integrated", "position", H5File, delimitter, formatter)
+                _export_correlation_stats_to_csv(datafolder, correlation, "integrated", "position", H5File, delimiter, formatter)
 
                 # export momentum-space correlation to csv file
-                _export_correlation_stats_to_csv(datafolder, correlation, "integrated", "momentum", H5File, delimitter, formatter)
+                _export_correlation_stats_to_csv(datafolder, correlation, "integrated", "momentum", H5File, delimiter, formatter)
             end
 
             # iterate over composite integrated correlation measurements
             for correlation in keys(H5File["CORRELATIONS"]["COMPOSITE"]["INTEGRATED"])
 
                 # export position-space correlation to csv file
-                _export_correlation_stats_to_csv(datafolder, correlation, "integrated", "position", H5File, delimitter, formatter)
+                _export_correlation_stats_to_csv(datafolder, correlation, "integrated", "position", H5File, delimiter, formatter)
 
                 # export momentum-space correlation to csv file
-                _export_correlation_stats_to_csv(datafolder, correlation, "integrated", "momentum", H5File, delimitter, formatter)
+                _export_correlation_stats_to_csv(datafolder, correlation, "integrated", "momentum", H5File, delimiter, formatter)
             end
         end
     end
@@ -359,7 +357,6 @@ function process_measurements(;
     # process bins to compute stats
     h5filename = _process_measurements(
         datafolder, filename, pIDs, N_bins, rm_binned_data,
-        export_to_csv, scientific_notation, decimals, delimiter,
         process_global_measurements, process_local_measurements,
         process_all_equal_time_measurements,
         process_all_time_displaced_measurements,
@@ -378,69 +375,69 @@ function process_measurements(;
         h5open(h5filename, "r") do H5File
 
             # export global stats to csv file
-            _export_global_stats_to_csv(datafolder, "global", H5File, String[], formatter, delimiter)
+            _export_global_stats_to_csv(datafolder, "global", H5File, String[], delimiter, formatter)
 
             # export local stats to csv file
-            _export_local_stats_to_csv(datafolder, "local", H5File, String[], formatter, delimiter)
+            _export_local_stats_to_csv(datafolder, "local", H5File, String[], delimiter, formatter)
 
             # iterate over standard equal-time correlation measurements
             for correlation in keys(H5File["CORRELATIONS"]["STANDARD"]["EQUAL-TIME"])
 
                 # export position-space correlation to csv file
-                _export_correlation_stats_to_csv(datafolder, correlation, "equal-time", "position", H5File, delimitter, formatter)
+                _export_correlation_stats_to_csv(datafolder, correlation, "equal-time", "position", H5File, delimiter, formatter)
 
                 # export momentum-space correlation to csv file
-                _export_correlation_stats_to_csv(datafolder, correlation, "equal-time", "momentum", H5File, delimitter, formatter)
+                _export_correlation_stats_to_csv(datafolder, correlation, "equal-time", "momentum", H5File, delimiter, formatter)
             end
 
             # iterate over composite equal-time correlation measurements
             for correlation in keys(H5File["CORRELATIONS"]["COMPOSITE"]["EQUAL-TIME"])
 
                 # export position-space correlation to csv file
-                _export_correlation_stats_to_csv(datafolder, correlation, "equal-time", "position", H5File, delimitter, formatter)
+                _export_correlation_stats_to_csv(datafolder, correlation, "equal-time", "position", H5File, delimiter, formatter)
 
                 # export momentum-space correlation to csv file
-                _export_correlation_stats_to_csv(datafolder, correlation, "equal-time", "momentum", H5File, delimitter, formatter)
+                _export_correlation_stats_to_csv(datafolder, correlation, "equal-time", "momentum", H5File, delimiter, formatter)
             end
 
             # iterate over standard time-displaced correlation measurements
             for correlation in keys(H5File["CORRELATIONS"]["STANDARD"]["TIME-DISPLACED"])
 
                 # export position-space correlation to csv file
-                _export_correlation_stats_to_csv(datafolder, correlation, "time-displaced", "position", H5File, delimitter, formatter)
+                _export_correlation_stats_to_csv(datafolder, correlation, "time-displaced", "position", H5File, delimiter, formatter)
 
                 # export momentum-space correlation to csv file
-                _export_correlation_stats_to_csv(datafolder, correlation, "time-displaced", "momentum", H5File, delimitter, formatter)
+                _export_correlation_stats_to_csv(datafolder, correlation, "time-displaced", "momentum", H5File, delimiter, formatter)
             end
 
             # iterate over composite time-displaced correlation measurements
             for correlation in keys(H5File["CORRELATIONS"]["COMPOSITE"]["TIME-DISPLACED"])
 
                 # export position-space correlation to csv file
-                _export_correlation_stats_to_csv(datafolder, correlation, "time-displaced", "position", H5File, delimitter, formatter)
+                _export_correlation_stats_to_csv(datafolder, correlation, "time-displaced", "position", H5File, delimiter, formatter)
 
                 # export momentum-space correlation to csv file
-                _export_correlation_stats_to_csv(datafolder, correlation, "time-displaced", "momentum", H5File, delimitter, formatter)
+                _export_correlation_stats_to_csv(datafolder, correlation, "time-displaced", "momentum", H5File, delimiter, formatter)
             end
 
             # iterate over standard integrated correlation measurements
             for correlation in keys(H5File["CORRELATIONS"]["STANDARD"]["INTEGRATED"])
 
                 # export position-space correlation to csv file
-                _export_correlation_stats_to_csv(datafolder, correlation, "integrated", "position", H5File, delimitter, formatter)
+                _export_correlation_stats_to_csv(datafolder, correlation, "integrated", "position", H5File, delimiter, formatter)
 
                 # export momentum-space correlation to csv file
-                _export_correlation_stats_to_csv(datafolder, correlation, "integrated", "momentum", H5File, delimitter, formatter)
+                _export_correlation_stats_to_csv(datafolder, correlation, "integrated", "momentum", H5File, delimiter, formatter)
             end
 
             # iterate over composite integrated correlation measurements
             for correlation in keys(H5File["CORRELATIONS"]["COMPOSITE"]["INTEGRATED"])
 
                 # export position-space correlation to csv file
-                _export_correlation_stats_to_csv(datafolder, correlation, "integrated", "position", H5File, delimitter, formatter)
+                _export_correlation_stats_to_csv(datafolder, correlation, "integrated", "position", H5File, delimiter, formatter)
 
                 # export momentum-space correlation to csv file
-                _export_correlation_stats_to_csv(datafolder, correlation, "integrated", "momentum", H5File, delimitter, formatter)
+                _export_correlation_stats_to_csv(datafolder, correlation, "integrated", "momentum", H5File, delimiter, formatter)
             end
         end
     end

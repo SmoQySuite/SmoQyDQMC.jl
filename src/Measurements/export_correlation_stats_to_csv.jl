@@ -117,7 +117,7 @@ function _export_correlation_stats_to_csv(
     category = haskey(CORRELATION_FUNCTIONS, correlation) ? "STANDARD" : "COMPOSITE"
 
     # construct directory path
-    path = joinpath(datafolder, type, correlation, space)
+    path = joinpath(datafolder, type, correlation)
     mkpath(path)
 
     # construct filename for csv file if single pID

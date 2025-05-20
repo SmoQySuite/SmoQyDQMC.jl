@@ -245,8 +245,8 @@ include("Measurements/process_measurements_internals.jl")
 include("Measurements/process_measurements_internals_mpi.jl")
 
 # public api functions for processing measurements
-# include("Measurements/process_measurements.jl")
-# export process_measurements
+include("Measurements/process_measurements.jl")
+export process_measurements
 
 # utilties for checkpoint simulations
 include("Measurements/checkpointing_utilities.jl")
