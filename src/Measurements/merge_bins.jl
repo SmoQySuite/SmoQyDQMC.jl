@@ -9,6 +9,8 @@
         datafolder::String,
         pID::Int
     )
+
+Merge the seperate HDF5 files contained the binned measurements into a single HDF5.
 """
 function merge_bins(
     # ARGUMENTS
@@ -301,43 +303,6 @@ end
 # axis/column labels for displacement vectors in position and momentum space
 position_column_labels(D::Int) = ((@sprintf("R_%d", d) for d in 1:D)...,)
 momentum_column_labels(D::Int) = ((@sprintf("K_%d", d) for d in 1:D)...,)
-
-
-# private merge bins method when MPI is being used
-function _merge_bins(
-    comm::MPI.Comm,
-    datafolder::String,
-    pIDs::Vector{Int}
-)
-
-    pIDs = isempty(pIDs) ? collect(0:MPI.Comm_size(comm)-1) : pIDs
-    pID = pIDs[MPI.Comm_rank(comm) + 1]
-    if isdir(joinpath(datafolder,"bins","pID-$(pID)"))
-        merge_bins(datafolder = datafolder, pID = pID)
-    end
-
-    return pIDs
-end
-
-
-# private merge bins method when MPI is NOT being used
-function _merge_bins(
-    datafolder::String,
-    pIDs::Union{Vector{Int},Int}
-)
-
-    pIDs = isa(pIDs, Int) ? [pIDs,] : pIDs
-    if isempty(pIDs)
-        contents = readdir(joinpath(datafolder,"bins"), join = true)
-        dirs = filter(isdir, contents)
-        pIDs = collect(parse(Int,split(f,"-")[end]) for f in dirs)
-    end
-    for pID in pIDs
-        merge_bins(datafolder = datafolder, pID = pID)
-    end
-
-    return pIDs
-end
 
 
 @doc raw"""

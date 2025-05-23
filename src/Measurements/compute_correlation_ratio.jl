@@ -5,11 +5,12 @@
         correlation::String,
         type::String,
         id_pairs::Vector{NTuple{2,Int}},
-        coefs,
-        k_point,
+        id_pair_coefficients,
+        q_point::NTuple{2,Int},
+        q_neighbors::Vector{NTuple{2,Int}},
         num_bins::Int = 0,
         pIDs::Vector{Int} = Int[],
-    )
+    ) where {D}
 
     compute_correlation_ratio(;
         # Keyword Arguments
@@ -17,11 +18,12 @@
         correlation::String,
         type::String,
         id_pairs::Vector{NTuple{2,Int}},
-        coefs,
-        k_point,
+        id_pair_coefficients,
+        q_point::NTuple{D,Int},
+        q_neighbors::Vector{NTuple{D,Int}},
         num_bins::Int = 0,
         pIDs::Vector{Int} = Int[],
-    )
+    ) where {D}
 
 Compute the correlation ratio at the ``\mathbf{k}``-point using a linear combination of standard correlation function measurements.
 The linear combination of correlation functions used is defined by `id_pairs` and `coefs`.
@@ -35,11 +37,12 @@ function compute_correlation_ratio(
     correlation::String,
     type::String,
     id_pairs::Vector{NTuple{2,Int}},
-    coefs,
-    k_point,
+    id_pair_coefficients::Vector{T},
+    q_point::NTuple{D,Int},
+    q_neighbors::Vector{NTuple{D,Int}},
     num_bins::Int = 0,
     pIDs::Vector{Int} = Int[],
-)
+) where {D, T<:Number}
 
     return R, real(ΔR)
 end
@@ -51,15 +54,43 @@ function compute_correlation_ratio(;
     correlation::String,
     type::String,
     id_pairs::Vector{NTuple{2,Int}},
-    coefs,
-    k_point,
+    id_pair_coefficients::Vector{T},
+    q_point::NTuple{D,Int},
+    q_neighbors::Vector{NTuple{D,Int}},
     num_bins::Int = 0,
-    pIDs::Vector{Int} = Int[],
-)
+    pIDs::Union{Int,Vector{Int}} = Int[],
+) where {D, T<:Number}
 
+    # determine relevant process IDs
+    pIDs = isa(pIDs, Int) ? [pIDs,] : pIDs
+    if isempty(pIDs)
+        pIDs = collect( 0 : length(readdir(joinpath(datafolder,"bins")))-1 )
+    end
 
+    # initialize correlation ratio mean and variance to zero
+    R = zero(Complex{real(T)})
+    varR = zero(real(T))
 
-    return R, real(ΔR)
+    # iterate over process IDs
+    for pID in pIDs
+
+        # compute correlation ratio for current process ID
+        R′, ΔR′ = _compute_correlation_ratio(
+            folder, correlation, type, id_pairs, id_pair_coeffients,
+            q_point, q_neighbors, num_bins, pID
+        )
+
+        # record statistics
+        R += R′
+        varR += abs2(ΔR′)
+    end
+
+    # calculate final stats
+    N_pID = length(pIDs)
+    R = R / N_pID
+    ΔR = sqrt(varR)/ N_pID
+
+    return R, ΔR
 end
 
 function _compute_correlation_ratio(
@@ -67,20 +98,34 @@ function _compute_correlation_ratio(
     correlation::String,
     type::String,
     id_pairs::Vector{NTuple{2,Int}},
-    coefficients::Vector{Complex{T}},
-    k_point::NTuple{D,Int},
+    id_pair_coefficients::Vector{T},
+    q_point::NTuple{D,Int},
+    q_neighbors::Vector{NTuple{D,Int}},
     num_bins::Int,
     pID::Int
-) where {D, T<:AbstractFloat}
+) where {D, T<:Number}
 
     # construct filename for HDF5 file containing binned data
     filename = joinpath(folder, @sprintf("bin_pID-%d.h5", pID))
 
+    # uppercase type defintion
+    Type = uppercase(type)
+
     # open HDF5 bin file
     H5File = h5open(filename, "r")
 
+    # get the binned sign
+    s_bins = bin_means(read(H5BinFile["GLOBAL/sgn"]), N_bins)
+
+    # initialize vectors to contain structure factors
+    Sq_bins = zeros(eltype(s), num_bins)
+    Sqpdq_bins = zeros(eltype(s), num_bins)
+
+    # number of neighboring wavevector to average over
+    Ndq = length(q_neighbors)
+
     # open HDF5 
-    Correlation = H5File["CORRELATIONS"]["STANDARD"][uppercase(type)][correlation]
+    Correlation = H5File["CORRELATIONS"]["STANDARD"][TYPE][correlation]
 
     # get dataset containing momentum data
     Momentum = Correlation["MOMENTUM"]
@@ -88,14 +133,64 @@ function _compute_correlation_ratio(
     # get dimensions of dataset
     dataset_dims = size(Momentum)
 
-    # get dimensions of lattice
-    L = dataset_dims[2:D+2]
-
     # load all ID pairs
     all_id_pairs = read(Correlation, "ID_PAIRS")
+
+    # get the index of each id pair
+    id_pair_indices = collect(findfirst(p -> p == p′, all_id_pairs) for p′ in id_pairs)
+
+    # iterate over ID pairs
+    for i in eachindex(id_pairs)
+
+        # get the current id pair
+        id_pair = id_pairs[i]
+
+        # get the coefficient associated with id pair
+        coef = coefficients[i]
+
+        # get the dataset index associated with ID pair
+        indx = findfirst(p -> p == id_pair, all_id_pairs)
+
+        # if time-displaced correlation measurement
+        if Type == "TIME-DISPLACED"
+
+            # record structure factor corresponding to ordering wave-vector
+            Sq_bins += coef * bin_means(Momentum[:,(q_point[d]+1 for d in 1:D)...,1,indx], num_bins)
+
+            # iterate over neighboring wave-vectors
+            for n in 1:Ndq
+
+                # get the nieghboring wave-vector
+                q_neighbor = q_neighbors[n]
+
+                # record structure factor corresponding to ordering wave-vector
+                Sqpdq_bins += coef/Ndq * bin_means(Momentum[:,(q_neighbor[d]+1 for d in 1:D)...,1,indx], num_bins)
+            end
+
+        # if equal-time or integrated correlation measurement
+        else
+
+            # record structure factor corresponding to ordering wave-vector
+            Sq_bins += coef * bin_means(Momentum[:,(q_point[d]+1 for d in 1:D)...,indx], num_bins)
+
+            # iterate over neighboring wave-vectors
+            for n in 1:Ndq
+
+                # get the nieghboring wave-vector
+                q_neighbor = q_neighbors[n]
+
+                # record structure factor corresponding to ordering wave-vector
+                Sqpdq_bins += coef/Ndq * bin_means(Momentum[:,(q_neighbor[d]+1 for d in 1:D)...,indx], num_bins)
+            end
+        end
+    end
+
+    # calculate correlation ratio
+    # calculate composite correlation ratio
+    R, ΔR = jackknife((Sqpdq, Sq, s) -> 1 - abs(Sqpdq/s)/abs(Sq/s), Sqpdq_bins, Sq_bins, s_bins)
 
     # close HDF5 file
     close(H5File)
 
-    return nothing
+    return R, ΔR
 end
