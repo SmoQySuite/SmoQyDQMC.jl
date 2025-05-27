@@ -2,29 +2,29 @@
     compute_correlation_ratio(
         comm::MPI.Comm;
         # KEYWORD ARGUMENTS
-        folder::String,
+        datafolder::String,
         correlation::String,
         type::String,
         id_pairs::Vector{NTuple{2,Int}},
-        id_pair_coefficients,
-        q_point::NTuple{2,Int},
-        q_neighbors::Vector{NTuple{2,Int}},
-        num_bins::Int = 0,
-        pIDs::Vector{Int} = Int[],
-    ) where {D}
-
-    compute_correlation_ratio(;
-        # KEYWORD ARGUMENTS
-        folder::String,
-        correlation::String,
-        type::String,
-        id_pairs::Vector{NTuple{2,Int}},
-        id_pair_coefficients,
+        id_pair_coefficients::Vector{T},
         q_point::NTuple{D,Int},
         q_neighbors::Vector{NTuple{D,Int}},
         num_bins::Int = 0,
         pIDs::Vector{Int} = Int[],
-    ) where {D}
+    ) where {D, T<:Number}
+
+    compute_correlation_ratio(;
+        # KEYWORD ARGUMENTS
+        datafolder::String,
+        correlation::String,
+        type::String,
+        id_pairs::Vector{NTuple{2,Int}},
+        id_pair_coefficients::Vector{T},
+        q_point::NTuple{D,Int},
+        q_neighbors::Vector{NTuple{D,Int}},
+        num_bins::Int = 0,
+        pIDs::Union{Int,Vector{Int}} = Int[]
+    ) where {D, T<:Number}
 
 Compute the correlation ratio at the ``\mathbf{k}``-point using a linear combination of standard correlation function measurements.
 The linear combination of correlation functions used is defined by `id_pairs` and `coefs`.
@@ -34,7 +34,7 @@ If `type` is "integrated" then the integrated correlation ratio is calculated.
 function compute_correlation_ratio(
     comm::MPI.Comm;
     # KEYWORD ARGUMENTS
-    folder::String,
+    datafolder::String,
     correlation::String,
     type::String,
     id_pairs::Vector{NTuple{2,Int}},
@@ -45,13 +45,16 @@ function compute_correlation_ratio(
     pIDs::Vector{Int} = Int[],
 ) where {D, T<:Number}
 
+    # number of MPI processes
+    N_mpi = MPI.Comm_size(comm)
+
     # determine relevant pIDs
-    pIDs = isempty(pIDs) ? collect(0:MPI.Comm_size(comm)-1) : pIDs
+    pIDs = isempty(pIDs) ? collect(0:N_mpi-1) : pIDs
     pID = pIDs[MPI.Comm_rank(comm) + 1]
 
     # compute correlation ratio
     R, ΔR = _compute_correlation_ratio(
-        folder, correlation, type, id_pairs, id_pair_coefficients,
+        datafolder, correlation, type, id_pairs, id_pair_coefficients,
         q_point, q_neighbors, num_bins, pID
     )
     varR = abs2(ΔR)
@@ -68,7 +71,7 @@ end
 # compute correlation ratio using single process
 function compute_correlation_ratio(;
     # KEYWORD ARGUMENTS
-    folder::String,
+    datafolder::String,
     correlation::String,
     type::String,
     id_pairs::Vector{NTuple{2,Int}},
@@ -94,7 +97,7 @@ function compute_correlation_ratio(;
 
         # compute correlation ratio for current process ID
         R′, ΔR′ = _compute_correlation_ratio(
-            folder, correlation, type, id_pairs, id_pair_coeffients,
+            datafolder, correlation, type, id_pairs, id_pair_coefficients,
             q_point, q_neighbors, num_bins, pID
         )
 
@@ -113,7 +116,7 @@ end
 
 # compute correlation ration for single process
 function _compute_correlation_ratio(
-    folder::String,
+    datafolder::String,
     correlation::String,
     type::String,
     id_pairs::Vector{NTuple{2,Int}},
@@ -130,7 +133,7 @@ function _compute_correlation_ratio(
     )
 
     # construct filename for HDF5 file containing binned data
-    filename = joinpath(folder, @sprintf("bin_pID-%d.h5", pID))
+    filename = joinpath(datafolder, "bins", @sprintf("bins_pID-%d.h5", pID))
 
     # uppercase type defintion
     Type = uppercase(type)
@@ -138,30 +141,31 @@ function _compute_correlation_ratio(
     # open HDF5 bin file
     H5File = h5open(filename, "r")
 
+    # get all the sgn data
+    sgn = read(H5File["GLOBAL/sgn"])
+
+    # set number of bins if necessary
+    num_bins = iszero(num_bins) ? length(sgn) : num_bins
+    @assert length(sgn) % num_bins == 0
+
     # get the binned sign
-    s_bins = bin_means(read(H5BinFile["GLOBAL/sgn"]), N_bins)
+    s_bins = bin_means(sgn, num_bins)
 
     # initialize vectors to contain structure factors
-    Sq_bins = zeros(eltype(s), num_bins)
-    Sqpdq_bins = zeros(eltype(s), num_bins)
+    Sq_bins = zeros(eltype(sgn), num_bins)
+    Sqpdq_bins = zeros(eltype(sgn), num_bins)
 
     # number of neighboring wavevector to average over
     Ndq = length(q_neighbors)
 
     # open HDF5 
-    Correlation = H5File["CORRELATIONS"]["STANDARD"][TYPE][correlation]
+    Correlation = H5File["CORRELATIONS"]["STANDARD"][Type][correlation]
 
     # get dataset containing momentum data
     Momentum = Correlation["MOMENTUM"]
 
-    # get dimensions of dataset
-    dataset_dims = size(Momentum)
-
     # load all ID pairs
-    all_id_pairs = read(Correlation, "ID_PAIRS")
-
-    # get the index of each id pair
-    id_pair_indices = collect(findfirst(p -> p == p′, all_id_pairs) for p′ in id_pairs)
+    all_id_pairs = map(p -> tuple(p...), read(Correlation, "ID_PAIRS"))
 
     # iterate over ID pairs
     for i in eachindex(id_pairs)
@@ -170,7 +174,7 @@ function _compute_correlation_ratio(
         id_pair = id_pairs[i]
 
         # get the coefficient associated with id pair
-        coef = coefficients[i]
+        coef = id_pair_coefficients[i]
 
         # get the dataset index associated with ID pair
         indx = findfirst(p -> p == id_pair, all_id_pairs)
@@ -220,24 +224,53 @@ function _compute_correlation_ratio(
 end
 
 
+@doc raw"""
+    compute_composite_correlation_ratio(
+        comm::MPI.Comm;
+        # KEYWORD ARGUMENTS
+        datafolder::String,
+        correlation::String,
+        type::String,
+        q_point::NTuple{D,Int},
+        q_neighbors::Vector{NTuple{D,Int}},
+        pIDs::Vector{Int} = Int[]
+    ) where {D}
+
+    compute_composite_correlation_ratio(;
+        # Keyword Arguments
+        datafolder::String,
+        correlation::String,
+        type::String,
+        q_point::NTuple{D,Int},
+        q_neighbors::Vector{NTuple{D,Int}},
+        num_bins::Int = 0,
+        pIDs::Union{Int,Vector{Int}} = Int[]
+    ) where {D}
+
+
+"""
 function compute_composite_correlation_ratio(
     comm::MPI.Comm;
     # KEYWORD ARGUMENTS
-    folder::String,
+    datafolder::String,
     correlation::String,
     type::String,
     q_point::NTuple{D,Int},
     q_neighbors::Vector{NTuple{D,Int}},
+    num_bins::Int = 0,
     pIDs::Vector{Int} = Int[]
-) where {D, T<:Number}
+) where {D}
+
+    # number of MPI processes
+    N_mpi = MPI.Comm_size(comm)
 
     # determine relevant pIDs
-    pIDs = isempty(pIDs) ? collect(0:MPI.Comm_size(comm)-1) : pIDs
+    pIDs = isempty(pIDs) ? collect(0:N_mpi-1) : pIDs
     pID = pIDs[MPI.Comm_rank(comm) + 1]
 
     # compute correlation ratio
-    R′, ΔR′ = _compute_composite_correlation_ratio(
-        folder, correlation, type, q_point, q_neighbors, num_bins, pID
+    R, ΔR = _compute_composite_correlation_ratio(
+        datafolder, correlation, type, q_point, q_neighbors, num_bins, pID
     )
     varR = abs2(ΔR)
 
@@ -247,19 +280,20 @@ function compute_composite_correlation_ratio(
     R    = R / N_mpi
     ΔR   = sqrt(varR) / N_mpi
 
-    return nothing
+    return R, ΔR
 end
 
 
 function compute_composite_correlation_ratio(;
     # Keyword Arguments
-    folder::String,
+    datafolder::String,
     correlation::String,
     type::String,
     q_point::NTuple{D,Int},
     q_neighbors::Vector{NTuple{D,Int}},
+    num_bins::Int = 0,
     pIDs::Union{Int,Vector{Int}} = Int[]
-) where {D, T<:Number}
+) where {D}
 
     # determine relevant process IDs
     pIDs = isa(pIDs, Int) ? [pIDs,] : pIDs
@@ -276,7 +310,7 @@ function compute_composite_correlation_ratio(;
 
         # compute correlation ratio for current process ID
         R′, ΔR′ = _compute_composite_correlation_ratio(
-            folder, correlation, type, q_point, q_neighbors, num_bins, pID
+            datafolder, correlation, type, q_point, q_neighbors, num_bins, pID
         )
 
         # record statistics
@@ -289,19 +323,19 @@ function compute_composite_correlation_ratio(;
     R = R / N_pID
     ΔR = sqrt(varR)/ N_pID
 
-    return nothing
+    return R, ΔR
 end
 
 # compute composite correlation ratio for single process
 function _compute_composite_correlation_ratio(
-    folder::String,
+    datafolder::String,
     correlation::String,
     type::String,
     q_point::NTuple{D,Int},
     q_neighbors::Vector{NTuple{D,Int}},
     num_bins::Int,
     pID::Int
-) where {D, T<:Number}
+) where {D}
 
     @assert(
         !in(correlation, keys(CORRELATION_FUNCTIONS)),
@@ -309,7 +343,7 @@ function _compute_composite_correlation_ratio(
     )
 
     # construct filename for HDF5 file containing binned data
-    filename = joinpath(folder, @sprintf("bin_pID-%d.h5", pID))
+    filename = joinpath(datafolder, "bins", @sprintf("bins_pID-%d.h5", pID))
 
     # uppercase type defintion
     Type = uppercase(type)
@@ -317,60 +351,59 @@ function _compute_composite_correlation_ratio(
     # open HDF5 bin file
     H5File = h5open(filename, "r")
 
+    # get all the sgn data
+    sgn = read(H5File["GLOBAL/sgn"])
+
+    # set number of bins if necessary
+    num_bins = iszero(num_bins) ? length(sgn) : num_bins
+    @assert length(sgn) % num_bins == 0
+
     # get the binned sign
-    s_bins = bin_means(read(H5BinFile["GLOBAL/sgn"]), N_bins)
+    s_bins = bin_means(sgn, num_bins)
 
     # initialize vectors to contain structure factors
-    Sq_bins = zeros(eltype(s), num_bins)
-    Sqpdq_bins = zeros(eltype(s), num_bins)
+    Sq_bins = zeros(eltype(sgn), num_bins)
+    Sqpdq_bins = zeros(eltype(sgn), num_bins)
 
     # number of neighboring wavevector to average over
     Ndq = length(q_neighbors)
 
     # open HDF5 
-    Correlation = H5File["CORRELATIONS"]["COMPOSITE"][TYPE][correlation]
+    Correlation = H5File["CORRELATIONS"]["COMPOSITE"][Type][correlation]
 
     # get dataset containing momentum data
     Momentum = Correlation["MOMENTUM"]
 
-    # get dimensions of dataset
-    dataset_dims = size(Momentum)
+    # if time-displaced correlation measurement
+    if Type == "TIME-DISPLACED"
 
+        # record structure factor corresponding to ordering wave-vector
+        Sq_bins += bin_means(Momentum[:,(q_point[d]+1 for d in 1:D)...,1], num_bins)
 
-    # iterate over ID pairs
-    for i in eachindex(id_pairs)
+        # iterate over neighboring wave-vectors
+        for n in 1:Ndq
 
-        # if time-displaced correlation measurement
-        if Type == "TIME-DISPLACED"
-
-            # record structure factor corresponding to ordering wave-vector
-            Sq_bins += bin_means(Momentum[:,(q_point[d]+1 for d in 1:D)...,1], num_bins)
-
-            # iterate over neighboring wave-vectors
-            for n in 1:Ndq
-
-                # get the nieghboring wave-vector
-                q_neighbor = q_neighbors[n]
-
-                # record structure factor corresponding to ordering wave-vector
-                Sqpdq_bins += bin_means(Momentum[:,(q_neighbor[d]+1 for d in 1:D)...,1], num_bins) / Ndq
-            end
-
-        # if equal-time or integrated correlation measurement
-        else
+            # get the nieghboring wave-vector
+            q_neighbor = q_neighbors[n]
 
             # record structure factor corresponding to ordering wave-vector
-            Sq_bins += bin_means(Momentum[:,(q_point[d]+1 for d in 1:D)...], num_bins)
+            Sqpdq_bins += bin_means(Momentum[:,(q_neighbor[d]+1 for d in 1:D)...,1], num_bins) / Ndq
+        end
 
-            # iterate over neighboring wave-vectors
-            for n in 1:Ndq
+    # if equal-time or integrated correlation measurement
+    else
 
-                # get the nieghboring wave-vector
-                q_neighbor = q_neighbors[n]
+        # record structure factor corresponding to ordering wave-vector
+        Sq_bins += bin_means(Momentum[:,(q_point[d]+1 for d in 1:D)...], num_bins)
 
-                # record structure factor corresponding to ordering wave-vector
-                Sqpdq_bins += bin_means(Momentum[:,(q_neighbor[d]+1 for d in 1:D)...], num_bins) / Ndq
-            end
+        # iterate over neighboring wave-vectors
+        for n in 1:Ndq
+
+            # get the nieghboring wave-vector
+            q_neighbor = q_neighbors[n]
+
+            # record structure factor corresponding to ordering wave-vector
+            Sqpdq_bins += bin_means(Momentum[:,(q_neighbor[d]+1 for d in 1:D)...], num_bins) / Ndq
         end
     end
 
