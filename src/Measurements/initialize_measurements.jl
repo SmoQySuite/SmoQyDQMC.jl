@@ -429,7 +429,8 @@ end
         model_geometry::ModelGeometry{D,T,N},
         name::String,
         correlation::String,
-        ids,
+        ids::Union{Nothing,Vector{Int}} = nothing,
+        id_pairs::Union{Nothing,Vector{NTuple{2,Int}}} = nothing,
         coefficients,
         time_displaced::Bool,
         integrated::Bool = false
@@ -444,7 +445,8 @@ function initialize_composite_correlation_measurement!(;
     model_geometry::ModelGeometry{D,T,N},
     name::String,
     correlation::String,
-    ids,
+    ids::Union{Nothing,Vector{Int}} = nothing,
+    id_pairs::Union{Nothing,Vector{NTuple{2,Int}}} = nothing,
     coefficients,
     time_displaced::Bool,
     integrated::Bool = false
@@ -457,7 +459,29 @@ function initialize_composite_correlation_measurement!(;
     ) = measurement_container
 
     @assert correlation in keys(CORRELATION_FUNCTIONS)
-    @assert length(ids) == length(coefficients)
+    @assert(
+        !(isnothing(ids) && isnothing(id_pairs)),
+        "One of the keywords `ids` or `id_pairs` needs to be assigned."
+    )
+    @assert(
+        !(!isnothing(ids) && !isnothing(id_pairs)),
+        "Only one of the keywords `ids` or `id_pairs` should be assigned."
+    )
+
+    if isa(ids, Vector{Int}) && isa(id_pairs, Nothing)
+        @assert length(ids) == length(coefficients)
+        coefs = Complex{T}[]
+        id_pairs = NTuple{2,Int}[]
+        for j in eachindex(ids)
+            for i in eachindex(ids)
+                push!( coefs, conj(coefficients[i]) * coefficients[j] )
+                push!( id_pairs, (ids[j], ids[i]) )
+            end
+        end
+    else
+        @assert length(id_pairs) == length(coefficients)
+        coefs = coefficients
+    end
 
     # set integrated to false for electron green's function
     if (integrated == true) && startswith(correlation, "greens")
@@ -470,21 +494,21 @@ function initialize_composite_correlation_measurement!(;
     # if time displaced or integrated measurement should be made
     if time_displaced || integrated
         time_displaced_composite_correlations[name] = CompositeCorrelationContainer(
-            T, Lτ, L, correlation, ids, coefficients, time_displaced
+            Lτ, L, correlation, id_pairs, coefs, time_displaced
         )
     end
 
     # if integrated measurement is made
     if integrated
         integrated_composite_correlations[name] = CompositeCorrelationContainer(
-            T, L, correlation, ids, coefficients
+            L, correlation, id_pairs, coefs
         )
     end
 
     # if equal-time measurement should be made
     if !time_displaced
         equaltime_composite_correlations[name] = CompositeCorrelationContainer(
-            T, L, correlation, ids, coefficients
+            L, correlation, id_pairs, coefs
         )
     end
 

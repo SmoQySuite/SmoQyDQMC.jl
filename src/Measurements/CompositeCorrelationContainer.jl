@@ -5,7 +5,7 @@ struct CompositeCorrelationContainer{D, T<:AbstractFloat}
     correlation::String
 
     # IDs of operatators appearing appearing in composite correlation measurement
-    ids::Vector{Int}
+    id_pairs::Vector{NTuple{2,Int}}
 
     # coefficients of operators appearing in correlation measurement
     coefficients::Vector{Complex{T}}
@@ -22,67 +22,40 @@ end
 
 # initialize composite correlation container for time-displaced measurement
 function CompositeCorrelationContainer(
-    T::DataType,
     Lτ::Int,
     L::AbstractVector{Int},
     correlation::String,
-    ids,
-    coefficients,
+    id_pairs::Vector{NTuple{2,Int}},
+    coefficients::Vector{Complex{T}},
     time_displaced::Bool
-)
+) where {T<:AbstractFloat}
 
-    @assert T<:AbstractFloat
     return CompositeCorrelationContainer(
         correlation, 
-        Int[ids...],
-        Complex{T}[coefficients...], 
+        id_pairs,
+        coefficients, 
         zeros(Complex{T}, L..., Lτ+1),
         zeros(Complex{T}, L..., Lτ+1),
         time_displaced
     )
 end
 
+# initialize composite correlation container for equal-time or integrated measurement
 function CompositeCorrelationContainer(
-    T::DataType,
     L::AbstractVector{Int},
     correlation::String,
-    ids,
-    coefficients,
-)
+    id_pairs::Vector{NTuple{2,Int}},
+    coefficients::Vector{Complex{T}}
+) where {T<:AbstractFloat}
 
-    @assert T<:AbstractFloat
     return CompositeCorrelationContainer(
         correlation, 
-        Int[ids...],
-        Complex{T}[coefficients...], 
+        id_pairs,
+        coefficients, 
         zeros(Complex{T}, L...),
-        zeros(Complex{T}, L...), 
+        zeros(Complex{T}, L...),
         false
     )
-end
-
-# Write correlation_container to a file with the name fn using the JLD2.jl package.
-function save(fn::String, composite_correlation_container::CompositeCorrelationContainer{D,T}; momentum::Bool) where {D, T<:AbstractFloat}
-
-    if momentum
-        jldsave(fn;
-                correlation = composite_correlation_container.correlation,
-                ids = composite_correlation_container.ids,
-                coefficients = composite_correlation_container.coefficients,
-                correlations = composite_correlation_container.structure_factors,
-                time_displaced = composite_correlation_container.time_displaced
-        )
-    else
-        jldsave(fn;
-                correlation = composite_correlation_container.correlation,
-                ids = composite_correlation_container.ids,
-                coefficients = composite_correlation_container.coefficients,
-                correlations = composite_correlation_container.correlations,
-                time_displaced = composite_correlation_container.time_displaced
-        )
-    end
-
-    return nothing
 end
 
 # Reset the correlation data stored in correlaiton_container to zero.
