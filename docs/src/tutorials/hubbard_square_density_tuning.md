@@ -661,11 +661,11 @@ Here we add an additional command line argument to specify the target density `n
 Now the `μ` command line argument specifies the initial chemical potential we begin the simulation with.
 For instance, a simulation can be run with the command
 ```bash
-mpiexecjl -n 16 julia hubbard_square_checkpoint.jl 1 5.0 -0.25 0.8 0.0 4 4.0 2500 10000 100 1.0
+mpiexecjl -n 16 julia hubbard_square_density_tuning.jl 1 5.0 -0.25 0.8 0.0 4 4.0 2500 10000 100 1.0
 ```
 or
 ```bash
-srun julia hubbard_square_checkpoint.jl 1 5.0 -0.25 0.8 0.0 4 4.0 2500 10000 100 1.0
+srun julia hubbard_square_density_tuning.jl 1 5.0 -0.25 0.8 0.0 4 4.0 2500 10000 100 1.0
 ```
 where the target density is ``\langle n \rangle = 0.8`` and the initial chemical potential is ``\mu = 0.0``.
 

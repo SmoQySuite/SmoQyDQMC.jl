@@ -538,7 +538,7 @@ And again, we need to make sure the include the `chemical_potential_tuner` in th
             start_timestamp = start_timestamp,
             runtime_limit = runtime_limit,
             # Contents of checkpoint file below.
-            n_therm  = n_therm + 1,
+            n_therm  = update + 1,
             n_updates = 1,
             tight_binding_parameters, electron_phonon_parameters, chemical_potential_tuner,
             measurement_container, model_geometry, metadata, rng
@@ -560,7 +560,7 @@ And again, we need to make sure the include the `chemical_potential_tuner` in th
     bin_size = N_updates ÷ N_bins
 
     # Iterate over updates and measurements.
-    for update in 1:N_updates
+    for update in n_updates:N_updates
 
         # Perform a reflection update.
         (accepted, logdetG, sgndetG) = reflection_update!(
@@ -693,11 +693,11 @@ Here we add an additional command line argument to specify the target density `n
 Now the `μ` command line argument specifies the initial chemical potential we begin the simulation with.
 For instance, a simulation can be run with the command
 ```bash
-mpiexecjl -n 16 julia holstein_honeycomb_checkpoint.jl 1 1.0 1.5 0.8 0.0 3 4.0 5000 10000 100 0.5
+mpiexecjl -n 16 julia holstein_honeycomb_density_tuning.jl 1 1.0 1.5 0.8 0.0 3 4.0 5000 10000 100 0.5
 ```
 or
 ```bash
-srun julia holstein_honeycomb_checkpoint.jl 1 1.0 1.5 0.8 0.0 3 4.0 5000 10000 100 0.5
+srun julia holstein_honeycomb_density_tuning.jl 1 1.0 1.5 0.8 0.0 3 4.0 5000 10000 100 0.5
 ```
 where the target density is ``\langle n \rangle = 0.8`` and the initial chemical potential is ``\mu = 0.0``.
 
