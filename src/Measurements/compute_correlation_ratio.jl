@@ -302,8 +302,8 @@ function compute_composite_correlation_ratio(;
     end
 
     # initialize correlation ratio mean and variance to zero
-    R = zero(Complex{real(T)})
-    varR = zero(real(T))
+    R = complex(0.0)
+    varR = 0.0
 
     # iterate over process IDs
     for pID in pIDs
