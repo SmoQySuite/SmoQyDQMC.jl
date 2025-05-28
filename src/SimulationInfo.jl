@@ -117,34 +117,17 @@ the data folder that results will be written to is successfully initialized.
 """
 function initialize_datafolder(comm::MPI.Comm, sim_info::SimulationInfo)
 
-    (; pID, datafolder, resuming) = sim_info
-
-    # synchrnize MPI walkers
-    MPI.Barrier(comm)
-
-    # if main process and starting new simulation (not resuming an existing simulation)
-    if iszero(pID) && !resuming
-
-        # make data folder diretory
-        mkdir(datafolder)
-    end
-
-    # synchrnize MPI walkers
-    MPI.Barrier(comm)
+    initialize_datafolder(sim_info)
 
     return nothing
 end
 
 function initialize_datafolder(sim_info::SimulationInfo)
 
-    (; pID, datafolder, resuming) = sim_info
+    (; pID, datafolder) = sim_info
 
-    # if main process and starting new simulation (not resuming an existing simulation)
-    if iszero(pID) && !resuming
-
-        # make data folder diretory
-        mkdir(datafolder)
-    end
+    # make subdirectory for binned data to be written to
+    mkpath(joinpath(datafolder, "bins", "pID-$(pID)"))
 
     return nothing
 end

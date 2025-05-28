@@ -340,6 +340,14 @@ function initialize_correlation_measurements!(;
     integrated::Bool = false
 )  where {T<:AbstractFloat, D, N}
 
+    # set integrated to false for electron green's function
+    if (integrated == true) && startswith(correlation, "greens")
+        integrated = false
+    # if time-displaced measurements are being made then also make integrated measurements
+    elseif time_displaced == true
+        integrated = true
+    end
+
     # iterate over all bond/orbial ID pairs
     for pair in pairs
         initialize_correlation_measurement!(
@@ -421,7 +429,8 @@ end
         model_geometry::ModelGeometry{D,T,N},
         name::String,
         correlation::String,
-        ids,
+        ids::Union{Nothing,Vector{Int}} = nothing,
+        id_pairs::Union{Nothing,Vector{NTuple{2,Int}}} = nothing,
         coefficients,
         time_displaced::Bool,
         integrated::Bool = false
@@ -436,7 +445,8 @@ function initialize_composite_correlation_measurement!(;
     model_geometry::ModelGeometry{D,T,N},
     name::String,
     correlation::String,
-    ids,
+    ids::Union{Nothing,Vector{Int}} = nothing,
+    id_pairs::Union{Nothing,Vector{NTuple{2,Int}}} = nothing,
     coefficients,
     time_displaced::Bool,
     integrated::Bool = false
@@ -449,211 +459,58 @@ function initialize_composite_correlation_measurement!(;
     ) = measurement_container
 
     @assert correlation in keys(CORRELATION_FUNCTIONS)
-    @assert length(ids) == length(coefficients)
+    @assert(
+        !(isnothing(ids) && isnothing(id_pairs)),
+        "One of the keywords `ids` or `id_pairs` needs to be assigned."
+    )
+    @assert(
+        !(!isnothing(ids) && !isnothing(id_pairs)),
+        "Only one of the keywords `ids` or `id_pairs` should be assigned."
+    )
+
+    if isa(ids, Vector{Int}) && isa(id_pairs, Nothing)
+        @assert length(ids) == length(coefficients)
+        coefs = Complex{T}[]
+        id_pairs = NTuple{2,Int}[]
+        for j in eachindex(ids)
+            for i in eachindex(ids)
+                push!( coefs, conj(coefficients[i]) * coefficients[j] )
+                push!( id_pairs, (ids[j], ids[i]) )
+            end
+        end
+    else
+        @assert length(id_pairs) == length(coefficients)
+        coefs = coefficients
+    end
+
+    # set integrated to false for electron green's function
+    if (integrated == true) && startswith(correlation, "greens")
+        integrated = false
+    # otherise if time-displaced measurements are being made then also make integrated measurements
+    elseif time_displaced == true
+        integrated = true
+    end
 
     # if time displaced or integrated measurement should be made
     if time_displaced || integrated
         time_displaced_composite_correlations[name] = CompositeCorrelationContainer(
-            T, Lτ, L, correlation, ids, coefficients, time_displaced
+            Lτ, L, correlation, id_pairs, coefs, time_displaced
         )
+    end
+
+    # if integrated measurement is made
+    if integrated
         integrated_composite_correlations[name] = CompositeCorrelationContainer(
-            T, L, correlation, ids, coefficients
+            L, correlation, id_pairs, coefs
         )
     end
 
     # if equal-time measurement should be made
     if !time_displaced
         equaltime_composite_correlations[name] = CompositeCorrelationContainer(
-            T, L, correlation, ids, coefficients
+            L, correlation, id_pairs, coefs
         )
     end
 
     return nothing
 end
-
-################################################
-## INITIALIZE MEASUREMENT DIRECTORY STRUCTURE ##
-################################################
-
-@doc raw"""
-    initialize_measurement_directories(;
-        # KEYWORD ARGUMENTS
-        simulation_info::SimulationInfo,
-        measurement_container::NamedTuple
-    )
-
-    initialize_measurement_directories(
-            # ARGUMENTS
-            comm::MPI.Comm;
-            # KEYWORD ARGUMENTS
-            simulation_info::SimulationInfo,
-            measurement_container::NamedTuple
-    )
-
-    initialize_measurement_directories(
-        # ARGUMENTS
-        simulation_info::SimulationInfo,
-        measurement_container::NamedTuple
-    )
-
-    initialize_measurement_directories(
-            # ARGUMENTS
-            comm::MPI.Comm,
-            simulation_info::SimulationInfo,
-            measurement_container::NamedTuple
-    )
-
-Initialize the measurement directories for simulation. If using MPI and a `comm::MPI.Comm` object is passed
-as the first argument, then none of the MPI processes will proceed beyond this function call until the measurement
-directories have been initialized.
-"""
-function initialize_measurement_directories(
-        # Arguments
-        comm::MPI.Comm;
-        # Keyword Arguments
-        simulation_info::SimulationInfo,
-        measurement_container::NamedTuple
-)
-
-    initialize_measurement_directories(simulation_info, measurement_container)
-    MPI.Barrier(comm)
-    return nothing
-end
-
-function initialize_measurement_directories(
-        # Arguments
-        comm::MPI.Comm,
-        simulation_info::SimulationInfo,
-        measurement_container::NamedTuple
-)
-
-    initialize_measurement_directories(simulation_info, measurement_container)
-    MPI.Barrier(comm)
-    return nothing
-end
-
-function initialize_measurement_directories(;
-    # Keyword Arguments
-    simulation_info::SimulationInfo,
-    measurement_container::NamedTuple
-)
-    initialize_measurement_directories(simulation_info, measurement_container)
-    return nothing
-end
-
-function initialize_measurement_directories(
-    # Arguments
-    simulation_info::SimulationInfo,
-    measurement_container::NamedTuple
-)
-
-    (; datafolder, resuming, pID) = simulation_info
-    (; time_displaced_correlations,
-       equaltime_correlations,
-       integrated_correlations,
-       time_displaced_composite_correlations,
-       equaltime_composite_correlations,
-       integrated_composite_correlations
-    ) = measurement_container
-
-    # only initialize folders if pID = 0
-    if iszero(pID) && !resuming
-
-        # make global measurements directory
-        global_directory = joinpath(datafolder, "global")
-        mknewdir(global_directory)
-
-        # make local measurements directory
-        local_directory = joinpath(datafolder, "local")
-        mknewdir(local_directory)
-
-        # make equaltime correlation directory
-        eqaultime_directory = joinpath(datafolder, "equal-time")
-        mknewdir(eqaultime_directory)
-
-        # iterate over equal-time correlation measurements
-        for correlation in keys(equaltime_correlations)
-
-            # make directory for each individual eqaul-time correlation measurement
-            equaltime_correlation_directory = joinpath(eqaultime_directory, correlation)
-            mknewdir(equaltime_correlation_directory)
-
-            # create sub-directories for position and momentum space data
-            mknewdir(joinpath(equaltime_correlation_directory, "position"))
-            mknewdir(joinpath(equaltime_correlation_directory, "momentum"))
-        end
-
-        # iterate over equal-time composite correlation measurements
-        for name in keys(equaltime_composite_correlations)
-
-            # make directory for each individual eqaul-time correlation measurement
-            equaltime_correlation_directory = joinpath(eqaultime_directory, name)
-            mknewdir(equaltime_correlation_directory)
-
-            # create sub-directories for position and momentum space data
-            mknewdir(joinpath(equaltime_correlation_directory, "position"))
-            mknewdir(joinpath(equaltime_correlation_directory, "momentum"))
-        end
-
-        # make time-displaced correlation directory
-        time_displaced_directory = joinpath(datafolder, "time-displaced")
-        mknewdir(time_displaced_directory)
-
-        # make integrated correlation directory
-        integrated_directory = joinpath(datafolder, "integrated")
-        mknewdir(integrated_directory)
-
-        # iterate over integrated correlation measurements
-        for correlation in keys(integrated_correlations)
-
-            # make directory for integrated correlation measurement
-            integrated_correlation_directory = joinpath(integrated_directory, correlation)
-            mknewdir(integrated_correlation_directory)
-
-            # create sub-directories for position and momentum space time-displaced correlation measurements
-            mknewdir(joinpath(integrated_correlation_directory, "position"))
-            mknewdir(joinpath(integrated_correlation_directory, "momentum"))
-
-            # check if also a time-displaced measurement should also be made
-            if time_displaced_correlations[correlation].time_displaced
-
-                # make directory for time-displaced correlation measurement
-                time_displaced_correlation_directory = joinpath(time_displaced_directory, correlation)
-                mknewdir(time_displaced_correlation_directory)
-
-                # create sub-directories for position and momentum space time-displaced correlation measurements
-                mknewdir(joinpath(time_displaced_correlation_directory, "position"))
-                mknewdir(joinpath(time_displaced_correlation_directory, "momentum"))
-            end
-        end
-
-        # iterate over integrated composite correlation measurements
-        for name in keys(integrated_composite_correlations)
-
-            # make directory for integrated correlation measurement
-            integrated_correlation_directory = joinpath(integrated_directory, name)
-            mknewdir(integrated_correlation_directory)
-
-            # create sub-directories for position and momentum space time-displaced correlation measurements
-            mknewdir(joinpath(integrated_correlation_directory, "position"))
-            mknewdir(joinpath(integrated_correlation_directory, "momentum"))
-
-            # check if also a time-displaced measurement should also be made
-            if time_displaced_composite_correlations[name].time_displaced
-
-                # make directory for time-displaced correlation measurement
-                time_displaced_correlation_directory = joinpath(time_displaced_directory, name)
-                mknewdir(time_displaced_correlation_directory)
-
-                # create sub-directories for position and momentum space time-displaced correlation measurements
-                mknewdir(joinpath(time_displaced_correlation_directory, "position"))
-                mknewdir(joinpath(time_displaced_correlation_directory, "momentum"))
-            end
-        end
-    end
-
-    return nothing
-end
-
-# make a new directory if it doesn't already exist
-mknewdir(path) = isdir(path) ? nothing : mkdir(path)

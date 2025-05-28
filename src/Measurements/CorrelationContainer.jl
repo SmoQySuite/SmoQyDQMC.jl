@@ -20,18 +20,6 @@ function CorrelationContainer(D::Int, T::DataType, time_displaced::Bool)
     return correlation_container
 end
 
-# Write correlation_container to a file with the name fn using the JLD2.jl package.
-function save(fn::String, correlation_container::CorrelationContainer{D,T}) where {D, T<:AbstractFloat}
-
-    jldsave(fn;
-            id_pairs = correlation_container.id_pairs,
-            correlations = correlation_container.correlations,
-            time_displaced = correlation_container.time_displaced
-    )
-
-    return nothing
-end
-
 # Reset the correlation data stored in correlaiton_container to zero.
 function reset!(correlaiton_container::CorrelationContainer{D,T}) where {D,T<:AbstractFloat}
 
