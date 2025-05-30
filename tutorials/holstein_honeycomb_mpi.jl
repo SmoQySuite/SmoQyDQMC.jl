@@ -298,6 +298,18 @@ function run_simulation(
         ]
     )
 
+    ## Initialize measurement of electron Green's function traced
+    ## over both orbitals in the unit cell.
+    initialize_composite_correlation_measurement!(
+        measurement_container = measurement_container,
+        model_geometry = model_geometry,
+        name = "tr_greens",
+        correlation = "greens",
+        id_pairs = [(1,1), (2,2)],
+        coefficients = [1.0, 1.0],
+        time_displaced = true,
+    )
+
     ## Initialize CDW correlation measurement.
     initialize_composite_correlation_measurement!(
         measurement_container = measurement_container,
@@ -309,9 +321,6 @@ function run_simulation(
         time_displaced = false,
         integrated = true
     )
-
-    ## Initialize the sub-directories to which the various measurements will be written.
-    initialize_measurement_directories(comm, simulation_info, measurement_container)
 
 # ## Setup DQMC simulation
 # No changes need to made to this section of the code from the previous [2a) Honeycomb Holstein Model](@ref) tutorial.
@@ -476,6 +485,12 @@ function run_simulation(
         )
     end
 
+# ## Merge binned data
+# No changes need to made to this section of the code from the previous [2a) Honeycomb Holstein Model](@ref) tutorial.
+
+    ## Merge binned data into a single HDF5 file.
+    merge_bins(simulation_info)
+
 # ## Record simulation metadata
 # No changes need to made to this section of the code from the previous [2a) Honeycomb Holstein Model](@ref) tutorial.
 
@@ -492,15 +507,40 @@ function run_simulation(
 
 # ## Post-process results
 # The main change we need to make from the previos [2a) Honeycomb Holstein Model](@ref) tutorial is to call
-# the [`process_measurements`](@ref), [`compute_correlation_ratio`](@ref) and [`compress_jld2_bins`](@ref) function
+# the [`process_measurements`](@ref) and [`compute_composite_correlation_ratio`](@ref) functions
 # such that the first argument is the `comm` object, thereby ensuring a parallelized version of each method is called.
 
-    ## Process the simulation results, calculating final error bars for all measurements,
+    ## Process the simulation results, calculating final error bars for all measurements.
     ## writing final statisitics to CSV files.
-    process_measurements(comm, simulation_info.datafolder, N_bins, time_displaced = true)
+    process_measurements(
+        comm,
+        datafolder = simulation_info.datafolder,
+        n_bins = N_bins,
+        export_to_csv = true,
+        scientific_notation = false,
+        decimals = 7,
+        delimiter = " "
+    )
 
-    ## Merge binary files containing binned data into a single file.
-    compress_jld2_bins(comm, folder = simulation_info.datafolder)
+    ## Calculate CDW correlation ratio.
+    Rcdw, ΔRcdw = compute_composite_correlation_ratio(
+        comm,
+        datafolder = simulation_info.datafolder,
+        name = "cdw",
+        type = "equal-time",
+        q_point = (0, 0),
+        q_neighbors = [
+            (1,0), (L-1,0), (0,1), (0,L-1)
+        ]
+    )
+
+    ## Record the AFM correlation ratio mean and standard deviation.
+    metadata["Rcdw_mean_real"] = real(Rcdw)
+    metadata["Rcdw_mean_imag"] = imag(Rcdw)
+    metadata["Rcdw_std"]       = ΔRcdw
+
+    ## Write simulation summary TOML file.
+    save_simulation_info(simulation_info, metadata)
 
     return nothing
 end # end of run_simulation function

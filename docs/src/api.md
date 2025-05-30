@@ -251,7 +251,6 @@ save_density_tuning_profile
 - [`initialize_measurements!`](@ref)
 - [`initialize_correlation_measurements!`](@ref)
 - [`initialize_composite_correlation_measurement!`](@ref)
-- [`initialize_measurement_directories`](@ref)
 
 **Make Measurements**
 
@@ -260,11 +259,14 @@ save_density_tuning_profile
 **Write Measurements**
 
 - [`write_measurements!`](@ref)
+- [`merge_bins`](@ref)
+- [`rm_bins`](@ref)
 
 **Checkpointing Utilities**
 
 - [`write_jld2_checkpoint`](@ref)
 - [`read_jld2_checkpoint`](@ref)
+- [`rm_jld2_checkpoints`](@ref)
 - [`rename_complete_simulation`](@ref)
 
 **Process Measurements**
@@ -272,15 +274,22 @@ save_density_tuning_profile
 - [`save_simulation_info`](@ref)
 - [`process_measurements`](@ref)
 - [`process_correlation_measurement`](@ref)
-- [`composite_correlation_stat`](@ref)
 - [`compute_correlation_ratio`](@ref)
 - [`compute_composite_correlation_ratio`](@ref)
-- [`global_measurement_bins_to_csv`](@ref)
-- [`local_measurement_bins_to_csv`](@ref)
-- [`correlation_bins_to_csv`](@ref)
-- [`compress_jld2_bins`](@ref)
-- [`decompress_jld2_bins`](@ref)
-- [`delete_jld2_bins`](@ref)
+
+**Export Measurements**
+
+- [`export_global_stats_to_csv`](@ref)
+- [`export_global_bins_to_h5`](@ref)
+- [`export_global_bins_to_csv`](@ref)
+
+- [`export_local_stats_to_csv`](@ref)
+- [`export_local_bins_to_csv`](@ref)
+- [`export_local_bins_to_h5`](@ref)
+
+- [`export_correlation_stats_to_csv`](@ref)
+- [`export_correlation_bins_to_csv`](@ref)
+- [`export_correlation_bins_to_h5`](@ref)
 
 ```@docs
 GLOBAL_MEASUREMENTS
@@ -295,7 +304,6 @@ initialize_measurement_container
 initialize_measurements!
 initialize_correlation_measurements!
 initialize_composite_correlation_measurement!
-initialize_measurement_directories
 ```
 
 ### Make Measreuments
@@ -308,6 +316,8 @@ make_measurements!
 
 ```@docs
 write_measurements!
+merge_bins
+rm_bins
 ```
 
 ## Checkpointing Utilities
@@ -315,24 +325,30 @@ write_measurements!
 ```@docs
 write_jld2_checkpoint
 read_jld2_checkpoint
+rm_jld2_checkpoints
 rename_complete_simulation
 ```
 
 ### Process Measurements
+
 ```@docs
 save_simulation_info
 process_measurements
-process_global_measurements
-process_local_measurements
-process_correlation_measurements
 process_correlation_measurement
-composite_correlation_stat
 compute_correlation_ratio
 compute_composite_correlation_ratio
-global_measurement_bins_to_csv
-local_measurement_bins_to_csv
-correlation_bins_to_csv
-compress_jld2_bins
-decompress_jld2_bins
-delete_jld2_bins
+```
+
+### Export Measurements
+
+```@docs
+export_global_stats_to_csv
+export_global_bins_to_h5
+export_global_bins_to_csv
+export_local_stats_to_csv
+export_local_bins_to_csv
+export_local_bins_to_h5
+export_correlation_stats_to_csv
+export_correlation_bins_to_csv
+export_correlation_bins_to_h5
 ```

@@ -338,9 +338,6 @@ function run_simulation(
             integrated = true
         )
 
-        ## Initialize the sub-directories to which the various measurements will be written.
-        initialize_measurement_directories(comm, simulation_info, measurement_container)
-
 # ## Write first checkpoint
 # Here we need to add the
 # [`MuTuner.MuTunerLogger`](https://cohensbw.github.io/MuTuner.jl/stable/api/)
@@ -561,6 +558,12 @@ function run_simulation(
         )
     end
 
+# ## Merge binned data
+# No changes need to made to this section of the code from the previous [1a) Square Hubbard Model](@ref) tutorial.
+
+    ## Merge binned data into a single HDF5 file.
+    merge_bins(simulation_info)
+
 # ## Record simulation metadata
 # Here we can add a call to the [`save_density_tuning_profile`](@ref), which records the full history
 # of the chemical potential and density tuning process.
@@ -577,41 +580,50 @@ function run_simulation(
     save_simulation_info(simulation_info, metadata)
 
     ## Save the density tuning profile to file.
-    save_density_tuning_profile(simulation_info, chemical_potential_tuner)
+    save_density_tuning_profile(
+        simulation_info, chemical_potential_tuner,
+        export_to_h5 = true,
+        export_to_csv = false
+    )
 
 # ## Post-process results
 # No changes need to made to this section of the code from the previous
 # [1c) Square Hubbard Model with Checkpointing](@ref) tutorial.
 
-    ## Set the number of bins used to calculate the error in measured observables.
-    n_bins = N_bins
-
-    ## Process the simulation results, calculating final error bars for all measurements,
+    ## Process the simulation results, calculating final error bars for all measurements.
     ## writing final statisitics to CSV files.
-    process_measurements(comm, simulation_info.datafolder, n_bins, time_displaced = false)
+    process_measurements(
+        comm;
+        datafolder = simulation_info.datafolder,
+        n_bins = N_bins,
+        export_to_csv = true,
+        scientific_notation = false,
+        decimals = 7,
+        delimiter = " "
+    )
 
     ## Calculate AFM correlation ratio.
     Rafm, ΔRafm = compute_correlation_ratio(
         comm;
-        folder = simulation_info.datafolder,
+        datafolder = simulation_info.datafolder,
         correlation = "spin_z",
         type = "equal-time",
         id_pairs = [(1, 1)],
-        coefs = [1.0],
-        k_point = (L÷2, L÷2), # Corresponds to Q_afm = (π/a, π/a).
-        num_bins = n_bins
+        id_pair_coefficients = [1.0],
+        q_point = (L÷2, L÷2),
+        q_neighbors = [
+            (L÷2+1, L÷2), (L÷2-1, L÷2),
+            (L÷2, L÷2+1), (L÷2, L÷2-1)
+        ]
     )
 
     ## Record the AFM correlation ratio mean and standard deviation.
-    metadata["Rafm_real_mean"] = real(Rafm)
-    metadata["Rafm_imag_mean"] = imag(Rafm)
+    metadata["Rafm_mean_real"] = real(Rafm)
+    metadata["Rafm_mean_imag"] = imag(Rafm)
     metadata["Rafm_std"]       = ΔRafm
 
     ## Write simulation summary TOML file.
     save_simulation_info(simulation_info, metadata)
-
-    ## Merge binary files containing binned data into a single file.
-    compress_jld2_bins(comm, folder = simulation_info.datafolder)
 
     ## Rename the data folder to indicate the simulation is complete.
     simulation_info = rename_complete_simulation(

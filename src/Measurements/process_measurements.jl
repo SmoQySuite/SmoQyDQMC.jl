@@ -29,7 +29,7 @@ Below I group them together into related categories and define their meanings.
 
 ## Keyword for Controlling Workflow
 
-- `N_bins::Union{Int, Nothing} = nothing`: Number of bins used to calculate statistics. If `nothing` then set equal to the number of data bins written to file during the simulation. Must be a factor of the number of bins written to file during the DQMC simulation.
+- `n_bins::Union{Int, Nothing} = nothing`: Number of bins used to calculate statistics. If `nothing` then set equal to the number of data bins written to file during the simulation. Must be a factor of the number of bins written to file during the DQMC simulation.
 - `pIDs::Union{Int,Vector{Int}} = Int[]`: Specifies for which process IDs to calculate average statistics. If `pIDs = Int[]`, the calculate for all process IDs. If `comm::MPI.Comm` is passed as first function argument then `pIDs` must be of type `Vector{Int}` and not `Int`.
 - `filename_prefix::String = "stats"`: Start of filename for HDF5 containing final statistics. HDF5 files containing statistcis for a single process ID will end with `pID-$(pID).h5`.
 - `rm_binned_data::Bool = false`: Whether to delete the binned data after final statistics are computed.
@@ -46,7 +46,7 @@ Below I group them together into related categories and define their meanings.
 - `process_global_measurements::Bool = true`: Whether to calculate the statistics for global measurements.
 - `process_local_measurements::Bool = true`: Whether to calculate the statistics for local measurements.
 - `process_all_equal_time_measurements::Bool = true`: Whether to calculate statistics for all equal-time correlation measurements.
-- `process_all_time_displaced_measurements::Bool = true`: Whether to calculate statistics for all time-displaced correlation measurements.
+- `process_all_time_displaced_measurements::Bool = false`: Whether to calculate statistics for all time-displaced correlation measurements.
 - `process_all_integrated_measurements::Bool = true`: Whether to calculate statistics for all integrated correlation measurements.
 
 ## Keyword Specifying Specific Correlation Statistics to Compute
@@ -57,7 +57,7 @@ which specific equal-time correlation measurements to calculate statistics for.
 - `standard_equal_time::Vector{String} = String[]`
 - `composite_integrated::Vector{String} = String[]`
 
-If `process_all_time_displaced_measurements = false`, then the keyword arguments below can be used to specify
+If `process_all_time_displaced_measurements = true`, then the keyword arguments below can be used to specify
 which specific time-displaced correlation measurements to calculate statistics for.
 
 - `standard_time_displaced::Vector{String} = String[]`
@@ -74,18 +74,18 @@ function process_measurements(
     comm::MPI.Comm;
     # KEYWORD ARGUMENTS
     datafolder::String,
-    N_bins::Union{Int, Nothing} = nothing,
+    n_bins::Union{Int, Nothing} = nothing,
     pIDs::Vector{Int} = Int[],
     filename_prefix::String = "stats",
     rm_binned_data::Bool = false,
     export_to_csv::Bool = true,
     scientific_notation::Bool = false,
-    decimals::Int = 9,
+    decimals::Int = 7,
     delimiter::String = " ",
     process_global_measurements::Bool = true,
     process_local_measurements::Bool = true,
     process_all_equal_time_measurements::Bool = true,
-    process_all_time_displaced_measurements::Bool = false,
+    process_all_time_displaced_measurements::Bool = true,
     process_all_integrated_measurements::Bool = true,
     standard_equal_time::Vector{String} = String[],
     standard_time_displaced::Vector{String} = String[],
@@ -112,7 +112,7 @@ function process_measurements(
 
     # process bins to compute stats
     h5filename = _process_measurements(comm,
-        datafolder, filename, pIDs, N_bins, rm_binned_data,
+        datafolder, filename, pIDs, n_bins, rm_binned_data,
         process_global_measurements, process_local_measurements,
         process_all_equal_time_measurements,
         process_all_time_displaced_measurements,
@@ -207,18 +207,18 @@ end
 function process_measurements(;
     # KEYWORD ARGUMENTS
     datafolder::String,
-    N_bins::Union{Int, Nothing} = nothing,
+    n_bins::Union{Int, Nothing} = nothing,
     pIDs::Union{Int, Vector{Int}} = Int[],
     filename_prefix::String = "stats",
     rm_binned_data::Bool = false,
     export_to_csv::Bool = true,
     scientific_notation::Bool = false,
-    decimals::Int = 9,
+    decimals::Int = 7,
     delimiter::String = " ",
     process_global_measurements::Bool = true,
     process_local_measurements::Bool = true,
     process_all_equal_time_measurements::Bool = true,
-    process_all_time_displaced_measurements::Bool = false,
+    process_all_time_displaced_measurements::Bool = true,
     process_all_integrated_measurements::Bool = true,
     standard_equal_time::Vector{String} = String[],
     standard_time_displaced::Vector{String} = String[],
@@ -243,7 +243,7 @@ function process_measurements(;
 
     # process bins to compute stats
     h5filename = _process_measurements(
-        datafolder, filename, pIDs, N_bins, rm_binned_data,
+        datafolder, filename, pIDs, n_bins, rm_binned_data,
         process_global_measurements, process_local_measurements,
         process_all_equal_time_measurements,
         process_all_time_displaced_measurements,

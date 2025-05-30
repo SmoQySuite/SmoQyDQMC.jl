@@ -468,6 +468,14 @@ function initialize_composite_correlation_measurement!(;
         "Only one of the keywords `ids` or `id_pairs` should be assigned."
     )
 
+    # set integrated to false for electron green's function
+    if (integrated == true) && startswith(correlation, "greens")
+        integrated = false
+    # if time-displaced measurements are being made then also make integrated measurements
+    elseif time_displaced == true
+        integrated = true
+    end
+
     if isa(ids, Vector{Int}) && isa(id_pairs, Nothing)
         @assert length(ids) == length(coefficients)
         coefs = Complex{T}[]
@@ -480,7 +488,7 @@ function initialize_composite_correlation_measurement!(;
         end
     else
         @assert length(id_pairs) == length(coefficients)
-        coefs = coefficients
+        coefs = Complex{T}[coefficients...]
     end
 
     # set integrated to false for electron green's function

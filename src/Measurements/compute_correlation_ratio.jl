@@ -229,7 +229,7 @@ end
         comm::MPI.Comm;
         # KEYWORD ARGUMENTS
         datafolder::String,
-        correlation::String,
+        name::String,
         type::String,
         q_point::NTuple{D,Int},
         q_neighbors::Vector{NTuple{D,Int}},
@@ -239,7 +239,7 @@ end
     compute_composite_correlation_ratio(;
         # Keyword Arguments
         datafolder::String,
-        correlation::String,
+        name::String,
         type::String,
         q_point::NTuple{D,Int},
         q_neighbors::Vector{NTuple{D,Int}},
@@ -253,7 +253,7 @@ function compute_composite_correlation_ratio(
     comm::MPI.Comm;
     # KEYWORD ARGUMENTS
     datafolder::String,
-    correlation::String,
+    name::String,
     type::String,
     q_point::NTuple{D,Int},
     q_neighbors::Vector{NTuple{D,Int}},
@@ -270,7 +270,7 @@ function compute_composite_correlation_ratio(
 
     # compute correlation ratio
     R, ΔR = _compute_composite_correlation_ratio(
-        datafolder, correlation, type, q_point, q_neighbors, num_bins, pID
+        datafolder, name, type, q_point, q_neighbors, num_bins, pID
     )
     varR = abs2(ΔR)
 
@@ -287,7 +287,7 @@ end
 function compute_composite_correlation_ratio(;
     # Keyword Arguments
     datafolder::String,
-    correlation::String,
+    name::String,
     type::String,
     q_point::NTuple{D,Int},
     q_neighbors::Vector{NTuple{D,Int}},
@@ -310,7 +310,7 @@ function compute_composite_correlation_ratio(;
 
         # compute correlation ratio for current process ID
         R′, ΔR′ = _compute_composite_correlation_ratio(
-            datafolder, correlation, type, q_point, q_neighbors, num_bins, pID
+            datafolder, name, type, q_point, q_neighbors, num_bins, pID
         )
 
         # record statistics
@@ -339,7 +339,7 @@ function _compute_composite_correlation_ratio(
 
     @assert(
         !in(correlation, keys(CORRELATION_FUNCTIONS)),
-        "The $correlation correlation is a standard correlation function when it should be a composite correlation function."
+        "The $correlation correlation is a standard correlation function when it should be a named composite correlation function."
     )
 
     # construct filename for HDF5 file containing binned data

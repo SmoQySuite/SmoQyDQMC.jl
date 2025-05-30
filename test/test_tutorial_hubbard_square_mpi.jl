@@ -1,14 +1,17 @@
 # integration test of square hubbard model tutorial
-@testitem "Honeycomb Holstein Tutorial" begin
+@testitem "Square Hubbard with MPI Tutorial" begin
 
-    include("../tutorials/holstein_honeycomb.jl")
+    include("../tutorials/hubbard_square_mpi.jl")
+
+    MPI.Init()
     @test isnothing(
         run_simulation(
+            MPI.COMM_WORLD;
             sID       = rand(Int),
-            Ω         = 1.0,
-            α         = 1.0,
+            U         = 4.0,
+            t′        = 0.0,
             μ         = 0.0,
-            L         = 3,
+            L         = 4,
             β         = 1.0,
             N_therm   = 2,
             N_updates = 2,
@@ -16,4 +19,5 @@
             filepath  = tempdir()
         )
     )
+    MPI.Finalize()
 end

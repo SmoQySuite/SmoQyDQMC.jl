@@ -382,13 +382,6 @@ function run_simulation(;
         integrated = true
     )
 
-# The [`initialize_measurement_directories`](@ref) can now be used used to initialize the various subdirectories
-# in the data folder that the measurements will be written to.
-# Again, for more information refer to the [Simulation Output Overview](@ref) page.
-
-    ## Initialize the sub-directories to which the various measurements will be written.
-    initialize_measurement_directories(simulation_info, measurement_container)
-
 # ## [Setup DQMC simulation](@id hubbard_square_setup_dqmc)
 # This section of the code sets up the DQMC simulation by allocating the initializing the relevant types and arrays we will need in the simulation.
 
@@ -576,6 +569,15 @@ function run_simulation(;
         )
     end
 
+# ## Merge binned data
+# At this point the simulation is essentially complete, with all updates and measurements having been performed.
+# However, the binned measurement data resides in many seperate HDF5 files currently.
+# Here we will merge these seperate HDF5 files into a single file containing all the binned data
+# using the [`merge_bins`](@ref) function.
+
+    ## Merge binned data into a single HDF5 file.
+    merge_bins(simulation_info)
+
 # ## Record simulation metadata
 # At this point we are done sampling and taking measurements.
 # Next, we want to calculate the final acceptance rate for the Monte Carlo updates,
@@ -597,71 +599,67 @@ function run_simulation(;
 # ## [Post-process results](@id hubbard_square_process_results)
 # In this final section of code we post-process the binned data.
 # This includes calculating the final estimates for the mean and error of all measured observables,
-# which get written to CSV files using the function [`process_measurements`](@ref) function.
+# which will be written to an HDF5 file using the [`process_measurements`](@ref) function.
 # Inside this function the binned data gets further rebinned into `n_bins`,
 # where `n_bins` is any positive integer satisfying the constraints `(N_bins ≥ n_bin)` and `(N_bins % n_bins == 0)`.
-# The `time_displaced` keyword argument in the [`process_measurements`](@ref) function determines whether or not final statistics are computed for the
-# time-displaced measurements. The default behavior is `time_displaced = false`, as computing these average statistics can be somewhat time-consuming,
-# but if they are required, simply set `time_displaced = true`.
+# Note that the [`process_measurements`](@ref) function has many additional keyword arguments that can be used to control the output.
+# For instance, in this example in addition to writing the statistics to an HDF5 file, we also export the statistics to CSV files
+# by setting `export_to_csv = true`, with additional keyword arguments controlling the formatting of the CSV files.
 # Again, for more information on how to interpret the output refer the [Simulation Output Overview](@ref) page.
 
-    ## Set the number of bins used to calculate the error in measured observables.
-    n_bins = N_bins
-
-    ## Process the simulation results, calculating final error bars for all measurements,
+    ## Process the simulation results, calculating final error bars for all measurements.
     ## writing final statisitics to CSV files.
-    process_measurements(simulation_info.datafolder, n_bins, time_displaced = false)
+    process_measurements(
+        datafolder = simulation_info.datafolder,
+        n_bins = N_bins,
+        export_to_csv = true,
+        scientific_notation = false,
+        decimals = 7,
+        delimiter = " "
+    )
 
-# A common measurements that needs to be reconstructed at the end of a DQMC simulation is something called the correlation
-# ratio with respect to the ordering wave-vector for a specified type of correlation function measured during the simulation.
+# A common measurement that needs to be computed at the end of a DQMC simulation is something called the correlation
+# ratio with respect to the ordering wave-vector for a specified type of structure factor measured during the simulation.
 # In the case of the square Hubbard model, we are interested in measureing the correlation ratio
 # ```math
-# R_z(\mathbf{Q}_\text{AFM}) = 1 - \frac{1}{4} \sum_{\delta\mathbf{q}} \frac{S_z(\mathbf{Q}_\text{AFM} + \delta\mathbf{q})}{S_z(\mathbf{Q}_\text{AFM})}
+# R_z(\mathbf{Q}_\text{afm}) = 1 - \frac{1}{4} \sum_{\delta\mathbf{q}} \frac{S_z(\mathbf{Q}_\text{afm} + \delta\mathbf{q})}{S_z(\mathbf{Q}_\text{afm})}
 # ```
-# with respect to the equal-time antiferromagnetic (AFM) structure factor ``S_z(\mathbf{Q}_\text{AFM})``, where ``S_z(\mathbf{q})`` is the spin-``z``
-# equal-time structure factor and ``\mathbf{Q}_\text{AFM} = (\pi/a, \pi/a)`` is the AFM ordering wave-vector.
-# The sum over ``\delta\mathbf{q}`` runs over the four wavevectors that neigboring ``\mathbf{Q}_\text{AFM}.``
-# Here we use the [`compute_correlation_ratio`](@ref) function to calculate this correlation ratio, and then we record the mean and error for this
-# measurement in the `metadata` dictionary.
+# with respect to the equal-time antiferromagnetic (AFM) structure factor ``S_z(\mathbf{Q}_\text{afm})``, where ``S_z(\mathbf{q})`` is the spin-``z``
+# equal-time structure factor and ``\mathbf{Q}_\text{afm} = (\pi/a, \pi/a)`` is the AFM ordering wave-vector.
+# The sum over ``\delta\mathbf{q}`` runs over the four wave-vectors that neigboring ``\mathbf{Q}_\text{afm}.``
+
+# Here we use the [`compute_correlation_ratio`](@ref) function to compute to compute this correlation ratio.
+# Note that the ``\mathbf{Q}_\text{afm}`` is specified using the `q_point` keyword argument, and the four neighboring wave-vectors
+# ``\mathbf{Q}_\text{afm} + \delta\mathbf{q}`` are specified using the `q_neighbors` keyword argument.
+# These wave-vectors are specified using the convention described [here](@ref vector_reporting_conventions) in the [Simulation Output Overview](@ref) page.
 
     ## Calculate AFM correlation ratio.
     Rafm, ΔRafm = compute_correlation_ratio(
-        folder = simulation_info.datafolder,
+        datafolder = simulation_info.datafolder,
         correlation = "spin_z",
         type = "equal-time",
         id_pairs = [(1, 1)],
-        coefs = [1.0],
-        k_point = (L÷2, L÷2), # Corresponds to Q_afm = (π/a, π/a).
-        num_bins = n_bins
+        id_pair_coefficients = [1.0],
+        q_point = (L÷2, L÷2),
+        q_neighbors = [
+            (L÷2+1, L÷2), (L÷2-1, L÷2),
+            (L÷2, L÷2+1), (L÷2, L÷2-1)
+        ]
     )
 
 # Next, we record the measurement in the `metadata` dictionary, and then write a new version of the simulation summary TOML file that
 # contains this new information using the [`save_simulation_info`](@ref) function.
 
     ## Record the AFM correlation ratio mean and standard deviation.
-    metadata["Rafm_real_mean"] = real(Rafm)
-    metadata["Rafm_imag_mean"] = imag(Rafm)
+    metadata["Rafm_mean_real"] = real(Rafm)
+    metadata["Rafm_mean_imag"] = imag(Rafm)
     metadata["Rafm_std"]       = ΔRafm
 
     ## Write simulation summary TOML file.
     save_simulation_info(simulation_info, metadata)
 
-# The convention used for specifying the ordering wave-vector ``\mathbf{Q}_\text{AFM}`` using the `k_point` keyword argument
-# in the [`compute_correlation_ratio`](@ref) function call are described [here](@ref vector_reporting_conventions) in the [Simulation Output Overview](@ref) page.
-
-# Note that as long as the binned data generated by the simulation persists in an uncompressed format (see below), the [`process_measurements`](@ref),
-# and [`compute_correlation_ratio`](@ref) functions can be called multiple times to recompute the final statistics for the measurements without needing
-# to rerun the simulation.
-
-# Lastly, it is worth mentioning that running many DQMC simulations will generate many seperate binary files, which can eventually exceed the file quota limit on the system.
-# To help prevent this problem from arising, we can use the function [`compress_jld2_bins`](@ref)
-# to merge all the seperate [JLD2](https://github.com/JuliaIO/JLD2.jl.git) binary files into a single compressed one.
-# However, to go back and reanalyze the binned binary data  in the future, it will first need to be decompressed using the [`decompress_jld2_bins`](@ref) method.
-# Alternately, if storage space becomes an issue and you are certain that you no longer need binary binned data, you can delete it using the [`delete_jld2_bins`](@ref) function.
-# Keep in mind though, once the binned binary data is deleted it cannot be recovered!
-
-    ## Merge binary files containing binned data into a single file.
-    compress_jld2_bins(folder = simulation_info.datafolder)
+# Note that as long as the binned data persists the [`process_measurements`](@ref) and [`compute_correlation_ratio`](@ref)
+# functions can be rerun to recompute the final statistics for the measurements without needing to rerun the simulation.
 
     return nothing
 end # end of run_simulation function

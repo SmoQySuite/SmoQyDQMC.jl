@@ -117,6 +117,7 @@ the data folder that results will be written to is successfully initialized.
 """
 function initialize_datafolder(comm::MPI.Comm, sim_info::SimulationInfo)
 
+    MPI.Barrier(comm)
     initialize_datafolder(sim_info)
 
     return nothing

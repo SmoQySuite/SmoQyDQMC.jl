@@ -81,9 +81,9 @@ tutorials = [
 tutorials_sources = [joinpath(pkgdir(SmoQyDQMC, "tutorials"), tutorial*".jl") for tutorial in tutorials]
 tutorial_mds = build_examples(tutorials_sources, "tutorials")
 
-examples = ["hubbard_chain", "hubbard_chain_mpi", "hubbard_chain_checkpoint", "holstein_chain",
-            "ossh_chain", "bssh_chain", "hubbard_holstein_square", "hubbard_threeband",
-            "holstein_kagome", "hubbard_honeycomb", "holstein_zeeman_square"]
+examples = [
+    
+]
 example_sources = [joinpath(pkgdir(SmoQyDQMC, "examples"), example*".jl") for example in examples]
 example_mds = build_examples(example_sources, "examples")
 

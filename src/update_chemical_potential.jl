@@ -214,13 +214,13 @@ function _save_density_tuning_profile_to_h5(
         # allocate HDF5 file
         mu_traj         = create_dataset(History, "chemical_potential",     T, (Nt,))
         n_traj          = create_dataset(History, "density",                T, (Nt,))
-        Nsqrd_traj      = create_dataset(History, "Nsqrd",                  S, (Nt,))
+        Nsqrd_traj      = create_dataset(History, "N_sqrd",                  S, (Nt,))
         sign_traj       = create_dataset(History, "sign",                   S, (Nt,))
         mu_bar_traj     = create_dataset(History, "chemical_potential_avg", T, (Nt,))
         mu_var_traj     = create_dataset(History, "chemical_potential_var", T, (Nt,))
         n_bar_traj      = create_dataset(History, "density_avg",            S, (Nt,))
-        n_std_traj      = create_dataset(History, "density_std",            T, (Nt,))
-        Nsqrd_avg_traj  = create_dataset(History, "Nsqrd_avg",              S, (Nt,))
+        N_var_traj      = create_dataset(History, "N_var",                  T, (Nt,))
+        Nsqrd_avg_traj  = create_dataset(History, "N_sqrd_avg",              S, (Nt,))
         kappa_bar_traj  = create_dataset(History, "compressibility_avg",    T, (Nt,))
         kappa_fluc_traj = create_dataset(History, "compressibility_fluc",   T, (Nt,))
         kappa_min_traj  = create_dataset(History, "compressibility_min",    T, (Nt,))
@@ -243,7 +243,7 @@ function _save_density_tuning_profile_to_h5(
             mu_bar_traj[t+1]     = μtuner.μ_bar
             mu_var_traj[t+1]     = μtuner.μ_var
             n_bar_traj[t+1]      = μtuner.N_bar/V
-            n_std_traj[t+1]      = sqrt(μtuner.N_var)/V
+            N_var_traj[t+1]      = μtuner.N_var
             Nsqrd_avg_traj[t+1]  = μtuner.N²_bar
             kappa_bar_traj[t+1]  = μtuner.κ_bar
             kappa_fluc_traj[t+1] = κ_fluc
@@ -285,8 +285,8 @@ function _save_density_tuning_profile_to_csv(
             [
                 "chemical_potential", "density", "N_sqrd_real", "N_sqrd_imag", "sign_real", "sign_imag",
                 "chemical_potential_avg", "chemical_potential_var",
-                "density_avg_real", "density_avg_imag", "density_std",
-                "Nsqrd_avg_real", "Nsqrd_avg_imag",
+                "density_avg_real", "density_avg_imag", "N_var",
+                "N_sqrd_avg_real", "N_sqrd_avg_imag",
                 "compressibility_avg", "compressibility_fluc", "compressibility_min", "compressibility_max",
                 "sign_avg_real", "sign_avg_imag", "sign_var_real", "sign_var_imag"
             ],
@@ -313,7 +313,7 @@ function _save_density_tuning_profile_to_csv(
                 formatter.((
                     μtuner.μ_traj[t+1], μtuner.N_traj[t+1]/V, real(μtuner.N²_traj[t+1]), imag(μtuner.N²_traj[t+1]),
                     real(μtuner.s_traj[t+1]), imag(μtuner.s_traj[t+1]),
-                    μtuner.μ_bar, μtuner.μ_var, real(μtuner.N_bar/V), imag(μtuner.N_bar/V), sqrt(μtuner.N_var)/V,
+                    μtuner.μ_bar, μtuner.μ_var, real(μtuner.N_bar/V), imag(μtuner.N_bar/V), μtuner.N_var,
                     real(μtuner.N²_bar), imag(μtuner.N²_bar),
                     μtuner.κ_bar, κ_fluc, κ_min, κ_max,
                     real(μtuner.s_bar), imag(μtuner.s_bar), real(μtuner.s_var), imag(μtuner.s_var)
