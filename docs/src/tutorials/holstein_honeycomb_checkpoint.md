@@ -350,6 +350,18 @@ No changes need to made to this section of the code from the previous
             ]
         )
 
+        # Initialize measurement of electron Green's function traced
+        # over both orbitals in the unit cell.
+        initialize_composite_correlation_measurement!(
+            measurement_container = measurement_container,
+            model_geometry = model_geometry,
+            name = "tr_greens",
+            correlation = "greens",
+            id_pairs = [(1,1), (2,2)],
+            coefficients = [1.0, 1.0],
+            time_displaced = true,
+        )
+
         # Initialize CDW correlation measurement.
         initialize_composite_correlation_measurement!(
             measurement_container = measurement_container,
@@ -361,9 +373,6 @@ No changes need to made to this section of the code from the previous
             time_displaced = false,
             integrated = true
         )
-
-        # Initialize the sub-directories to which the various measurements will be written.
-        initialize_measurement_directories(comm, simulation_info, measurement_container)
 ````
 
 ## Write first checkpoint
@@ -627,6 +636,14 @@ is resumed the thermalization updates are not repeated.
     end
 ````
 
+## Merge binned data
+No changes need to made to this section of the code from the previous [2a) Honeycomb Holstein Model](@ref) tutorial.
+
+````julia
+    # Merge binned data into a single HDF5 file.
+    merge_bins(simulation_info)
+````
+
 ## Record simulation metadata
 No changes need to made to this section of the code from the previous
 [2b) Honeycomb Holstein Model with MPI Parallelization](@ref) tutorial.
@@ -645,19 +662,44 @@ No changes need to made to this section of the code from the previous
 ````
 
 ## Post-process results
-From the last [2b) Honeycomb Holstein Model with MPI Parallelization](@ref) tutorial, we now need to add
+From the last [2b) Honeycomb Holstein Model with MPI Parallelization](@ref) tutorial, we now recommend adding
 a call to the [`rename_complete_simulation`](@ref) function once the results are processed.
 This function renames the data folder to begin with `complete_*`, making it simple to identify which
 simulations ran to completion and which ones need to be resumed from the last checkpoint file.
 This function also deletes the checkpoint files that were written during the simulation.
 
 ````julia
-    # Process the simulation results, calculating final error bars for all measurements,
+    # Process the simulation results, calculating final error bars for all measurements.
     # writing final statisitics to CSV files.
-    process_measurements(comm, simulation_info.datafolder, N_bins, time_displaced = true)
+    process_measurements(
+        comm,
+        datafolder = simulation_info.datafolder,
+        n_bins = N_bins,
+        export_to_csv = true,
+        scientific_notation = false,
+        decimals = 7,
+        delimiter = " "
+    )
 
-    # Merge binary files containing binned data into a single file.
-    compress_jld2_bins(comm, folder = simulation_info.datafolder)
+    # Calculate CDW correlation ratio.
+    Rcdw, ΔRcdw = compute_composite_correlation_ratio(
+        comm,
+        datafolder = simulation_info.datafolder,
+        name = "cdw",
+        type = "equal-time",
+        q_point = (0, 0),
+        q_neighbors = [
+            (1,0), (L-1,0), (0,1), (0,L-1)
+        ]
+    )
+
+    # Record the AFM correlation ratio mean and standard deviation.
+    metadata["Rcdw_mean_real"] = real(Rcdw)
+    metadata["Rcdw_mean_imag"] = imag(Rcdw)
+    metadata["Rcdw_std"]       = ΔRcdw
+
+    # Write simulation summary TOML file.
+    save_simulation_info(simulation_info, metadata)
 
     # Rename the data folder to indicate the simulation is complete.
     simulation_info = rename_complete_simulation(

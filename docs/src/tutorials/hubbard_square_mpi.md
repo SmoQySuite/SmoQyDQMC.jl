@@ -253,9 +253,7 @@ No changes need to made to this section of the code from the previous [1a) Squar
 ````
 
 ## Initialize meuasurements
-The only change we need to make to this section of the code from the previous [1a) Square Hubbard Model](@ref) tutorial
-is to add the `comm` as the first argument to the [`initialize_measurement_directories`](@ref) function.
-The ensures that not of the MPI processes proceed beyond that point until the directory structure has been initialized.
+No changes need to made to this section of the code from the previous [1a) Square Hubbard Model](@ref) tutorial.
 
 ````julia
     # Initialize the container that measurements will be accumulated into.
@@ -317,9 +315,6 @@ The ensures that not of the MPI processes proceed beyond that point until the di
         time_displaced = false,
         integrated = true
     )
-
-    # Initialize the sub-directories to which the various measurements will be written.
-    initialize_measurement_directories(comm, simulation_info, measurement_container)
 ````
 
 ## Setup DQMC simulation
@@ -446,6 +441,14 @@ No changes need to made to this section of the code from the previous [1a) Squar
     end
 ````
 
+## Merge binned data
+No changes need to made to this section of the code from the previous [1a) Square Hubbard Model](@ref) tutorial.
+
+````julia
+    # Merge binned data into a single HDF5 file.
+    merge_bins(simulation_info)
+````
+
 ## Record simulation metadata
 No changes need to made to this section of the code from the previous [1a) Square Hubbard Model](@ref) tutorial.
 
@@ -464,39 +467,44 @@ No changes need to made to this section of the code from the previous [1a) Squar
 
 ## Post-rocess results
 The main change we need to make from the previos [1a) Square Hubbard Model](@ref) tutorial is to call
-the [`process_measurements`](@ref), [`compute_correlation_ratio`](@ref) and [`compress_jld2_bins`](@ref) function
+the [`process_measurements`](@ref) and [`compute_correlation_ratio`](@ref) functions
 such that the first argument is the `comm` object, thereby ensuring a parallelized version of each method is called.
 
 ````julia
-    # Set the number of bins used to calculate the error in measured observables.
-    n_bins = N_bins
-
-    # Process the simulation results, calculating final error bars for all measurements,
+    # Process the simulation results, calculating final error bars for all measurements.
     # writing final statisitics to CSV files.
-    process_measurements(comm, simulation_info.datafolder, n_bins, time_displaced = false)
+    process_measurements(
+        comm;
+        datafolder = simulation_info.datafolder,
+        n_bins = N_bins,
+        export_to_csv = true,
+        scientific_notation = false,
+        decimals = 7,
+        delimiter = " "
+    )
 
     # Calculate AFM correlation ratio.
     Rafm, ΔRafm = compute_correlation_ratio(
         comm;
-        folder = simulation_info.datafolder,
+        datafolder = simulation_info.datafolder,
         correlation = "spin_z",
         type = "equal-time",
         id_pairs = [(1, 1)],
-        coefs = [1.0],
-        k_point = (L÷2, L÷2), # Corresponds to Q_afm = (π/a, π/a).
-        num_bins = n_bins
+        id_pair_coefficients = [1.0],
+        q_point = (L÷2, L÷2),
+        q_neighbors = [
+            (L÷2+1, L÷2), (L÷2-1, L÷2),
+            (L÷2, L÷2+1), (L÷2, L÷2-1)
+        ]
     )
 
     # Record the AFM correlation ratio mean and standard deviation.
-    metadata["Rafm_real_mean"] = real(Rafm)
-    metadata["Rafm_imag_mean"] = imag(Rafm)
+    metadata["Rafm_mean_real"] = real(Rafm)
+    metadata["Rafm_mean_imag"] = imag(Rafm)
     metadata["Rafm_std"]       = ΔRafm
 
     # Write simulation summary TOML file.
     save_simulation_info(simulation_info, metadata)
-
-    # Merge binary files containing binned data into a single file.
-    compress_jld2_bins(comm, folder = simulation_info.datafolder)
 
     return nothing
 end # end of run_simulation function

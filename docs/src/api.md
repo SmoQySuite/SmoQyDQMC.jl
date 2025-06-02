@@ -273,7 +273,6 @@ save_density_tuning_profile
 
 - [`save_simulation_info`](@ref)
 - [`process_measurements`](@ref)
-- [`process_correlation_measurement`](@ref)
 - [`compute_correlation_ratio`](@ref)
 - [`compute_composite_correlation_ratio`](@ref)
 
@@ -334,7 +333,6 @@ rename_complete_simulation
 ```@docs
 save_simulation_info
 process_measurements
-process_correlation_measurement
 compute_correlation_ratio
 compute_composite_correlation_ratio
 ```

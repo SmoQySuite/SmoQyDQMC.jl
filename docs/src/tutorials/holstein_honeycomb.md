@@ -366,7 +366,25 @@ For more information refer to [here.](@ref hubbard_square_initialize_measurement
 ````
 
 It is also useful to initialize more specialized composite correlation function measurements.
-Specifically, to detect the formation of charge-density wave order where the electrons preferentially
+
+First, it can be useful to measure the time-displacedsingle-particle electron Green's function traced over both orbitals in the unit cell.
+We can easily implement this measurement using the [`initialize_composite_correlation_measurement!`](@ref) function, as shown below.
+
+````julia
+    # Initialize measurement of electron Green's function traced
+    # over both orbitals in the unit cell.
+    initialize_composite_correlation_measurement!(
+        measurement_container = measurement_container,
+        model_geometry = model_geometry,
+        name = "tr_greens",
+        correlation = "greens",
+        id_pairs = [(1,1), (2,2)],
+        coefficients = [1.0, 1.0],
+        time_displaced = true,
+    )
+````
+
+Additionally, to detect the formation of charge-density wave order where the electrons preferentially
 localize on one of the two sub-lattices of the honeycomb lattice, it is useful to measure the correlation function
 ```math
 C_\text{cdw}(\mathbf{r},\tau) = \frac{1}{L^2}\sum_{\mathbf{i}} \langle \hat{\Phi}^{\dagger}_{\mathbf{i}+\mathbf{r}}(\tau) \hat{\Phi}^{\phantom\dagger}_{\mathbf{i}}(0) \rangle,
@@ -378,7 +396,7 @@ where
 and ``\hat{n}_{\mathbf{i},\gamma} = (\hat{n}_{\uparrow,\mathbf{i},o} + \hat{n}_{\downarrow,\mathbf{i},o})`` is the total electron number
 operator for orbital ``\gamma \in \{A,B\}`` in unit cell ``\mathbf{i}``.
 It is then also useful to calculate the corresponding structure factor ``S_\text{cdw}(\mathbf{q},\tau)`` and susceptibility ``\chi_\text{cdw}(\mathbf{q}).``
-This can all be easily calculated using the [`initialize_composite_correlation_measurement!`](@ref) function, as shown below.
+Again, this can all be easily calculated using the [`initialize_composite_correlation_measurement!`](@ref) function, as shown below.
 
 ````julia
     # Initialize CDW correlation measurement.
@@ -389,18 +407,9 @@ This can all be easily calculated using the [`initialize_composite_correlation_m
         correlation = "density",
         ids = [1, 2],
         coefficients = [1.0, -1.0],
-        time_displaced = false,
+        time_displaced = true,
         integrated = true
     )
-````
-
-The [`initialize_measurement_directories`](@ref) can now be used used to initialize the various subdirectories
-in the data folder that the measurements will be written to.
-Again, for more information refer to the [Simulation Output Overview](@ref) page.
-
-````julia
-    # Initialize the sub-directories to which the various measurements will be written.
-    initialize_measurement_directories(simulation_info, measurement_container)
 ````
 
 ## Setup DQMC simulation
@@ -604,6 +613,17 @@ structure of this part of the code, refer to [here](@ref hubbard_square_make_mea
     end
 ````
 
+## Merge binned data
+At this point the simulation is essentially complete, with all updates and measurements having been performed.
+However, the binned measurement data resides in many seperate HDF5 files currently.
+Here we will merge these seperate HDF5 files into a single file containing all the binned data
+using the [`merge_bins`](@ref) function.
+
+````julia
+    # Merge binned data into a single HDF5 file.
+    merge_bins(simulation_info)
+````
+
 ## Record simulation metadata
 At this point we are done sampling and taking measurements.
 Next, we want to calculate the final acceptance rate for the various types of
@@ -623,20 +643,77 @@ including the contents of the `metadata` dictionary.
     save_simulation_info(simulation_info, metadata)
 ````
 
-## Post-process results
+## [Post-process results]
 In this final section of code we post-process the binned data.
-This includes calculating final estimates for the mean and error of all measured observables.
-The final statistics are written to CSV files using the function [`process_measurements`](@ref) function.
-For more information refer to [here](@ref hubbard_square_process_results).
+This includes calculating the final estimates for the mean and error of all measured observables,
+which will be written to an HDF5 file using the [`process_measurements`](@ref) function.
+Inside this function the binned data gets further rebinned into `n_bins`,
+where `n_bins` is any positive integer satisfying the constraints `(N_bins ≥ n_bin)` and `(N_bins % n_bins == 0)`.
+Note that the [`process_measurements`](@ref) function has many additional keyword arguments that can be used to control the output.
+For instance, in this example in addition to writing the statistics to an HDF5 file, we also export the statistics to CSV files
+by setting `export_to_csv = true`, with additional keyword arguments controlling the formatting of the CSV files.
+Again, for more information on how to interpret the output refer the [Simulation Output Overview](@ref) page.
 
 ````julia
-    # Process the simulation results, calculating final error bars for all measurements,
+    # Process the simulation results, calculating final error bars for all measurements.
     # writing final statisitics to CSV files.
-    process_measurements(simulation_info.datafolder, N_bins, time_displaced = true)
+    process_measurements(
+        datafolder = simulation_info.datafolder,
+        n_bins = N_bins,
+        export_to_csv = true,
+        scientific_notation = false,
+        decimals = 7,
+        delimiter = " "
+    )
+````
 
-    # Merge binary files containing binned data into a single file.
-    compress_jld2_bins(folder = simulation_info.datafolder)
+A common measurement that needs to be computed at the end of a DQMC simulation is something called the correlation
+ratio with respect to the ordering wave-vector for a specified type of structure factor measured during the simulation.
+In the case of the honeycomb Holstein model, we are interested in measureing the correlation ratio
+```math
+R_\text{cdw}(0) = 1 - \frac{1}{4} \sum_{\delta\mathbf{q}} \frac{S_\text{cdw}(0 + \delta\mathbf{q})}{S_\text{cdw}(0)}
+```
+with respect to the equal-time charge density wave (CDW) structure factor ``S_\text{cdw}(0)``, where ````S_\text{cdw}(q)``` is
+equal-time structure factor corresponding to the composite correlation function ``C_\text{cdw}(\mathbf{r},\tau)`` defined earlier in this tutorial.
+Note that the CDW ordering wave-vector is ``\mathbf{Q}_\text{cdw} = 0`` in this case, which describes the electrons preferentially
+localizing on one of the two sub-lattices of the honeycomb lattice.
+The sum over ``\delta\mathbf{q}`` runs over the four wave-vectors that neigbor ``\mathbf{Q}_\text{cdw} = 0.``
 
+Here we use the [`compute_composite_correlation_ratio`](@ref) function to compute to compute this correlation ratio.
+Note that the ``\mathbf{Q}_\text{cdw} = 0`` is specified using the `q_point` keyword argument, and the four neighboring wave-vectors
+``\delta\mathbf{q}`` are specified using the `q_neighbors` keyword argument.
+These wave-vectors are specified using the convention described [here](@ref vector_reporting_conventions) in the [Simulation Output Overview](@ref) page.
+
+````julia
+    # Calculate CDW correlation ratio.
+    Rcdw, ΔRcdw = compute_composite_correlation_ratio(
+        datafolder = simulation_info.datafolder,
+        name = "cdw",
+        type = "time-displaced",
+        q_point = (0, 0),
+        q_neighbors = [
+            (1,0), (L-1,0), (0,1), (0,L-1)
+        ]
+    )
+````
+
+Next, we record the measurement in the `metadata` dictionary, and then write a new version of the simulation summary TOML file that
+contains this new information using the [`save_simulation_info`](@ref) function.
+
+````julia
+    # Record the AFM correlation ratio mean and standard deviation.
+    metadata["Rcdw_mean_real"] = real(Rcdw)
+    metadata["Rcdw_mean_imag"] = imag(Rcdw)
+    metadata["Rcdw_std"]       = ΔRcdw
+
+    # Write simulation summary TOML file.
+    save_simulation_info(simulation_info, metadata)
+````
+
+Note that as long as the binned data persists the [`process_measurements`](@ref) and [`compute_correlation_ratio`](@ref)
+functions can be rerun to recompute the final statistics for the measurements without needing to rerun the simulation.
+
+````julia
     return nothing
 end # end of run_simulation function
 ````

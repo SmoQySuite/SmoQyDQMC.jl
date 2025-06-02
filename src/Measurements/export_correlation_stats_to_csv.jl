@@ -173,6 +173,12 @@ function _export_composite_correlation_stats_to_csv(
     # read in the dim labels
     dim_labels = read(Correlation, "DIM_LABELS")
 
+    # number of space-time dimensions
+    D = length(dims)
+
+    # vector to represent space-time displacement
+    r = zeros(Int, D)
+
     # open csv file
     open(filename, "w") do file
         
@@ -191,10 +197,13 @@ function _export_composite_correlation_stats_to_csv(
             avg = Mean[c.I...]
             err = Std[c.I...]
 
+            # get lattice displacement
+            @. r = c.I[end:-1:1] - 1
+
             # write data to file
             join(
                 file,
-                [index, c.I[end:-1:1]..., formatter(real(avg)), formatter(imag(avg)), formatter(err)],
+                [index, r..., formatter(real(avg)), formatter(imag(avg)), formatter(err)],
                 delimiter
             )
             write(file, "\n")
@@ -237,6 +246,12 @@ function _export_standard_correlation_stats_to_csv(
     # read in the dim labels
     dim_labels = read(Correlation, "DIM_LABELS")
 
+    # number of space-time dimensions
+    D = length(dims) - 1
+
+    # vector to represent space-time displacement
+    r = zeros(Int, D)
+
     # open csv file
     open(filename, "w") do file
 
@@ -247,7 +262,7 @@ function _export_standard_correlation_stats_to_csv(
         # write header
         join(
             file,
-            ["INDEX", id_type_2, id_type_1, dim_labels[end:-1:2], "MEAN_REAL", "MEAN_IMAG", "STD"],
+            ["INDEX", id_type_2, id_type_1, dim_labels[end-1:-1:1]..., "MEAN_REAL", "MEAN_IMAG", "STD"],
             delimiter
         )
         write(file,"\n")
@@ -262,10 +277,13 @@ function _export_standard_correlation_stats_to_csv(
             # get id pair for measurement
             id_1, id_2 = id_pairs[c.I[end]]
 
+            # get lattice displacement
+            @. r = c.I[end-1:-1:1] - 1
+
             # write data to file
             join(
                 file,
-                [index, id_2, id_1, c.I[end:-1:2]..., formatter(real(avg)), formatter(imag(avg)), formatter(err)],
+                [index, id_2, id_1, r..., formatter(real(avg)), formatter(imag(avg)), formatter(err)],
                 delimiter
             )
             write(file, "\n")

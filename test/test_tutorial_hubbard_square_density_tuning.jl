@@ -1,6 +1,6 @@
-@testitem "Square Hubbard with Checkpointing Tutorial" begin
+@testitem "Square Hubbard with Density Tuning Tutorial" begin
 
-    include("../tutorials/hubbard_square_checkpoint.jl")
+    include("../tutorials/hubbard_square_density_tuning.jl")
 
     MPI.Init()
     @test isnothing(
@@ -9,14 +9,15 @@
             sID             = rand(Int),
             U               = 4.0,
             t′              = 0.0,
+            n               = 1.0,
             μ               = 0.0,
             L               = 4,
             β               = 1.0,
             N_therm         = 2,
             N_updates       = 2,
             N_bins          = 2,
-            checkpoint_freq = 1.0,
-            filepath        = tempdir()
+            filepath        = tempdir(),
+            checkpoint_freq = 1.0
         )
     )
 end

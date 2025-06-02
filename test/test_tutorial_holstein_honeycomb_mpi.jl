@@ -1,8 +1,10 @@
-@testitem "Honeycomb Holstein Tutorial" begin
+@testitem "Honeycomb Holstein with MPI Tutorial" begin
 
-    include("../tutorials/holstein_honeycomb.jl")
+    include("../tutorials/holstein_honeycomb_mpi.jl")
+    MPI.Init()
     @test isnothing(
         run_simulation(
+            MPI.COMM_WORLD,
             sID       = rand(Int),
             Ω         = 1.0,
             α         = 1.0,

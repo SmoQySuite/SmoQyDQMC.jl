@@ -148,9 +148,6 @@ function _compute_correlation_ratio(
     num_bins = iszero(num_bins) ? length(sgn) : num_bins
     @assert length(sgn) % num_bins == 0
 
-    # get the binned sign
-    s_bins = bin_means(sgn, num_bins)
-
     # initialize vectors to contain structure factors
     Sq_bins = zeros(eltype(sgn), num_bins)
     Sqpdq_bins = zeros(eltype(sgn), num_bins)
@@ -214,8 +211,7 @@ function _compute_correlation_ratio(
     end
 
     # calculate correlation ratio
-    # calculate composite correlation ratio
-    R, ΔR = jackknife((Sqpdq, Sq, s) -> 1 - abs(Sqpdq/s)/abs(Sq/s), Sqpdq_bins, Sq_bins, s_bins)
+    R, ΔR = jackknife((Sqpdq, Sq) -> 1 - Sqpdq/Sq, Sqpdq_bins, Sq_bins)
 
     # close HDF5 file
     close(H5File)
@@ -358,9 +354,6 @@ function _compute_composite_correlation_ratio(
     num_bins = iszero(num_bins) ? length(sgn) : num_bins
     @assert length(sgn) % num_bins == 0
 
-    # get the binned sign
-    s_bins = bin_means(sgn, num_bins)
-
     # initialize vectors to contain structure factors
     Sq_bins = zeros(eltype(sgn), num_bins)
     Sqpdq_bins = zeros(eltype(sgn), num_bins)
@@ -407,9 +400,8 @@ function _compute_composite_correlation_ratio(
         end
     end
 
-    # calculate correlation ratio
     # calculate composite correlation ratio
-    R, ΔR = jackknife((Sqpdq, Sq, s) -> 1 - abs(Sqpdq/s)/abs(Sq/s), Sqpdq_bins, Sq_bins, s_bins)
+    R, ΔR = jackknife((Sqpdq, Sq) -> 1 - Sqpdq/Sq, Sqpdq_bins, Sq_bins)
 
     # close HDF5 file
     close(H5File)

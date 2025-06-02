@@ -370,7 +370,7 @@ function run_simulation(;
         correlation = "density",
         ids = [1, 2],
         coefficients = [1.0, -1.0],
-        time_displaced = false,
+        time_displaced = true,
         integrated = true
     )
 
@@ -636,7 +636,7 @@ function run_simulation(;
     Rcdw, ΔRcdw = compute_composite_correlation_ratio(
         datafolder = simulation_info.datafolder,
         name = "cdw",
-        type = "equal-time",
+        type = "time-displaced",
         q_point = (0, 0),
         q_neighbors = [
             (1,0), (L-1,0), (0,1), (0,L-1)

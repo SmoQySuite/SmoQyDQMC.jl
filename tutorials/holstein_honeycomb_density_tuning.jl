@@ -711,12 +711,9 @@ if abspath(PROGRAM_FILE) == @__FILE__
     ## Initialize MPI
     MPI.Init()
 
-    ## Initialize the MPI communicator.
-    comm = MPI.COMM_WORLD
-
     ## Run the simulation.
     run_simulation(
-        comm;
+        MPI.COMM_WORLD;
         sID             = parse(Int,     ARGS[1]),  # Simulation ID.
         Ω               = parse(Float64, ARGS[2]),  # Phonon energy.
         α               = parse(Float64, ARGS[3]),  # Electron-phonon coupling.
@@ -729,7 +726,4 @@ if abspath(PROGRAM_FILE) == @__FILE__
         N_bins          = parse(Int,     ARGS[10]), # Number of times bin-averaged measurements are written to file.
         checkpoint_freq = parse(Float64, ARGS[11]), # Frequency with which checkpoint files are written in hours.
     )
-
-    ## Finalize MPI.
-    MPI.Finalize()
 end

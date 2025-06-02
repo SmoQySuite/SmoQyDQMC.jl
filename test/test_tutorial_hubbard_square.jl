@@ -1,4 +1,3 @@
-# integration test of square hubbard model tutorial
 @testitem "Square Hubbard Tutorial" begin
 
     include("../tutorials/hubbard_square.jl")

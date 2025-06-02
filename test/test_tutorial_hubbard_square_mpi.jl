@@ -1,4 +1,3 @@
-# integration test of square hubbard model tutorial
 @testitem "Square Hubbard with MPI Tutorial" begin
 
     include("../tutorials/hubbard_square_mpi.jl")
@@ -19,5 +18,4 @@
             filepath  = tempdir()
         )
     )
-    MPI.Finalize()
 end

@@ -223,9 +223,7 @@ function run_simulation(
     )
 
 # ## Initialize meuasurements
-# The only change we need to make to this section of the code from the previous [2a) Honeycomb Holstein Model](@ref) tutorial
-# is to add the `comm` as the first argument to the [`initialize_measurement_directories`](@ref) function.
-# The ensures that not of the MPI processes proceed beyond that point until the directory structure has been initialized.
+# No changes need to made to this section of the code from the previous [2a) Honeycomb Holstein Model](@ref) tutorial.
 
     ## Initialize the container that measurements will be accumulated into.
     measurement_container = initialize_measurement_container(model_geometry, β, Δτ)

@@ -360,6 +360,18 @@ No changes need to made to this section of the code from the previous
             ]
         )
 
+        # Initialize measurement of electron Green's function traced
+        # over both orbitals in the unit cell.
+        initialize_composite_correlation_measurement!(
+            measurement_container = measurement_container,
+            model_geometry = model_geometry,
+            name = "tr_greens",
+            correlation = "greens",
+            id_pairs = [(1,1), (2,2)],
+            coefficients = [1.0, 1.0],
+            time_displaced = true,
+        )
+
         # Initialize CDW correlation measurement.
         initialize_composite_correlation_measurement!(
             measurement_container = measurement_container,
@@ -371,9 +383,6 @@ No changes need to made to this section of the code from the previous
             time_displaced = false,
             integrated = true
         )
-
-        # Initialize the sub-directories to which the various measurements will be written.
-        initialize_measurement_directories(comm, simulation_info, measurement_container)
 ````
 
 ## Write first checkpoint
@@ -646,6 +655,14 @@ And again, we need to make sure the include the `chemical_potential_tuner` in th
     end
 ````
 
+## Merge binned data
+No changes need to made to this section of the code from the previous [2a) Honeycomb Holstein Model](@ref) tutorial.
+
+````julia
+    # Merge binned data into a single HDF5 file.
+    merge_bins(simulation_info)
+````
+
 ## Record simulation metadata
 Here we can add a call to the [`save_density_tuning_profile`](@ref), which records the full history
 of the chemical potential and density tuning process.
@@ -671,12 +688,37 @@ No changes need to made to this section of the code from the previous
 [2c) Honeycomb Holstein Model with Checkpointing](@ref) tutorial.
 
 ````julia
-    # Process the simulation results, calculating final error bars for all measurements,
+    # Process the simulation results, calculating final error bars for all measurements.
     # writing final statisitics to CSV files.
-    process_measurements(comm, simulation_info.datafolder, N_bins, time_displaced = true)
+    process_measurements(
+        comm,
+        datafolder = simulation_info.datafolder,
+        n_bins = N_bins,
+        export_to_csv = true,
+        scientific_notation = false,
+        decimals = 7,
+        delimiter = " "
+    )
 
-    # Merge binary files containing binned data into a single file.
-    compress_jld2_bins(comm, folder = simulation_info.datafolder)
+    # Calculate CDW correlation ratio.
+    Rcdw, ΔRcdw = compute_composite_correlation_ratio(
+        comm,
+        datafolder = simulation_info.datafolder,
+        name = "cdw",
+        type = "equal-time",
+        q_point = (0, 0),
+        q_neighbors = [
+            (1,0), (L-1,0), (0,1), (0,L-1)
+        ]
+    )
+
+    # Record the AFM correlation ratio mean and standard deviation.
+    metadata["Rcdw_mean_real"] = real(Rcdw)
+    metadata["Rcdw_mean_imag"] = imag(Rcdw)
+    metadata["Rcdw_std"]       = ΔRcdw
+
+    # Write simulation summary TOML file.
+    save_simulation_info(simulation_info, metadata)
 
     # Rename the data folder to indicate the simulation is complete.
     simulation_info = rename_complete_simulation(
@@ -708,12 +750,9 @@ if abspath(PROGRAM_FILE) == @__FILE__
     # Initialize MPI
     MPI.Init()
 
-    # Initialize the MPI communicator.
-    comm = MPI.COMM_WORLD
-
     # Run the simulation.
     run_simulation(
-        comm;
+        MPI.COMM_WORLD;
         sID             = parse(Int,     ARGS[1]),  # Simulation ID.
         Ω               = parse(Float64, ARGS[2]),  # Phonon energy.
         α               = parse(Float64, ARGS[3]),  # Electron-phonon coupling.
@@ -726,9 +765,6 @@ if abspath(PROGRAM_FILE) == @__FILE__
         N_bins          = parse(Int,     ARGS[10]), # Number of times bin-averaged measurements are written to file.
         checkpoint_freq = parse(Float64, ARGS[11]), # Frequency with which checkpoint files are written in hours.
     )
-
-    # Finalize MPI.
-    MPI.Finalize()
 end
 ````
 
