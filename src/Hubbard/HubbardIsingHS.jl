@@ -48,16 +48,20 @@ end
 
 
 @doc raw"""
-    HubbardIsingHSParameters(; β::E, Δτ::E,
-                             hubbard_parameters::HubbardParameters{E},
-                             rng::AbstractRNG) where {E<:AbstractFloat}
+    HubbardIsingHSParameters(;
+        β::E, Δτ::E,
+        hubbard_parameters::HubbardParameters{E},
+        rng::AbstractRNG
+    ) where {E<:AbstractFloat}
 
 Initialize and return an instance of the [`HubbardIsingHSParameters`](@ref) type.
-Note that on-site energies `fpi.V` are shifted by ``-U_i/2`` if ``hm.shifted = true``.
+Note that on-site energies `fpi.V` are modified by ``-U_i/2`` if ``hm.ph_sym_form = false``.
 """
-function HubbardIsingHSParameters(; β::E, Δτ::E,
-                                  hubbard_parameters::HubbardParameters{E},
-                                  rng::AbstractRNG) where {E<:AbstractFloat}
+function HubbardIsingHSParameters(;
+    β::E, Δτ::E,
+    hubbard_parameters::HubbardParameters{E},
+    rng::AbstractRNG
+) where {E<:AbstractFloat}
 
     (; U, sites) = hubbard_parameters
 
@@ -82,16 +86,20 @@ end
 
 
 @doc raw"""
-    initialize!(fermion_path_integral_up::FermionPathIntegral{T,E},
-                fermion_path_integral_dn::FermionPathIntegral{T,E},
-                hubbard_ising_parameters::HubbardIsingHSParameters{E}) where {T,E}
+    initialize!(
+        fermion_path_integral_up::FermionPathIntegral,
+        fermion_path_integral_dn::FermionPathIntegral,
+        hubbard_ising_parameters::HubbardIsingHSParameters
+    )
 
 Initialize the contribution from the Hubbard interaction to the [`FermionPathIntegral`](@ref)
 instance `fermion_path_integral_up` for spin up and `fermion_path_integral_dn` spin down.
 """
-function initialize!(fermion_path_integral_up::FermionPathIntegral{T,E},
-                     fermion_path_integral_dn::FermionPathIntegral{T,E},
-                     hubbard_ising_parameters::HubbardIsingHSParameters{E}) where {T,E}
+function initialize!(
+    fermion_path_integral_up::FermionPathIntegral,
+    fermion_path_integral_dn::FermionPathIntegral,
+    hubbard_ising_parameters::HubbardIsingHSParameters
+)
     
     (; α, U, Δτ, s, sites) = hubbard_ising_parameters
     Vup = fermion_path_integral_up.V
@@ -111,14 +119,18 @@ end
 
 
 @doc raw"""
-    initialize!(fermion_path_integral::FermionPathIntegral{T,E},
-                hubbard_ising_parameters::HubbardIsingHSParameters{E}) where {T,E}
+    initialize!(
+        fermion_path_integral::FermionPathIntegral,
+        hubbard_ising_parameters::HubbardIsingHSParameters
+    )
 
 Initialize the contribution from an attractive Hubbard interaction to the [`FermionPathIntegral`](@ref)
 instance `fermion_path_integral`.
 """
-function initialize!(fermion_path_integral::FermionPathIntegral{T,E},
-                     hubbard_ising_parameters::HubbardIsingHSParameters{E}) where {T,E}
+function initialize!(
+    fermion_path_integral::FermionPathIntegral,
+    hubbard_ising_parameters::HubbardIsingHSParameters
+)
     
     (; α, U, Δτ, s, sites) = hubbard_ising_parameters
     V = fermion_path_integral.V
@@ -140,18 +152,20 @@ end
 
 @doc raw"""
     local_updates!(
-        Gup::Matrix{T}, logdetGup::E, sgndetGup::T,
-        Gdn::Matrix{T}, logdetGdn::E, sgndetGdn::T,
-        hubbard_ising_parameters::HubbardIsingHSParameters{E};
-        fermion_path_integral_up::FermionPathIntegral{T,E},
-        fermion_path_integral_dn::FermionPathIntegral{T,E},
-        fermion_greens_calculator_up::FermionGreensCalculator{T,E},
-        fermion_greens_calculator_dn::FermionGreensCalculator{T,E},
+        # ARGUMENTS
+        Gup::Matrix{H}, logdetGup::R, sgndetGup::H,
+        Gdn::Matrix{H}, logdetGdn::R, sgndetGdn::H,
+        hubbard_ising_parameters::HubbardIsingHSParameters{R};
+        # KEYWORD ARGUMENTS
+        fermion_path_integral_up::FermionPathIntegral{H},
+        fermion_path_integral_dn::FermionPathIntegral{H},
+        fermion_greens_calculator_up::FermionGreensCalculator{H},
+        fermion_greens_calculator_dn::FermionGreensCalculator{H},
         Bup::Vector{P}, Bdn::Vector{P},
-        δG::E, δθ::E,  rng::AbstractRNG,
-        δG_max::E = 1e-5,
+        δG::R, δθ::R,  rng::AbstractRNG,
+        δG_max::R = 1e-6,
         update_stabilization_frequency::Bool = true
-    ) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
+    ) where {H<:Number, R<:Real, P<:AbstractPropagator}
 
 Sweep through every imaginary time slice and orbital in the lattice, peforming local updates to every
 Ising Hubbard-Stratonovich (HS) field.
@@ -160,57 +174,53 @@ This method returns the a tuple containing `(acceptance_rate, logdetGup, sgndetG
 
 # Arguments
 
-- `Gup::Matrix{T}`: Spin-up equal-time Green's function matrix.
-- `logdetGup::E`: The log of the absolute value of the determinant of the spin-up equal-time Green's function matrix, ``\log \vert \det G_\uparrow(\tau,\tau) \vert.``
-- `sgndetGup::T`: The sign/phase of the determinant of the spin-up equal-time Green's function matrix, ``\det G_\uparrow(\tau,\tau) / \vert \det G_\uparrow(\tau,\tau) \vert.``
-- `Gdn::Matrix{T}`: Spin-down equal-time Green's function matrix.
-- `logdetGdn::E`: The log of the absolute value of the determinant of the spin-down equal-time Green's function matrix, ``\log \vert \det G_\downarrow(\tau,\tau) \vert.``
-- `sgndetGdn::T`: The sign/phase of the determinant of the spin-down equal-time Green's function matrix, ``\det G_\downarrow(\tau,\tau) / \vert \det G_\downarrow(\tau,\tau) \vert.``
-- `hubbard_ising_parameters::HubbardIsingHSParameters{E}`: Ising Hubbard-Stratonovich fields and associated parameters to update.
+- `Gup::Matrix{H}`: Spin-up equal-time Green's function matrix.
+- `logdetGup::R`: The log of the absolute value of the determinant of the spin-up equal-time Green's function matrix, ``\log \vert \det G_\uparrow(\tau,\tau) \vert.``
+- `sgndetGup::H`: The sign/phase of the determinant of the spin-up equal-time Green's function matrix, ``\det G_\uparrow(\tau,\tau) / \vert \det G_\uparrow(\tau,\tau) \vert.``
+- `Gdn::Matrix{H}`: Spin-down equal-time Green's function matrix.
+- `logdetGdn::R`: The log of the absolute value of the determinant of the spin-down equal-time Green's function matrix, ``\log \vert \det G_\downarrow(\tau,\tau) \vert.``
+- `sgndetGdn::H`: The sign/phase of the determinant of the spin-down equal-time Green's function matrix, ``\det G_\downarrow(\tau,\tau) / \vert \det G_\downarrow(\tau,\tau) \vert.``
+- `hubbard_ising_parameters::HubbardIsingHSParameters{R}`: Ising Hubbard-Stratonovich fields and associated parameters to update.
 
 ## Keyword Arguments
 
-- `fermion_path_integral_up::FermionPathIntegral{T,E}`: An instance of the [`FermionPathIntegral`](@ref) type for spin-up electrons.
-- `fermion_path_integral_dn::FermionPathIntegral{T,E}`: An instance of the [`FermionPathIntegral`](@ref) type for spin-down electrons.
-- `fermion_greens_calculator_up::FermionGreensCalculator{T,E}`: An instance of the [`FermionGreensCalculator`](https://smoqysuite.github.io/JDQMCFramework.jl/stable/api/#JDQMCFramework.FermionGreensCalculator) type for the spin-up electrons.
-- `fermion_greens_calculator_dn::FermionGreensCalculator{T,E}`: An instance of the [`FermionGreensCalculator`](https://smoqysuite.github.io/JDQMCFramework.jl/stable/api/#JDQMCFramework.FermionGreensCalculator) type for the spin-down electrons.
+- `fermion_path_integral_up::FermionPathIntegral{H}`: An instance of the [`FermionPathIntegral`](@ref) type for spin-up electrons.
+- `fermion_path_integral_dn::FermionPathIntegral{H}`: An instance of the [`FermionPathIntegral`](@ref) type for spin-down electrons.
+- `fermion_greens_calculator_up::FermionGreensCalculator{H}`: An instance of the [`FermionGreensCalculator`](https://smoqysuite.github.io/JDQMCFramework.jl/stable/api/#JDQMCFramework.FermionGreensCalculator) type for the spin-up electrons.
+- `fermion_greens_calculator_dn::FermionGreensCalculator{H}`: An instance of the [`FermionGreensCalculator`](https://smoqysuite.github.io/JDQMCFramework.jl/stable/api/#JDQMCFramework.FermionGreensCalculator) type for the spin-down electrons.
 - `Bup::Vector{P}`: Spin-up propagators for each imaginary time slice.
 - `Bdn::Vector{P}`: Spin-dn propagators for each imaginary time slice.
-- `δG_max::E`: Maximum allowed error corrected by numerical stabilization.
-- `δG::E`: Previously recorded maximum error in the Green's function corrected by numerical stabilization.
-- `δθ::T`: Previously recorded maximum error in the sign/phase of the determinant of the equal-time Green's function matrix corrected by numerical stabilization.
+- `δG_max::R`: Maximum allowed error corrected by numerical stabilization.
+- `δG::R`: Previously recorded maximum error in the Green's function corrected by numerical stabilization.
+- `δθ::R`: Previously recorded maximum error in the sign/phase of the determinant of the equal-time Green's function matrix corrected by numerical stabilization.
 - `rng::AbstractRNG`: Random number generator used in method instead of global random number generator, important for reproducibility.
-- `update_stabilization_frequency::Bool=true`: If true, allows the stabilization frequency `n_stab` to be dynamically adjusted.
+- `update_stabilization_frequency::Bool = true`: If true, allows the stabilization frequency `n_stab` to be dynamically adjusted.
 """
 function local_updates!(
-    Gup::Matrix{T}, logdetGup::E, sgndetGup::T,
-    Gdn::Matrix{T}, logdetGdn::E, sgndetGdn::T,
-    hubbard_ising_parameters::HubbardIsingHSParameters{E};
-    fermion_path_integral_up::FermionPathIntegral{T,E},
-    fermion_path_integral_dn::FermionPathIntegral{T,E},
-    fermion_greens_calculator_up::FermionGreensCalculator{T,E},
-    fermion_greens_calculator_dn::FermionGreensCalculator{T,E},
+    # ARGUMENTS
+    Gup::Matrix{H}, logdetGup::R, sgndetGup::H,
+    Gdn::Matrix{H}, logdetGdn::R, sgndetGdn::H,
+    hubbard_ising_parameters::HubbardIsingHSParameters{R};
+    # KEYWORD ARGUMENTS
+    fermion_path_integral_up::FermionPathIntegral{H},
+    fermion_path_integral_dn::FermionPathIntegral{H},
+    fermion_greens_calculator_up::FermionGreensCalculator{H},
+    fermion_greens_calculator_dn::FermionGreensCalculator{H},
     Bup::Vector{P}, Bdn::Vector{P},
-    δG::E, δθ::E,  rng::AbstractRNG,
-    δG_max::E = 1e-5,
+    δG::R, δθ::R,  rng::AbstractRNG,
+    δG_max::R = 1e-6,
     update_stabilization_frequency::Bool = true
-) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
+) where {H<:Number, R<:Real, P<:AbstractPropagator}
 
-    Δτ          = hubbard_ising_parameters.Δτ::E
-    U           = hubbard_ising_parameters.U::Vector{E}
-    α           = hubbard_ising_parameters.α::Vector{E}
-    sites       = hubbard_ising_parameters.sites::Vector{Int}
-    s           = hubbard_ising_parameters.s::Matrix{Int}
-    update_perm = hubbard_ising_parameters.update_perm::Vector{Int}
-    u           = fermion_path_integral_up.u::Vector{T}
-    v           = fermion_path_integral_dn.v::Vector{T}
+    (; Δτ, U, α, sites, s, update_perm) = hubbard_ising_parameters
+    (; u, v) = fermion_path_integral_dn
 
     # get temporary storage matrix
-    G′ = fermion_greens_calculator_up.G′::Matrix{T}
+    G′ = fermion_greens_calculator_up.G′
 
     # get on-site energy matrices for spin up and down electrons for all time slices
-    Vup = fermion_path_integral_up.V::Matrix{T}
-    Vdn = fermion_path_integral_dn.V::Matrix{T}
+    Vup = fermion_path_integral_up.V
+    Vdn = fermion_path_integral_dn.V
 
     # counts of the number of proposed spin flips
     proposed_spin_flips = 0
@@ -324,14 +334,16 @@ end
 
 @doc raw"""
     local_updates!(
-        G::Matrix{T}, logdetG::E, sgndetG::T,
-        hubbard_ising_parameters::HubbardIsingHSParameters{E};
-        fermion_path_integral::FermionPathIntegral{T,E},
-        fermion_greens_calculator::FermionGreensCalculator{T,E},
-        B::Vector{P}, δG::E, δθ::E, rng::AbstractRNG,
-        δG_max::E = 1e-5,
+        # ARGUMENTS
+        G::Matrix{H}, logdetG::R, sgndetG::H,
+        hubbard_ising_parameters::HubbardIsingHSParameters{R};
+        # KEYWORD ARGUMENTS
+        fermion_path_integral::FermionPathIntegral{H},
+        fermion_greens_calculator::FermionGreensCalculator{H,R},
+        B::Vector{P}, δG::R, δθ::R, rng::AbstractRNG,
+        δG_max::R = 1e-6,
         update_stabilization_frequency::Bool = true
-    ) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
+    ) where {H<:Number, R<:Real, P<:AbstractPropagator}
 
 Sweep through every imaginary time slice and orbital in the lattice, performing local updates to every
 Ising Hubbard-Stratonovich (HS) field, assuming strictly attractive Hubbard interactions and perfect spin symmetry.
@@ -340,31 +352,33 @@ This method returns the a tuple containing `(acceptance_rate, logdetG, sgndetG, 
 
 # Arguments
 
-- `G::Matrix{T}`: Equal-time Green's function matrix.
-- `logdetG::E`: The log of the absolute value of the determinant of theequal-time Green's function matrix, ``\log \vert \det G_\uparrow(\tau,\tau) \vert.``
-- `sgndetG::T`: The sign/phase of the determinant of the equal-time Green's function matrix, ``\det G_\uparrow(\tau,\tau) / \vert \det G_\uparrow(\tau,\tau) \vert.``
-- `hubbard_ising_parameters::HubbardIsingHSParameters{E}`: Ising Hubbard-Stratonovich fields and associated parameters to update.
+- `G::Matrix{H}`: Equal-time Green's function matrix.
+- `logdetG::R`: The log of the absolute value of the determinant of theequal-time Green's function matrix, ``\log \vert \det G_\uparrow(\tau,\tau) \vert.``
+- `sgndetG::H`: The sign/phase of the determinant of the equal-time Green's function matrix, ``\det G_\uparrow(\tau,\tau) / \vert \det G_\uparrow(\tau,\tau) \vert.``
+- `hubbard_ising_parameters::HubbardIsingHSParameters{R}`: Ising Hubbard-Stratonovich fields and associated parameters to update.
 
 ## Keyword Arguments
 
-- `fermion_path_integral::FermionPathIntegral{T,E}`: An instance of the [`FermionPathIntegral`](@ref) type.
-- `fermion_greens_calculator::FermionGreensCalculator{T,E}`: An instance of the [`FermionGreensCalculator`](https://smoqysuite.github.io/JDQMCFramework.jl/stable/api/#JDQMCFramework.FermionGreensCalculator) type.
+- `fermion_path_integral::FermionPathIntegral{H}`: An instance of the [`FermionPathIntegral`](@ref) type.
+- `fermion_greens_calculator::FermionGreensCalculator{H,R}`: An instance of the [`FermionGreensCalculator`](https://smoqysuite.github.io/JDQMCFramework.jl/stable/api/#JDQMCFramework.FermionGreensCalculator) type.
 - `B::Vector{P}`: Propagators for each imaginary time slice.
-- `δG_max::E`: Maximum allowed error corrected by numerical stabilization.
-- `δG::E`: Previously recorded maximum error in the Green's function corrected by numerical stabilization.
-- `δθ::T`: Previously recorded maximum error in the sign/phase of the determinant of the equal-time Green's function matrix corrected by numerical stabilization.
+- `δG_max::R`: Maximum allowed error corrected by numerical stabilization.
+- `δG::R`: Previously recorded maximum error in the Green's function corrected by numerical stabilization.
+- `δθ::R`: Previously recorded maximum error in the sign/phase of the determinant of the equal-time Green's function matrix corrected by numerical stabilization.
 - `rng::AbstractRNG`: Random number generator used in method instead of global random number generator, important for reproducibility.
 - `update_stabilization_frequency::Bool=true`:  If true, allows the stabilization frequency `n_stab` to be dynamically adjusted.
 """
 function local_updates!(
-    G::Matrix{T}, logdetG::E, sgndetG::T,
-    hubbard_ising_parameters::HubbardIsingHSParameters{E};
-    fermion_path_integral::FermionPathIntegral{T,E},
-    fermion_greens_calculator::FermionGreensCalculator{T,E},
-    B::Vector{P}, δG::E, δθ::E, rng::AbstractRNG,
-    δG_max::E = 1e-5,
+    # ARGUMENTS
+    G::Matrix{H}, logdetG::R, sgndetG::H,
+    hubbard_ising_parameters::HubbardIsingHSParameters{R};
+    # KEYWORD ARGUMENTS
+    fermion_path_integral::FermionPathIntegral{H},
+    fermion_greens_calculator::FermionGreensCalculator{H,R},
+    B::Vector{P}, δG::R, δθ::R, rng::AbstractRNG,
+    δG_max::R = 1e-6,
     update_stabilization_frequency::Bool = true
-) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
+) where {H<:Number, R<:Real, P<:AbstractPropagator}
 
     (; update_perm, U, α, sites, s, Δτ) = hubbard_ising_parameters
     (; u, v) = fermion_path_integral
@@ -464,57 +478,61 @@ end
 
 @doc raw"""
     reflection_update!(
-        Gup::Matrix{T}, logdetGup::E, sgndetGup::T,
-        Gdn::Matrix{T}, logdetGdn::E, sgndetGdn::T,
-        hubbard_ising_parameters::HubbardIsingHSParameters{E};
-        fermion_path_integral_up::FermionPathIntegral{T,E},
-        fermion_path_integral_dn::FermionPathIntegral{T,E},
-        fermion_greens_calculator_up::FermionGreensCalculator{T,E},
-        fermion_greens_calculator_dn::FermionGreensCalculator{T,E},
-        fermion_greens_calculator_up_alt::FermionGreensCalculator{T,E},
-        fermion_greens_calculator_dn_alt::FermionGreensCalculator{T,E},
+        # ARGUMENTS
+        Gup::Matrix{H}, logdetGup::R, sgndetGup::H,
+        Gdn::Matrix{H}, logdetGdn::R, sgndetGdn::H,
+        hubbard_ising_parameters::HubbardIsingHSParameters{R};
+        # KEYWORD ARGUMENTS
+        fermion_path_integral_up::FermionPathIntegral{H},
+        fermion_path_integral_dn::FermionPathIntegral{H},
+        fermion_greens_calculator_up::FermionGreensCalculator{H,R},
+        fermion_greens_calculator_dn::FermionGreensCalculator{H,R},
+        fermion_greens_calculator_up_alt::FermionGreensCalculator{H,R},
+        fermion_greens_calculator_dn_alt::FermionGreensCalculator{H,R},
         Bup::Vector{P}, Bdn::Vector{P},
         rng::AbstractRNG
-    ) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
+    ) where {H<:Number, R<:Real, P<:AbstractPropagator}
 
 Perform a reflection update where the sign of every Ising Hubbard-Stratonovich field on a randomly chosen orbital in the lattice is changed.
 This function returns `(accepted, logdetGup, sgndetGup, logdetGdn, sgndetGdn)`.
 
 # Arguments
 
-- `Gup::Matrix{T}`: Spin-up eqaul-time Greens function matrix.
-- `logdetGup::E`: Log of the determinant of the spin-up eqaul-time Greens function matrix.
-- `sgndetGup::T`: Sign/phase of the determinant of the spin-up eqaul-time Greens function matrix.
-- `Gdn::Matrix{T}`: Spin-down eqaul-time Greens function matrix.
-- `logdetGdn::E`: Log of the determinant of the spin-down eqaul-time Greens function matrix.
-- `sgndetGdn::T`: Sign/phase of the determinant of the spin-down eqaul-time Greens function matrix.
-- `hubbard_ising_parameters::HubbardIsingHSParameters{E}`: Ising Hubbard-Stratonovich fields and associated parameters to update.
+- `Gup::Matrix{H}`: Spin-up eqaul-time Greens function matrix.
+- `logdetGup::R`: Log of the determinant of the spin-up eqaul-time Greens function matrix.
+- `sgndetGup::H`: Sign/phase of the determinant of the spin-up eqaul-time Greens function matrix.
+- `Gdn::Matrix{H}`: Spin-down eqaul-time Greens function matrix.
+- `logdetGdn::R`: Log of the determinant of the spin-down eqaul-time Greens function matrix.
+- `sgndetGdn::H`: Sign/phase of the determinant of the spin-down eqaul-time Greens function matrix.
+- `hubbard_ising_parameters::HubbardIsingHSParameters{R}`: Ising Hubbard-Stratonovich fields and associated parameters to update.
 
 # Keyword Arguments
 
-- `fermion_path_integral_up::FermionPathIntegral{T,E}`: An instance of [`FermionPathIntegral`](@ref) type for spin-up electrons.
-- `fermion_path_integral_dn::FermionPathIntegral{T,E}`: An instance of [`FermionPathIntegral`](@ref) type for spin-down electrons.
-- `fermion_greens_calculator_up::FermionGreensCalculator{T,E}`: Contains matrix factorization information for current spin-up sector state.
-- `fermion_greens_calculator_dn::FermionGreensCalculator{T,E}`: Contains matrix factorization information for current spin-down sector state.
-- `fermion_greens_calculator_up_alt::FermionGreensCalculator{T,E}`: Used to calculate matrix factorizations for proposed spin-up sector state.
-- `fermion_greens_calculator_dn_alt::FermionGreensCalculator{T,E}`: Used to calculate matrix factorizations for proposed spin-up sector state.
+- `fermion_path_integral_up::FermionPathIntegral{H}`: An instance of [`FermionPathIntegral`](@ref) type for spin-up electrons.
+- `fermion_path_integral_dn::FermionPathIntegral{H}`: An instance of [`FermionPathIntegral`](@ref) type for spin-down electrons.
+- `fermion_greens_calculator_up::FermionGreensCalculator{H,R}`: Contains matrix factorization information for current spin-up sector state.
+- `fermion_greens_calculator_dn::FermionGreensCalculator{H,R}`: Contains matrix factorization information for current spin-down sector state.
+- `fermion_greens_calculator_up_alt::FermionGreensCalculator{H,R}`: Used to calculate matrix factorizations for proposed spin-up sector state.
+- `fermion_greens_calculator_dn_alt::FermionGreensCalculator{H,R}`: Used to calculate matrix factorizations for proposed spin-down sector state.
 - `Bup::Vector{P}`: Spin-up propagators for each imaginary time slice.
 - `Bdn::Vector{P}`: Spin-down propagators for each imaginary time slice.
 - `rng::AbstractRNG`: Random number generator used in method instead of global random number generator, important for reproducibility.
 """
 function reflection_update!(
-    Gup::Matrix{T}, logdetGup::E, sgndetGup::T,
-    Gdn::Matrix{T}, logdetGdn::E, sgndetGdn::T,
-    hubbard_ising_parameters::HubbardIsingHSParameters{E};
-    fermion_path_integral_up::FermionPathIntegral{T,E},
-    fermion_path_integral_dn::FermionPathIntegral{T,E},
-    fermion_greens_calculator_up::FermionGreensCalculator{T,E},
-    fermion_greens_calculator_dn::FermionGreensCalculator{T,E},
-    fermion_greens_calculator_up_alt::FermionGreensCalculator{T,E},
-    fermion_greens_calculator_dn_alt::FermionGreensCalculator{T,E},
+    # ARGUMENTS
+    Gup::Matrix{H}, logdetGup::R, sgndetGup::H,
+    Gdn::Matrix{H}, logdetGdn::R, sgndetGdn::H,
+    hubbard_ising_parameters::HubbardIsingHSParameters{R};
+    # KEYWORD ARGUMENTS
+    fermion_path_integral_up::FermionPathIntegral{H},
+    fermion_path_integral_dn::FermionPathIntegral{H},
+    fermion_greens_calculator_up::FermionGreensCalculator{H,R},
+    fermion_greens_calculator_dn::FermionGreensCalculator{H,R},
+    fermion_greens_calculator_up_alt::FermionGreensCalculator{H,R},
+    fermion_greens_calculator_dn_alt::FermionGreensCalculator{H,R},
     Bup::Vector{P}, Bdn::Vector{P},
     rng::AbstractRNG
-) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
+) where {H<:Number, R<:Real, P<:AbstractPropagator}
 
     (; N, U, α, sites, s, Δτ) = hubbard_ising_parameters
     Gup′ = fermion_greens_calculator_up_alt.G′
@@ -541,7 +559,7 @@ function reflection_update!(
     @. s_i = -s_i
 
     # calculate change in bosonic action, only non-zero for attractive Hubbard interaction
-    ΔSb = U[i] > zero(E) ? zero(E) : 2 * α[i] * sum(s_i)
+    ΔSb = U[i] > zero(R) ? zero(R) : 2 * α[i] * sum(s_i)
 
     # update diagonal on-site energy matrix
     @. Vup_i = -2*α[i]/Δτ * s_i + Vup_i
@@ -549,8 +567,8 @@ function reflection_update!(
 
     # update propagator matrices
     @fastmath @inbounds for l in eachindex(Bup)
-        expmΔτVup_l = Bup[l].expmΔτV::Vector{E}
-        expmΔτVdn_l = Bdn[l].expmΔτV::Vector{E}
+        expmΔτVup_l = Bup[l].expmΔτV
+        expmΔτVdn_l = Bdn[l].expmΔτV
         expmΔτVup_l[site] = exp(-Δτ*Vup_i[l])
         expmΔτVdn_l[site] = exp(-Δτ*Vdn_i[l])
     end
@@ -586,8 +604,8 @@ function reflection_update!(
         @. Vdn_i = +2*α[i]/Δτ * s_i + Vdn_i
         # revert propagator matrices
         @fastmath @inbounds for l in eachindex(Bup)
-            expmΔτVup_l = Bup[l].expmΔτV::Vector{E}
-            expmΔτVdn_l = Bdn[l].expmΔτV::Vector{E}
+            expmΔτVup_l = Bup[l].expmΔτV
+            expmΔτVdn_l = Bdn[l].expmΔτV
             expmΔτVup_l[site] = exp(-Δτ*Vup_i[l])
             expmΔτVdn_l[site] = exp(-Δτ*Vdn_i[l])
         end
@@ -599,42 +617,46 @@ end
 
 @doc raw"""
     reflection_update!(
-        G::Matrix{T}, logdetG::E, sgndetG::T,
-        hubbard_ising_parameters::HubbardIsingHSParameters{E};
-        fermion_path_integral::FermionPathIntegral{T,E},
-        fermion_greens_calculator::FermionGreensCalculator{T,E},
-        fermion_greens_calculator_alt::FermionGreensCalculator{T,E},
+        # ARGUMENTS
+        G::Matrix{H}, logdetG::R, sgndetG::H,
+        hubbard_ising_parameters::HubbardIsingHSParameters{R};
+        # KEYWORD ARGUMENTS
+        fermion_path_integral::FermionPathIntegral{H},
+        fermion_greens_calculator::FermionGreensCalculator{H,R},
+        fermion_greens_calculator_alt::FermionGreensCalculator{H,R},
         B::Vector{P},
         rng::AbstractRNG
-    ) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
+    ) where {H<:Number, R<:Real, P<:AbstractPropagator}
 
 Perform a reflection update where the sign of every Ising Hubbard-Stratonovich field on a randomly chosen orbital in the lattice is changed.
 This function returns `(accepted, logdetG, sgndetG)`. This method assumes strictly attractive Hubbard interactions.
 
 # Arguments
 
-- `G::Matrix{T}`: Eqaul-time Greens function matrix.
-- `logdetG::E`: Log of the determinant of the eqaul-time Greens function matrix.
-- `sgndetG::T`: Sign/phase of the determinant of the eqaul-time Greens function matrix.
-- `hubbard_ising_parameters::HubbardIsingHSParameters{E}`: Ising Hubbard-Stratonovich fields and associated parameters to update.
+- `G::Matrix{H}`: Eqaul-time Greens function matrix.
+- `logdetG::R`: Log of the determinant of the eqaul-time Greens function matrix.
+- `sgndetG::H`: Sign/phase of the determinant of the eqaul-time Greens function matrix.
+- `hubbard_ising_parameters::HubbardIsingHSParameters{R}`: Ising Hubbard-Stratonovich fields and associated parameters to update.
 
 # Keyword Arguments
 
-- `fermion_path_integral::FermionPathIntegral{T,E}`: An instance of [`FermionPathIntegral`](@ref) type.
-- `fermion_greens_calculator::FermionGreensCalculator{T,E}`: Contains matrix factorization information for current state.
-- `fermion_greens_calculator_alt::FermionGreensCalculator{T,E}`: Used to calculate matrix factorizations for proposed state.
+- `fermion_path_integral::FermionPathIntegral{H}`: An instance of [`FermionPathIntegral`](@ref) type.
+- `fermion_greens_calculator::FermionGreensCalculator{H,R}`: Contains matrix factorization information for current state.
+- `fermion_greens_calculator_alt::FermionGreensCalculator{H,R}`: Used to calculate matrix factorizations for proposed state.
 - `B::Vector{P}`: Propagators for each imaginary time slice.
 - `rng::AbstractRNG`: Random number generator used in method instead of global random number generator, important for reproducibility.
 """
 function reflection_update!(
-    G::Matrix{T}, logdetG::E, sgndetG::T,
-    hubbard_ising_parameters::HubbardIsingHSParameters{E};
-    fermion_path_integral::FermionPathIntegral{T,E},
-    fermion_greens_calculator::FermionGreensCalculator{T,E},
-    fermion_greens_calculator_alt::FermionGreensCalculator{T,E},
+    # ARGUMENTS
+    G::Matrix{H}, logdetG::R, sgndetG::H,
+    hubbard_ising_parameters::HubbardIsingHSParameters{R};
+    # KEYWORD ARGUMENTS
+    fermion_path_integral::FermionPathIntegral{H},
+    fermion_greens_calculator::FermionGreensCalculator{H,R},
+    fermion_greens_calculator_alt::FermionGreensCalculator{H,R},
     B::Vector{P},
     rng::AbstractRNG
-) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
+) where {H<:Number, R<:Real, P<:AbstractPropagator}
 
     (; N, U, α, sites, s, Δτ) = hubbard_ising_parameters
     G′ = fermion_greens_calculator_alt.G′
@@ -661,7 +683,7 @@ function reflection_update!(
 
     # update propagator matrices
     @fastmath @inbounds for l in eachindex(B)
-        expmΔτV_l = B[l].expmΔτV::Vector{E}
+        expmΔτV_l = B[l].expmΔτV
         expmΔτV_l[site] = exp(-Δτ*V_i[l])
     end
 
@@ -690,7 +712,7 @@ function reflection_update!(
         @. V_i = -2*α[i]/Δτ * s_i + V_i
         # revert propagator matrices
         @fastmath @inbounds for l in eachindex(B)
-            expmΔτV_l = B[l].expmΔτV::Vector{E}
+            expmΔτV_l = B[l].expmΔτV
             expmΔτV_l[site] = exp(-Δτ*V_i[l])
         end
         accepted = false
@@ -702,57 +724,61 @@ end
 
 @doc raw"""
     swap_update!(
-        Gup::Matrix{T}, logdetGup::E, sgndetGup::T,
-        Gdn::Matrix{T}, logdetGdn::E, sgndetGdn::T,
-        hubbard_ising_parameters::HubbardIsingHSParameters{E};
-        fermion_path_integral_up::FermionPathIntegral{T,E},
-        fermion_path_integral_dn::FermionPathIntegral{T,E},
-        fermion_greens_calculator_up::FermionGreensCalculator{T,E},
-        fermion_greens_calculator_dn::FermionGreensCalculator{T,E},
-        fermion_greens_calculator_up_alt::FermionGreensCalculator{T,E},
-        fermion_greens_calculator_dn_alt::FermionGreensCalculator{T,E},
+        # ARGUMENTS
+        Gup::Matrix{H}, logdetGup::R, sgndetGup::H,
+        Gdn::Matrix{H}, logdetGdn::R, sgndetGdn::H,
+        hubbard_ising_parameters::HubbardIsingHSParameters{R};
+        # KEYWORD ARGUMENTS
+        fermion_path_integral_up::FermionPathIntegral{H},
+        fermion_path_integral_dn::FermionPathIntegral{H},
+        fermion_greens_calculator_up::FermionGreensCalculator{H,R},
+        fermion_greens_calculator_dn::FermionGreensCalculator{H,R},
+        fermion_greens_calculator_up_alt::FermionGreensCalculator{H,R},
+        fermion_greens_calculator_dn_alt::FermionGreensCalculator{H,R},
         Bup::Vector{P}, Bdn::Vector{P},
         rng::AbstractRNG
-    ) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
+    ) where {H<:Number, R<:Real, P<:AbstractPropagator}
 
 Perform a swap update where the HS fields associated with two randomly chosen sites in the lattice are exchanged.
 This function returns `(accepted, logdetGup, sgndetGup, logdetGdn, sgndetGdn)`.
 
 # Arguments
 
-- `Gup::Matrix{T}`: Spin-up eqaul-time Greens function matrix.
-- `logdetGup::E`: Log of the determinant of the spin-up eqaul-time Greens function matrix.
-- `sgndetGup::T`: Sign/phase of the determinant of the spin-up eqaul-time Greens function matrix.
-- `Gdn::Matrix{T}`: Spin-down eqaul-time Greens function matrix.
-- `logdetGdn::E`: Log of the determinant of the spin-down eqaul-time Greens function matrix.
-- `sgndetGdn::T`: Sign/phase of the determinant of the spin-down eqaul-time Greens function matrix.
-- `hubbard_ising_parameters::HubbardIsingHSParameters{E}`: Ising Hubbard-Stratonovich fields and associated parameters to update.
+- `Gup::Matrix{H}`: Spin-up eqaul-time Greens function matrix.
+- `logdetGup::R`: Log of the determinant of the spin-up eqaul-time Greens function matrix.
+- `sgndetGup::H`: Sign/phase of the determinant of the spin-up eqaul-time Greens function matrix.
+- `Gdn::Matrix{H}`: Spin-down eqaul-time Greens function matrix.
+- `logdetGdn::R`: Log of the determinant of the spin-down eqaul-time Greens function matrix.
+- `sgndetGdn::H`: Sign/phase of the determinant of the spin-down eqaul-time Greens function matrix.
+- `hubbard_ising_parameters::HubbardIsingHSParameters{R}`: Ising Hubbard-Stratonovich fields and associated parameters to update.
 
 # Keyword Arguments
 
-- `fermion_path_integral_up::FermionPathIntegral{T,E}`: An instance of [`FermionPathIntegral`](@ref) type for spin-up electrons.
-- `fermion_path_integral_dn::FermionPathIntegral{T,E}`: An instance of [`FermionPathIntegral`](@ref) type for spin-down electrons.
-- `fermion_greens_calculator_up::FermionGreensCalculator{T,E}`: Contains matrix factorization information for current spin-up sector state.
-- `fermion_greens_calculator_dn::FermionGreensCalculator{T,E}`: Contains matrix factorization information for current spin-down sector state.
-- `fermion_greens_calculator_up_alt::FermionGreensCalculator{T,E}`: Used to calculate matrix factorizations for proposed spin-up sector state.
-- `fermion_greens_calculator_dn_alt::FermionGreensCalculator{T,E}`: Used to calculate matrix factorizations for proposed spin-up sector state.
+- `fermion_path_integral_up::FermionPathIntegral{H}`: An instance of [`FermionPathIntegral`](@ref) type for spin-up electrons.
+- `fermion_path_integral_dn::FermionPathIntegral{H}`: An instance of [`FermionPathIntegral`](@ref) type for spin-down electrons.
+- `fermion_greens_calculator_up::FermionGreensCalculator{H,R}`: Contains matrix factorization information for current spin-up sector state.
+- `fermion_greens_calculator_dn::FermionGreensCalculator{H,R}`: Contains matrix factorization information for current spin-down sector state.
+- `fermion_greens_calculator_up_alt::FermionGreensCalculator{H,R}`: Used to calculate matrix factorizations for proposed spin-up sector state.
+- `fermion_greens_calculator_dn_alt::FermionGreensCalculator{H,R}`: Used to calculate matrix factorizations for proposed spin-up sector state.
 - `Bup::Vector{P}`: Spin-up propagators for each imaginary time slice.
 - `Bdn::Vector{P}`: Spin-down propagators for each imaginary time slice.
 - `rng::AbstractRNG`: Random number generator used in method instead of global random number generator, important for reproducibility.
 """
 function swap_update!(
-    Gup::Matrix{T}, logdetGup::E, sgndetGup::T,
-    Gdn::Matrix{T}, logdetGdn::E, sgndetGdn::T,
-    hubbard_ising_parameters::HubbardIsingHSParameters{E};
-    fermion_path_integral_up::FermionPathIntegral{T,E},
-    fermion_path_integral_dn::FermionPathIntegral{T,E},
-    fermion_greens_calculator_up::FermionGreensCalculator{T,E},
-    fermion_greens_calculator_dn::FermionGreensCalculator{T,E},
-    fermion_greens_calculator_up_alt::FermionGreensCalculator{T,E},
-    fermion_greens_calculator_dn_alt::FermionGreensCalculator{T,E},
+    # ARGUMENTS
+    Gup::Matrix{H}, logdetGup::R, sgndetGup::H,
+    Gdn::Matrix{H}, logdetGdn::R, sgndetGdn::H,
+    hubbard_ising_parameters::HubbardIsingHSParameters{R};
+    # KEYWORD ARGUMENTS
+    fermion_path_integral_up::FermionPathIntegral{H},
+    fermion_path_integral_dn::FermionPathIntegral{H},
+    fermion_greens_calculator_up::FermionGreensCalculator{H,R},
+    fermion_greens_calculator_dn::FermionGreensCalculator{H,R},
+    fermion_greens_calculator_up_alt::FermionGreensCalculator{H,R},
+    fermion_greens_calculator_dn_alt::FermionGreensCalculator{H,R},
     Bup::Vector{P}, Bdn::Vector{P},
     rng::AbstractRNG
-) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
+) where {H<:Number, R<:Real, P<:AbstractPropagator}
 
     (; N, U, α, sites, s, Δτ) = hubbard_ising_parameters
     Gup′ = fermion_greens_calculator_up_alt.G′
@@ -788,15 +814,15 @@ function swap_update!(
     Vdn_j = @view fermion_path_integral_dn.V[site_j, :]
 
     # calculate the initial bosonic action
-    Sb  = U[i] > zero(E) ? zero(E) : α[i] * sum(s_i)
-    Sb += U[j] > zero(E) ? zero(E) : α[j] * sum(s_j)
+    Sb  = U[i] > zero(R) ? zero(R) : α[i] * sum(s_i)
+    Sb += U[j] > zero(R) ? zero(R) : α[j] * sum(s_j)
 
     # swap the HS fields
     swap!(s_i, s_j)
 
     # calculate the final bosonic action
-    Sb′  = U[i] > zero(E) ? zero(E) : α[i] * sum(s_i)
-    Sb′ += U[j] > zero(E) ? zero(E) : α[j] * sum(s_j)
+    Sb′  = U[i] > zero(R) ? zero(R) : α[i] * sum(s_i)
+    Sb′ += U[j] > zero(R) ? zero(R) : α[j] * sum(s_j)
 
     # calculate the change in the bosonic action
     ΔSb = Sb′ - Sb
@@ -809,8 +835,8 @@ function swap_update!(
 
     # update propagator matrices
     @fastmath @inbounds for l in eachindex(Bup)
-        expmΔτVup_l = Bup[l].expmΔτV::Vector{E}
-        expmΔτVdn_l = Bdn[l].expmΔτV::Vector{E}
+        expmΔτVup_l = Bup[l].expmΔτV
+        expmΔτVdn_l = Bdn[l].expmΔτV
         expmΔτVup_l[site_i] = exp(-Δτ*Vup_i[l])
         expmΔτVdn_l[site_i] = exp(-Δτ*Vdn_i[l])
         expmΔτVup_l[site_j] = exp(-Δτ*Vup_j[l])
@@ -850,8 +876,8 @@ function swap_update!(
         @. Vdn_j = Vdn_j + α[j]/Δτ * (s_j - s_i)
         # revert propagator matrices
         @fastmath @inbounds for l in eachindex(Bup)
-            expmΔτVup_l = Bup[l].expmΔτV::Vector{E}
-            expmΔτVdn_l = Bdn[l].expmΔτV::Vector{E}
+            expmΔτVup_l = Bup[l].expmΔτV
+            expmΔτVdn_l = Bdn[l].expmΔτV
             expmΔτVup_l[site_i] = exp(-Δτ*Vup_i[l])
             expmΔτVdn_l[site_i] = exp(-Δτ*Vdn_i[l])
             expmΔτVup_l[site_j] = exp(-Δτ*Vup_j[l])
@@ -866,40 +892,44 @@ end
 
 @doc raw"""
     swap_update!(
-        G::Matrix{T}, logdetG::E, sgndetG::T,
-        hubbard_ising_parameters::HubbardIsingHSParameters{E};
-        fermion_path_integral::FermionPathIntegral{T,E},
-        fermion_greens_calculator::FermionGreensCalculator{T,E},
-        fermion_greens_calculator_alt::FermionGreensCalculator{T,E},
+        # ARGUMENTS
+        G::Matrix{H}, logdetG::R, sgndetG::H,
+        hubbard_ising_parameters::HubbardIsingHSParameters{R};
+        # KEYWORD ARGUMENTS
+        fermion_path_integral::FermionPathIntegral{H},
+        fermion_greens_calculator::FermionGreensCalculator{H,R},
+        fermion_greens_calculator_alt::FermionGreensCalculator{H,R},
         B::Vector{P}, rng::AbstractRNG
-    ) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
+    ) where {H<:Number, R<:Real, P<:AbstractPropagator}
 
 For strictly attractive Hubbard interactions, perform a swap update where the HS fields associated with two randomly chosen
 sites in the lattice are exchanged. This function returns `(accepted, logdetG, sgndetG)`.
 
 # Arguments
 
-- `G::Matrix{T}`: Eqaul-time Greens function matrix.
-- `logdetG::E`: Log of the determinant of the eqaul-time Greens function matrix.
-- `sgndetG::T`: Sign/phase of the determinant of the eqaul-time Greens function matrix.
-- `hubbard_ising_parameters::HubbardIsingHSParameters{E}`: Ising Hubbard-Stratonovich fields and associated parameters to update.
+- `G::Matrix{H}`: Eqaul-time Greens function matrix.
+- `logdetG::R`: Log of the determinant of the eqaul-time Greens function matrix.
+- `sgndetG::H`: Sign/phase of the determinant of the eqaul-time Greens function matrix.
+- `hubbard_ising_parameters::HubbardIsingHSParameters{R}`: Ising Hubbard-Stratonovich fields and associated parameters to update.
 
 # Keyword Arguments
 
-- `fermion_path_integral::FermionPathIntegral{T,E}`: An instance of [`FermionPathIntegral`](@ref) type.
-- `fermion_greens_calculator::FermionGreensCalculator{T,E}`: Contains matrix factorization information for current state.
-- `fermion_greens_calculator_alt::FermionGreensCalculator{T,E}`: Used to calculate matrix factorizations for proposed state.
+- `fermion_path_integral::FermionPathIntegral{H}`: An instance of [`FermionPathIntegral`](@ref) type.
+- `fermion_greens_calculator::FermionGreensCalculator{H,R}`: Contains matrix factorization information for current state.
+- `fermion_greens_calculator_alt::FermionGreensCalculator{H,R}`: Used to calculate matrix factorizations for proposed state.
 - `B::Vector{P}`: Propagators for each imaginary time slice.
 - `rng::AbstractRNG`: Random number generator used in method instead of global random number generator, important for reproducibility.
 """
 function swap_update!(
-    G::Matrix{T}, logdetG::E, sgndetG::T,
-    hubbard_ising_parameters::HubbardIsingHSParameters{E};
-    fermion_path_integral::FermionPathIntegral{T,E},
-    fermion_greens_calculator::FermionGreensCalculator{T,E},
-    fermion_greens_calculator_alt::FermionGreensCalculator{T,E},
+    # ARGUMENTS
+    G::Matrix{H}, logdetG::R, sgndetG::H,
+    hubbard_ising_parameters::HubbardIsingHSParameters{R};
+    # KEYWORD ARGUMENTS
+    fermion_path_integral::FermionPathIntegral{H},
+    fermion_greens_calculator::FermionGreensCalculator{H,R},
+    fermion_greens_calculator_alt::FermionGreensCalculator{H,R},
     B::Vector{P}, rng::AbstractRNG
-) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
+) where {H<:Number, R<:Real, P<:AbstractPropagator}
 
     (; N, U, α, sites, s, Δτ) = hubbard_ising_parameters
     G′ = fermion_greens_calculator_alt.G′
@@ -927,15 +957,15 @@ function swap_update!(
     V_j = @view fermion_path_integral.V[site_j, :]
 
     # calculate the initial bosonic action
-    Sb  = U[i] > zero(E) ? zero(E) : α[i] * sum(s_i)
-    Sb += U[j] > zero(E) ? zero(E) : α[j] * sum(s_j)
+    Sb  = U[i] > zero(R) ? zero(R) : α[i] * sum(s_i)
+    Sb += U[j] > zero(R) ? zero(R) : α[j] * sum(s_j)
 
     # swap the HS fields
     swap!(s_i, s_j)
 
     # calculate the final bosonic action
-    Sb′  = U[i] > zero(E) ? zero(E) : α[i] * sum(s_i)
-    Sb′ += U[j] > zero(E) ? zero(E) : α[j] * sum(s_j)
+    Sb′  = U[i] > zero(R) ? zero(R) : α[i] * sum(s_i)
+    Sb′ += U[j] > zero(R) ? zero(R) : α[j] * sum(s_j)
 
     # calculate the change in the bosonic action
     ΔSb = Sb′ - Sb
@@ -946,7 +976,7 @@ function swap_update!(
 
     # update propagator matrices
     @fastmath @inbounds for l in eachindex(B)
-        expmΔτV_l = B[l].expmΔτV::Vector{E}
+        expmΔτV_l = B[l].expmΔτV
         expmΔτV_l[site_i] = exp(-Δτ*V_i[l])
         expmΔτV_l[site_j] = exp(-Δτ*V_j[l])
     end
@@ -977,7 +1007,7 @@ function swap_update!(
         @. V_j = V_j - α[j]/Δτ * (s_j - s_i) 
         # revert propagator matrices
         @fastmath @inbounds for l in eachindex(B)
-            expmΔτV_l = B[l].expmΔτV::Vector{E}
+            expmΔτV_l = B[l].expmΔτV
             expmΔτV_l[site_i] = exp(-Δτ*V_i[l])
             expmΔτV_l[site_j] = exp(-Δτ*V_j[l])
         end

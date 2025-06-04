@@ -38,22 +38,26 @@ struct DispersionParameters{E<:AbstractFloat}
 end
 
 @doc raw"""
-    DispersionParameters(; model_geometry::ModelGeometry{D,E},
-                         electron_phonon_model::ElectronPhononModel{T,E,D},
-                         phonon_parameters::PhononParameters{E},
-                         rng::AbstractRNG) where {T,E,D}
+    DispersionParameters(;
+        model_geometry::ModelGeometry{D,E},
+        electron_phonon_model::ElectronPhononModel{T,E,D},
+        phonon_parameters::PhononParameters{E},
+        rng::AbstractRNG
+    ) where {T,E,D}
 
 Initialize and return an instance of [`DispersionParameters`](@ref).
 """
-function DispersionParameters(; model_geometry::ModelGeometry{D,E},
-                              electron_phonon_model::ElectronPhononModel{T,E,D},
-                              phonon_parameters::PhononParameters{E},
-                              rng::AbstractRNG) where {T,E,D}
+function DispersionParameters(;
+    model_geometry::ModelGeometry{D,E},
+    electron_phonon_model::ElectronPhononModel{T,E,D},
+    phonon_parameters::PhononParameters{E},
+    rng::AbstractRNG
+) where {T,E,D}
 
-    phonon_dispersions = electron_phonon_model.phonon_dispersions::Vector{PhononDispersion{E,D}}
-    phonon_modes = electron_phonon_model.phonon_modes::Vector{PhononMode{E}}
-    lattice = model_geometry.lattice::Lattice{D}
-    unit_cell = model_geometry.unit_cell::UnitCell{D,E}
+    phonon_dispersions = electron_phonon_model.phonon_dispersions
+    phonon_modes = electron_phonon_model.phonon_modes
+    lattice = model_geometry.lattice
+    unit_cell = model_geometry.unit_cell
 
     # the number of dispersive phonon coupling definitions
     ndispersion = length(phonon_dispersions)
@@ -62,9 +66,6 @@ function DispersionParameters(; model_geometry::ModelGeometry{D,E},
 
         # get number of types of phonon models
         nphonon = length(phonon_modes)
-
-        # get phonon to size map
-        phonon_to_site = phonon_parameters.phonon_to_site
 
         # get the number of unit cells in the lattice
         Ncells = lattice.N
@@ -75,14 +76,21 @@ function DispersionParameters(; model_geometry::ModelGeometry{D,E},
         # total number of disperson phonon couplings in lattice
         Ndispersion = ndispersion * Ncells
 
-        # get dispersive bonds
-        dispersion_bonds = [phonon_dispersion.bond for phonon_dispersion in phonon_dispersions]
-
-        # build site neighbor table
-        site_neighbor_table = build_neighbor_table(dispersion_bonds, unit_cell, lattice)
-
-        # dispersion to phonon mapping
-        dispersion_to_phonon = similar(site_neighbor_table)
+        # construct map going from dispersion to phonon modes in lattice
+        phonon_unit_cell = UnitCell(
+            basis_vecs = zeros(E, (D, nphonon)),
+            lattice_vecs = unit_cell.lattice_vecs
+        )
+        dispersion_bonds = [
+            Bond(
+                orbitals = dispersion.phonon_ids,
+                displacement = dispersion.displacement
+            )
+            for dispersion in phonon_dispersions
+        ]
+        dispersion_to_phonon = build_neighbor_table(
+            dispersion_bonds, phonon_unit_cell, lattice
+        )
 
         # allocate dispersive coupling coefficients
         Ω  = zeros(E, Ndispersion)
@@ -93,9 +101,6 @@ function DispersionParameters(; model_geometry::ModelGeometry{D,E},
         for n in 1:ndispersion
             # get the dispersive coupling definition
             phonon_dispersion = phonon_dispersions[n]
-            # get the two phonon mode definitions that are coupled
-            phonon_mode_i = phonon_dispersion.phonon_modes[1]
-            phonon_mode_f = phonon_dispersion.phonon_modes[2]
             # iterate over unit cells
             for uc in 1:Ncells
                 # increment dispersive coupling counter
@@ -103,16 +108,6 @@ function DispersionParameters(; model_geometry::ModelGeometry{D,E},
                 # initialize dispersive coupling coefficient
                 Ω[dipsersion_counter]  = phonon_dispersion.Ω_mean  + phonon_dispersion.Ω_std  * randn(rng)
                 Ω4[dipsersion_counter] = phonon_dispersion.Ω4_mean + phonon_dispersion.Ω4_std * randn(rng)
-                # record the initial phonon getting coupled to
-                phonon_i = (phonon_mode_i - 1) * Ncells + uc
-                dispersion_to_phonon[1, dipsersion_counter] = phonon_i
-                # get view into phonons phonon_to_site that corresponds to final phonon type
-                phonons = @view phonon_to_site[(phonon_mode_f-1)*Ncells + 1 : phonon_mode_f*Ncells]
-                # get the terminating site of the phonon dispersion
-                site_f = site_neighbor_table[2,dipsersion_counter]
-                # get the corresponding phonon in the lattice
-                phonon_f = findfirst(i -> i==site_f, phonons) + (phonon_mode_f - 1) * Ncells
-                dispersion_to_phonon[2, dipsersion_counter] = phonon_f
             end
         end
 
@@ -127,8 +122,10 @@ function DispersionParameters(; model_geometry::ModelGeometry{D,E},
         end
 
         # initialize dispersion parameters
-        dispersion_parameters = DispersionParameters(ndispersion, Ndispersion, Ω, Ω4, dispersion_to_phonon,
-                                                     init_phonon_to_dispersion, final_phonon_to_dispersion)
+        dispersion_parameters = DispersionParameters(
+            ndispersion, Ndispersion, Ω, Ω4, dispersion_to_phonon,
+            init_phonon_to_dispersion, final_phonon_to_dispersion
+        )
     else
 
         # initialize null dispersion parameters
@@ -139,11 +136,15 @@ function DispersionParameters(; model_geometry::ModelGeometry{D,E},
 end
 
 @doc raw"""
-    DispersionParameters(electron_phonon_model::ElectronPhononModel{T,E,D}) where {T,E,D}
+    DispersionParameters(
+        electron_phonon_model::ElectronPhononModel{T,E,D}
+    ) where {T,E,D}
 
 Initialize and return null (empty) instance of [`DispersionParameters`](@ref).
 """
-function DispersionParameters(electron_phonon_model::ElectronPhononModel{T,E,D}) where {T,E,D}
+function DispersionParameters(
+    electron_phonon_model::ElectronPhononModel{T,E,D}
+) where {T,E,D}
 
     return DispersionParameters(0, 0, E[], E[], Matrix{Int}(undef,2,0), Vector{Int}[], Vector{Int}[])
 end

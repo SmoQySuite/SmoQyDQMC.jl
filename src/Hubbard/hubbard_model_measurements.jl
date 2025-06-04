@@ -6,8 +6,8 @@
     ) where {T<:Number, E<:AbstractFloat}
 
 Calculate the average Hubbard energy ``U \langle \hat{n}_\uparrow \hat{n}_\downarrow \rangle``
-if `shifted = true` and ``U \langle (\hat{n}_\uparrow - \tfrac{1}{2})(\hat{n}_\downarrow - \tfrac{1}{2})\rangle``
-if `shifted = false` for the orbital corresponding `orbital_id` in the unit cell.
+if `ph_sym_form = false` and ``U \langle (\hat{n}_\uparrow - \tfrac{1}{2})(\hat{n}_\downarrow - \tfrac{1}{2})\rangle``
+if `ph_sym_form = true` for the orbital corresponding `orbital_id` in the unit cell.
 """
 function measure_hubbard_energy(
     hubbard_parameters::HubbardParameters{E},
@@ -15,7 +15,7 @@ function measure_hubbard_energy(
     orbital_id::Int
 ) where {T<:Number, E<:AbstractFloat}
 
-    (; U, orbitals, sites, shifted) = hubbard_parameters
+    (; U, orbitals, sites, ph_sym_form) = hubbard_parameters
 
     # initialize hubbard energy
     e = zero(E)
@@ -44,10 +44,10 @@ function measure_hubbard_energy(
             site = sites′[i,index]
             nup = 1 - Gup[site,site]
             ndn = 1 - Gdn[site,site]
-            if shifted
-                e += real( U′[i,index] * nup * ndn )
-            else
+            if ph_sym_form
                 e += real( U′[i,index] * (nup-0.5) * (ndn-0.5) )
+            else
+                e += real( U′[i,index] * nup * ndn )
             end
         end
         e /= N_unitcells

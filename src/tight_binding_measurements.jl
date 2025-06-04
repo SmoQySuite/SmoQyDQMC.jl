@@ -127,17 +127,17 @@ end
 @doc raw"""
     measure_hopping_amplitude(
         tight_binding_parameters::TightBindingParameters{T,E},
-        fermion_path_integral::FermionPathIntegral{T,E},
+        fermion_path_integral::FermionPathIntegral{T,U},
         hopping_id::Int
-    ) where {T<:Number, E<:AbstractFloat}
+    ) where {T<:Number, U<:Number, E<:AbstractFloat}
 
 Calculate the average hopping amplitude for the hopping defined by the `hopping_id`.
 """
 function measure_hopping_amplitude(
     tight_binding_parameters::TightBindingParameters{T,E},
-    fermion_path_integral::FermionPathIntegral{T,E},
+    fermion_path_integral::FermionPathIntegral{T,U},
     hopping_id::Int
-) where {T<:Number, E<:AbstractFloat}
+) where {T<:Number, U<:Number, E<:AbstractFloat}
 
     (; neighbor_table, bond_slices, bond_ids) = tight_binding_parameters
     (; t, Lτ) = fermion_path_integral
@@ -157,9 +157,9 @@ end
 @doc raw"""
     measure_hopping_inversion(
         tight_binding_parameters::TightBindingParameters{T,E},
-        fermion_path_integral::FermionPathIntegral{T,E},
+        fermion_path_integral::FermionPathIntegral{T,U},
         hopping_id::Int
-    ) where {T<:Number, E<:AbstractFloat}
+    ) where {T<:Number, U<:Number, E<:AbstractFloat}
 
 Measure the fraction of time the sign of the instaneous modulated hopping ampltiude ``t_{l,(\mathbf{i},\nu),(\mathbf{j},\gamma)}``
 is inverted relative to the bare hopping amplitude ``t_{(\mathbf{i},\nu),(\mathbf{j},\gamma)}``, where ``l`` is the
@@ -167,9 +167,9 @@ imaginary time-slice index.
 """
 function measure_hopping_inversion(
     tight_binding_parameters::TightBindingParameters{T,E},
-    fermion_path_integral::FermionPathIntegral{T,E},
+    fermion_path_integral::FermionPathIntegral{T,U},
     hopping_id::Int
-) where {T<:Number, E<:AbstractFloat}
+) where {T<:Number, U<:Number, E<:AbstractFloat}
 
     (; neighbor_table, bond_slices, bond_ids) = tight_binding_parameters
     (; Lτ) = fermion_path_integral
@@ -207,9 +207,9 @@ end
 @doc raw"""
     measure_hopping_inversion_avg(
         tight_binding_parameters::TightBindingParameters{T,E},
-        fermion_path_integral::FermionPathIntegral{T,E},
+        fermion_path_integral::FermionPathIntegral{T,U},
         hopping_id::Int
-    ) where {T<:Number, E<:AbstractFloat}
+    ) where {T<:Number, U<:Number, E<:AbstractFloat}
 
 Measure the fraction of time the sign of the imaginary-time averaged modulated hopping ampltiude
 ``\bar{t}_{(\mathbf{i},\nu),(\mathbf{j},\gamma)}`` is inverted relative to the bare hopping amplitude
@@ -217,9 +217,9 @@ Measure the fraction of time the sign of the imaginary-time averaged modulated h
 """
 function measure_hopping_inversion_avg(
     tight_binding_parameters::TightBindingParameters{T,E},
-    fermion_path_integral::FermionPathIntegral{T,E},
+    fermion_path_integral::FermionPathIntegral{T,U},
     hopping_id::Int
-) where {T<:Number, E<:AbstractFloat}
+) where {T<:Number, U<:Number, E<:AbstractFloat}
 
     (; neighbor_table, bond_slices, bond_ids) = tight_binding_parameters
     (; Lτ) = fermion_path_integral

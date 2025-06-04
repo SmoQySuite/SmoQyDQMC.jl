@@ -3,8 +3,10 @@
 #######################################
 
 @doc raw"""
-    measure_phonon_kinetic_energy(electron_phonon_parameters::ElectronPhononParameters{T,E},
-                                  n::Int) where {T<:Number, E<:AbstractFloat}
+    measure_phonon_kinetic_energy(
+        electron_phonon_parameters::ElectronPhononParameters{T,E},
+        n::Int
+    ) where {T<:Number, E<:AbstractFloat}
 
 Evaluate the average phonon kinetic energy for phonon mode `n`.
 The measurement is made using the expression
@@ -12,8 +14,10 @@ The measurement is made using the expression
 \langle K \rangle = \frac{1}{2\Delta\tau} - \frac{M}{2}\bigg\langle\frac{(x_{l+1}-x_{l})^{2}}{\Delta\tau^{2}}\bigg\rangle. 
 ```
 """
-function measure_phonon_kinetic_energy(electron_phonon_parameters::ElectronPhononParameters{T,E},
-                                       n::Int) where {T<:Number, E<:AbstractFloat}
+function measure_phonon_kinetic_energy(
+    electron_phonon_parameters::ElectronPhononParameters{T,E},
+    n::Int
+) where {T<:Number, E<:AbstractFloat}
 
     (; x, Δτ) = electron_phonon_parameters
     phonon_parameters = electron_phonon_parameters.phonon_parameters::PhononParameters{E}
@@ -66,8 +70,10 @@ end
 #########################################
 
 @doc raw"""
-    measure_phonon_potential_energy(electron_phonon_parameters::ElectronPhononParameters{T,E},
-                                    n::Int) where {T<:Number, E<:AbstractFloat}
+    measure_phonon_potential_energy(
+        electron_phonon_parameters::ElectronPhononParameters{T,E},
+        n::Int
+    ) where {T<:Number, E<:AbstractFloat}
 
 Calculate the average phonon potential energy, given by
 ```math
@@ -75,8 +81,10 @@ U = \frac{1}{2} M \Omega^2 \langle \hat{X}^2 \rangle + \frac{1}{24} M \Omega_4^2
 ```
 for phonon mode `n` in the unit cell.
 """
-function measure_phonon_potential_energy(electron_phonon_parameters::ElectronPhononParameters{T,E},
-                                         n::Int) where {T<:Number, E<:AbstractFloat}
+function measure_phonon_potential_energy(
+    electron_phonon_parameters::ElectronPhononParameters{T,E},
+    n::Int
+) where {T<:Number, E<:AbstractFloat}
 
     phonon_parameters = electron_phonon_parameters.phonon_parameters::PhononParameters{E}
     (; x) = electron_phonon_parameters
@@ -87,8 +95,14 @@ function measure_phonon_potential_energy(electron_phonon_parameters::ElectronPho
     return U
 end
 
-function measure_phonon_potential_energy(x::Matrix{T}, M::Vector{T}, Ω::Vector{T}, Ω4::Vector{T},
-                                         nphonon::Int, n::Int) where {T<:AbstractFloat}
+function measure_phonon_potential_energy(
+    x::Matrix{T},
+    M::Vector{T},
+    Ω::Vector{T},
+    Ω4::Vector{T},
+    nphonon::Int,
+    n::Int
+) where {T<:AbstractFloat}
 
     # length of imaginary time axis
     Lτ = size(x, 2)
@@ -130,13 +144,17 @@ end
 ########################################
 
 @doc raw"""
-    measure_phonon_position_moment(electron_phonon_parameters::ElectronPhononParameters{T,E},
-                                   n::Int, m::Int) where {T<:Number, E<:AbstractFloat}
+    measure_phonon_position_moment(
+        electron_phonon_parameters::ElectronPhononParameters{T,E},
+        n::Int, m::Int
+    ) where {T<:Number, E<:AbstractFloat}
 
 Measure ``\langle X^m \rangle`` for phonon mode `n` in the unit cell.
 """
-function measure_phonon_position_moment(electron_phonon_parameters::ElectronPhononParameters{T,E},
-                                        n::Int, m::Int) where {T<:Number, E<:AbstractFloat}
+function measure_phonon_position_moment(
+    electron_phonon_parameters::ElectronPhononParameters{T,E},
+    n::Int, m::Int
+) where {T<:Number, E<:AbstractFloat}
 
     phonon_parameters = electron_phonon_parameters.phonon_parameters::PhononParameters{E}
     nphonon = phonon_parameters.nphonon::Int
@@ -146,7 +164,9 @@ function measure_phonon_position_moment(electron_phonon_parameters::ElectronPhon
     return xm
 end
 
-function measure_phonon_position_moment(x::Matrix{T}, nphonon::Int, n::Int, m::Int) where {T<:AbstractFloat}
+function measure_phonon_position_moment(
+    x::Matrix{T}, nphonon::Int, n::Int, m::Int
+) where {T<:AbstractFloat}
 
     # length of imaginary time axis
     Lτ = size(x,2)

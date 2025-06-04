@@ -67,8 +67,8 @@ function initialize_measurement_container(
         equaltime_composite_correlations      = equaltime_composite_correlations,
         time_displaced_composite_correlations = time_displaced_composite_correlations,
         integrated_composite_correlations     = integrated_composite_correlations,
-        hopping_to_bond_id = Int[],
-        phonon_to_bond_id  = Int[],
+        hopping_to_bond_id          = Int[],
+        phonon_basis_vecs        = Vector{T}[],
         L                           = L,
         Lτ                          = Lτ,
         a                           = zeros(Complex{T}, L..., Lτ),
@@ -229,7 +229,7 @@ function initialize_measurements!(
     electron_phonon_model::ElectronPhononModel{T, E, D}
 ) where {T<:Number, E<:AbstractFloat, D}
 
-    (; local_measurements, phonon_to_bond_id) = measurement_container
+    (; local_measurements, phonon_basis_vecs) = measurement_container
     (; phonon_modes, holstein_couplings_up, ssh_couplings_up, phonon_dispersions) = electron_phonon_model
 
     _initialize_measurements!(local_measurements, phonon_modes)
@@ -237,10 +237,9 @@ function initialize_measurements!(
     _initialize_measurements!(local_measurements, ssh_couplings_up)
     _initialize_measurements!(local_measurements, phonon_dispersions)
 
-    # Record the bond ID asspciated with each phonon ID.
-    # Note that ORBITAL_ID equals BOND_ID.
+    # Record the basis vector for each type of phonon mode
     for phonon_mode in phonon_modes
-        push!(phonon_to_bond_id, phonon_mode.orbital)
+        push!(phonon_basis_vecs, phonon_mode.basis_vec)
     end
 
     return nothing
@@ -249,8 +248,8 @@ end
 # phonon mode related measurements
 function _initialize_measurements!(
     local_measurements::Dict{String, Vector{Complex{T}}},
-    phonon_modes::Vector{PhononMode{T}}
-) where {T<:AbstractFloat}
+    phonon_modes::Vector{PhononMode{T,D}}
+) where {T<:AbstractFloat, D}
 
     # number of phonon modes
     n_modes = length(phonon_modes)

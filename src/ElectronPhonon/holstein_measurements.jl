@@ -32,7 +32,7 @@ function measure_holstein_energy(
     holstein_id::Int
 ) where {T<:Number, E<:AbstractFloat}
 
-    (; nholstein, Nholstein, α, α2, α3, α4, neighbor_table, coupling_to_phonon, shifted) = holstein_parameters
+    (; nholstein, Nholstein, α, α2, α3, α4, coupling_to_site, coupling_to_phonon, ph_sym_form) = holstein_parameters
 
     # initialize holstein electron-phonon coupling energy to zero
     ϵ_hol = zero(E)
@@ -49,19 +49,19 @@ function measure_holstein_energy(
     α2′ = @view α2[slice]
     α3′ = @view α3[slice]
     α4′ = @view α4[slice]
-    nt  = @view neighbor_table[:,slice]
+    cts  = @view coupling_to_site[slice]
     ctp = @view coupling_to_phonon[slice]
 
-    # if using shifted defintion
-    shift = shifted[holstein_id]
+    # if using particle-hole symmetric form
+    ph_sym = ph_sym_form[holstein_id]
 
     # iterate over unit cells
     for u in eachindex(ctp)
         x_ul = x[ctp[u],Lτ]
-        i_ul = nt[2,u]
+        i_ul = cts[u]
         n_ul = 1 - real(G[i_ul, i_ul])
         ϵ_hol += (α2′[u]*x_ul^2 + α4′[u]*x_ul^4) * n_ul
-        if shift
+        if ph_sym
             ϵ_hol += (α′[u]*x_ul + α3′[u]*x_ul^3) * (n_ul - 0.5)
         else
             ϵ_hol += (α′[u]*x_ul + α3′[u]*x_ul^3) * n_ul

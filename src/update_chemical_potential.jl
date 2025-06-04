@@ -1,17 +1,19 @@
 @doc raw"""
     update_chemical_potential!(
-        Gup::Matrix{T}, logdetGup::E, sgndetGup::T,
-        Gdn::Matrix{T}, logdetGdn::E, sgndetGdn::T;
-        chemical_potential_tuner::MuTunerLogger{E,T},
-        tight_binding_parameters::Union{TightBindingParameters{T,E}, Nothing} = nothing,
-        tight_binding_parameters_up::Union{TightBindingParameters{T,E}, Nothing} = nothing,
-        tight_binding_parameters_dn::Union{TightBindingParameters{T,E}, Nothing} = nothing,
-        fermion_path_integral_up::FermionPathIntegral{T,E},
-        fermion_path_integral_dn::FermionPathIntegral{T,E},
-        fermion_greens_calculator_up::FermionGreensCalculator{T,E},
-        fermion_greens_calculator_dn::FermionGreensCalculator{T,E},
+        # ARGUMENTS
+        Gup::Matrix{H}, logdetGup::R, sgndetGup::H,
+        Gdn::Matrix{H}, logdetGdn::R, sgndetGdn::H;
+        # KEYWORD ARGUMENTS
+        chemical_potential_tuner::MuTunerLogger{R,H},
+        tight_binding_parameters::Union{TightBindingParameters, Nothing} = nothing,
+        tight_binding_parameters_up::Union{TightBindingParameters, Nothing} = nothing,
+        tight_binding_parameters_dn::Union{TightBindingParameters, Nothing} = nothing,
+        fermion_path_integral_up::FermionPathIntegral{H},
+        fermion_path_integral_dn::FermionPathIntegral{H},
+        fermion_greens_calculator_up::FermionGreensCalculator{H},
+        fermion_greens_calculator_dn::FermionGreensCalculator{H},
         Bup::Vector{P}, Bdn::Vector{P}
-    ) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
+    ) where {H<:Number, R<:AbstractFloat, P<:AbstractPropagator}
 
 Update the chemical potential ``\mu`` in the simulation to approach the target density/filling.
 This method returns the new values for `(logdetGup, sgndetGup, logdetGup, sgndetGup)`.
@@ -19,18 +21,20 @@ Note that either the keywork `tight_binding_parameters` needs to be specified, o
 `tight_binding_parameters_up` and `tight_binding_parameters_dn` both need to be specified.
 """
 function update_chemical_potential!(
-    Gup::Matrix{T}, logdetGup::E, sgndetGup::T,
-    Gdn::Matrix{T}, logdetGdn::E, sgndetGdn::T;
-    chemical_potential_tuner::MuTunerLogger{E,T},
-    tight_binding_parameters::Union{TightBindingParameters{T,E}, Nothing} = nothing,
-    tight_binding_parameters_up::Union{TightBindingParameters{T,E}, Nothing} = nothing,
-    tight_binding_parameters_dn::Union{TightBindingParameters{T,E}, Nothing} = nothing,
-    fermion_path_integral_up::FermionPathIntegral{T,E},
-    fermion_path_integral_dn::FermionPathIntegral{T,E},
-    fermion_greens_calculator_up::FermionGreensCalculator{T,E},
-    fermion_greens_calculator_dn::FermionGreensCalculator{T,E},
+    # ARGUMENTS
+    Gup::Matrix{H}, logdetGup::R, sgndetGup::H,
+    Gdn::Matrix{H}, logdetGdn::R, sgndetGdn::H;
+    # KEYWORD ARGUMENTS
+    chemical_potential_tuner::MuTunerLogger{R,H},
+    tight_binding_parameters::Union{TightBindingParameters, Nothing} = nothing,
+    tight_binding_parameters_up::Union{TightBindingParameters, Nothing} = nothing,
+    tight_binding_parameters_dn::Union{TightBindingParameters, Nothing} = nothing,
+    fermion_path_integral_up::FermionPathIntegral{H},
+    fermion_path_integral_dn::FermionPathIntegral{H},
+    fermion_greens_calculator_up::FermionGreensCalculator{H},
+    fermion_greens_calculator_dn::FermionGreensCalculator{H},
     Bup::Vector{P}, Bdn::Vector{P}
-) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
+) where {H<:Number, R<:AbstractFloat, P<:AbstractPropagator}
 
     # set up and down tight binding parameters if symmetric
     if !isnothing(tight_binding_parameters)
@@ -79,31 +83,35 @@ end
 
 @doc raw"""
     update_chemical_potential!(
-        G::Matrix{T}, logdetG::E, sgndetG::T;
-        chemical_potential_tuner::MuTunerLogger{E,T},
-        tight_binding_parameters::TightBindingParameters{T,E},
-        fermion_path_integral::FermionPathIntegral{T,E},
-        fermion_greens_calculator::FermionGreensCalculator{T,E},
+        # ARGUMENTS
+        G::Matrix{H}, logdetG::R, sgndetG::H;
+        # KEYWORD ARGUMENTS
+        chemical_potential_tuner::MuTunerLogger{R,H},
+        tight_binding_parameters::TightBindingParameters,
+        fermion_path_integral::FermionPathIntegral{H},
+        fermion_greens_calculator::FermionGreensCalculator{H},
         B::Vector{P}
-    ) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
+    ) where {H<:Number, R<:AbstractFloat, P<:AbstractPropagator}
 
 Update the chemical potential ``\mu`` in the simulation to approach the target density/filling.
 This method returns the new values for `(logdetG, sgndetG)`.
 """
 function update_chemical_potential!(
-    G::Matrix{T}, logdetG::E, sgndetG::T;
-    chemical_potential_tuner::MuTunerLogger{E,T},
-    tight_binding_parameters::TightBindingParameters{T,E},
-    fermion_path_integral::FermionPathIntegral{T,E},
-    fermion_greens_calculator::FermionGreensCalculator{T,E},
+    # ARGUMENTS
+    G::Matrix{H}, logdetG::R, sgndetG::H;
+    # KEYWORD ARGUMENTS
+    chemical_potential_tuner::MuTunerLogger{R,H},
+    tight_binding_parameters::TightBindingParameters,
+    fermion_path_integral::FermionPathIntegral{H},
+    fermion_greens_calculator::FermionGreensCalculator{H},
     B::Vector{P}
-) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
+) where {H<:Number, R<:AbstractFloat, P<:AbstractPropagator}
 
     # record the initial chemical potential
     μ′ = tight_binding_parameters.μ
 
     # calculate sign
-    sgn = one(E)
+    sgn = sgndetG^2
 
     # calculate average density
     n = 2 * measure_n(G)
@@ -135,14 +143,14 @@ end
     save_density_tuning_profile(
         # ARGUMENTS
         simulation_info::SimulationInfo,
-        chemical_potential_tuner::MuTunerLogger{T, S};
+        chemical_potential_tuner::MuTunerLogger{R, H};
         # KEYWORD ARGUMENTS
         export_to_h5::Bool = true,
         export_to_csv::Bool = false,
         scientific_notation::Bool = false,
         decimals::Int = 9,
         delimiter::String = " ",
-    ) where {T<:AbstractFloat, S<:Number}
+    ) where {R<:AbstractFloat, H<:Number}
 
 Record the history of chemical potential and density tuning that occured during the simulation,
 writing the information to an HDF5 and/or CSV file.
@@ -150,14 +158,14 @@ writing the information to an HDF5 and/or CSV file.
 function save_density_tuning_profile(
     # ARGUMENTS
     simulation_info::SimulationInfo,
-    chemical_potential_tuner::MuTunerLogger{T, S};
+    chemical_potential_tuner::MuTunerLogger{R, H};
     # KEYWORD ARGUMENTS
     export_to_h5::Bool = true,
     export_to_csv::Bool = false,
     scientific_notation::Bool = false,
     decimals::Int = 9,
     delimiter::String = " ",
-) where {T<:AbstractFloat, S<:Number}
+) where {R<:AbstractFloat, H<:Number}
 
     # save density tuning profile to HDF5 file
     if export_to_h5
@@ -214,13 +222,13 @@ function _save_density_tuning_profile_to_h5(
         # allocate HDF5 file
         mu_traj         = create_dataset(History, "chemical_potential",     T, (Nt,))
         n_traj          = create_dataset(History, "density",                T, (Nt,))
-        Nsqrd_traj      = create_dataset(History, "N_sqrd",                  S, (Nt,))
+        Nsqrd_traj      = create_dataset(History, "N_sqrd",                 S, (Nt,))
         sign_traj       = create_dataset(History, "sign",                   S, (Nt,))
         mu_bar_traj     = create_dataset(History, "chemical_potential_avg", T, (Nt,))
         mu_var_traj     = create_dataset(History, "chemical_potential_var", T, (Nt,))
         n_bar_traj      = create_dataset(History, "density_avg",            S, (Nt,))
         N_var_traj      = create_dataset(History, "N_var",                  T, (Nt,))
-        Nsqrd_avg_traj  = create_dataset(History, "N_sqrd_avg",              S, (Nt,))
+        Nsqrd_avg_traj  = create_dataset(History, "N_sqrd_avg",             S, (Nt,))
         kappa_bar_traj  = create_dataset(History, "compressibility_avg",    T, (Nt,))
         kappa_fluc_traj = create_dataset(History, "compressibility_fluc",   T, (Nt,))
         kappa_min_traj  = create_dataset(History, "compressibility_min",    T, (Nt,))

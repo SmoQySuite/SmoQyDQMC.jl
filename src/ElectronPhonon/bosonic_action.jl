@@ -139,7 +139,7 @@ function eval_holstein_action(
 ) where {E<:AbstractFloat}
 
     (; M) = phonon_parameters
-    (; Nholstein, nholstein, α, α3, shifted, coupling_to_phonon) = holstein_parameters
+    (; Nholstein, nholstein, α, α3, ph_sym_form, coupling_to_phonon) = holstein_parameters
     Lτ = size(x,2)
 
     # initialize bosonic action
@@ -152,8 +152,8 @@ function eval_holstein_action(
         @fastmath @inbounds for l in 1:Lτ
             # iterate over types of holstein couplings
             for h in 1:nholstein
-                # if shifted holstein term
-                if shifted[h]
+                # if particle-hole symmetric holstein term
+                if ph_sym_form[h]
                     # iterate over unit cells
                     for i in 1:Nunitcells
                         # get the holstein coupling index
@@ -311,7 +311,7 @@ function eval_derivative_holstein_action!(
 ) where {E<:AbstractFloat}
 
     (; M) = phonon_parameters
-    (; Nholstein, nholstein, α, α3, coupling_to_phonon, shifted) = holstein_parameters
+    (; Nholstein, nholstein, α, α3, coupling_to_phonon, ph_sym_form) = holstein_parameters
     Lτ = size(x,2)
 
     # check if there are holstein couplings
@@ -322,8 +322,8 @@ function eval_derivative_holstein_action!(
             Nunitcells = Nholstein ÷ nholstein
             # iterate over types of holstein couplings
             for h in 1:nholstein
-                # if holstein type has shifted interaction
-                if shifted[h]
+                # if particle-hole symmetric holstein term
+                if ph_sym_form[h]
                     # iterate over unit cells
                     for i in 1:Nunitcells
                         # get the holstein coupling index

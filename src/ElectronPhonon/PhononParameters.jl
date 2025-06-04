@@ -10,8 +10,7 @@ Defines the parameters for each phonon in the lattice, includes the phonon field
 - `M::Int`: Mass of each phonon mode.
 - `Ω::Int`: Frequency of each phonon mode.
 - `Ω4::Int`: Quartic phonon coefficient for each phonon mode.
-- `phonon_to_site::Vector{Int}`: Map each phonon to the site it lives on in the lattice.
-- `site_to_phonons::Vector{Vector{Int}}`: Maps the site to the phonon modes on it, allowing for multiple modes to reside on a single site.
+- `basis_vecs::Vector{Vector{E}}`: Basis vector for each of the `nphonon` types of phonon mode.`
 """
 struct PhononParameters{E<:AbstractFloat}
 
@@ -30,35 +29,34 @@ struct PhononParameters{E<:AbstractFloat}
     # quartic coefficient for phonon potential energy (X⁴)
     Ω4::Vector{E}
 
-    # map phonon field to site in lattice
-    phonon_to_site::Vector{Int}
-
-    # map sites to phonon fields (note that multiple fields may live on a single site)
-    site_to_phonons::Vector{Vector{Int}}
+    # basis vector for each type of phonon mode
+    basis_vecs::Vector{Vector{E}}
 end
 
 @doc raw"""
-    PhononParameters(; model_geometry::ModelGeometry{D,E},
-                     electron_phonon_model::ElectronPhononModel{T,E,D},
-                     rng::AbstractRNG) where {T,E,D}
+    PhononParameters(;
+        # KEYWORD ARGUMENTS
+        model_geometry::ModelGeometry{D,E},
+        electron_phonon_model::ElectronPhononModel{T,E,D},
+        rng::AbstractRNG
+    ) where {T,E,D}
 
 Initialize and return an instance of [`PhononParameters`](@ref).
 """
-function PhononParameters(; model_geometry::ModelGeometry{D,E},
-                          electron_phonon_model::ElectronPhononModel{T,E,D},
-                          rng::AbstractRNG) where {T,E,D}
+function PhononParameters(;
+    # KEYWORD ARGUMENTS
+    model_geometry::ModelGeometry{D,E},
+    electron_phonon_model::ElectronPhononModel{T,E,D},
+    rng::AbstractRNG
+) where {T,E,D}
 
     lattice = model_geometry.lattice::Lattice{D}
-    unit_cell = model_geometry.unit_cell::UnitCell{D,E}
-
-    # get totals number of sites/orbitals in lattice
-    Nsites = nsites(unit_cell, lattice)
 
     # get number of unit cells
     Ncells = lattice.N
 
     # get the phonon mode defintions
-    phonon_modes = electron_phonon_model.phonon_modes::Vector{PhononMode{E}}
+    phonon_modes = electron_phonon_model.phonon_modes
 
     # get the number of phonon mode definitions
     nphonon = length(phonon_modes)
@@ -75,29 +73,18 @@ function PhononParameters(; model_geometry::ModelGeometry{D,E},
     # allocate array of quartic coefficient for each phonon mode
     Ω4 = zeros(E,Nphonon)
 
-    # allocate phonon_to_site
-    phonon_to_site = zeros(Int, Nphonon)
-
-    # allocate site_to_phonons
-    site_to_phonons = [Int[] for i in 1:Nsites]
+    # get basis vectors
+    basis_vecs = [[phonon_modes.basis_vec...] for phonon_modes in phonon_modes]
 
     # iterate over phonon modes
     phonon = 0 # phonon counter
     for nph in 1:nphonon
         # get the phonon mode
         phonon_mode = phonon_modes[nph]::PhononMode{E}
-        # get the orbital species associated with phonon mode
-        orbital = phonon_mode.orbital
         # iterate over unit cells in lattice
         for uc in 1:Ncells
             # increment phonon counter
             phonon += 1
-            # get site associated with phonon mode
-            site = loc_to_site(uc, orbital, unit_cell)
-            # record phonon ==> site
-            phonon_to_site[phonon] = site
-            # record site ==> phonon
-            push!(site_to_phonons[site], phonon)
             # assign phonon mass
             M[phonon] = phonon_mode.M
             # assign phonon freuqency
@@ -107,5 +94,5 @@ function PhononParameters(; model_geometry::ModelGeometry{D,E},
         end
     end
 
-    return PhononParameters(nphonon, Nphonon, M, Ω, Ω4, phonon_to_site, site_to_phonons)
+    return PhononParameters(nphonon, Nphonon, M, Ω, Ω4, basis_vecs)
 end

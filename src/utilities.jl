@@ -120,5 +120,7 @@ function swap!(a::AbstractArray{T}, b::AbstractArray{T}) where {T}
     return nothing
 end
 
+sign_or_0to1(x::T) where {T<:Number} = iszero(x) ? one(T) : sign(x)
+
 # default bosonic action evaluation method
 bosonic_action(some_model_parameters) = 0.0

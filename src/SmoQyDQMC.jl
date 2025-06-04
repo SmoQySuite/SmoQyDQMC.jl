@@ -110,23 +110,12 @@ include("ElectronPhonon/bosonic_action.jl")
 # methods for evaluating the derivative of the fermionic action with respect to phonon fields ∂Sf/∂x
 include("ElectronPhonon/fermionic_action_derivative.jl")
 
-# implements fourier mass matrix to use in HMC/Langevin updates, which gives us fourier acceleration
-include("ElectronPhonon/FourierMassMatrix.jl")
-
-# low-level (private) hybrid/hamiltonian monte carlo (HMC) update method
-include("ElectronPhonon/hmc_update.jl")
-
-# defines HMC udpater struct and public API for perform HMC updates to phonon fields
-include("ElectronPhonon/HMCUpdater.jl")
-export HMCUpdater, hmc_update!
-
-# implement exact fourier acceleration integration of
-# equation of motion
+# implement exact fourier acceleration integration of equation of motion
 include("ElectronPhonon/ExactFourierAccelerator.jl")
 
 # defines Exact Fourier Acceleration HMC update method
 include("ElectronPhonon/EFAHMCUpdater.jl")
-export EFAHMCUpdater
+export EFAHMCUpdater, hmc_update!
 
 # impelment reflection, swap and radial updates for phonon fields
 include("ElectronPhonon/reflection_update.jl")

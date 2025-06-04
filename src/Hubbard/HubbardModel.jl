@@ -1,24 +1,24 @@
 @doc raw"""
     HubbardModel{T<:AbstractFloat}
 
-If `shifted = true`, then a Hubbard interaction of the form
+If `ph_sym_form = false`, then the particle-hole asymmetric form for the Hubbard interaction
 ```math
 \hat{H}_{U}=\sum_{\mathbf{i},\nu}U_{\nu,\mathbf{i}}\hat{n}_{\uparrow,\nu,\mathbf{i}}\hat{n}_{\downarrow,\nu,\mathbf{i}}
 ```
-is assumed, where ``\mathbf{i}`` specifies the unit cell, and ``\nu`` denotes the orbital in the unit cell.
+is used, where ``\mathbf{i}`` specifies the unit cell, and ``\nu`` denotes the orbital in the unit cell.
 For a bipartite lattice with only nearest neighbor hopping, the on-site energy corresponding to half-filling
 and particle-hole symmetry is ``\epsilon_{\nu,\mathbf{i}} = -U_{\nu,\mathbf{i}}/2.``
 
-If `shifted = false`, then a Hubbard interaction of the form
+If `ph_sym_form = true`, then the particle-hole symmetric form for the Hubbard interaction
 ```math
 \hat{H}_{U}=\sum_{\mathbf{i},\nu}U_{\nu,\mathbf{i}}(\hat{n}_{\uparrow,\nu,\mathbf{i}}-\tfrac{1}{2})(\hat{n}_{\downarrow,\nu,\mathbf{i}}-\tfrac{1}{2})
 ```
-is assumed. In this case, for a bipartite lattice with only nearest neighbor hopping, the on-site energy corresponding to half-filling
+is used. In this case, for a bipartite lattice with only nearest neighbor hopping, the on-site energy corresponding to half-filling
 and particle-hole symmetry is ``\epsilon_{\nu,\mathbf{i}} = 0.``
 
 # Fields
 
-- `shifted::Bool`: Determines which form for Hubbard interaction is used, and whether the on-site energies need to be shifted.
+- `ph_sym_form::Bool`: Determines whether the particle-hole symmetric form of the Hubbard interaction is used.
 - `U_orbital::Vector{Int}`: Orbital species in unit cell with finite Hubbard interaction.
 - `U_mean::Vector{T}`: Average Hubbard ``U_\nu`` for a given orbital species in the lattice.
 - `U_std::Vector{T}`: Standard deviation of Hubbard ``U_\nu`` for a given orbital species in the lattice.
@@ -26,7 +26,7 @@ and particle-hole symmetry is ``\epsilon_{\nu,\mathbf{i}} = 0.``
 struct HubbardModel{T<:AbstractFloat}
 
     # whether zero on-site energy corresponds to half-filling in atomic limit
-    shifted::Bool
+    ph_sym_form::Bool
 
     # orbital species
     U_orbital::Vector{Int}
@@ -40,7 +40,7 @@ end
 
 @doc raw"""
     HubbardModel(;
-        shifted::Bool,
+        ph_sym_form::Bool,
         U_orbital::AbstractVector{Int},
         U_mean::AbstractVector{T},
         U_std::AbstractVector{T} = zero(U_mean)
@@ -49,26 +49,26 @@ end
 Initialize and return an instance of the type [`HubbardModel`](@ref).
 """
 function HubbardModel(;
-    shifted::Bool,
+    ph_sym_form::Bool,
     U_orbital::AbstractVector{Int},
     U_mean::AbstractVector{T},
     U_std::AbstractVector{T} = zero(U_mean)
 ) where {T<:AbstractFloat}
     
-    return HubbardModel(shifted, U_orbital, U_mean, U_std)
+    return HubbardModel(ph_sym_form, U_orbital, U_mean, U_std)
 end
 
 
 # show struct info as TOML formatted string
 function Base.show(io::IO, ::MIME"text/plain", hm::HubbardModel)
 
-    (; U_orbital, U_mean, U_std, shifted) = hm
+    (; U_orbital, U_mean, U_std, ph_sym_form) = hm
 
     @printf io "[HubbardModel]\n\n"
-    @printf io "U_orbital_ids = %s\n" string(U_orbital)
-    @printf io "U_mean        = %s\n" string(round.(U_mean, digits=6))
-    @printf io "U_std         = %s\n" string(round.(U_std, digits=6))
-    @printf io "shifted       = %s\n\n" string(shifted)
+    @printf io "U_orbital_ids     = %s\n" string(U_orbital)
+    @printf io "U_mean            = %s\n" string(round.(U_mean, digits=6))
+    @printf io "U_std             = %s\n" string(round.(U_std, digits=6))
+    @printf io "ph_sym_form = %s\n\n" string(ph_sym_form)
 
     return nothing
 end
@@ -84,7 +84,7 @@ Hubbard parameters for finite lattice.
 - `U::Vector{T}`: On-site Hubbard interaction for each site with finite Hubbard interaction.
 - `sites::Vector{Int}`: Site index associated with each finite Hubbard `U` interaction.
 - `orbitals::Vector{Int}`: Orbital species in unit cell with finite Hubbard interaction.
-- `shifted::Bool`: Convention used for Hubbard interaction, refer to [`HubbardModel`](@ref) for more information.
+- `ph_sym_form::Bool`: Convention used for Hubbard interaction, refer to [`HubbardModel`](@ref) for more information.
 """
 struct HubbardParameters{T<:AbstractFloat}
 
@@ -98,7 +98,7 @@ struct HubbardParameters{T<:AbstractFloat}
     orbitals::Vector{Int}
 
     # whether zero on-site energy corresponds to half-filling in atomic limit
-    shifted::Bool
+    ph_sym_form::Bool
 end
 
 @doc raw"""
@@ -116,7 +116,7 @@ function HubbardParameters(;
     rng::AbstractRNG
 ) where {D, T<:AbstractFloat}
 
-    (; U_orbital, U_mean, U_std, shifted) = hubbard_model
+    (; U_orbital, U_mean, U_std, ph_sym_form) = hubbard_model
     (; lattice, unit_cell) = model_geometry
 
     # number of orbitals with finite hubbard interaction in unit cell
@@ -147,29 +147,29 @@ function HubbardParameters(;
         end
     end
 
-    return HubbardParameters(U, sites, U_orbital, shifted)
+    return HubbardParameters(U, sites, U_orbital, ph_sym_form)
 end
 
 
 @doc raw"""
     initialize!(
-        fermion_path_integral_up::FermionPathIntegral{T,E},
-        fermion_path_integral_dn::FermionPathIntegral{T,E},
-        hubbard_parameters::HubbardParameters{E}
-    ) where {T,E}
+        fermion_path_integral_up::FermionPathIntegral,
+        fermion_path_integral_dn::FermionPathIntegral,
+        hubbard_parameters::HubbardParameters
+    )
 
     initialize!(
-        fermion_path_integral::FermionPathIntegral{T,E},
-        hubbard_parameters::HubbardParameters{E}
-    ) where {T,E}
+        fermion_path_integral::FermionPathIntegral,
+        hubbard_parameters::HubbardParameters
+    )
 
 Initialize the contribution from the Hubbard interaction to a [`FermionPathIntegral`](@ref) instance.
 """
 function initialize!(
-    fermion_path_integral_up::FermionPathIntegral{T,E},
-    fermion_path_integral_dn::FermionPathIntegral{T,E},
-    hubbard_parameters::HubbardParameters{E}
-) where {T,E}
+    fermion_path_integral_up::FermionPathIntegral,
+    fermion_path_integral_dn::FermionPathIntegral,
+    hubbard_parameters::HubbardParameters
+)
 
     initialize!(fermion_path_integral_up, hubbard_parameters)
     initialize!(fermion_path_integral_dn, hubbard_parameters)
@@ -178,15 +178,15 @@ function initialize!(
 end
 
 function initialize!(
-    fermion_path_integral::FermionPathIntegral{T,E},
-    hubbard_parameters::HubbardParameters{E}
-) where {T,E}
+    fermion_path_integral::FermionPathIntegral,
+    hubbard_parameters::HubbardParameters
+)
 
-    (; shifted, U, sites) = hubbard_parameters
+    (; ph_sym_form, U, sites) = hubbard_parameters
     (; V) = fermion_path_integral
 
     # shift on-site energies if necessary
-    if shifted
+    if !ph_sym_form
         for l in axes(V,2)
             for i in eachindex(U)
                 # shift on-site energies by +U/2

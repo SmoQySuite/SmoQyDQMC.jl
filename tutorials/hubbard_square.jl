@@ -106,7 +106,8 @@ function run_simulation(;
     metadata["symmetric"] = symmetric
     metadata["checkerboard"] = checkerboard
     metadata["seed"] = seed
-    metadata["avg_acceptance_rate"] = 0.0
+    metadata["local_acceptance_rate"] = 0.0
+    metadata["reflection_acceptance_rate"] = 0.0
 
 # In the above, `sID` stands for simulation ID, which is used to distinguish simulations that would otherwise be identical i.e. to
 # distinguish simulations that use the same parameters and are only different in the random seed used to initialize the simulation.
@@ -233,13 +234,16 @@ function run_simulation(;
     )
 
 # Finally, we define the Hubbard interaction with the [`HubbardModel`](@ref) type.
+# Here the boolean `ph_sym_form` keyword argument determines whether the particle-hole symemtric form (`ph_sym_form = true`) for the Hubbard
+# interaction ``U(\hat{n}_{\uparrow,i}-\tfrac{1}{2})(\hat{n}_{\downarrow,i}-\tfrac{1}{2})`` is used, or the form
+# ``U\hat{n}_{\uparrow,i}\hat{n}_{\downarrow,i}`` is used (`ph_sym_form = false`) instead.
 
     ## Define the Hubbard interaction in the model.
     hubbard_model = HubbardModel(
-        shifted   = false, # if true, then Hubbard interaction is instead parameterized as U⋅nup⋅ndn
-        U_orbital = [1], # orbitals in unit cell with Hubbard interaction.
-        U_mean    = [U], # mean Hubbard interaction strength for corresponding orbital species in unit cell.
-        U_std     = [0.], # standard deviation of Hubbard interaction strength for corresponding orbital species in unit cell.
+        ph_sym_form = true, # if particle-hole symmetric form for Hubbard interaction is used.
+        U_orbital   = [1], # orbitals in unit cell with Hubbard interaction.
+        U_mean      = [U], # mean Hubbard interaction strength for corresponding orbital species in unit cell.
+        U_std       = [0.], # standard deviation of Hubbard interaction strength for corresponding orbital species in unit cell.
     )
 
 # Note that most terms in our model can support random disorder.
@@ -409,6 +413,10 @@ function run_simulation(;
     fermion_greens_calculator_up = dqmcf.FermionGreensCalculator(Bup, β, Δτ, n_stab)
     fermion_greens_calculator_dn = dqmcf.FermionGreensCalculator(Bdn, β, Δτ, n_stab)
 
+    ## Initialize alternate FermionGreensCalculator type for performing reflection updates.
+    fermion_greens_calculator_up_alt = dqmcf.FermionGreensCalculator(fermion_greens_calculator_up)
+    fermion_greens_calculator_dn_alt = dqmcf.FermionGreensCalculator(fermion_greens_calculator_dn)
+
     ## Allcoate matrices for spin-up and spin-down electron Green's function matrices.
     Gup = zeros(eltype(Bup[1]), size(Bup[1]))
     Gdn = zeros(eltype(Bdn[1]), size(Bdn[1]))
@@ -459,7 +467,7 @@ function run_simulation(;
 # If `checkerboard = true`, then the exponentiated kinetic energy matrices ``e^{-\Delta\tau K_{\sigma,l}} \ \left( \text{ or } e^{-\Delta\tau K_{\sigma,l}/2} \right)``
 # are represented using the sparse checkerboard approximation, otherwise they are computed exactly.
 
-# Next, two instances of the [`FermionGreensCalculator`](https://smoqysuite.github.io/JDQMCFramework.jl/stable/api/#JDQMCFramework.FermionGreensCalculator)
+# Next, four instances of the [`FermionGreensCalculator`](https://smoqysuite.github.io/JDQMCFramework.jl/stable/api/#JDQMCFramework.FermionGreensCalculator)
 # type are initialized, which are used to take care of numerical stabilization behind the scenes in the DQMC simulation.
 # Here `n_stab` is the period in imaginary-time with which numerical stabilization is performed, and is typically on the order of ``n_{\rm stab} \sim 10.``
 
@@ -481,18 +489,42 @@ function run_simulation(;
 
 # ## Thermalize system
 # The next section of code performs updates to thermalize the system prior to beginning measurements.
-# The structure of this function should be fairly inuitive, mainly consisting of a loop inside of which the [`local_updates!`](@ref) function
-# is called to sweep through all imaginary-time slices and orbitals, attempting an update to each HS field.
-# Here, `N_therm` the number of thermalization sweeps that will be performed.
+# The structure of this function should be fairly inuitive, mainly consisting of a loop inside of which we perform updates to the Hubbard-Statonvich fields.
+# In this example we perform two types of updates.
 
-# Lastly, if the [`local_updates!`](@ref) argument `update_stabilization_frequency = true`, then the `δG_max` parameter acts a maximum threshold for `δG`.
+# We use the [`local_updates!`](@ref) function to attempt a local update to every HS field.
+# Additionally, if the [`local_updates!`](@ref) argument `update_stabilization_frequency = true`, then the `δG_max` parameter acts a maximum threshold for `δG`.
 # If `δG` exceeds `δG_max`, then `n_stab` is decrimented by one (the frequency of numerical stabilization is increased) and `δG` is reset to zero.
 # In the case `update_stabilization_frequency = false`,
 # then `δG_max` doesn't do anything and `n_stab` remains unchanged during the simulation,
 # with `δG` is simply reporting the maximum observed numerical error during the simulation.
 
+# We also use the [`reflection_update!`](@ref) function to perform a reflection update on a randomly selected sites in the lattice
+# whereby we flip the HS fields on every imaginary-time slice for that site
+# i.e. propose an update such that ``s_{i,l} \rightarrow -s_{i,l}`` for all ``l \in [1, L_\tau]``.
+# This type of reflection update [has been shown](https://journals.aps.org/prb/abstract/10.1103/PhysRevB.44.10502)
+# to be important for mitigating ergodicity issues in large Hubbard ``U`` simulations.
+
+# In the block of code below, `N_therm` is the number of local sweeps and reflection updates that are performed to thermalize the system.
+
     ## Iterate over number of thermalization updates to perform.
     for n in 1:N_therm
+
+        ## Perform reflection update for HS fields with randomly chosen site.
+        (accepted, logdetGup, sgndetGup, logdetGdn, sgndetGdn) = reflection_update!(
+            Gup, logdetGup, sgndetGup, Gdn, logdetGdn, sgndetGdn,
+            hubbard_stratonovich_params,
+            fermion_path_integral_up = fermion_path_integral_up,
+            fermion_path_integral_dn = fermion_path_integral_dn,
+            fermion_greens_calculator_up = fermion_greens_calculator_up,
+            fermion_greens_calculator_dn = fermion_greens_calculator_dn,
+            fermion_greens_calculator_up_alt = fermion_greens_calculator_up_alt,
+            fermion_greens_calculator_dn_alt = fermion_greens_calculator_dn_alt,
+            Bup = Bup, Bdn = Bdn, rng = rng
+        )
+
+        ## Record whether reflection update was accepted or not.
+        metadata["reflection_acceptance_rate"] += accepted
 
         ## Perform sweep all imaginary-time slice and orbitals, attempting an update to every HS field.
         (acceptance_rate, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = local_updates!(
@@ -503,11 +535,11 @@ function run_simulation(;
             fermion_greens_calculator_up = fermion_greens_calculator_up,
             fermion_greens_calculator_dn = fermion_greens_calculator_dn,
             Bup = Bup, Bdn = Bdn, δG_max = δG_max, δG = δG, δθ = δθ, rng = rng,
-            update_stabilization_frequency = true
+            update_stabilization_frequency = false
         )
 
         ## Record acceptance rate for sweep.
-        metadata["avg_acceptance_rate"] += acceptance_rate
+        metadata["local_acceptance_rate"] += acceptance_rate
     end
 
 # ## [Make measurements](@id hubbard_square_make_measurements)
@@ -529,6 +561,22 @@ function run_simulation(;
     ## Iterate over updates and measurements.
     for update in 1:N_updates
 
+        ## Perform reflection update for HS fields with randomly chosen site.
+        (accepted, logdetGup, sgndetGup, logdetGdn, sgndetGdn) = reflection_update!(
+            Gup, logdetGup, sgndetGup, Gdn, logdetGdn, sgndetGdn,
+            hubbard_stratonovich_params,
+            fermion_path_integral_up = fermion_path_integral_up,
+            fermion_path_integral_dn = fermion_path_integral_dn,
+            fermion_greens_calculator_up = fermion_greens_calculator_up,
+            fermion_greens_calculator_dn = fermion_greens_calculator_dn,
+            fermion_greens_calculator_up_alt = fermion_greens_calculator_up_alt,
+            fermion_greens_calculator_dn_alt = fermion_greens_calculator_dn_alt,
+            Bup = Bup, Bdn = Bdn, rng = rng
+        )
+
+        ## Record whether reflection update was accepted or not.
+        metadata["reflection_acceptance_rate"] += accepted
+
         ## Perform sweep all imaginary-time slice and orbitals, attempting an update to every HS field.
         (acceptance_rate, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = local_updates!(
             Gup, logdetGup, sgndetGup, Gdn, logdetGdn, sgndetGdn,
@@ -538,11 +586,11 @@ function run_simulation(;
             fermion_greens_calculator_up = fermion_greens_calculator_up,
             fermion_greens_calculator_dn = fermion_greens_calculator_dn,
             Bup = Bup, Bdn = Bdn, δG_max = δG_max, δG = δG, δθ = δθ, rng = rng,
-            update_stabilization_frequency = true
+            update_stabilization_frequency = false
         )
 
         ## Record acceptance rate.
-        metadata["avg_acceptance_rate"] += acceptance_rate
+        metadata["local_acceptance_rate"] += acceptance_rate
 
         ## Make measurements.
         (logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = make_measurements!(
@@ -585,7 +633,8 @@ function run_simulation(;
 # This is done using the [`save_simulation_info`](@ref) function.
 
     ## Normalize acceptance rate.
-    metadata["avg_acceptance_rate"] /=  (N_therm + N_updates)
+    metadata["local_acceptance_rate"] /=  (N_therm + N_updates)
+    metadata["reflection_acceptance_rate"] /= (N_therm + N_updates)
 
     ## Record final stabilization period used at the end of the simulation.
     metadata["n_stab_final"] = fermion_greens_calculator_up.n_stab

@@ -52,8 +52,11 @@ function write_measurements!(;
         normalize_measurements!(measurement_container, bin_size)
 
         # get hopping and phonon to bond ID mappings
-        hopping_to_bond_id = measurement_container.hopping_to_bond_id::Vector{Int}
-        phonon_to_bond_id = measurement_container.phonon_to_bond_id::Vector{Int}
+        hopping_to_bond_id = measurement_container.hopping_to_bond_id
+        phonon_basis_vecs = measurement_container.phonon_basis_vecs
+
+        # displacement vector
+        r = zeros(E, D)
 
         # open HDF5 file to write binned data to
         h5open(filename, "w") do file
@@ -125,19 +128,26 @@ function write_measurements!(;
                     # get the pair of orbitals associated with the correlation
                     if (id_type == "ORBITAL_ID") || (id_type == "BOND_ID")
                         bond_b_id, bond_a_id = id_pairs[i]
+                        a = bonds[bond_a_id].orbitals[1]
+                        b = bonds[bond_b_id].orbitals[1]
+                        # perform fourier transform
+                        fourier_transform!(correlations[i], a, b, unit_cell, lattice)
                     elseif id_type == "HOPPING_ID"
                         hopping_b_id, hopping_a_id = id_pairs[i]
                         bond_a_id = hopping_to_bond_id[hopping_a_id]
                         bond_b_id = hopping_to_bond_id[hopping_b_id]
+                        a = bonds[bond_a_id].orbitals[1]
+                        b = bonds[bond_b_id].orbitals[1]
+                        # perform fourier transform
+                        fourier_transform!(correlations[i], a, b, unit_cell, lattice)
                     elseif id_type == "PHONON_ID"
                         phonon_b_id, phonon_a_id = id_pairs[i]
-                        bond_a_id = phonon_to_bond_id[phonon_a_id]
-                        bond_b_id = phonon_to_bond_id[phonon_b_id]
+                        ra = phonon_basis_vecs[phonon_a_id]
+                        rb = phonon_basis_vecs[phonon_b_id]
+                        @. r = ra - rb
+                        # perform fourier transform
+                        fourier_transform!(correlations[i], r, unit_cell, lattice)
                     end
-                    a = bonds[bond_a_id].orbitals[1]
-                    b = bonds[bond_b_id].orbitals[1]
-                    # perform fourier transform
-                    fourier_transform!(correlations[i], a, b, unit_cell, lattice)
                 end
 
                 # record the momentum space correlations
@@ -211,19 +221,26 @@ function write_measurements!(;
                     # get the pair of orbitals associated with the correlation
                     if (id_type == "ORBITAL_ID") || (id_type == "BOND_ID")
                         bond_b_id, bond_a_id = id_pairs[i]
+                        a = bonds[bond_a_id].orbitals[1]
+                        b = bonds[bond_b_id].orbitals[1]
+                        # perform fourier transform
+                        fourier_transform!(correlations[i], a, b, D+1, unit_cell, lattice)
                     elseif id_type == "HOPPING_ID"
                         hopping_b_id, hopping_a_id = id_pairs[i]
                         bond_a_id = hopping_to_bond_id[hopping_a_id]
                         bond_b_id = hopping_to_bond_id[hopping_b_id]
+                        a = bonds[bond_a_id].orbitals[1]
+                        b = bonds[bond_b_id].orbitals[1]
+                        # perform fourier transform
+                        fourier_transform!(correlations[i], a, b, D+1, unit_cell, lattice)
                     elseif id_type == "PHONON_ID"
                         phonon_b_id, phonon_a_id = id_pairs[i]
-                        bond_a_id = phonon_to_bond_id[phonon_a_id]
-                        bond_b_id = phonon_to_bond_id[phonon_b_id]
+                        ra = phonon_basis_vecs[phonon_a_id]
+                        rb = phonon_basis_vecs[phonon_b_id]
+                        @. r = ra - rb
+                        # perform fourier transform
+                        fourier_transform!(correlations[i], r, D+1, unit_cell, lattice)
                     end
-                    a = bonds[bond_a_id].orbitals[1]
-                    b = bonds[bond_b_id].orbitals[1]
-                    # perform fourier transform
-                    fourier_transform!(correlations[i], a, b, D+1, unit_cell, lattice)
                 end
 
                 # if standard time-displaced correlation measurement is being written to file

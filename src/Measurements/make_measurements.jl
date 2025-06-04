@@ -2380,7 +2380,7 @@ function measure_equaltime_composite_phonon_greens!(
     lattice = model_geometry.lattice::Lattice{D}
     unit_cell = model_geometry.unit_cell::UnitCell{D,E}
     phonon_parameters = electron_phonon_parameters.phonon_parameters::PhononParameters{E}
-    phonon_to_site = phonon_parameters.phonon_to_site::Vector{Int}
+    phonon_basis_vecs = phonon_parameters.basis_vecs::Vector{Int}
 
     # get phonon field
     x = electron_phonon_parameters.x::Matrix{E}
@@ -2401,19 +2401,17 @@ function measure_equaltime_composite_phonon_greens!(
     # reshape phonon field matrix into multi-dimensional array
     x′ = reshape(x, (L..., nphonon, Lτ))
 
+    # initialize vector to represent difference between phonon basis vectors
+    r = zeros(T, D)
+
     # iterate over all pairs of phonon modes
     for i in eachindex(id_pairs)
-        # get orbital species
-        phonon_1 = N_unitcells * (id_pairs[i][1]-1) + 1
-        site_1 = phonon_to_site(phonon_1)
-        orbital_1 = site_to_orbital(site_1, unit_cell)
-        # get orbital species
-        phonon_2 = N_unitcells * (id_pairs[i][2]-1) + 1
-        site_2 = phonon_to_site(phonon_2)
-        orbital_2 = site_to_orbital(site_2, unit_cell)
+        # get phonon ids
+        phonon_1_id = id_pairs[i][1]
+        phonon_2_id = id_pairs[i][2]
         # get the phonon fields associated with the appropriate pair of phonon modes in the unit cell
-        x0 = selectdim(x′, D+1, id_pairs[i][1])
-        xr = selectdim(x′, D+1, id_pairs[i][2])
+        x0 = selectdim(x′, D+1, phonon_1_id)
+        xr = selectdim(x′, D+1, phonon_2_id)
         copyto!(X0, x0)
         copyto!(Xr, xr)
         # calculate phonon greens function
@@ -2422,8 +2420,12 @@ function measure_equaltime_composite_phonon_greens!(
         XrX0_0 = selectdim(XrX0, D+1, 1)
         coef = coefficients[i]
         @. correlations += sgn * coef * XrX0_0
+        # calculate the displacement vector between the two phonon mode basis vectors
+        r2 = phonon_basis_vecs[phonon_2_id]
+        r1 =  phonon_basis_vecs[phonon_1_id]
+        @. r = r2 - r1
         # record the equal-time phonon green's function in momentum space
-        fourier_transform!(XrX0_0, orbital_2, orbital_1, unit_cell, lattice)
+        fourier_transform!(XrX0_0, r, unit_cell, lattice)
         @. structure_factors += sgn * coef * XrX0_0
     end
 
@@ -2502,7 +2504,7 @@ function measure_time_displaced_composite_phonon_greens!(
     lattice = model_geometry.lattice::Lattice{D}
     unit_cell = model_geometry.unit_cell::UnitCell{D,E,N}
     phonon_parameters = electron_phonon_parameters.phonon_parameters::PhononParameters{E}
-    phonon_to_site = phonon_parameters.phonon_to_site::Vector{Int}
+    phonon_basis_vecs = phonon_parameters.basis_vecs::Vector{Int}
 
     # get phonon field
     x = electron_phonon_parameters.x::Matrix{E}
@@ -2523,19 +2525,17 @@ function measure_time_displaced_composite_phonon_greens!(
     # reshape phonon field matrix into multi-dimensional array
     x′ = reshape(x, (L..., nphonon, Lτ))
 
+    # initialize vector to represent difference between phonon basis vectors
+    r = zeros(T, D)
+
     # iterate over all pairs of phonon modes
     for i in eachindex(id_pairs)
-        # get orbital species
-        phonon_1 = N_unitcells * (id_pairs[i][1]-1) + 1
-        site_1 = phonon_to_site(phonon_1)
-        orbital_1 = site_to_orbital(site_1, unit_cell)
-        # get orbital species
-        phonon_2 = N_unitcells * (id_pairs[i][2]-1) + 1
-        site_2 = phonon_to_site(phonon_2)
-        orbital_2 = site_to_orbital(site_2, unit_cell)
+        # get phonon ids
+        phonon_1_id = id_pairs[i][1]
+        phonon_2_id = id_pairs[i][2]
         # get the phonon fields associated with the appropriate pair of phonon modes in the unit cell
-        x0 = selectdim(x′, D+1, id_pairs[i][1])
-        xr = selectdim(x′, D+1, id_pairs[i][2])
+        x0 = selectdim(x′, D+1, phonon_id_1)
+        xr = selectdim(x′, D+1, phonon_id_2)
         copyto!(X0, x0)
         copyto!(Xr, xr)
         # calculate phonon greens function in position space
@@ -2546,8 +2546,12 @@ function measure_time_displaced_composite_phonon_greens!(
         correlation_0  = selectdim(correlations, D+1, 1)
         correlation_Lτ = selectdim(correlations, D+1, Lτ+1)
         copyto!(correlation_Lτ, correlation_0)
+        # calculate the displacement vector between the two phonon mode basis vectors
+        r2 = phonon_basis_vecs[phonon_2_id]
+        r1 =  phonon_basis_vecs[phonon_1_id]
+        @. r = r2 - r1
         # calculate phonon greens function in position space in momentum space
-        fourier_transform!(XrX0, orbital_2, orbital_1, unit_cell, lattice)
+        fourier_transform!(XrX0, r, D+1, unit_cell, lattice)
         structure_factors′ = selectdim(structure_factors, D+1, 1:Lτ)
         @. structure_factors′ += coef * sgn * XrX0
         structure_factors_0  = selectdim(structure_factors, D+1, 1)

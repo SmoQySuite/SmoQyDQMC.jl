@@ -9,7 +9,7 @@ Describes all parameters in the electron-phonon model.
 - `Δτ::E`: Discretization in imaginary time.
 - `Lτ::Int`: Length of imaginary time axis.
 - `x::Matrix{E}`: Phonon fields, where each column represents the phonon fields for a given imaginary time slice.
-- `phonon_parameters::PhononParameters{E}`: Refer to [`PhononParameters`](@ref).
+- `phonon_parameters::PhononParameters{E,D}`: Refer to [`PhononParameters`](@ref).
 - `holstein_parameters_up::HolsteinParameters{E}`: Spin up [`HolsteinParameters`](@ref).
 - `holstein_parameters_dn::HolsteinParameters{E}`: Spin down [`HolsteinParameters`](@ref).
 - `ssh_parameters_up::SSHParameters{T}`: Spin up [`SSHParameters`](@ref).
