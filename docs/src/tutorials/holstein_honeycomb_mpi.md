@@ -105,12 +105,18 @@ No changes need to made to this section of the code from the previous [2a) Honey
 No changes need to made to this section of the code from the previous [2a) Honeycomb Holstein Model](@ref) tutorial.
 
 ````julia
+    # Define lattice vectors.
+    a1 = [+3/2, +√3/2]
+    a2 = [+3/2, -√3/2]
+
+    # Define basis vectors for two orbitals in the honeycomb unit cell.
+    r1 = [0.0, 0.0] # Location of first orbital in unit cell.
+    r2 = [1.0, 0.0] # Location of second orbital in unit cell.
+
     # Define the unit cell.
     unit_cell = lu.UnitCell(
-        lattice_vecs = [[3/2,√3/2],
-                        [3/2,-√3/2]],
-        basis_vecs   = [[0.,0.],
-                        [1.,0.]]
+        lattice_vecs = [a1, a2],
+        basis_vecs   = [r1, r2]
     )
 
     # Define finite lattice with periodic boundary conditions.
@@ -160,7 +166,10 @@ No changes need to made to this section of the code from the previous [2a) Honey
     )
 
     # Define a dispersionless electron-phonon mode to live on each site in the lattice.
-    phonon_1 = PhononMode(orbital = 1, Ω_mean = Ω)
+    phonon_1 = PhononMode(
+        basis_vec = r1,
+        Ω_mean = Ω
+    )
 
     # Add the phonon mode definition to the electron-phonon model.
     phonon_1_id = add_phonon_mode!(
@@ -168,8 +177,11 @@ No changes need to made to this section of the code from the previous [2a) Honey
         phonon_mode = phonon_1
     )
 
-    # Define a dispersionless electron-phonon mode to live on each site in the lattice.
-    phonon_2 = PhononMode(orbital = 2, Ω_mean = Ω)
+    # Define a dispersionless electron-phonon mode to live on the second sublattice.
+    phonon_2 = PhononMode(
+        basis_vec = r2,
+        Ω_mean = Ω
+    )
 
     # Add the phonon mode definition to the electron-phonon model.
     phonon_2_id = add_phonon_mode!(
@@ -180,10 +192,11 @@ No changes need to made to this section of the code from the previous [2a) Honey
     # Define first local Holstein coupling for first phonon mode.
     holstein_coupling_1 = HolsteinCoupling(
         model_geometry = model_geometry,
-        phonon_mode = phonon_1_id,
-        # Couple the first phonon mode to first orbital in the unit cell.
-        bond = lu.Bond(orbitals = (1,1), displacement = [0, 0]),
-        α_mean = α
+        phonon_id = phonon_1_id,
+        orbital_id = 1,
+        displacement = [0, 0],
+        α_mean = α,
+        ph_sym_form = true,
     )
 
     # Add the first local Holstein coupling definition to the model.
@@ -196,10 +209,11 @@ No changes need to made to this section of the code from the previous [2a) Honey
     # Define first local Holstein coupling for first phonon mode.
     holstein_coupling_2 = HolsteinCoupling(
         model_geometry = model_geometry,
-        phonon_mode = phonon_2_id,
-        # Couple the second phonon mode to second orbital in the unit cell.
-        bond = lu.Bond(orbitals = (2,2), displacement = [0, 0]),
-        α_mean = α
+        phonon_id = phonon_2_id,
+        orbital_id = 2,
+        displacement = [0, 0],
+        α_mean = α,
+        ph_sym_form = true,
     )
 
     # Add the first local Holstein coupling definition to the model.
@@ -554,13 +568,14 @@ such that the first argument is the `comm` object, thereby ensuring a paralleliz
 
     # Calculate CDW correlation ratio.
     Rcdw, ΔRcdw = compute_composite_correlation_ratio(
-        comm,
         datafolder = simulation_info.datafolder,
         name = "cdw",
         type = "equal-time",
         q_point = (0, 0),
         q_neighbors = [
-            (1,0), (L-1,0), (0,1), (0,L-1)
+            (1,0),   (L-1,0),
+            (0,1),   (0,L-1),
+            (1,L-1), (L-1,1),
         ]
     )
 

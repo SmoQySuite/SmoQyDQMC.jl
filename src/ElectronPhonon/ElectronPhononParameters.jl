@@ -207,6 +207,9 @@ function initialize!(
     # update fermion path integral based on ssh interaction
     update!(fermion_path_integral, ssh_parameters, x, 1)
 
+    # calculate bosonic action
+    fermion_path_integral.Sb += bosonic_action(electron_phonon_parameters)
+
     return nothing
 end
 

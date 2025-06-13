@@ -1,7 +1,7 @@
 @doc raw"""
     FermionPathIntegral{H<:Number, T<:Number, U<:Number, R<:AbstractFloat}
 
-A type to represent a fermion path integral. In particular, this type contains the information required to reconstruct
+A type (mutable struct) to represent a fermion path integral. In particular, this type contains the information required to reconstruct
 the diagonal on-site energy matrices ``V_l`` and hopping matrices ``K_l`` for each imaginary time
 slice ``l \in [1, L_\tau],`` where ``\tau = \Delta\tau \cdot l`` and ``\beta = \Delta\tau \cdot L_\tau.``
 
@@ -22,11 +22,12 @@ slice ``l \in [1, L_\tau],`` where ``\tau = \Delta\tau \cdot l`` and ``\beta = \
 - `t::Matrix{T}`: Hopping amplitudes for imaginary-time slice ``l`` are stored in `t[:,l]`.
 - `V::Matrix{U}`: The diagonal on-site energy matrices ``V_l`` for imaginary-time slice ``l`` are stored in `V[:,l]`.
 - `K::Matrix{T}`: Used to construct hopping matrix to cacluate exponentiated hopping matrix if checkerboard approximation is not being used.
+- `Sb::H`: Keeps track of total bosonic action associated with fermionic path integral.
 - `eigen_ws::HermitianEigenWs{T,Matrix{T},R}`: For calculating eigenvalues and eigenvectors of `K` while avoiding dynamic memory allocations.
 - `u::Vector{H}`: Temporary vector to avoid dynamic allocation when performing local updates.
 - `v::Vector{H}`: Temporary vector to avoid dynamic allocation when performing local updates.
 """
-struct FermionPathIntegral{H<:Number, R<:AbstractFloat, T<:Number, U<:Number}
+mutable struct FermionPathIntegral{H<:Number, R<:AbstractFloat, T<:Number, U<:Number}
 
     β::R
 
@@ -43,6 +44,8 @@ struct FermionPathIntegral{H<:Number, R<:AbstractFloat, T<:Number, U<:Number}
     V::Matrix{U}
 
     K::Matrix{T}
+
+    Sb::H
 
     eigen_ws::HermitianEigenWs{T,Matrix{T},R}
 
@@ -91,6 +94,9 @@ function FermionPathIntegral(;
     # type of eventual green's function matrix elements
     H = (Tk <: Complex || Tv <: Complex) ? Complex{R} : R
 
+    # initialize bosonic phase factor to unit
+    Sb = zero(H)
+
     # evaluate length of imaginary time axis
     Lτ = eval_length_imaginary_axis(β, Δτ)
 
@@ -128,7 +134,7 @@ function FermionPathIntegral(;
     u = zeros(H, Norbitals)
     v = zeros(H, Norbitals)
 
-    return FermionPathIntegral{H,Tk,Tv,R}(β, Δτ, Lτ, Norbitals, neighbor_table, t, V, K, eigen_ws, u, v)
+    return FermionPathIntegral{H,Tk,Tv,R}(β, Δτ, Lτ, Norbitals, neighbor_table, t, V, K, Sb, eigen_ws, u, v)
 end
 
 

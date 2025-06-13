@@ -169,14 +169,14 @@ Consider a ``D`` dimensional finite periodic lattice, where ``\mathbf{a}_d`` and
 The extent of the lattice in unit cells in the direction of each of the lattice vectors is denoted by ``L_d``.
 Given these definitions, the displacement vectors are parametetized as
 ```math
-\mathbf{r} = \sum_{d=1}^D \left( \frac{\mathtt{R\_d}}{L_d} \right) \mathbf{a}_d,
+\mathbf{r} = \sum_{d=1}^D \mathtt{R}_d \mathbf{a}_d,
 ```
-and then reported in terms of the set of integers ``\mathtt{R\_d} \in [0, L_d)``.
+and then reported in terms of the set of integers ``\mathtt{R}_d \in [0, L_d)``.
 Similarly, the set of ``\mathbf{k}``-points associated with the finite lattice are given by
 ```math
-\mathbf{k} = \sum_{d=1}^D \left( \frac{\mathtt{K\_d}}{L_d} \right) \mathbf{b}_d
+\mathbf{k} = \sum_{d=1}^D \left( \frac{\mathtt{K}_d}{L_d} \right) \mathbf{b}_d
 ```
-and then reported in term of the set of integers ``\mathtt{K\_d} \in [0, L_d)``.
+and then reported in term of the set of integers ``\mathtt{K}_d \in [0, L_d)``.
 
 ### Correlation Function Reporting Conventions
 

@@ -153,23 +153,23 @@ end
 
 @doc raw"""
     initialize!(
-        fermion_path_integral_up::FermionPathIntegral,
-        fermion_path_integral_dn::FermionPathIntegral,
-        hubbard_parameters::HubbardParameters
-    )
+        fermion_path_integral_up::FermionPathIntegral{H},
+        fermion_path_integral_dn::FermionPathIntegral{H},
+        hubbard_parameters::HubbardParameters{T}
+    ) where {H<:Number, T<:AbstractFloat}
 
     initialize!(
-        fermion_path_integral::FermionPathIntegral,
-        hubbard_parameters::HubbardParameters
-    )
+        fermion_path_integral::FermionPathIntegral{H},
+        hubbard_parameters::HubbardParameters{T}
+    ) where {H<:Number, T<:AbstractFloat}
 
 Initialize the contribution from the Hubbard interaction to a [`FermionPathIntegral`](@ref) instance.
 """
 function initialize!(
-    fermion_path_integral_up::FermionPathIntegral,
-    fermion_path_integral_dn::FermionPathIntegral,
-    hubbard_parameters::HubbardParameters
-)
+    fermion_path_integral_up::FermionPathIntegral{H},
+    fermion_path_integral_dn::FermionPathIntegral{H},
+    hubbard_parameters::HubbardParameters{T}
+) where {H<:Number, T<:AbstractFloat}
 
     initialize!(fermion_path_integral_up, hubbard_parameters)
     initialize!(fermion_path_integral_dn, hubbard_parameters)
@@ -178,9 +178,9 @@ function initialize!(
 end
 
 function initialize!(
-    fermion_path_integral::FermionPathIntegral,
-    hubbard_parameters::HubbardParameters
-)
+    fermion_path_integral::FermionPathIntegral{H},
+    hubbard_parameters::HubbardParameters{T}
+) where {H<:Number, T<:Number}
 
     (; ph_sym_form, U, sites) = hubbard_parameters
     (; V) = fermion_path_integral

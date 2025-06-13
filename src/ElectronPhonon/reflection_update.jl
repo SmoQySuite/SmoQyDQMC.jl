@@ -57,6 +57,8 @@ function reflection_update!(
     phonon_types = nothing
 ) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator{T}}
 
+    @assert fermion_path_integral_up.Sb == fermion_path_integral_dn.Sb "$(fermion_path_integral_up.Sb) ≠ $(fermion_path_integral_dn.Sb)"
+
     Gup′ = fermion_greens_calculator_up_alt.G′
     Gdn′ = fermion_greens_calculator_dn_alt.G′
     phonon_parameters = electron_phonon_parameters.phonon_parameters::PhononParameters{R}
@@ -182,6 +184,10 @@ function reflection_update!(
         copyto!(Gdn, Gdn′)
         copyto!(fermion_greens_calculator_up, fermion_greens_calculator_up_alt)
         copyto!(fermion_greens_calculator_dn, fermion_greens_calculator_dn_alt)
+        ΔSb = Sb′ - Sb
+        fermion_path_integral_up.Sb += ΔSb
+        fermion_path_integral_dn.Sb += ΔSb
+        fermion_path_integral_up.Sb
         accepted = true
     else
         # substract off the effect of the current phonon configuration on the fermion path integrals
@@ -361,6 +367,7 @@ function reflection_update!(
         sgndetG = sgndetG′
         copyto!(G, G′)
         copyto!(fermion_greens_calculator, fermion_greens_calculator_alt)
+        fermion_path_integral.Sb += (Sb′ - Sb)
         accepted = true
     else
         # substract off the effect of the current phonon configuration on the fermion path integrals

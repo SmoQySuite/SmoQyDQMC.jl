@@ -68,7 +68,8 @@ export TightBindingModel, TightBindingParameters
 # Exports the FermionPathIntegral type that describes the hopping matrices K and on-site energy
 # matrices V for each imaginary time slice l
 include("FermionPathIntegral.jl")
-export FermionPathIntegral, initialize_propagators, calculate_propagators!, calculate_propagator!
+export FermionPathIntegral
+export initialize_propagators, calculate_propagators!, calculate_propagator!
 
 # method for updating chemical potential using MuTuner
 include("update_chemical_potential.jl")
@@ -85,6 +86,9 @@ export HubbardModel, HubbardParameters, initialize!
 # Implement Ising Hubbard-Statonovich (HS) decoupling of Hubbard interaction, and various methods for update the IS HS fields
 include("Hubbard/HubbardIsingHS.jl")
 export HubbardIsingHSParameters, local_updates!
+
+# Spin-Channel Hirsch Hubbard-Stratonovich Transformation
+include("Hubbard/HubbardSpinHirschHST.jl")
 
 ###########################
 ## ELECTRON-PHONON MODEL ##

@@ -87,19 +87,21 @@ end
 
 @doc raw"""
     initialize!(
-        fermion_path_integral_up::FermionPathIntegral,
-        fermion_path_integral_dn::FermionPathIntegral,
-        hubbard_ising_parameters::HubbardIsingHSParameters
-    )
+        fermion_path_integral_up::FermionPathIntegral{H},
+        fermion_path_integral_dn::FermionPathIntegral{H},
+        hubbard_ising_parameters::HubbardIsingHSParameters{T}
+    ) where {H<:Number, T<:AbstractFloat}
 
 Initialize the contribution from the Hubbard interaction to the [`FermionPathIntegral`](@ref)
 instance `fermion_path_integral_up` for spin up and `fermion_path_integral_dn` spin down.
 """
 function initialize!(
-    fermion_path_integral_up::FermionPathIntegral,
-    fermion_path_integral_dn::FermionPathIntegral,
-    hubbard_ising_parameters::HubbardIsingHSParameters
-)
+    fermion_path_integral_up::FermionPathIntegral{H},
+    fermion_path_integral_dn::FermionPathIntegral{H},
+    hubbard_ising_parameters::HubbardIsingHSParameters{T}
+) where {H<:Number, T<:AbstractFloat}
+
+    @assert fermion_path_integral_up.Sb == fermion_path_integral_dn.Sb "$(fermion_path_integral_up.Sb) ≠ $(fermion_path_integral_dn.Sb)"
     
     (; α, U, Δτ, s, sites) = hubbard_ising_parameters
     Vup = fermion_path_integral_up.V
@@ -114,23 +116,30 @@ function initialize!(
         end
     end
 
+    # update bosonic action
+    Sb_hub = bosonic_action(hubbard_ising_parameters)
+    fermion_path_integral_up.Sb += Sb_hub
+    fermion_path_integral_dn.Sb += Sb_hub
+
     return nothing
 end
 
 
 @doc raw"""
     initialize!(
-        fermion_path_integral::FermionPathIntegral,
-        hubbard_ising_parameters::HubbardIsingHSParameters
-    )
+        bosonic_phase::H,
+        fermion_path_integral::FermionPathIntegral{H},
+        hubbard_ising_parameters::HubbardIsingHSParameters{T}
+    ) where {H<:Number, T<:AbstractFloat}
 
 Initialize the contribution from an attractive Hubbard interaction to the [`FermionPathIntegral`](@ref)
 instance `fermion_path_integral`.
 """
 function initialize!(
-    fermion_path_integral::FermionPathIntegral,
-    hubbard_ising_parameters::HubbardIsingHSParameters
-)
+    bosonic_phase::H,
+    fermion_path_integral::FermionPathIntegral{H},
+    hubbard_ising_parameters::HubbardIsingHSParameters{T}
+) where {H<:Number, T<:AbstractFloat}
     
     (; α, U, Δτ, s, sites) = hubbard_ising_parameters
     V = fermion_path_integral.V
@@ -146,7 +155,10 @@ function initialize!(
         end
     end
 
-    return nothing
+    # update bosonic action
+    fermion_path_integral.Sb += bosonic_action(hubbard_ising_parameters)
+
+    return bosonic_phase
 end
 
 
@@ -170,7 +182,7 @@ end
 Sweep through every imaginary time slice and orbital in the lattice, peforming local updates to every
 Ising Hubbard-Stratonovich (HS) field.
 
-This method returns the a tuple containing `(acceptance_rate, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ)`.
+This method returns a tuple containing `(acceptance_rate, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ)`.
 
 # Arguments
 
@@ -212,6 +224,9 @@ function local_updates!(
     update_stabilization_frequency::Bool = true
 ) where {H<:Number, R<:Real, P<:AbstractPropagator}
 
+    # make sure bosonic actions match
+    @assert fermion_path_integral_up.Sb == fermion_path_integral_dn.Sb "$(fermion_path_integral_up.Sb) ≠ $(fermion_path_integral_dn.Sb)"
+
     (; Δτ, U, α, sites, s, update_perm) = hubbard_ising_parameters
     (; u, v) = fermion_path_integral_dn
 
@@ -228,6 +243,9 @@ function local_updates!(
     # counter for the number of accepted spin flips
     accepted_spin_flips = 0
 
+    # calculate initial bosonic action
+    Sb_init = bosonic_action(hubbard_ising_parameters)
+
     # Iterate over imaginary time τ=Δτ⋅l.
     for l in fermion_greens_calculator_up
 
@@ -243,8 +261,8 @@ function local_updates!(
         # apply the transformation G̃(τ,τ) = exp(+Δτ⋅K[l]/2)⋅G(τ,τ)⋅exp(-Δτ⋅K[l]/2)
         # if B[l] = exp(-Δτ⋅K[l]/2)⋅exp(-Δτ⋅V[l])⋅exp(-Δτ⋅K[l]/2),
         # otherwise nothing when B[l] = exp(-Δτ⋅V[l])⋅exp(-Δτ⋅K[l])
-        forward_partially_wrap_greens(Gup, Bup_l, G′)
-        forward_partially_wrap_greens(Gdn, Bdn_l, G′)
+        partially_wrap_greens_reverse!(Gup, Bup_l, G′)
+        partially_wrap_greens_reverse!(Gdn, Bdn_l, G′)
 
         # shuffle the order in which orbitals/sites will be iterated over
         shuffle!(rng, update_perm)
@@ -299,8 +317,8 @@ function local_updates!(
         # apply the transformation G(τ,τ) = exp(-Δτ⋅K[l]/2)⋅G̃(τ,τ)⋅exp(+Δτ⋅K[l]/2)
         # if B[l] = exp(-Δτ⋅K[l]/2)⋅exp(-Δτ⋅V[l])⋅exp(-Δτ⋅K[l]/2),
         # otherwise nothing when B[l] = exp(-Δτ⋅V[l])⋅exp(-Δτ⋅K[l])
-        reverse_partially_wrap_greens(Gup, Bup_l, G′)
-        reverse_partially_wrap_greens(Gdn, Bdn_l, G′)
+        partially_wrap_greens_forward!(Gup, Bup_l, G′)
+        partially_wrap_greens_forward!(Gdn, Bdn_l, G′)
 
         # Periodically re-calculate the Green's function matrix for numerical stability.
         logdetGup, sgndetGup, δGup, δθup = stabilize_equaltime_greens!(Gup, logdetGup, sgndetGup, fermion_greens_calculator_up, Bup, update_B̄=true)
@@ -327,6 +345,14 @@ function local_updates!(
 
     # calculate the acceptance rate
     acceptance_rate = accepted_spin_flips / proposed_spin_flips
+
+    # calculate finale bosonic action
+    Sb_final = bosonic_action(hubbard_ising_parameters)
+
+    # update total bosonic action
+    ΔSb = Sb_final - Sb_init
+    fermion_path_integral_up.Sb += ΔSb
+    fermion_path_integral_dn.Sb += ΔSb
 
     return (acceptance_rate, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ)
 end
@@ -395,6 +421,9 @@ function local_updates!(
     # counter for the number of accepted spin flips
     accepted_spin_flips = 0
 
+    # calculate initial bosonic action
+    Sb_init = bosonic_action(hubbard_ising_parameters)
+
     # Iterate over imaginary time τ=Δτ⋅l.
     for l in fermion_greens_calculator
 
@@ -405,7 +434,7 @@ function local_updates!(
         # apply the transformation G̃(τ,τ) = exp(+Δτ⋅K[l]/2)⋅G(τ,τ)⋅exp(-Δτ⋅K[l]/2)
         # if B[l] = exp(-Δτ⋅K[l]/2)⋅exp(-Δτ⋅V[l])⋅exp(-Δτ⋅K[l]/2),
         # otherwise nothing when B[l] = exp(-Δτ⋅V[l])⋅exp(-Δτ⋅K[l])
-        forward_partially_wrap_greens(G, B[l], G′)
+        partially_wrap_greens_reverse!(G, B[l], G′)
 
         # shuffle the order in which orbitals/sites will be iterated over
         shuffle!(rng, update_perm)
@@ -450,7 +479,7 @@ function local_updates!(
         # apply the transformation G(τ,τ) = exp(-Δτ⋅K[l]/2)⋅G̃(τ,τ)⋅exp(+Δτ⋅K[l]/2)
         # if B[l] = exp(-Δτ⋅K[l]/2)⋅exp(-Δτ⋅V[l])⋅exp(-Δτ⋅K[l]/2),
         # otherwise nothing when B[l] = exp(-Δτ⋅V[l])⋅exp(-Δτ⋅K[l])
-        reverse_partially_wrap_greens(G, B[l], G′)
+        partially_wrap_greens_forward!(G, B[l], G′)
 
         # Periodically re-calculate the Green's function matrix for numerical stability.
         logdetG, sgndetG, δG′, δθ′ = stabilize_equaltime_greens!(G, logdetG, sgndetG, fermion_greens_calculator, B, update_B̄=true)
@@ -471,6 +500,12 @@ function local_updates!(
 
     # calculate the acceptance rate
     acceptance_rate = accepted_spin_flips / proposed_spin_flips
+
+    # calculate finale bosonic action
+    Sb_final = bosonic_action(hubbard_ising_parameters)
+
+    # update total bosonic action
+    fermion_path_integral.Sb += (Sb_final - Sb_init)
 
     return (acceptance_rate, logdetG, sgndetG, δG, δθ)
 end
@@ -534,6 +569,8 @@ function reflection_update!(
     rng::AbstractRNG
 ) where {H<:Number, R<:Real, P<:AbstractPropagator}
 
+    @assert fermion_path_integral_up.Sb == fermion_path_integral_dn.Sb "$(fermion_path_integral_up.Sb) ≠ $(fermion_path_integral_dn.Sb)"
+
     (; N, U, α, sites, s, Δτ) = hubbard_ising_parameters
     Gup′ = fermion_greens_calculator_up_alt.G′
     Gdn′ = fermion_greens_calculator_dn_alt.G′
@@ -595,6 +632,8 @@ function reflection_update!(
         copyto!(Gdn, Gdn′)
         copyto!(fermion_greens_calculator_up, fermion_greens_calculator_up_alt)
         copyto!(fermion_greens_calculator_dn, fermion_greens_calculator_dn_alt)
+        fermion_path_integral_up.Sb += ΔSb
+        fermion_path_integral_dn.Sb += ΔSb
         accepted = true
     else
         # flip HS field back
@@ -704,6 +743,7 @@ function reflection_update!(
         sgndetG = sgndetG′
         copyto!(G, G′)
         copyto!(fermion_greens_calculator, fermion_greens_calculator_alt)
+        fermion_path_integral.Sb += ΔSb
         accepted = true
     else
         # flip HS field back
@@ -779,6 +819,8 @@ function swap_update!(
     Bup::Vector{P}, Bdn::Vector{P},
     rng::AbstractRNG
 ) where {H<:Number, R<:Real, P<:AbstractPropagator}
+
+    @assert fermion_path_integral_up.Sb == fermion_path_integral_dn.Sb "$(fermion_path_integral_up.Sb) ≠ $(fermion_path_integral_dn.Sb)"
 
     (; N, U, α, sites, s, Δτ) = hubbard_ising_parameters
     Gup′ = fermion_greens_calculator_up_alt.G′
@@ -865,6 +907,8 @@ function swap_update!(
         copyto!(Gdn, Gdn′)
         copyto!(fermion_greens_calculator_up, fermion_greens_calculator_up_alt)
         copyto!(fermion_greens_calculator_dn, fermion_greens_calculator_dn_alt)
+        fermion_path_integral_up.Sb += ΔSb
+        fermion_path_integral_dn.Sb += ΔSb
         accepted = true
     else
         # flip HS fields back
@@ -998,6 +1042,7 @@ function swap_update!(
         sgndetG = sgndetG′
         copyto!(G, G′)
         copyto!(fermion_greens_calculator, fermion_greens_calculator_alt)
+        fermion_path_integral.Sb += ΔSb
         accepted = true
     else
         # flip HS fields back
@@ -1028,7 +1073,7 @@ function bosonic_action(
     Sb = zero(E)
 
     # iterate of time slices
-    for l in axes(s,2)
+    @inbounds for l in axes(s,2)
         # iterate of sites
         for i in axes(s,1)
             # incremement the bosonic action

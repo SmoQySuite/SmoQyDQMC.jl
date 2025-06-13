@@ -48,6 +48,8 @@ function make_measurements!(
     δG::E, δθ::E, δG_max::E = 1e-6
 ) where {T<:Number, E<:AbstractFloat, D, N, P<:AbstractPropagator{T,E}}
 
+    @assert fermion_path_integral_up.Sb == fermion_path_integral_dn.Sb "$(fermion_path_integral_up.Sb) ≠ $(fermion_path_integral_dn.Sb)"
+
     # extract temporary storage vectors
     (; 
         time_displaced_correlations,
@@ -65,7 +67,9 @@ function make_measurements!(
     end
 
     # calculate sign
-    sgn = sgndetGup * sgndetGdn
+    Sb = fermion_path_integral_up.Sb
+    sgnexpnSb = sign(exp(-Sb))
+    sgn = sgnexpnSb * sgndetGup * sgndetGdn
     sgn /= abs(sgn) # normalize just to be cautious
 
     # make global measurements
@@ -76,7 +80,8 @@ function make_measurements!(
         tight_binding_parameters_dn,
         coupling_parameters,
         Gup, logdetGup, sgndetGup,
-        Gdn, logdetGdn, sgndetGdn
+        Gdn, logdetGdn, sgndetGdn,
+        sgn, Sb
     )
 
     # make local measurements
@@ -242,7 +247,9 @@ function make_measurements!(
     tmp = selectdim(a, ndims(a), 1)
 
     # calculate sign
-    sgn = sgndetG^2
+    Sb = fermion_path_integral.Sb
+    sgnexpnSb = sign(exp(-Sb))
+    sgn = sgnexpnSb * sgndetG^2
     sgn /= abs(sgn) # normalize just to be cautious
 
     # make global measurements
@@ -253,7 +260,8 @@ function make_measurements!(
         tight_binding_parameters,
         coupling_parameters,
         G, logdetG, sgndetG,
-        G, logdetG, sgndetG
+        G, logdetG, sgndetG,
+        sgn, Sb
     )
 
     # make local measurements
@@ -401,14 +409,13 @@ function make_global_measurements!(
     coupling_parameters::Tuple,
     Gup::AbstractMatrix{T}, logdetGup::T, sgndetGup::T,
     Gdn::AbstractMatrix{T}, logdetGdn::T, sgndetGdn::T,
+    sgn::T, Sb::T
 ) where {T<:Number, E<:AbstractFloat}
 
     # number of orbitals in lattice
     N = size(Gup, 1)
 
     # measure the sign
-    sgn = sgndetGup * sgndetGdn
-    sgn /= abs(sgn) # normalize just to be cautious
     global_measurements["sgn"] += sgn
 
     # measure the spin resolved sign
@@ -424,11 +431,7 @@ function make_global_measurements!(
     global_measurements["action_fermionic"] += Sf
 
     # measure bosonic action
-    Sb = zero(E)
-    for i in eachindex(coupling_parameters)
-        Sb += bosonic_action(coupling_parameters[i])
-    end
-    global_measurements["action_bosonic"] += Sb
+    global_measurements["action_bosonic"] += real(Sb)
 
     # measure total action
     S = Sb + Sf

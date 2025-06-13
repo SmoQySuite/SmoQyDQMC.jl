@@ -155,7 +155,10 @@ function run_simulation(
         )
 
         # Define a dispersionless electron-phonon mode to live on each site in the lattice.
-        phonon = PhononMode(orbital = 1, Ω_mean = Ω)
+        phonon = PhononMode(
+            basis_vec = [0.0],
+            Ω_mean = Ω
+        )
 
         # Add optical ssh phonon to electron-phonon model.
         phonon_id = add_phonon_mode!(
@@ -167,7 +170,7 @@ function run_simulation(
         ossh_coupling = SSHCoupling(
             model_geometry = model_geometry,
             tight_binding_model = tight_binding_model,
-            phonon_modes = (phonon_id, phonon_id),
+            phonon_ids = (phonon_id, phonon_id),
             bond = bond,
             α_mean = α
         )

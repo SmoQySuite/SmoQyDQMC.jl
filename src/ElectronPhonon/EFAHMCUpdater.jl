@@ -173,8 +173,9 @@ function hmc_update!(
     δ::R = hmc_updater.δ
 ) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator{T}}
 
-    (; p, dSdx, Gup′, Gdn′, efa) = hmc_updater
+    @assert fermion_path_integral_up.Sb == fermion_path_integral_dn.Sb "$(fermion_path_integral_up.Sb) ≠ $(fermion_path_integral_dn.Sb)"
 
+    (; p, dSdx, Gup′, Gdn′, efa) = hmc_updater
     Δτ = electron_phonon_parameters.Δτ::E
     holstein_parameters_up = electron_phonon_parameters.holstein_parameters_up
     holstein_parameters_dn = electron_phonon_parameters.holstein_parameters_dn
@@ -396,6 +397,9 @@ function hmc_update!(
         sgndetGup = sgndetGup′
         logdetGdn = logdetGdn′
         sgndetGdn = sgndetGdn′
+
+        # update bosonic action
+        fermion_path_integral_up.Sb += (Sb′ - Sb)
 
         # record the final state of the fermion greens calculator
         copyto!(fermion_greens_calculator_up, fermion_greens_calculator_up_alt)
@@ -704,6 +708,9 @@ function hmc_update!(
         # record final green function determinant
         logdetG = logdetG′
         sgndetG = sgndetG′
+
+        # update bosonic action
+        fermion_path_integral.Sb += (Sb - Sb′)
 
         # record the final state of the fermion greens calculator
         copyto!(fermion_greens_calculator, fermion_greens_calculator_alt)
