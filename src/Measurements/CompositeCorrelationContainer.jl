@@ -36,7 +36,7 @@ function CompositeCorrelationContainer(
 ) where {D, T<:AbstractFloat}
 
     @assert length(L) == D
-    return CompositeCorrelationContainer{D,D,T}(
+    return CompositeCorrelationContainer{D,D+1,T}(
         correlation, 
         id_pairs,
         coefficients, 
@@ -57,7 +57,7 @@ function CompositeCorrelationContainer(
 ) where {D, T<:AbstractFloat}
 
     @assert length(L) == D
-    return CompositeCorrelationContainer{D,D+1,T}(
+    return CompositeCorrelationContainer{D,D,T}(
         correlation, 
         id_pairs,
         coefficients, 

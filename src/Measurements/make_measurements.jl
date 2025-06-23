@@ -1006,7 +1006,7 @@ end
 
 # make purely electronic equal-time composite correlation measurements
 function make_equaltime_composite_measurements!(
-    equaltime_composite_correlations::Dict{String, CompositeCorrelationContainer{D,E}}, sgn::T,
+    equaltime_composite_correlations::Dict{String, CompositeCorrelationContainer{D,D,E}}, sgn::T,
     Gup::AbstractMatrix{T}, Gup_ττ::AbstractMatrix{T}, Gup_τ0::AbstractMatrix{T}, Gup_0τ::AbstractMatrix{T},
     Gdn::AbstractMatrix{T}, Gdn_ττ::AbstractMatrix{T}, Gdn_τ0::AbstractMatrix{T}, Gdn_0τ::AbstractMatrix{T},
     model_geometry::ModelGeometry{D,E,N},
@@ -1030,7 +1030,7 @@ function make_equaltime_composite_measurements!(
     # iterate over equal-time correlation function getting measured
     for name in keys(equaltime_composite_correlations)
         
-        correlation_container = equaltime_composite_correlations[name]::CompositeCorrelationContainer{D,E}
+        correlation_container = equaltime_composite_correlations[name]::CompositeCorrelationContainer{D,D,E}
         correlation = correlation_container.correlation
         id_pairs = correlation_container.id_pairs::Vector{NTuple{2,Int}}
         coefficients = correlation_container.coefficients::Vector{Complex{E}}
@@ -1834,7 +1834,7 @@ end
 
 # make purely electronic time-displaced correlation measurements
 function make_time_displaced_composite_measurements!(
-    time_displaced_composite_correlations::Dict{String, CompositeCorrelationContainer{P,E}}, l::Int, sgn::T,
+    time_displaced_composite_correlations::Dict{String, CompositeCorrelationContainer{D,P,E}}, l::Int, sgn::T,
     Gup::AbstractMatrix{T}, Gup_ττ::AbstractMatrix{T}, Gup_τ0::AbstractMatrix{T}, Gup_0τ::AbstractMatrix{T},
     Gdn::AbstractMatrix{T}, Gdn_ττ::AbstractMatrix{T}, Gdn_τ0::AbstractMatrix{T}, Gdn_0τ::AbstractMatrix{T},
     model_geometry::ModelGeometry{D,E,N},
@@ -1853,7 +1853,7 @@ function make_time_displaced_composite_measurements!(
     # iterate over time-displaced correlation function getting measured
     for name in keys(time_displaced_composite_correlations)
         
-        correlation_container = time_displaced_composite_correlations[name]::CompositeCorrelationContainer{P,E}
+        correlation_container = time_displaced_composite_correlations[name]::CompositeCorrelationContainer{D,P,E}
         correlation = correlation_container.correlation
         id_pairs = correlation_container.id_pairs::Vector{NTuple{2,Int}}
         coefficients = correlation_container.coefficients::Vector{Complex{E}}
@@ -1861,6 +1861,7 @@ function make_time_displaced_composite_measurements!(
         correlation_array = selectdim(correlations, D+1, l+1)
         structure_factors = correlation_container.structure_factors::Array{Complex{E}, P}
         structure_factor_array = selectdim(structure_factors, D+1, l+1)
+        displacement_vecs = correlation_container.displacement_vecs::Vector{SVector{D,E}}
 
         if correlation == "greens"
 
@@ -2364,7 +2365,7 @@ end
 
 # measure equal-time composite phonon greens function
 function measure_equaltime_composite_phonon_greens!(
-    phonon_greens::CompositeCorrelationContainer{D,E},
+    phonon_greens::CompositeCorrelationContainer{D,D,E},
     electron_phonon_parameters::ElectronPhononParameters{T,E},
     model_geometry::ModelGeometry{D,E,N},
     sgn::T,
@@ -2484,7 +2485,7 @@ end
 
 # measure time-displaced composite phonon greens function
 function measure_time_displaced_composite_phonon_greens!(
-    phonon_greens::CompositeCorrelationContainer{P,E}, # time-displaced because P != D
+    phonon_greens::CompositeCorrelationContainer{D,P,E}, # time-displaced because P != D
     electron_phonon_parameters::ElectronPhononParameters{T,E},
     model_geometry::ModelGeometry{D,E,N},
     sgn::T,

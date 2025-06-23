@@ -434,13 +434,13 @@ end
 
 # normalize correlation measurement
 function normalize_composite_correlation_measurements!(
-    composite_correlation_measurements::Dict{String, CompositeCorrelationContainer{D, T}}, bin_size::Int
-) where {D, T<:AbstractFloat}
+    composite_correlation_measurements::Dict{String, CompositeCorrelationContainer{D, P, T}}, bin_size::Int
+) where {D, P, T<:AbstractFloat}
 
     for name in keys(composite_correlation_measurements)
         correlation_container = composite_correlation_measurements[name]
-        correlations = correlation_container.correlations::Array{Complex{T}, D}
-        structure_factors = correlation_container.structure_factors::Array{Complex{T}, D}
+        correlations = correlation_container.correlations::Array{Complex{T}, P}
+        structure_factors = correlation_container.structure_factors::Array{Complex{T}, P}
         @. correlations /= bin_size
         @. structure_factors /= bin_size
     end

@@ -49,13 +49,13 @@ function initialize_measurement_container(
     integrated_correlations = Dict{String, CorrelationContainer{D,T}}()
 
     # initialize time displaced correlation measurement dictionary
-    equaltime_composite_correlations = Dict{String, CompositeCorrelationContainer{D,T}}()
+    equaltime_composite_correlations = Dict{String, CompositeCorrelationContainer{D,D,T}}()
 
     # initialize time displaced correlation measurement dictionary
-    time_displaced_composite_correlations = Dict{String, CompositeCorrelationContainer{D+1,T}}()
+    time_displaced_composite_correlations = Dict{String, CompositeCorrelationContainer{D,D+1,T}}()
 
     # initialize integrated correlation measurement dictionary
-    integrated_composite_correlations = Dict{String, CompositeCorrelationContainer{D,T}}()
+    integrated_composite_correlations = Dict{String, CompositeCorrelationContainer{D,D,T}}()
 
     # initialize measurement container
     measurement_container = (
@@ -68,7 +68,7 @@ function initialize_measurement_container(
         time_displaced_composite_correlations = time_displaced_composite_correlations,
         integrated_composite_correlations     = integrated_composite_correlations,
         hopping_to_bond_id          = Int[],
-        phonon_basis_vecs        = Vector{T}[],
+        phonon_basis_vecs           = Vector{T}[],
         L                           = L,
         Lτ                          = Lτ,
         a                           = zeros(Complex{T}, L..., Lτ),
