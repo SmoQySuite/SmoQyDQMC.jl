@@ -96,7 +96,7 @@ HubbardModel
 HubbardModel(;)
 HubbardParameters
 HubbardParameters(;)
-initialize!(::FermionPathIntegral{T,E}, ::FermionPathIntegral{T,E}, ::HubbardParameters{E}) where {T,E}
+initialize!(::FermionPathIntegral, ::FermionPathIntegral, ::HubbardParameters)
 ```
 
 ### Hubbard Model Measurements
@@ -110,14 +110,14 @@ measure_hubbard_energy
 ```@docs
 HubbardIsingHSParameters
 HubbardIsingHSParameters(;)
-initialize!(::FermionPathIntegral{T,E}, ::FermionPathIntegral{T,E}, ::HubbardIsingHSParameters{E}) where {T,E}
-initialize!(::FermionPathIntegral{T,E}, ::HubbardIsingHSParameters{E}) where {T,E}
-local_updates!(::Matrix{T}, ::E, ::T, ::Matrix{T}, ::E, ::T, ::HubbardIsingHSParameters{E})  where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
-local_updates!(::Matrix{T}, ::E, ::T, ::HubbardIsingHSParameters{E})  where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
-reflection_update!(::Matrix{T}, ::E, ::T, ::Matrix{T}, ::E, ::T, ::HubbardIsingHSParameters{E}) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
-reflection_update!(::Matrix{T}, ::E, ::T, ::HubbardIsingHSParameters{E}) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
-swap_update!(::Matrix{T}, ::E, ::T, ::Matrix{T}, ::E, ::T, ::HubbardIsingHSParameters{E}) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
-swap_update!(::Matrix{T}, ::E, ::T, ::HubbardIsingHSParameters{E}) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
+initialize!(::FermionPathIntegral, ::FermionPathIntegral, ::HubbardIsingHSParameters)
+initialize!(::FermionPathIntegral, ::HubbardIsingHSParameters)
+local_updates!(::Matrix{H}, ::R, ::H, ::Matrix{H}, ::R, ::H, ::HubbardIsingHSParameters{R}) where {H<:Number, R<:Real, P<:AbstractPropagator}
+local_updates!(::Matrix{H}, ::R, ::H, ::HubbardIsingHSParameters{R}) where {H<:Number, R<:Real, P<:AbstractPropagator}
+reflection_update!(::Matrix{H}, ::R, ::H, ::Matrix{H}, ::R, ::H, ::HubbardIsingHSParameters{R}) where {H<:Number, R<:Real, P<:AbstractPropagator}
+reflection_update!(::Matrix{H}, ::R, ::H, ::HubbardIsingHSParameters{R}) where {H<:Number, R<:Real, P<:AbstractPropagator}
+swap_update!(::Matrix{H}, ::R, ::H, ::Matrix{H}, ::R, ::H, ::HubbardIsingHSParameters{R}) where {H<:Number, R<:Real, P<:AbstractPropagator}
+swap_update!(::Matrix{H}, ::R, ::H, ::HubbardIsingHSParameters{R}) where {H<:Number, R<:Real, P<:AbstractPropagator}
 ```
 
 ## Electron-Phonon Model
@@ -155,10 +155,8 @@ swap_update!(::Matrix{T}, ::E, ::T, ::HubbardIsingHSParameters{E}) where {T<:Num
 
 **Electron-Phonon Updates**
 
-- [`HMCUpdater`](@ref)
 - [`EFAHMCUpdater`](@ref)
 - [`hmc_update!`](@ref)
-- [`SmoQyDQMC.FourierMassMatrix`](@ref)
 - [`reflection_update!`](@ref)
 - [`swap_update!`](@ref)
 - [`radial_update!`](@ref)
@@ -212,21 +210,16 @@ measure_dispersion_energy
 ### Electron-Phonon Updates
 
 ```@docs
-HMCUpdater
-HMCUpdater(;)
 EFAHMCUpdater
 EFAHMCUpdater(;)
-hmc_update!(::Matrix{T}, ::E, ::T, ::Matrix{T}, ::E, ::T, ::ElectronPhononParameters{T,E}, ::HMCUpdater{T,E}) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
-hmc_update!(::Matrix{T}, ::E, ::T, ::ElectronPhononParameters{T,E}, ::HMCUpdater{T,E}) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
-hmc_update!(::Matrix{T}, ::E, ::T, ::Matrix{T}, ::E, ::T, ::ElectronPhononParameters{T,E}, ::EFAHMCUpdater{T,E}) where {T, E, P<:AbstractPropagator{T,E}}
-hmc_update!(::Matrix{T}, ::E, ::T, ::ElectronPhononParameters{T,E}, ::EFAHMCUpdater{T,E}) where {T, E, P<:AbstractPropagator{T,E}}
-SmoQyDQMC.FourierMassMatrix
-reflection_update!(::Matrix{T}, ::E, ::T, ::Matrix{T}, ::E, ::T, ::ElectronPhononParameters{T,E}) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
-reflection_update!(::Matrix{T}, ::E, ::T, ::ElectronPhononParameters{T,E}) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
-swap_update!(::Matrix{T}, ::E, ::T, ::Matrix{T}, ::E, ::T, ::ElectronPhononParameters{T,E}) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
-swap_update!(::Matrix{T}, ::E, ::T, ::ElectronPhononParameters{T,E}) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
-radial_update!(::Matrix{T}, ::E, ::T, ::Matrix{T}, ::E, ::T, ::ElectronPhononParameters{T,E}) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
-radial_update!(::Matrix{T}, ::E, ::T, ::ElectronPhononParameters{T,E}) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
+hmc_update!(::Matrix{H}, ::R, ::H, ::Matrix{H}, ::R, ::H, ::ElectronPhononParameters{T,R}, ::EFAHMCUpdater{T,R}) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator{T}}
+hmc_update!(::Matrix{H}, ::R, ::H, ::ElectronPhononParameters{T,R}, ::EFAHMCUpdater{T,R}) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator{T}}
+reflection_update!(::Matrix{H}, ::R, ::H, ::Matrix{H}, ::R, ::H, ::ElectronPhononParameters{T,R}) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator{T}}
+reflection_update!(::Matrix{H}, ::R, ::H, ::ElectronPhononParameters{T,R}) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator{T}}
+swap_update!(::Matrix{H}, ::R, ::H, ::Matrix{H}, ::R, ::H, ::ElectronPhononParameters{T,R}) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator{T}}
+swap_update!(::Matrix{H}, ::R, ::H, ::ElectronPhononParameters{T,R};) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator{T}}
+radial_update!(::Matrix{H}, ::R, ::H, ::Matrix{H}, ::R, ::H, ::ElectronPhononParameters{T,R}) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator{T}}
+radial_update!(::Matrix{H}, ::R, ::H, ::ElectronPhononParameters{T,R}) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator{T}}
 ```
 
 ## Density and Chemical Potential Tuning

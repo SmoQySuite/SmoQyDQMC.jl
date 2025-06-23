@@ -49,13 +49,13 @@ function initialize_measurement_container(
     integrated_correlations = Dict{String, CorrelationContainer{D,T}}()
 
     # initialize time displaced correlation measurement dictionary
-    equaltime_composite_correlations = Dict{String, CompositeCorrelationContainer{D,T}}()
+    equaltime_composite_correlations = Dict{String, CompositeCorrelationContainer{D,D,T}}()
 
     # initialize time displaced correlation measurement dictionary
-    time_displaced_composite_correlations = Dict{String, CompositeCorrelationContainer{D+1,T}}()
+    time_displaced_composite_correlations = Dict{String, CompositeCorrelationContainer{D,D+1,T}}()
 
     # initialize integrated correlation measurement dictionary
-    integrated_composite_correlations = Dict{String, CompositeCorrelationContainer{D,T}}()
+    integrated_composite_correlations = Dict{String, CompositeCorrelationContainer{D,D,T}}()
 
     # initialize measurement container
     measurement_container = (
@@ -68,7 +68,7 @@ function initialize_measurement_container(
         time_displaced_composite_correlations = time_displaced_composite_correlations,
         integrated_composite_correlations     = integrated_composite_correlations,
         hopping_to_bond_id          = Int[],
-        phonon_basis_vecs        = Vector{T}[],
+        phonon_basis_vecs           = Vector{T}[],
         L                           = L,
         Lτ                          = Lτ,
         a                           = zeros(Complex{T}, L..., Lτ),
@@ -431,13 +431,55 @@ end
         ids::Union{Nothing,Vector{Int}} = nothing,
         id_pairs::Union{Nothing,Vector{NTuple{2,Int}}} = nothing,
         coefficients,
+        displacement_vecs = nothing,
         time_displaced::Bool,
         integrated::Bool = false
     )  where {T<:AbstractFloat, D, N}
 
 Initialize a composite correlation measurement called `name` based
-on a linear combination of local operators used in a standard `correlation` measurement,
-with `ids` and `coefficients` specifying the linear combination.
+on a linear combination of local operators used in a standard `correlation` measurement.
+
+If the keyword `ids` is passed and `id_pairs = nothing`, then the composite correlation function is given by
+```math
+\begin{align*}
+    C_{\mathbf{r}}(\tau) & = \frac{1}{N}\sum_{\mathbf{i}}\langle\hat{\Phi}_{\mathbf{i}+\mathbf{r}}^{\dagger}(\tau)\hat{\Phi}_{\mathbf{i}}^{\phantom{\dagger}}(0)\rangle \\
+                         & = \frac{1}{N}\sum_{\eta,\nu}\sum_{\mathbf{i}}c_{\eta}^{*}c_{\nu}\langle\hat{O}_{\mathbf{i}+\mathbf{r},\eta}^{\dagger}(\tau)\hat{O}_{\mathbf{i},\nu}^{\phantom{\dagger}}(0)\rangle \\
+                         & = \sum_{\eta,\nu}c_{\eta}^{*}c_{\nu}C_{\mathbf{r}}^{\eta,\nu}(\tau)
+\end{align*}
+```
+where the composite operator is
+```math
+\hat{\Phi}_{\mathbf{\mathbf{r}}}(\tau)=\sum_{\nu}c_{\nu}\hat{O}_{\mathbf{r},\nu}(\tau).
+```
+The sum over ``\mathbf{i}`` runs over all unit cells, ``\mathbf{r}`` denotes a displacement in unit cells and ``N`` is the number unit cells.
+The operator type ``\hat{O}^{\nu}`` and corresponding correlation function type ``C_{\mathbf{r}}^{\eta,\nu}(\tau)`` are specified by the `correlation` keyword,
+while ``\nu`` corresponds to labels/IDs specified by the `ids` keyword argument.
+Lastly, the ``c_\nu`` coefficients are specified using the `coefficients` keyword arguments.
+The corresponding fourier transform of this composite correlation function measurement is given by
+```math
+S_{\mathbf{q}}(\tau)=\sum_{\eta,\nu}\sum_{\mathbf{r}}e^{-{\rm i}\mathbf{q}\cdot(\mathbf{r}+\mathbf{r}_{\eta}-\mathbf{r}_{\nu})}C_{\mathbf{r}}^{\eta,\nu}(\tau),
+```
+where the static vectors ``\mathbf{r}_\nu`` are specified using the `displacement_vecs` keyword arguments.
+If `displacement_vecs = nothing` then ``\mathbf{r}_\nu = 0`` for all label/ID values ``\nu``.
+
+On the other hand, if `id_pairs` is passed and `ids = nothing`, then the composite correlation function is given by
+```math
+\begin{align*}
+    C_{\mathbf{r}}(\tau) & = \sum_{n}c_{n}C_{\mathbf{r}}^{\eta_{n},\nu_{n}}(\tau) \\
+                         & = \frac{1}{N}\sum_{n}\sum_{\mathbf{i}}c_{n}\langle\hat{O}_{\mathbf{i}+\mathbf{r},\eta_{n}}^{\dagger}(\tau)\hat{O}_{\mathbf{i},\nu_{n}}^{\phantom{\dagger}}(0)\rangle,
+\end{align*}
+```
+where the ``n`` index runs over pairs the pairs of labels/IDs ``(\eta_n,\nu_n)`` specified by the `id_pairs` keyword argument.
+Once again, operator type ``\hat{O}^{\nu_n}`` and corresponding correlation function type ``C_{\mathbf{r}}^{\eta_n,\nu_n}(\tau)`` are specified by the `correlation` keyword.
+The corresponding fourier transform of this composite correlation function measurement is given by
+```math
+S_{\mathbf{q}}(\tau)=\sum_{n}\sum_{\mathbf{r}}e^{-{\rm i}\mathbf{q}\cdot(\mathbf{r}+\mathbf{r}_{n})}C_{\mathbf{r}}^{\eta_{n},\nu_{n}}(\tau),
+```
+where the static displacement vectors ``\mathbf{r}_n`` are specified by the `displacement_vecs` keyword argument.
+As before, if `displacement_vecs = nothing`, then ``\mathbf{r}_n = 0`` for all ``n``.
+
+Note that the specified correlation type `correlation` needs to correspond to one of the keys in the global
+[`CORRELATION_FUNCTIONS`](@ref) dictionary, which lists all the predefined types of correlation functions that can be measured.
 """
 function initialize_composite_correlation_measurement!(;
     measurement_container::NamedTuple,
@@ -447,6 +489,7 @@ function initialize_composite_correlation_measurement!(;
     ids::Union{Nothing,Vector{Int}} = nothing,
     id_pairs::Union{Nothing,Vector{NTuple{2,Int}}} = nothing,
     coefficients,
+    displacement_vecs = nothing,
     time_displaced::Bool,
     integrated::Bool = false
 )  where {T<:AbstractFloat, D, N}
@@ -476,46 +519,44 @@ function initialize_composite_correlation_measurement!(;
     end
 
     if isa(ids, Vector{Int}) && isa(id_pairs, Nothing)
-        @assert length(ids) == length(coefficients)
+        @assert length(ids) == length(coefficients) "Length of `ids` and `coefficients` do not match."
+        displacement_vecs = isnothing(displacement_vecs) ? [zeros(T,D) for i in ids] : displacement_vecs
+        @assert length(ids) == length(displacement_vecs) "Length of `ids` and `displacement_vecs` do not match."
         coefs = Complex{T}[]
         id_pairs = NTuple{2,Int}[]
+        dvecs = SVector{D,T}[]
         for j in eachindex(ids)
             for i in eachindex(ids)
                 push!( coefs, conj(coefficients[i]) * coefficients[j] )
                 push!( id_pairs, (ids[j], ids[i]) )
+                push!( dvecs, SVector{D,T}(displacement_vecs[i]) - SVector{D,T}(displacement_vecs[j]))
             end
         end
     else
         @assert length(id_pairs) == length(coefficients)
         coefs = Complex{T}[coefficients...]
-    end
-
-    # set integrated to false for electron green's function
-    if (integrated == true) && startswith(correlation, "greens")
-        integrated = false
-    # otherise if time-displaced measurements are being made then also make integrated measurements
-    elseif time_displaced == true
-        integrated = true
+        dvecs = isnothing(displacement_vecs) ? [SVector{D,T}(zeros(T,D)) for c in coefs] : [SVector{D,T}(v) for v in displacement_vecs]
+        @assert length(dvecs) == length(coefs) "Length of `coefficients` and `displacement_vecs` do not match."
     end
 
     # if time displaced or integrated measurement should be made
     if time_displaced || integrated
         time_displaced_composite_correlations[name] = CompositeCorrelationContainer(
-            Lτ, L, correlation, id_pairs, coefs, time_displaced
+            Lτ, L, correlation, id_pairs, coefs, time_displaced, dvecs
         )
     end
 
     # if integrated measurement is made
     if integrated
         integrated_composite_correlations[name] = CompositeCorrelationContainer(
-            L, correlation, id_pairs, coefs
+            L, correlation, id_pairs, coefs, dvecs
         )
     end
 
     # if equal-time measurement should be made
     if !time_displaced
         equaltime_composite_correlations[name] = CompositeCorrelationContainer(
-            L, correlation, id_pairs, coefs
+            L, correlation, id_pairs, coefs, dvecs
         )
     end
 
