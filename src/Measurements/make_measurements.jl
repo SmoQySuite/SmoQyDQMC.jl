@@ -4,24 +4,25 @@
 
 @doc raw"""
     make_measurements!(
+        # ARGUMENTS
         measurement_container::NamedTuple,
         logdetGup::E, sgndetGup::T, Gup::AbstractMatrix{T},
         Gup_ττ::AbstractMatrix{T}, Gup_τ0::AbstractMatrix{T}, Gup_0τ::AbstractMatrix{T},
         logdetGdn::E, sgndetGdn::T, Gdn::AbstractMatrix{T},
         Gdn_ττ::AbstractMatrix{T}, Gdn_τ0::AbstractMatrix{T}, Gdn_0τ::AbstractMatrix{T};
-        # Keyword Arguments Start Here
+        # KEYWORD ARGUMENTS
         fermion_path_integral_up::FermionPathIntegral{T,E},
         fermion_path_integral_dn::FermionPathIntegral{T,E},
         fermion_greens_calculator_up::FermionGreensCalculator{T,E},
         fermion_greens_calculator_dn::FermionGreensCalculator{T,E},
         Bup::Vector{P}, Bdn::Vector{P},
         model_geometry::ModelGeometry{D,E,N},
-        tight_binding_parameters::Union{Nothing, TightBindingParameters{T,E}} = nothing,
-        tight_binding_parameters_up::Union{Nothing, TightBindingParameters{T,E}} = nothing,
-        tight_binding_parameters_dn::Union{Nothing, TightBindingParameters{T,E}} = nothing,
+        tight_binding_parameters::Union{Nothing, TightBindingParameters} = nothing,
+        tight_binding_parameters_up::Union{Nothing, TightBindingParameters} = nothing,
+        tight_binding_parameters_dn::Union{Nothing, TightBindingParameters} = nothing,
         coupling_parameters::Tuple,
         δG::E, δθ::E, δG_max::E = 1e-6
-    ) where {T<:Number, E<:AbstractFloat, D, N, P<:AbstractPropagator{T,E}}
+    ) where {T<:Number, E<:AbstractFloat, D, N, P<:AbstractPropagator}
 
 Make measurements, including time-displaced correlation and zero Matsubara frequency measurements.
 This method also returns `(logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ)`.
@@ -29,24 +30,25 @@ Note that either the keywork `tight_binding_parameters` needs to be specified, o
 `tight_binding_parameters_up` and `tight_binding_parameters_dn` both need to be specified.
 """
 function make_measurements!(
+    # ARGUMENTS
     measurement_container::NamedTuple,
     logdetGup::E, sgndetGup::T, Gup::AbstractMatrix{T},
     Gup_ττ::AbstractMatrix{T}, Gup_τ0::AbstractMatrix{T}, Gup_0τ::AbstractMatrix{T},
     logdetGdn::E, sgndetGdn::T, Gdn::AbstractMatrix{T},
     Gdn_ττ::AbstractMatrix{T}, Gdn_τ0::AbstractMatrix{T}, Gdn_0τ::AbstractMatrix{T};
-    # Keyword Arguments Start Here
+    # KEYWORD ARGUMENTS
     fermion_path_integral_up::FermionPathIntegral{T,E},
     fermion_path_integral_dn::FermionPathIntegral{T,E},
     fermion_greens_calculator_up::FermionGreensCalculator{T,E},
     fermion_greens_calculator_dn::FermionGreensCalculator{T,E},
     Bup::Vector{P}, Bdn::Vector{P},
     model_geometry::ModelGeometry{D,E,N},
-    tight_binding_parameters::Union{Nothing, TightBindingParameters{T,E}} = nothing,
-    tight_binding_parameters_up::Union{Nothing, TightBindingParameters{T,E}} = nothing,
-    tight_binding_parameters_dn::Union{Nothing, TightBindingParameters{T,E}} = nothing,
+    tight_binding_parameters::Union{Nothing, TightBindingParameters} = nothing,
+    tight_binding_parameters_up::Union{Nothing, TightBindingParameters} = nothing,
+    tight_binding_parameters_dn::Union{Nothing, TightBindingParameters} = nothing,
     coupling_parameters::Tuple,
     δG::E, δθ::E, δG_max::E = 1e-6
-) where {T<:Number, E<:AbstractFloat, D, N, P<:AbstractPropagator{T,E}}
+) where {T<:Number, E<:AbstractFloat, D, N, P<:AbstractPropagator}
 
     @assert fermion_path_integral_up.Sb == fermion_path_integral_dn.Sb "$(fermion_path_integral_up.Sb) ≠ $(fermion_path_integral_dn.Sb)"
 
@@ -68,9 +70,7 @@ function make_measurements!(
 
     # calculate sign
     Sb = fermion_path_integral_up.Sb
-    sgnexpnSb = sign(exp(-Sb))
-    sgn = sgnexpnSb * sgndetGup * sgndetGdn
-    sgn /= abs(sgn) # normalize just to be cautious
+    sgn = sign(exp(-Sb) * inv(sgndetGup) * inv(sgndetGdn)) 
 
     # make global measurements
     global_measurements = measurement_container.global_measurements
@@ -206,35 +206,37 @@ end
 
 @doc raw"""
     make_measurements!(
+        # ARGUMENTS
         measurement_container::NamedTuple,
         logdetG::E, sgndetG::T, G::AbstractMatrix{T},
         G_ττ::AbstractMatrix{T}, G_τ0::AbstractMatrix{T}, G_0τ::AbstractMatrix{T};
-        # Keyword Arguments Start Here
-        fermion_path_integral::FermionPathIntegral{T,E},
+        # KEYWORD ARGUMENTS
+        fermion_path_integral::FermionPathIntegral{T},
         fermion_greens_calculator::FermionGreensCalculator{T,E},
         B::Vector{P},
         model_geometry::ModelGeometry{D,E,N},
-        tight_binding_parameters::TightBindingParameters{T,E},
+        tight_binding_parameters::TightBindingParameters,
         coupling_parameters::Tuple,
         δG::E, δθ::E, δG_max::E = 1e-6
-    ) where {T<:Number, E<:AbstractFloat, D, N, P<:AbstractPropagator{T,E}}
+    ) where {T<:Number, E<:AbstractFloat, D, N, P<:AbstractPropagator}
 
 Make measurements, including time-displaced correlation and zero Matsubara frequency measurements.
 This method also returns `(logdetG, sgndetG, δG, δθ)`.
 """
 function make_measurements!(
+    # ARGUMENTS
     measurement_container::NamedTuple,
     logdetG::E, sgndetG::T, G::AbstractMatrix{T},
     G_ττ::AbstractMatrix{T}, G_τ0::AbstractMatrix{T}, G_0τ::AbstractMatrix{T};
-    # Keyword Arguments Start Here
-    fermion_path_integral::FermionPathIntegral{T,E},
+    # KEYWORD ARGUMENTS
+    fermion_path_integral::FermionPathIntegral{T},
     fermion_greens_calculator::FermionGreensCalculator{T,E},
     B::Vector{P},
     model_geometry::ModelGeometry{D,E,N},
-    tight_binding_parameters::TightBindingParameters{T,E},
+    tight_binding_parameters::TightBindingParameters,
     coupling_parameters::Tuple,
     δG::E, δθ::E, δG_max::E = 1e-6
-) where {T<:Number, E<:AbstractFloat, D, N, P<:AbstractPropagator{T,E}}
+) where {T<:Number, E<:AbstractFloat, D, N, P<:AbstractPropagator}
 
     # extract temporary storage vectors
     (;
@@ -248,9 +250,7 @@ function make_measurements!(
 
     # calculate sign
     Sb = fermion_path_integral.Sb
-    sgnexpnSb = sign(exp(-Sb))
-    sgn = sgnexpnSb * sgndetG^2
-    sgn /= abs(sgn) # normalize just to be cautious
+    sgn = sign(exp(-Sb) * inv(sgndetG)^2)
 
     # make global measurements
     global_measurements = measurement_container.global_measurements
@@ -404,11 +404,11 @@ end
 # make global measurements
 function make_global_measurements!(
     global_measurements::Dict{String, Complex{E}},
-    tight_binding_parameters_up::TightBindingParameters{T,E},
-    tight_binding_parameters_dn::TightBindingParameters{T,E},
+    tight_binding_parameters_up::TightBindingParameters,
+    tight_binding_parameters_dn::TightBindingParameters,
     coupling_parameters::Tuple,
-    Gup::AbstractMatrix{T}, logdetGup::T, sgndetGup::T,
-    Gdn::AbstractMatrix{T}, logdetGdn::T, sgndetGdn::T,
+    Gup::AbstractMatrix{T}, logdetGup::E, sgndetGup::T,
+    Gdn::AbstractMatrix{T}, logdetGdn::E, sgndetGdn::T,
     sgn::T, Sb::T
 ) where {T<:Number, E<:AbstractFloat}
 
@@ -434,7 +434,7 @@ function make_global_measurements!(
     global_measurements["action_bosonic"] += real(Sb)
 
     # measure total action
-    S = Sb + Sf
+    S = real(Sb) + Sf
     global_measurements["action_total"] += S
 
     # measure average density
@@ -466,10 +466,10 @@ function make_local_measurements!(
     local_measurements::Dict{String, Vector{Complex{E}}},
     Gup::AbstractMatrix{T}, Gdn::AbstractMatrix{T}, sgn::T,
     model_geometry::ModelGeometry{D,E,N},
-    tight_binding_parameters_up::TightBindingParameters{T,E},
-    tight_binding_parameters_dn::TightBindingParameters{T,E},
-    fermion_path_integral_up::FermionPathIntegral{T,E},
-    fermion_path_integral_dn::FermionPathIntegral{T,E},
+    tight_binding_parameters_up::TightBindingParameters,
+    tight_binding_parameters_dn::TightBindingParameters,
+    fermion_path_integral_up::FermionPathIntegral{T},
+    fermion_path_integral_dn::FermionPathIntegral{T},
     coupling_parameters::Tuple
 ) where {T<:Number, E<:AbstractFloat, D, N}
 
@@ -508,10 +508,10 @@ function make_local_measurements!(
     local_measurements::Dict{String, Vector{Complex{E}}},
     Gup::AbstractMatrix{T}, Gdn::AbstractMatrix{T}, sgn::T,
     model_geometry::ModelGeometry{D,E,N},
-    tight_binding_parameters_up::TightBindingParameters{T,E},
-    tight_binding_parameters_dn::TightBindingParameters{T,E},
-    fermion_path_integral_up::FermionPathIntegral{T,E},
-    fermion_path_integral_dn::FermionPathIntegral{T,E}
+    tight_binding_parameters_up::TightBindingParameters,
+    tight_binding_parameters_dn::TightBindingParameters,
+    fermion_path_integral_up::FermionPathIntegral{T},
+    fermion_path_integral_dn::FermionPathIntegral{T}
 ) where {T<:Number, E<:AbstractFloat, D, N}
 
     # number of orbitals per unit cell
@@ -586,8 +586,8 @@ function make_local_measurements!(
     Gup::AbstractMatrix{T}, Gdn::AbstractMatrix{T}, sgn::T,
     model_geometry::ModelGeometry{D,E,N},
     hubbard_parameters::HubbardParameters{E},
-    tight_binding_parameters_up::TightBindingParameters{T,E},
-    tight_binding_parameters_dn::TightBindingParameters{T,E}
+    tight_binding_parameters_up::TightBindingParameters,
+    tight_binding_parameters_dn::TightBindingParameters
 ) where {T<:Number, E<:AbstractFloat, D, N}
 
     # measure hubbard energy for each orbital in unit cell
@@ -604,9 +604,9 @@ function make_local_measurements!(
     local_measurements::Dict{String, Vector{Complex{E}}},
     Gup::AbstractMatrix{T}, Gdn::AbstractMatrix{T}, sgn::T,
     model_geometry::ModelGeometry{D,E,N},
-    electron_phonon_parameters::ElectronPhononParameters{T,E},
-    tight_binding_parameters_up::TightBindingParameters{T,E},
-    tight_binding_parameters_dn::TightBindingParameters{T,E}
+    electron_phonon_parameters::ElectronPhononParameters,
+    tight_binding_parameters_up::TightBindingParameters,
+    tight_binding_parameters_dn::TightBindingParameters
 ) where {T<:Number, E<:AbstractFloat, D, N}
 
     x = electron_phonon_parameters.x
@@ -672,8 +672,8 @@ function make_local_measurements!(
     Gup::AbstractMatrix{T}, Gdn::AbstractMatrix{T}, sgn::T,
     model_geometry::ModelGeometry{D,E,N},
     some_model_parameters,
-    tight_binding_parameters_up::TightBindingParameters{T,E},
-    tight_binding_parameters_dn::TightBindingParameters{T,E}
+    tight_binding_parameters_up::TightBindingParameters,
+    tight_binding_parameters_dn::TightBindingParameters
 ) where {T<:Number, E<:AbstractFloat, D, N}
 
     return nothing
@@ -689,10 +689,10 @@ function make_equaltime_measurements!(
     Gup::AbstractMatrix{T}, Gup_ττ::AbstractMatrix{T}, Gup_τ0::AbstractMatrix{T}, Gup_0τ::AbstractMatrix{T},
     Gdn::AbstractMatrix{T}, Gdn_ττ::AbstractMatrix{T}, Gdn_τ0::AbstractMatrix{T}, Gdn_0τ::AbstractMatrix{T},
     model_geometry::ModelGeometry{D,E,N},
-    tight_binding_parameters_up::TightBindingParameters{T,E},
-    tight_binding_parameters_dn::TightBindingParameters{T,E},
-    fermion_path_integral_up::FermionPathIntegral{T,E},
-    fermion_path_integral_dn::FermionPathIntegral{T,E}
+    tight_binding_parameters_up::TightBindingParameters,
+    tight_binding_parameters_dn::TightBindingParameters,
+    fermion_path_integral_up::FermionPathIntegral{T},
+    fermion_path_integral_dn::FermionPathIntegral{T}
 ) where {T<:Number, E<:AbstractFloat, D, N}
 
     Lτ = fermion_path_integral_up.Lτ::Int
@@ -1013,10 +1013,10 @@ function make_equaltime_composite_measurements!(
     Gup::AbstractMatrix{T}, Gup_ττ::AbstractMatrix{T}, Gup_τ0::AbstractMatrix{T}, Gup_0τ::AbstractMatrix{T},
     Gdn::AbstractMatrix{T}, Gdn_ττ::AbstractMatrix{T}, Gdn_τ0::AbstractMatrix{T}, Gdn_0τ::AbstractMatrix{T},
     model_geometry::ModelGeometry{D,E,N},
-    tight_binding_parameters_up::TightBindingParameters{T,E},
-    tight_binding_parameters_dn::TightBindingParameters{T,E},
-    fermion_path_integral_up::FermionPathIntegral{T,E},
-    fermion_path_integral_dn::FermionPathIntegral{T,E},
+    tight_binding_parameters_up::TightBindingParameters,
+    tight_binding_parameters_dn::TightBindingParameters,
+    fermion_path_integral_up::FermionPathIntegral{T},
+    fermion_path_integral_dn::FermionPathIntegral{T},
     tmp::AbstractArray{Complex{E}, D}
 ) where {T<:Number, E<:AbstractFloat, D, N}
 
@@ -1498,10 +1498,10 @@ function make_time_displaced_measurements!(
     Gup::AbstractMatrix{T}, Gup_ττ::AbstractMatrix{T}, Gup_τ0::AbstractMatrix{T}, Gup_0τ::AbstractMatrix{T},
     Gdn::AbstractMatrix{T}, Gdn_ττ::AbstractMatrix{T}, Gdn_τ0::AbstractMatrix{T}, Gdn_0τ::AbstractMatrix{T},
     model_geometry::ModelGeometry{D,E,N},
-    tight_binding_parameters_up::TightBindingParameters{T,E},
-    tight_binding_parameters_dn::TightBindingParameters{T,E},
-    fermion_path_integral_up::FermionPathIntegral{T,E},
-    fermion_path_integral_dn::FermionPathIntegral{T,E}
+    tight_binding_parameters_up::TightBindingParameters,
+    tight_binding_parameters_dn::TightBindingParameters,
+    fermion_path_integral_up::FermionPathIntegral{T},
+    fermion_path_integral_dn::FermionPathIntegral{T}
 ) where {T<:Number, E<:AbstractFloat, P, D, N}
 
     Lτ = fermion_path_integral_up.Lτ::Int
@@ -1841,10 +1841,10 @@ function make_time_displaced_composite_measurements!(
     Gup::AbstractMatrix{T}, Gup_ττ::AbstractMatrix{T}, Gup_τ0::AbstractMatrix{T}, Gup_0τ::AbstractMatrix{T},
     Gdn::AbstractMatrix{T}, Gdn_ττ::AbstractMatrix{T}, Gdn_τ0::AbstractMatrix{T}, Gdn_0τ::AbstractMatrix{T},
     model_geometry::ModelGeometry{D,E,N},
-    tight_binding_parameters_up::TightBindingParameters{T,E},
-    tight_binding_parameters_dn::TightBindingParameters{T,E},
-    fermion_path_integral_up::FermionPathIntegral{T,E},
-    fermion_path_integral_dn::FermionPathIntegral{T,E},
+    tight_binding_parameters_up::TightBindingParameters,
+    tight_binding_parameters_dn::TightBindingParameters,
+    fermion_path_integral_up::FermionPathIntegral{T},
+    fermion_path_integral_dn::FermionPathIntegral{T},
     tmp::AbstractArray{Complex{E}, D}
 ) where {T<:Number, E<:AbstractFloat, P, D, N}
 

@@ -49,7 +49,7 @@ include("utilities.jl")
 
 # function to update the frequency of numerical stabilization
 include("update_stabilization_frequency.jl")
-export update_stabalization_frequency!
+export update_stabilization_frequency!
 
 # define SimulationInfo struct for tracking things like simulation ID, process ID,
 # and data folder location
@@ -75,6 +75,9 @@ export initialize_propagators, calculate_propagators!, calculate_propagator!
 include("update_chemical_potential.jl")
 export update_chemical_potential!, save_density_tuning_profile
 
+# utility functions for implementing a Gauss-Hermite Hubbard-Stratonovich Transformation
+include("GaussHermiteHSTUtilities.jl")
+
 ###################
 ## HUBBARD MODEL ##
 ###################
@@ -83,12 +86,25 @@ export update_chemical_potential!, save_density_tuning_profile
 include("Hubbard/HubbardModel.jl")
 export HubbardModel, HubbardParameters, initialize!
 
-# Implement Ising Hubbard-Statonovich (HS) decoupling of Hubbard interaction, and various methods for update the IS HS fields
-include("Hubbard/HubbardIsingHS.jl")
-export HubbardIsingHSParameters, local_updates!
-
 # Spin-Channel Hirsch Hubbard-Stratonovich Transformation
 include("Hubbard/HubbardSpinHirschHST.jl")
+export HubbardSpinHirschHST, local_updates!
+
+# Charge-Channel Hirsch Hubbard-Stratonovich Transformation
+include("Hubbard/HubbardDensityHirschHST.jl")
+export HubbardDensityHirschHST
+
+# Spin-Channel Gauss-Hermite Hubbard-Stratonovich Transformation
+include("Hubbard/HubbardSpinGaussHermiteHST.jl")
+export HubbardSpinGaussHermiteHST
+
+# Density-Channel Gauss-Hermite Hubbard-Stratonovich Transformation
+include("Hubbard/HubbardDensityGaussHermiteHST.jl")
+export HubbardDensityGaussHermiteHST
+
+# Implement Ising Hubbard-Statonovich (HS) decoupling of Hubbard interaction, and various methods for update the IS HS fields
+include("Hubbard/HubbardIsingHS.jl")
+export HubbardIsingHSParameters
 
 ###########################
 ## ELECTRON-PHONON MODEL ##

@@ -1,19 +1,22 @@
 @doc raw"""
     HubbardModel{T<:AbstractFloat}
 
-If `ph_sym_form = false`, then the particle-hole asymmetric form for the Hubbard interaction
+A type to represent a, in general, multi-orbital Hubbard model.
+
+If the type field `ph_sym_form = false`, then the particle-hole asymmetric form for the Hubbard interaction
 ```math
 \hat{H}_{U}=\sum_{\mathbf{i},\nu}U_{\nu,\mathbf{i}}\hat{n}_{\uparrow,\nu,\mathbf{i}}\hat{n}_{\downarrow,\nu,\mathbf{i}}
 ```
 is used, where ``\mathbf{i}`` specifies the unit cell, and ``\nu`` denotes the orbital in the unit cell.
-For a bipartite lattice with only nearest neighbor hopping, the on-site energy corresponding to half-filling
-and particle-hole symmetry is ``\epsilon_{\nu,\mathbf{i}} = -U_{\nu,\mathbf{i}}/2.``
+In the case of a bipartite lattice with only nearest neighbor hopping, this convention results in
+an on-site energy corresponding to half-filling and particle-hole symmetry
+given by ``\epsilon_{\nu,\mathbf{i}} = -U_{\nu,\mathbf{i}}/2.``
 
 If `ph_sym_form = true`, then the particle-hole symmetric form for the Hubbard interaction
 ```math
 \hat{H}_{U}=\sum_{\mathbf{i},\nu}U_{\nu,\mathbf{i}}(\hat{n}_{\uparrow,\nu,\mathbf{i}}-\tfrac{1}{2})(\hat{n}_{\downarrow,\nu,\mathbf{i}}-\tfrac{1}{2})
 ```
-is used. In this case, for a bipartite lattice with only nearest neighbor hopping, the on-site energy corresponding to half-filling
+is used instead. In this case, for a bipartite lattice with only nearest neighbor hopping, the on-site energy corresponding to half-filling
 and particle-hole symmetry is ``\epsilon_{\nu,\mathbf{i}} = 0.``
 
 # Fields
@@ -153,23 +156,23 @@ end
 
 @doc raw"""
     initialize!(
-        fermion_path_integral_up::FermionPathIntegral{H},
-        fermion_path_integral_dn::FermionPathIntegral{H},
-        hubbard_parameters::HubbardParameters{T}
-    ) where {H<:Number, T<:AbstractFloat}
+        fermion_path_integral_up::FermionPathIntegral,
+        fermion_path_integral_dn::FermionPathIntegral,
+        hubbard_parameters::HubbardParameters
+    )
 
     initialize!(
-        fermion_path_integral::FermionPathIntegral{H},
-        hubbard_parameters::HubbardParameters{T}
-    ) where {H<:Number, T<:AbstractFloat}
+        fermion_path_integral::FermionPathIntegral,
+        hubbard_parameters::HubbardParameters
+    )
 
 Initialize the contribution from the Hubbard interaction to a [`FermionPathIntegral`](@ref) instance.
 """
 function initialize!(
-    fermion_path_integral_up::FermionPathIntegral{H},
-    fermion_path_integral_dn::FermionPathIntegral{H},
-    hubbard_parameters::HubbardParameters{T}
-) where {H<:Number, T<:AbstractFloat}
+    fermion_path_integral_up::FermionPathIntegral,
+    fermion_path_integral_dn::FermionPathIntegral,
+    hubbard_parameters::HubbardParameters
+)
 
     initialize!(fermion_path_integral_up, hubbard_parameters)
     initialize!(fermion_path_integral_dn, hubbard_parameters)
@@ -178,9 +181,9 @@ function initialize!(
 end
 
 function initialize!(
-    fermion_path_integral::FermionPathIntegral{H},
-    hubbard_parameters::HubbardParameters{T}
-) where {H<:Number, T<:Number}
+    fermion_path_integral::FermionPathIntegral,
+    hubbard_parameters::HubbardParameters
+)
 
     (; ph_sym_form, U, sites) = hubbard_parameters
     (; V) = fermion_path_integral

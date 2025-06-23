@@ -412,7 +412,7 @@ function run_simulation(
 
     ## Initialize diagonostic parameters to asses numerical stability.
     δG = zero(logdetGup)
-    δθ = zero(sgndetGup)
+    δθ = zero(logdetGup)
 
 # ## Thermalize system
 # The first change we need to make to this section is to have the for-loop iterate from `n_therm:N_therm` instead of `1:N_therm`.
@@ -485,7 +485,7 @@ function run_simulation(
 
     ## Reset diagonostic parameters used to monitor numerical stability to zero.
     δG = zero(logdetGup)
-    δθ = zero(sgndetGup)
+    δθ = zero(logdetGup)
 
     ## Calculate the bin size.
     bin_size = N_updates ÷ N_bins

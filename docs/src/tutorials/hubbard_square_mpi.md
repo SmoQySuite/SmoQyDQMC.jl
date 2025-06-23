@@ -364,7 +364,7 @@ No changes need to made to this section of the code from the previous [1a) Squar
 
     # Initialize diagonostic parameters to asses numerical stability.
     δG = zero(logdetGup)
-    δθ = zero(sgndetGup)
+    δθ = zero(logdetGup)
 ````
 
 ## Thermalize system
@@ -413,7 +413,7 @@ No changes need to made to this section of the code from the previous [1a) Squar
 ````julia
     # Reset diagonostic parameters used to monitor numerical stability to zero.
     δG = zero(logdetGup)
-    δθ = zero(sgndetGup)
+    δθ = zero(logdetGup)
 
     # Calculate the bin size.
     bin_size = N_updates ÷ N_bins

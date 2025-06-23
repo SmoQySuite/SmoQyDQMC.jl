@@ -27,7 +27,7 @@ slice ``l \in [1, L_\tau],`` where ``\tau = \Delta\tau \cdot l`` and ``\beta = \
 - `u::Vector{H}`: Temporary vector to avoid dynamic allocation when performing local updates.
 - `v::Vector{H}`: Temporary vector to avoid dynamic allocation when performing local updates.
 """
-mutable struct FermionPathIntegral{H<:Number, R<:AbstractFloat, T<:Number, U<:Number}
+mutable struct FermionPathIntegral{H<:Number, T<:Number, U<:Number, R<:AbstractFloat}
 
     β::R
 

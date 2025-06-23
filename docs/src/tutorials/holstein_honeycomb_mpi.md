@@ -386,7 +386,7 @@ No changes need to made to this section of the code from the previous [2a) Honey
 
     # Initialize diagonostic parameters to asses numerical stability.
     δG = zero(logdetG)
-    δθ = zero(sgndetG)
+    δθ = zero(logdetG)
 ````
 
 ## Setup EFA-HMC Updates
@@ -457,7 +457,7 @@ No changes need to made to this section of the code from the previous [2a) Honey
 ````julia
     # Reset diagonostic parameters used to monitor numerical stability to zero.
     δG = zero(logdetG)
-    δθ = zero(sgndetG)
+    δθ = zero(logdetG)
 
     # Calculate the bin size.
     bin_size = N_updates ÷ N_bins
@@ -573,9 +573,8 @@ such that the first argument is the `comm` object, thereby ensuring a paralleliz
         type = "equal-time",
         q_point = (0, 0),
         q_neighbors = [
-            (1,0),   (L-1,0),
-            (0,1),   (0,L-1),
-            (1,L-1), (L-1,1),
+            (1,0),   (0,1),   (1,1),
+            (L-1,0), (0,L-1), (L-1,L-1)
         ]
     )
 

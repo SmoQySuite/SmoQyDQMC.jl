@@ -436,7 +436,7 @@ function run_simulation(
 
     ## Initialize diagonostic parameters to asses numerical stability.
     δG = zero(logdetG)
-    δθ = zero(sgndetG)
+    δθ = zero(logdetG)
 
 # ## Setup EFA-HMC Updates
 # No changes need to made to this section of the code from the previous
@@ -530,7 +530,7 @@ function run_simulation(
 
     ## Reset diagonostic parameters used to monitor numerical stability to zero.
     δG = zero(logdetG)
-    δθ = zero(sgndetG)
+    δθ = zero(logdetG)
 
     ## Calculate the bin size.
     bin_size = N_updates ÷ N_bins

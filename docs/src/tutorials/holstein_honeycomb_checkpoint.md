@@ -461,7 +461,7 @@ No changes need to made to this section of the code from the previous
 
     # Initialize diagonostic parameters to asses numerical stability.
     δG = zero(logdetG)
-    δθ = zero(sgndetG)
+    δθ = zero(logdetG)
 ````
 
 ## Setup EFA-HMC Updates
@@ -561,7 +561,7 @@ is resumed the thermalization updates are not repeated.
 ````julia
     # Reset diagonostic parameters used to monitor numerical stability to zero.
     δG = zero(logdetG)
-    δθ = zero(sgndetG)
+    δθ = zero(logdetG)
 
     # Calculate the bin size.
     bin_size = N_updates ÷ N_bins
@@ -695,9 +695,8 @@ This function also deletes the checkpoint files that were written during the sim
         type = "equal-time",
         q_point = (0, 0),
         q_neighbors = [
-            (1,0),   (L-1,0),
-            (0,1),   (0,L-1),
-            (1,L-1), (L-1,1),
+            (1,0),   (0,1),   (1,1),
+            (L-1,0), (0,L-1), (L-1,L-1)
         ]
     )
 

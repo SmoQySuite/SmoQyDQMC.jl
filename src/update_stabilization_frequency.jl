@@ -1,5 +1,5 @@
 @doc raw"""
-    update_stabalization_frequency!(
+    update_stabilization_frequency!(
         Gup::Matrix{H}, logdetGup::R, sgndetGup::H,
         Gdn::Matrix{H}, logdetGdn::R, sgndetGdn::H;
         fermion_greens_calculator_up::FermionGreensCalculator{H,R},
@@ -17,7 +17,7 @@ This method returns a tuple of the following variables:
 ```
 where `updated = true` if `n_stab` was decremented.
 """
-function update_stabalization_frequency!(
+function update_stabilization_frequency!(
     Gup::Matrix{H}, logdetGup::R, sgndetGup::H,
     Gdn::Matrix{H}, logdetGdn::R, sgndetGdn::H;
     fermion_greens_calculator_up::FermionGreensCalculator{H,R},
@@ -68,7 +68,7 @@ function update_stabalization_frequency!(
 end
 
 @doc raw"""
-    update_stabalization_frequency!(
+    update_stabilization_frequency!(
         G::Matrix{H}, logdetG::R, sgndetG::H;
         fermion_greens_calculator::FermionGreensCalculator{H,R},
         B::Vector{P}, δG::R, δθ::R, δG_max::R
@@ -84,7 +84,7 @@ This method returns a tuple of the following variables:
 ```
 where `updated = true` if `n_stab` was decremented.
 """
-function update_stabalization_frequency!(
+function update_stabilization_frequency!(
     G::Matrix{H}, logdetG::R, sgndetG::H;
     fermion_greens_calculator::FermionGreensCalculator{H,R},
     B::Vector{P}, δG::R, δθ::R, δG_max::R

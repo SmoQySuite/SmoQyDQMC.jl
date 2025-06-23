@@ -149,7 +149,7 @@ function init_hdf5_bins_file(
     end
 
     # initialize standard integrated correlation measurements
-    StandardIntegrated_Bin = fin["CORRELATIONS/STANDARD/EQUAL-TIME"]
+    StandardIntegrated_Bin = fin["CORRELATIONS/STANDARD/INTEGRATED"]
     for key in keys(StandardIntegrated_Bin)
         Correlation_Bin = StandardIntegrated_Bin[key]
         Correlation = create_group(StandardIntegrated, key)

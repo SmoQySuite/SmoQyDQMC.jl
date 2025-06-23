@@ -411,7 +411,7 @@ function hmc_update!(
 
         # update stabilization frequency if required
         if update_stabilization_frequency
-            (updated, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = update_stabalization_frequency!(
+            (updated, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = update_stabilization_frequency!(
                 Gup, logdetGup, sgndetGup,
                 Gdn, logdetGdn, sgndetGdn,
                 fermion_greens_calculator_up = fermion_greens_calculator_up,
@@ -721,7 +721,7 @@ function hmc_update!(
 
         # update stabilization frequency if required
         if update_stabilization_frequency
-            (updated, logdetG, sgndetG, δG, δθ) = update_stabalization_frequency!(
+            (updated, logdetG, sgndetG, δG, δθ) = update_stabilization_frequency!(
                 G, logdetG, sgndetG,
                 fermion_greens_calculator = fermion_greens_calculator,
                 B = B, δG = δG, δθ = δθ, δG_max = δG_max

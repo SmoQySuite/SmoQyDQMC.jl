@@ -436,7 +436,7 @@ function run_simulation(;
 
     ## Initialize diagonostic parameters to asses numerical stability.
     δG = zero(logdetGup)
-    δθ = zero(sgndetGup)
+    δθ = zero(logdetGup)
 
 # At the start of this section, two instances of the [`FermionPathIntegral`](@ref) type are allocated, one for each electron spin species.
 # Recall that after performing a HS transformation to decouple the Hubbard interaction, the resulting
@@ -553,7 +553,7 @@ function run_simulation(;
 
     ## Reset diagonostic parameters used to monitor numerical stability to zero.
     δG = zero(logdetGup)
-    δθ = zero(sgndetGup)
+    δθ = zero(logdetGup)
 
     ## Calculate the bin size.
     bin_size = N_updates ÷ N_bins

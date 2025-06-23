@@ -451,7 +451,7 @@ No changes need to made to this section of the code from the previous
 
     # Initialize diagonostic parameters to asses numerical stability.
     δG = zero(logdetGup)
-    δθ = zero(sgndetGup)
+    δθ = zero(logdetGup)
 ````
 
 ## Thermalize system
@@ -532,7 +532,7 @@ And again, we need to make sure the include the `chemical_potential_tuner` in th
 ````julia
     # Reset diagonostic parameters used to monitor numerical stability to zero.
     δG = zero(logdetGup)
-    δθ = zero(sgndetGup)
+    δθ = zero(logdetGup)
 
     # Calculate the bin size.
     bin_size = N_updates ÷ N_bins

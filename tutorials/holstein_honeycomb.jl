@@ -389,6 +389,7 @@ function run_simulation(;
         correlation = "density",
         ids = [1, 2],
         coefficients = [1.0, -1.0],
+        displacement_vecs = [[0.0, 0.0], [0.0, 0.0]],
         time_displaced = false,
         integrated = true
     )
@@ -430,7 +431,7 @@ function run_simulation(;
 
     ## Initialize diagonostic parameters to asses numerical stability.
     δG = zero(logdetG)
-    δθ = zero(sgndetG)
+    δθ = zero(logdetG)
 
 # ## [Setup EFA-HMC Updates](@id holstein_square_efa-hmc_updates)
 # Before we begin the simulation, we also want to initialize an instance of the
@@ -520,7 +521,7 @@ function run_simulation(;
 
     ## Reset diagonostic parameters used to monitor numerical stability to zero.
     δG = zero(logdetG)
-    δθ = zero(sgndetG)
+    δθ = zero(logdetG)
 
     ## Calculate the bin size.
     bin_size = N_updates ÷ N_bins

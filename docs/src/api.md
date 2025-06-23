@@ -1,10 +1,10 @@
+```@meta
+CollapsedDocStrings = true
+```
+
 # API
 
 ## Simulation Information Type and Methods
-
-- [`SimulationInfo`](@ref)
-- [`initialize_datafolder`](@ref)
-- [`model_summary`](@ref)
 
 ```@docs
 SimulationInfo
@@ -15,10 +15,6 @@ model_summary
 
 ## Model Geometry Type and Methods
 
-- [`ModelGeometry`](@ref)
-- [`add_bond!`](@ref)
-- [`get_bond_id`](@ref)
-
 ```@docs
 ModelGeometry
 ModelGeometry(::UnitCell{D}, ::Lattice{D}) where {D}
@@ -27,11 +23,6 @@ get_bond_id
 ```
 
 ## Fermion Path Integral Type and Methods
-
-- [`FermionPathIntegral`](@ref)
-- [`initialize_propagators`](@ref)
-- [`calculate_propagators!`](@ref)
-- [`calculate_propagator!`](@ref)
 
 ```@docs
 FermionPathIntegral
@@ -43,22 +34,11 @@ calculate_propagator!
 
 ## Update Numerical Stabilization Frequency
 
-- [`update_stabalization_frequency!`](@ref)
-
 ```@docs
-update_stabalization_frequency!
+update_stabilization_frequency!
 ```
 
 ## Tight-Binding Model
-
-- [`TightBindingModel`](@ref)
-- [`TightBindingParameters`](@ref)
-- [`measure_onsite_energy`](@ref)
-- [`measure_hopping_energy`](@ref)
-- [`measure_bare_hopping_energy`](@ref)
-- [`measure_hopping_amplitude`](@ref)
-- [`measure_hopping_inversion`](@ref)
-- [`measure_hopping_inversion_avg`](@ref)
 
 ```@docs
 TightBindingModel
@@ -75,21 +55,13 @@ measure_hopping_inversion_avg
 
 ## Hubbard Model
 
-- [`HubbardModel`](@ref)
-- [`HubbardParameters`](@ref)
-- [`initialize!`](@ref)
-
-**Hubbard Model Measurements**
-
-- [`measure_hubbard_energy`](@ref)
-
-**Hubbard Ising Hubbard-Stratonovich Transformation Types and Methods**
-
-- [`HubbardIsingHSParameters`](@ref)
-- [`initialize!`](@ref)
-- [`local_updates!`](@ref)
-- [`reflection_update!`](@ref)
-- [`swap_update!`](@ref)
+- [Hubbard Model Measurements](@ref)
+- [Hubbard Interaction Hubbard-Stratonovich Transformations](@ref)
+    - [Spin Channel Hirsch Hubbard-Stratonovich Transformation](@ref)
+    - [Spin Channel Gauss-Hermite Hubbard-Stratonovich Transformation](@ref)
+    - [Density Channel Hirsch Hubbard-Stratonovich Transformation](@ref)
+    - [Density Channel Gauss-Hermite Hubbard-Stratonovich Transformation](@ref)
+    - [(LEGACY) Ising Hubbard-Stratonovich Transformation](@ref)
 
 ```@docs
 HubbardModel
@@ -105,7 +77,65 @@ initialize!(::FermionPathIntegral, ::FermionPathIntegral, ::HubbardParameters)
 measure_hubbard_energy
 ```
 
-### Hubbard Ising Hubbard-Stratonovich Transformation Types and Methods
+### Hubbard Interaction Hubbard-Stratonovich Transformations
+
+Below the different types of Hubbard-Stratonovich transformations (HSTs) that can be used
+to decouple a local Hubbard interaction are listed.
+
+#### Spin Channel Hirsch Hubbard-Stratonovich Transformation
+
+```@docs
+HubbardSpinHirschHST
+HubbardSpinHirschHST(;)
+initialize!(::FermionPathIntegral{H,T,U,R}, ::FermionPathIntegral{H,T,U,R}, ::HubbardSpinHirschHST{U},) where {H<:Number, T<:Number, U<:Number, R<:Real}
+local_updates!(::Matrix{H}, ::R, ::H, ::Matrix{H}, ::R, ::H, ::HubbardSpinHirschHST{T,R}) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator}
+reflection_update!(::Matrix{H}, ::R, ::H, ::Matrix{H}, ::R, ::H, ::HubbardSpinHirschHST{T,R};) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator}
+swap_update!(::Matrix{H}, ::R, ::H, ::Matrix{H}, ::R, ::H, ::HubbardSpinHirschHST{T,R}) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator}
+```
+
+#### Spin Channel Gauss-Hermite Hubbard-Stratonovich Transformation
+```@docs
+HubbardSpinGaussHermiteHST
+HubbardSpinGaussHermiteHST(;)
+initialize!(::FermionPathIntegral{H,T,U,R}, ::FermionPathIntegral{H,T,U,R}, ::HubbardSpinGaussHermiteHST{U}) where {H<:Number, T<:Number, U<:Number, R<:Real}
+local_updates!(::Matrix{H}, ::R, ::H, ::Matrix{H}, ::R, ::H, ::HubbardSpinGaussHermiteHST{T,R}) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator}
+reflection_update!(::Matrix{H}, ::R, ::H, ::Matrix{H}, ::R, ::H, ::HubbardSpinGaussHermiteHST{T,R}) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator}
+swap_update!(::Matrix{H}, ::R, ::H, ::Matrix{H}, ::R, ::H, ::HubbardSpinGaussHermiteHST{T,R}) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator}
+```
+
+#### Density Channel Hirsch Hubbard-Stratonovich Transformation
+
+```@docs
+HubbardDensityHirschHST
+HubbardDensityHirschHST(;)
+initialize!(::FermionPathIntegral{H,T,U,R},::FermionPathIntegral{H,T,U,R},::HubbardDensityHirschHST{U},) where {H<:Number, T<:Number, U<:Number, R<:Real}
+local_updates!(::Matrix{H}, ::R, ::H, ::Matrix{H}, ::R, ::H, ::HubbardDensityHirschHST{T,R}) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator}
+local_updates!(::Matrix{H}, ::R, ::H, ::HubbardDensityHirschHST{T,R}) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator}
+reflection_update!(::Matrix{H}, ::R, ::H, ::Matrix{H}, ::R, ::H, ::HubbardDensityHirschHST{T,R}) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator}
+reflection_update!(::Matrix{H}, ::R, ::H, ::HubbardDensityHirschHST{T,R}) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator}
+swap_update!(::Matrix{H}, ::R, ::H, ::Matrix{H}, ::R, ::H, ::HubbardDensityHirschHST{T,R}) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator}
+swap_update!(::Matrix{H}, ::R, ::H, ::HubbardDensityHirschHST{T,R}) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator}
+```
+
+#### Density Channel Gauss-Hermite Hubbard-Stratonovich Transformation
+
+```@docs
+HubbardDensityGaussHermiteHST
+HubbardDensityGaussHermiteHST(;)
+initialize!(::FermionPathIntegral{H,T,U,R},::FermionPathIntegral{H,T,U,R},::HubbardDensityGaussHermiteHST{U}) where {H<:Number, T<:Number, U<:Number, R<:Real}
+local_updates!(::Matrix{H}, ::R, ::H, ::Matrix{H}, ::R, ::H, ::HubbardDensityGaussHermiteHST{T,R}) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator}
+local_updates!(::Matrix{H}, ::R, ::H, ::HubbardDensityGaussHermiteHST{T,R}) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator}
+reflection_update!(::Matrix{H}, ::R, ::H, ::Matrix{H}, ::R, ::H, ::HubbardDensityGaussHermiteHST{T,R}) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator}
+reflection_update!(::Matrix{H}, ::R, ::H, ::HubbardDensityGaussHermiteHST{T,R}) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator}
+swap_update!(::Matrix{H}, ::R, ::H, ::Matrix{H}, ::R, ::H, ::HubbardDensityGaussHermiteHST{T,R}) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator}
+swap_update!(::Matrix{H}, ::R, ::H, ::HubbardDensityGaussHermiteHST{T,R}) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator}
+```
+
+#### (LEGACY) Ising Hubbard-Stratonovich Transformation
+
+This transformation is equivalent to the [Spin Channel Hirsch Hubbard-Stratonovich Transformation](@ref) when the Hubbard interaction is attractive,
+and the [Density Channel Hirsch Hubbard-Stratonovich Transformation](@ref) when the Hubbard interaction is attractive.
+This ensure that the Hubbard-Stratonovich fields and coefficients remain strictly real regardless of whether the Hubbard interaction is repulsive or attractive.
 
 ```@docs
 HubbardIsingHSParameters
@@ -122,44 +152,10 @@ swap_update!(::Matrix{H}, ::R, ::H, ::HubbardIsingHSParameters{R}) where {H<:Num
 
 ## Electron-Phonon Model
 
-**Electron-Phonon Model Types and Method**
-
-- [`ElectronPhononModel`](@ref)
-- [`PhononMode`](@ref)
-- [`HolsteinCoupling`](@ref)
-- [`SSHCoupling`](@ref)
-- [`PhononDispersion`](@ref)
-- [`add_phonon_mode!`](@ref)
-- [`add_holstein_coupling!`](@ref)
-- [`add_ssh_coupling!`](@ref)
-- [`add_phonon_dispersion!`](@ref)
-
-**Electron-Phonon Parameter Types and Methods**
-
-- [`ElectronPhononParameters`](@ref)
-- [`SmoQyDQMC.PhononParameters`](@ref)
-- [`SmoQyDQMC.HolsteinParameters`](@ref)
-- [`SmoQyDQMC.SSHParameters`](@ref)
-- [`SmoQyDQMC.DispersionParameters`](@ref)
-- [`initialize!`](@ref)
-- [`update!`](@ref)
-
-**Electron-Phonon Measurements**
-
-- [`measure_phonon_kinetic_energy`](@ref)
-- [`measure_phonon_potential_energy`](@ref)
-- [`measure_phonon_position_moment`](@ref)
-- [`measure_holstein_energy`](@ref)
-- [`measure_ssh_energy`](@ref)
-- [`measure_dispersion_energy`](@ref)
-
-**Electron-Phonon Updates**
-
-- [`EFAHMCUpdater`](@ref)
-- [`hmc_update!`](@ref)
-- [`reflection_update!`](@ref)
-- [`swap_update!`](@ref)
-- [`radial_update!`](@ref)
+ - [Electron-Phonon Model Types and Method](@ref)
+ - [Electron-Phonon Parameter Types and Methods](@ref)
+ - [Electron-Phonon Measurements](@ref)
+ - [Electron-Phonon Updates](@ref)
 
 ### Electron-Phonon Model Types and Method
 
@@ -224,9 +220,6 @@ radial_update!(::Matrix{H}, ::R, ::H, ::ElectronPhononParameters{T,R}) where {H<
 
 ## Density and Chemical Potential Tuning
 
-- [`update_chemical_potential!`](@ref)
-- [`save_density_tuning_profile`](@ref)
-
 ```@docs
 update_chemical_potential!
 save_density_tuning_profile
@@ -234,54 +227,15 @@ save_density_tuning_profile
 
 ## Measurement Methods
 
-- [`GLOBAL_MEASUREMENTS`](@ref)
-- [`LOCAL_MEASUREMENTS`](@ref)
-- [`CORRELATION_FUNCTIONS`](@ref)
+- [Measurement Names](@ref)
+- [Initialize Measurements](@ref)
+- [Make Measurements](@ref)
+- [Write Measurements](@ref)
+- [Checkpointing Utilities](@ref)
+- [Process Measurements](@ref)
+- [Export Measurements](@ref)
 
-**Initialize Measurements**
-
-- [`initialize_measurement_container`](@ref)
-- [`initialize_measurements!`](@ref)
-- [`initialize_correlation_measurements!`](@ref)
-- [`initialize_composite_correlation_measurement!`](@ref)
-
-**Make Measurements**
-
-- [`make_measurements!`](@ref)
-
-**Write Measurements**
-
-- [`write_measurements!`](@ref)
-- [`merge_bins`](@ref)
-- [`rm_bins`](@ref)
-
-**Checkpointing Utilities**
-
-- [`write_jld2_checkpoint`](@ref)
-- [`read_jld2_checkpoint`](@ref)
-- [`rm_jld2_checkpoints`](@ref)
-- [`rename_complete_simulation`](@ref)
-
-**Process Measurements**
-
-- [`save_simulation_info`](@ref)
-- [`process_measurements`](@ref)
-- [`compute_correlation_ratio`](@ref)
-- [`compute_composite_correlation_ratio`](@ref)
-
-**Export Measurements**
-
-- [`export_global_stats_to_csv`](@ref)
-- [`export_global_bins_to_h5`](@ref)
-- [`export_global_bins_to_csv`](@ref)
-
-- [`export_local_stats_to_csv`](@ref)
-- [`export_local_bins_to_csv`](@ref)
-- [`export_local_bins_to_h5`](@ref)
-
-- [`export_correlation_stats_to_csv`](@ref)
-- [`export_correlation_bins_to_csv`](@ref)
-- [`export_correlation_bins_to_h5`](@ref)
+### Measurement Names
 
 ```@docs
 GLOBAL_MEASUREMENTS
@@ -298,13 +252,13 @@ initialize_correlation_measurements!
 initialize_composite_correlation_measurement!
 ```
 
-### Make Measreuments
+### Make Measurements
 
 ```@docs
 make_measurements!
 ```
 
-### Write Measreuments
+### Write Measurements
 
 ```@docs
 write_measurements!

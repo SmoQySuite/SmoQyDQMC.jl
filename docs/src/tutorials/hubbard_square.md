@@ -467,7 +467,7 @@ This is true even if you want to modify this script to perform a DQMC simulation
 
     # Initialize diagonostic parameters to asses numerical stability.
     δG = zero(logdetGup)
-    δθ = zero(sgndetGup)
+    δθ = zero(logdetGup)
 ````
 
 At the start of this section, two instances of the [`FermionPathIntegral`](@ref) type are allocated, one for each electron spin species.
@@ -588,7 +588,7 @@ The bin-averaged measurements are written to file once `bin_size` measurements a
 ````julia
     # Reset diagonostic parameters used to monitor numerical stability to zero.
     δG = zero(logdetGup)
-    δθ = zero(sgndetGup)
+    δθ = zero(logdetGup)
 
     # Calculate the bin size.
     bin_size = N_updates ÷ N_bins

@@ -425,6 +425,7 @@ Again, this can all be easily calculated using the [`initialize_composite_correl
         correlation = "density",
         ids = [1, 2],
         coefficients = [1.0, -1.0],
+        displacement_vecs = [[0.0, 0.0], [0.0, 0.0]],
         time_displaced = false,
         integrated = true
     )
@@ -468,7 +469,7 @@ For more information refer to [here](@ref hubbard_square_setup_dqmc).
 
     # Initialize diagonostic parameters to asses numerical stability.
     δG = zero(logdetG)
-    δθ = zero(sgndetG)
+    δθ = zero(logdetG)
 ````
 
 ## [Setup EFA-HMC Updates](@id holstein_square_efa-hmc_updates)
@@ -564,7 +565,7 @@ structure of this part of the code, refer to [here](@ref hubbard_square_make_mea
 ````julia
     # Reset diagonostic parameters used to monitor numerical stability to zero.
     δG = zero(logdetG)
-    δθ = zero(sgndetG)
+    δθ = zero(logdetG)
 
     # Calculate the bin size.
     bin_size = N_updates ÷ N_bins
@@ -713,9 +714,8 @@ that the Brilliouin zone is periodic in the reciprocal lattice vectors.
         type = "equal-time",
         q_point = (0, 0),
         q_neighbors = [
-            (1,0),   (L-1,0),
-            (0,1),   (0,L-1),
-            (1,L-1), (L-1,1),
+            (1,0),   (0,1),   (1,1),
+            (L-1,0), (0,L-1), (L-1,L-1)
         ]
     )
 ````

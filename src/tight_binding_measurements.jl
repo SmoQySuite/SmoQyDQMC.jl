@@ -1,16 +1,16 @@
 @doc raw"""
     measure_onsite_energy(
         tight_binding_parameters::TightBindingParameters{T,E},
-        G::Matrix{T}, orbital_id::Int
-    ) where {T<:Number, E<:AbstractFloat}
+        G::Matrix{H}, orbital_id::Int
+    ) where {H<:Number, T<:Number, E<:AbstractFloat}
 
 Measure and return the on-site energy ``\epsilon_\textrm{on-site} = (\epsilon - \mu)\langle \hat{n}_\sigma \rangle``
 for the `orbital_id` in the unit cell.
 """
 function measure_onsite_energy(
     tight_binding_parameters::TightBindingParameters{T,E},
-    G::Matrix{T}, orbital_id::Int
-) where {T<:Number, E<:AbstractFloat}
+    G::Matrix{H}, orbital_id::Int
+) where {H<:Number, T<:Number, E<:AbstractFloat}
 
     (; ϵ, μ, norbital) = tight_binding_parameters
 
@@ -40,8 +40,8 @@ end
 @doc raw"""
     measure_bare_hopping_energy(
         tight_binding_parameters::TightBindingParameters{T,E},
-        G::Matrix{T}, hopping_id::Int
-    ) where {T<:Number, E<:AbstractFloat}
+        G::Matrix{H}, hopping_id::Int
+    ) where {H<:Number, T<:Number, E<:AbstractFloat}
 
 Calculate the average bare hopping energy
 ``\epsilon_{\rm hopping} = -\langle t_{\langle i,j \rangle} \hat{c}^\dagger_{\sigma,i} \hat{c}_{\sigma,j} + {\rm h.c.} \rangle``
@@ -49,8 +49,8 @@ for the hopping defined by the `hopping_id`.
 """
 function measure_bare_hopping_energy(
     tight_binding_parameters::TightBindingParameters{T,E},
-    G::Matrix{T}, hopping_id::Int
-) where {T<:Number, E<:AbstractFloat}
+    G::Matrix{H}, hopping_id::Int
+) where {H<:Number, T<:Number, E<:AbstractFloat}
 
     (; t, neighbor_table, bond_slices) = tight_binding_parameters
 
@@ -82,9 +82,9 @@ end
 @doc raw"""
     measure_hopping_energy(
         tight_binding_parameters::TightBindingParameters{T,E},
-        fermion_path_integral::FermionPathIntegral{T,E},
-        G::Matrix{T}, hopping_id::Int
-    ) where {T<:Number, E<:AbstractFloat}
+        fermion_path_integral::FermionPathIntegral{H},
+        G::Matrix{H}, hopping_id::Int
+    ) where {H<:Number, T<:Number, E<:AbstractFloat}
 
 Calculate the average hopping energy
 ``\epsilon_{\rm hopping} = -\langle t_{l,\langle i,j \rangle} \hat{c}^\dagger_{\sigma,i} \hat{c}_{\sigma,j} + {\rm h.c.} \rangle``
@@ -92,9 +92,9 @@ for the hopping defined by the the `hopping_id`.
 """
 function measure_hopping_energy(
     tight_binding_parameters::TightBindingParameters{T,E},
-    fermion_path_integral::FermionPathIntegral{T,E},
-    G::Matrix{T}, hopping_id::Int
-) where {T<:Number, E<:AbstractFloat}
+    fermion_path_integral::FermionPathIntegral{H},
+    G::Matrix{H}, hopping_id::Int
+) where {H<:Number, T<:Number, E<:AbstractFloat}
 
     (; neighbor_table, bond_slices, bond_ids) = tight_binding_parameters
     (; t, Lτ) = fermion_path_integral
@@ -127,17 +127,17 @@ end
 @doc raw"""
     measure_hopping_amplitude(
         tight_binding_parameters::TightBindingParameters{T,E},
-        fermion_path_integral::FermionPathIntegral{T,U},
+        fermion_path_integral::FermionPathIntegral{H},
         hopping_id::Int
-    ) where {T<:Number, U<:Number, E<:AbstractFloat}
+    ) where {H<:Number, T<:Number, E<:AbstractFloat}
 
 Calculate the average hopping amplitude for the hopping defined by the `hopping_id`.
 """
 function measure_hopping_amplitude(
     tight_binding_parameters::TightBindingParameters{T,E},
-    fermion_path_integral::FermionPathIntegral{T,U},
+    fermion_path_integral::FermionPathIntegral{H},
     hopping_id::Int
-) where {T<:Number, U<:Number, E<:AbstractFloat}
+) where {H<:Number, T<:Number, E<:AbstractFloat}
 
     (; neighbor_table, bond_slices, bond_ids) = tight_binding_parameters
     (; t, Lτ) = fermion_path_integral
@@ -157,9 +157,9 @@ end
 @doc raw"""
     measure_hopping_inversion(
         tight_binding_parameters::TightBindingParameters{T,E},
-        fermion_path_integral::FermionPathIntegral{T,U},
+        fermion_path_integral::FermionPathIntegral{H},
         hopping_id::Int
-    ) where {T<:Number, U<:Number, E<:AbstractFloat}
+    ) where {H<:Number, T<:Number, E<:AbstractFloat}
 
 Measure the fraction of time the sign of the instaneous modulated hopping ampltiude ``t_{l,(\mathbf{i},\nu),(\mathbf{j},\gamma)}``
 is inverted relative to the bare hopping amplitude ``t_{(\mathbf{i},\nu),(\mathbf{j},\gamma)}``, where ``l`` is the
@@ -167,9 +167,9 @@ imaginary time-slice index.
 """
 function measure_hopping_inversion(
     tight_binding_parameters::TightBindingParameters{T,E},
-    fermion_path_integral::FermionPathIntegral{T,U},
+    fermion_path_integral::FermionPathIntegral{H},
     hopping_id::Int
-) where {T<:Number, U<:Number, E<:AbstractFloat}
+) where {H<:Number, T<:Number, E<:AbstractFloat}
 
     (; neighbor_table, bond_slices, bond_ids) = tight_binding_parameters
     (; Lτ) = fermion_path_integral
@@ -207,9 +207,9 @@ end
 @doc raw"""
     measure_hopping_inversion_avg(
         tight_binding_parameters::TightBindingParameters{T,E},
-        fermion_path_integral::FermionPathIntegral{T,U},
+        fermion_path_integral::FermionPathIntegral{H},
         hopping_id::Int
-    ) where {T<:Number, U<:Number, E<:AbstractFloat}
+    ) where {H<:Number, T<:Number, E<:AbstractFloat}
 
 Measure the fraction of time the sign of the imaginary-time averaged modulated hopping ampltiude
 ``\bar{t}_{(\mathbf{i},\nu),(\mathbf{j},\gamma)}`` is inverted relative to the bare hopping amplitude
@@ -217,9 +217,9 @@ Measure the fraction of time the sign of the imaginary-time averaged modulated h
 """
 function measure_hopping_inversion_avg(
     tight_binding_parameters::TightBindingParameters{T,E},
-    fermion_path_integral::FermionPathIntegral{T,U},
+    fermion_path_integral::FermionPathIntegral{H},
     hopping_id::Int
-) where {T<:Number, U<:Number, E<:AbstractFloat}
+) where {H<:Number, T<:Number, E<:AbstractFloat}
 
     (; neighbor_table, bond_slices, bond_ids) = tight_binding_parameters
     (; Lτ) = fermion_path_integral
