@@ -545,7 +545,7 @@ function reflection_update!(
 
     # update diagonal on-site energy matrix
     @. Vup_i = -2*α[i]/Δτ * s_i + Vup_i
-    @. Vdn_i = +2*α[i]/Δτ * s_i + Vdn_i
+    @. Vdn_i = +sign(U[i])*2*α[i]/Δτ * s_i + Vdn_i
 
     # update propagator matrices
     @fastmath @inbounds for l in eachindex(Bup)
@@ -583,7 +583,7 @@ function reflection_update!(
         @. s_i = -s_i
         # revert diagonal on-site energy matrix
         @. Vup_i = -2*α[i]/Δτ * s_i + Vup_i
-        @. Vdn_i = +2*α[i]/Δτ * s_i + Vdn_i
+        @. Vdn_i = +sign(U[i])*2*α[i]/Δτ * s_i + Vdn_i
         # revert propagator matrices
         @fastmath @inbounds for l in eachindex(Bup)
             expmΔτVup_l = Bup[l].expmΔτV::Vector{E}
@@ -803,9 +803,9 @@ function swap_update!(
 
     # update diagonal on-site energy matrix
     @. Vup_i = Vup_i - α[i]/Δτ * (s_i - s_j) 
-    @. Vdn_i = Vdn_i + α[i]/Δτ * (s_i - s_j) 
+    @. Vdn_i = Vdn_i + sign(U[i])*α[i]/Δτ * (s_i - s_j) 
     @. Vup_j = Vup_j - α[j]/Δτ * (s_j - s_i) 
-    @. Vdn_j = Vdn_j + α[j]/Δτ * (s_j - s_i)
+    @. Vdn_j = Vdn_j + sign(U[i])*α[j]/Δτ * (s_j - s_i)
 
     # update propagator matrices
     @fastmath @inbounds for l in eachindex(Bup)
@@ -845,9 +845,9 @@ function swap_update!(
         swap!(s_i, s_j)
         # revert diagonal on-site energy matrix
         @. Vup_i = Vup_i - α[i]/Δτ * (s_i - s_j) 
-        @. Vdn_i = Vdn_i + α[i]/Δτ * (s_i - s_j) 
+        @. Vdn_i = Vdn_i + sign(U[i])*α[i]/Δτ * (s_i - s_j) 
         @. Vup_j = Vup_j - α[j]/Δτ * (s_j - s_i) 
-        @. Vdn_j = Vdn_j + α[j]/Δτ * (s_j - s_i)
+        @. Vdn_j = Vdn_j + sign(U[i])*α[j]/Δτ * (s_j - s_i)
         # revert propagator matrices
         @fastmath @inbounds for l in eachindex(Bup)
             expmΔτVup_l = Bup[l].expmΔτV::Vector{E}

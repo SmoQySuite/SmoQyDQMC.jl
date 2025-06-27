@@ -65,8 +65,7 @@ function make_measurements!(
     end
 
     # calculate sign
-    sgn = sgndetGup * sgndetGdn
-    sgn /= abs(sgn) # normalize just to be cautious
+    sgn = sign(inv(sgndetGup) * inv(sgndetGdn))
 
     # make global measurements
     global_measurements = measurement_container.global_measurements
@@ -242,8 +241,7 @@ function make_measurements!(
     tmp = selectdim(a, ndims(a), 1)
 
     # calculate sign
-    sgn = sgndetG^2
-    sgn /= abs(sgn) # normalize just to be cautious
+    sgn = sign(inv(sgndetG)^2)
 
     # make global measurements
     global_measurements = measurement_container.global_measurements
@@ -407,8 +405,7 @@ function make_global_measurements!(
     N = size(Gup, 1)
 
     # measure the sign
-    sgn = sgndetGup * sgndetGdn
-    sgn /= abs(sgn) # normalize just to be cautious
+    sgn = sign(inv(sgndetGup) * inv(sgndetGdn))
     global_measurements["sgn"] += sgn
 
     # measure the spin resolved sign
