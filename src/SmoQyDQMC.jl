@@ -106,6 +106,26 @@ export HubbardDensityGaussHermiteHST
 include("Hubbard/HubbardIsingHS.jl")
 export HubbardIsingHSParameters
 
+############################
+## EXTENDED HUBBARD MODEL ##
+############################
+
+# Define ExtendedHubbardModel
+include("ExtendedHubbard/ExtendedHubbardModel.jl")
+export ExtendedHubbardModel
+
+# Define ExtendedHubbardParameters
+include("ExtendedHubbard/ExtendedHubbardParameters.jl")
+export ExtendedHubbardParameters, init_renormalized_hubbard_parameters
+
+# Define Extended Hubbard model local energy measurement
+include("ExtendedHubbard/ext_hub_model_measurements.jl")
+export measure_ext_hub_energy
+
+# Define Extended Hubbard Gauss-Hermite Hubbard-Stratonovich Transformation
+include("ExtendedHubbard/ExtHubGaussHermiteHST.jl")
+export ExtHubGaussHermiteHST
+
 ###########################
 ## ELECTRON-PHONON MODEL ##
 ###########################

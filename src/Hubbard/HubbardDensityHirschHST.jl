@@ -16,7 +16,7 @@ and
 ```math
 \alpha = \frac{1}{\Delta\tau}\cosh\left(e^{-\Delta\tau U/2}\right).
 ```
-Note that when ``U \le 0`` then ``\alpha`` is real, whereas is ``U > 0`` then ``\alpha`` is purely imaginary.
+Note that when ``U \le 0`` then ``\alpha`` is real, whereas if ``U > 0`` then ``\alpha`` is purely imaginary.
 """
 struct HubbardDensityHirschHST{T<:Number, E<:AbstractFloat}
 
@@ -91,10 +91,10 @@ end
 
 @doc raw"""
     initialize!(
-        fermion_path_integral_up::FermionPathIntegral{H,T,U,R},
-        fermion_path_integral_dn::FermionPathIntegral{H,T,U,R},
-        hst_parameters::HubbardDensityHirschHST{U}
-    ) where {H<:Number, T<:Number, U<:Number, R<:Real}
+        fermion_path_integral_up::FermionPathIntegral{H},
+        fermion_path_integral_dn::FermionPathIntegral{H},
+        hst_parameters::HubbardDensityHirschHST{T}
+    ) where {H<:Number, T<:Number}
 
     initialize!(
         fermion_path_integral::FermionPathIntegral{H,T,U,R},
@@ -105,11 +105,12 @@ Initialize [`FermionPathIntegral`](@ref) instances to reflect the initial
 HS field configuration represented by the [`HubbardDensityHirschHST`](@ref) type.
 """
 function initialize!(
-    fermion_path_integral_up::FermionPathIntegral{H,T,U,R},
-    fermion_path_integral_dn::FermionPathIntegral{H,T,U,R},
-    hst_parameters::HubbardDensityHirschHST{U}
-) where {H<:Number, T<:Number, U<:Number, R<:Real}
+    fermion_path_integral_up::FermionPathIntegral{H},
+    fermion_path_integral_dn::FermionPathIntegral{H},
+    hst_parameters::HubbardDensityHirschHST{T}
+) where {H<:Number, T<:Number}
 
+    @assert fermion_path_integral_up.Sb == fermion_path_integral_dn.Sb "$(fermion_path_integral_up.Sb) ≠ $(fermion_path_integral_dn.Sb)"
     initialize!(fermion_path_integral_up, hst_parameters)
     initialize!(fermion_path_integral_dn, hst_parameters)
 
@@ -117,9 +118,11 @@ function initialize!(
 end
 
 function initialize!(
-    fermion_path_integral::FermionPathIntegral{H,T,U,R},
-    hst_parameters::HubbardDensityHirschHST{U},
-) where {H<:Number, T<:Number, U<:Number, R<:Real}
+    fermion_path_integral::FermionPathIntegral{H},
+    hst_parameters::HubbardDensityHirschHST{T},
+) where {H<:Number, T<:Number}
+
+    @assert !((H<:Real) &&  (T<:Complex)) "Green's function matrices are real while Hubbard-Stratonovich transformation is complex."
 
     (; sites, α, s, Δτ) = hst_parameters
     V = fermion_path_integral.V
@@ -201,7 +204,8 @@ function local_updates!(
     @assert fermion_path_integral_up.Sb == fermion_path_integral_dn.Sb "$(fermion_path_integral_up.Sb) ≠ $(fermion_path_integral_dn.Sb)"
 
     (; Δτ, U, α, sites, s, update_perm, N) = hst_parameters
-    (; u, v) = fermion_path_integral_dn
+    u = @view fermion_path_integral_up.u[:,1]
+    v = @view fermion_path_integral_up.v[:,1]
 
     # get temporary storage matrix
     G′ = fermion_greens_calculator_up.G′
@@ -366,7 +370,8 @@ function local_updates!(
     @assert !( (H<:Real) &&  (T<:Complex)) "Green's function matrices are real while Hubbard-Stratonovich transformation is complex."
 
     (; Δτ, U, α, sites, s, update_perm, N) = hst_parameters
-    (; u, v) = fermion_path_integral
+    u = @view fermion_path_integral.u[:,1]
+    v = @view fermion_path_integral.v[:,1]
 
     # get temporary storage matrix
     G′ = fermion_greens_calculator.G′
@@ -478,7 +483,8 @@ end
         rng::AbstractRNG
     ) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator}
 
-Perform a reflection update in which the sign of every spin-channel Hirsch Hubbard-Stratonovich field on a randomly chosen orbital in the lattice is changed.
+Perform a reflection update in which the sign of every density-channel Hirsch Hubbard-Stratonovich field used to decouple the Hubbard interaction
+on a randomly chosen orbital in the lattice is changed.
 This function returns `(accepted, logdetGup, sgndetGup, logdetGdn, sgndetGdn)`.
 
 # Arguments
@@ -621,7 +627,8 @@ end
         rng::AbstractRNG
     ) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator}
 
-Perform a reflection update in which the sign of every spin-channel Hirsch Hubbard-Stratonovich field on a randomly chosen orbital in the lattice is changed.
+Perform a reflection update in which the sign of every density-channel Hirsch Hubbard-Stratonovich field used to decouple the Hubbard interaction
+on a randomly chosen orbital in the lattice is changed.
 This function returns `(accepted, logdetG, sgndetG)`.
 
 # Arguments
@@ -737,7 +744,8 @@ end
         rng::AbstractRNG
     ) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator}
 
-Perform a reflection update in which the sign of every spin-channel Hirsch Hubbard-Stratonovich field on a randomly chosen orbital in the lattice is changed.
+Perform a swap update in which the density-channel Hirsch Hubbard-Stratonovich fields used to decouple the Hubbard interaction
+on a randomly sampled pair of orbitals in the lattice are swapped.
 This function returns `(accepted, logdetGup, sgndetGup, logdetGdn, sgndetGdn)`.
 
 # Arguments
@@ -899,7 +907,8 @@ end
     rng::AbstractRNG
 ) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator}
 
-Perform a reflection update in which the sign of every spin-channel Hirsch Hubbard-Stratonovich field on a randomly chosen orbital in the lattice is changed.
+Perform a swap update in which the density-channel Hirsch Hubbard-Stratonovich fields used to decouple the Hubbard interaction
+on a randomly sampled pair of orbitals in the lattice are swapped.
 This function returns `(accepted, logdetG, sgndetG)`.
 
 # Arguments

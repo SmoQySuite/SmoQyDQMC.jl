@@ -16,7 +16,7 @@ and
 ```math
 \alpha = \frac{1}{\Delta\tau}\cosh^{-1}\left(e^{\Delta\tau U/2}\right).
 ```
-Note that when ``U \ge 0`` then ``\alpha`` is real, whereas is ``U<0`` then ``\alpha`` is purely imaginary.
+Note that when ``U \ge 0`` then ``\alpha`` is real, whereas if ``U<0`` then ``\alpha`` is purely imaginary.
 """
 struct HubbardSpinHirschHST{T<:Number, E<:AbstractFloat}
 
@@ -100,10 +100,13 @@ to reflect the current Hubbard-Stratonovich field configuration stored in the
 `hst_parameters` type.
 """
 function initialize!(
-    fermion_path_integral_up::FermionPathIntegral{H,T,U,R},
-    fermion_path_integral_dn::FermionPathIntegral{H,T,U,R},
-    hst_parameters::HubbardSpinHirschHST{U}
-) where {H<:Number, T<:Number, U<:Number, R<:Real}
+    fermion_path_integral_up::FermionPathIntegral{H},
+    fermion_path_integral_dn::FermionPathIntegral{H},
+    hst_parameters::HubbardSpinHirschHST{T}
+) where {H<:Number, T<:Number}
+
+    @assert !((H<:Real) &&  (T<:Complex)) "Green's function matrices are real while Hubbard-Stratonovich transformation is complex."
+    @assert fermion_path_integral_up.Sb == fermion_path_integral_dn.Sb "$(fermion_path_integral_up.Sb) ≠ $(fermion_path_integral_dn.Sb)"
 
     (; sites, α, s) = hst_parameters
     Vup = fermion_path_integral_up.V
@@ -183,7 +186,8 @@ function local_updates!(
     @assert fermion_path_integral_up.Sb == fermion_path_integral_dn.Sb "$(fermion_path_integral_up.Sb) ≠ $(fermion_path_integral_dn.Sb)"
 
     (; Δτ, U, α, sites, s, update_perm, N) = hst_parameters
-    (; u, v) = fermion_path_integral_dn
+    u = @view fermion_path_integral_up.u[:,1]
+    v = @view fermion_path_integral_up.v[:,1]
 
     # get temporary storage matrix
     G′ = fermion_greens_calculator_up.G′
@@ -307,7 +311,8 @@ end
         rng::AbstractRNG
     ) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator}
 
-Perform a reflection update in which the sign of every spin-channel Hirsch Hubbard-Stratonovich field on a randomly chosen orbital in the lattice is changed.
+Perform a reflection update in which the sign of every spin-channel Hirsch Hubbard-Stratonovich field used to decouple the Hubbard interaction
+on a randomly chosen orbital in the lattice is changed.
 This function returns `(accepted, logdetGup, sgndetGup, logdetGdn, sgndetGdn)`.
 
 # Arguments
@@ -450,7 +455,8 @@ end
         rng::AbstractRNG
     ) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator}
 
-Perform a reflection update in which the sign of every spin-channel Hirsch Hubbard-Stratonovich field on a randomly chosen orbital in the lattice is changed.
+Perform a swap update in which the sign of every spin-channel Hirsch Hubbard-Stratonovich field used to decouple the Hubbard interaction
+on a randomly chosen orbital in the lattice is changed.
 This function returns `(accepted, logdetGup, sgndetGup, logdetGdn, sgndetGdn)`.
 
 # Arguments

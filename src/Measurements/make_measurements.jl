@@ -592,12 +592,33 @@ function make_local_measurements!(
 
     # measure hubbard energy for each orbital in unit cell
     hubbard_energies = local_measurements["hubbard_energy"]
-    for orbital in eachindex(hubbard_energies)
-        hubbard_energies[orbital] += sgn * measure_hubbard_energy(hubbard_parameters, Gup, Gdn, orbital)
+    for hubbard_id in eachindex(hubbard_energies)
+        hubbard_energies[hubbard_id] += sgn * measure_hubbard_energy(hubbard_parameters, Gup, Gdn, hubbard_id)
     end
 
     return nothing
 end
+
+
+# make local measurements associated with extended hubbard model
+function make_local_measurements!(
+    local_measurements::Dict{String, Vector{Complex{E}}},
+    Gup::AbstractMatrix{T}, Gdn::AbstractMatrix{T}, sgn::T,
+    model_geometry::ModelGeometry{D,E,N},
+    extended_hubbard_parameters::ExtendedHubbardParameters{E},
+    tight_binding_parameters_up::TightBindingParameters,
+    tight_binding_parameters_dn::TightBindingParameters
+) where {T<:Number, E<:AbstractFloat, D, N}
+
+    # measure hubbard energy for each orbital in unit cell
+    ext_hub_energies = local_measurements["ext_hub_energy"]
+    for ext_hub_id in eachindex(ext_hub_energies)
+        ext_hub_energies[ext_hub_id] += sgn * measure_hubbard_energy(extended_hubbard_parameters, Gup, Gdn, ext_hub_id)
+    end
+
+    return nothing
+end
+
 
 # make local measurements associated with electron-phonon model
 function make_local_measurements!(

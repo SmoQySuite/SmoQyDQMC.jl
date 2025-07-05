@@ -87,7 +87,7 @@ to decouple a local Hubbard interaction are listed.
 ```@docs
 HubbardSpinHirschHST
 HubbardSpinHirschHST(;)
-initialize!(::FermionPathIntegral{H,T,U,R}, ::FermionPathIntegral{H,T,U,R}, ::HubbardSpinHirschHST{U},) where {H<:Number, T<:Number, U<:Number, R<:Real}
+initialize!(::FermionPathIntegral{H}, ::FermionPathIntegral{H}, ::HubbardSpinHirschHST{T}) where {H<:Number, T<:Number}
 local_updates!(::Matrix{H}, ::R, ::H, ::Matrix{H}, ::R, ::H, ::HubbardSpinHirschHST{T,R}) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator}
 reflection_update!(::Matrix{H}, ::R, ::H, ::Matrix{H}, ::R, ::H, ::HubbardSpinHirschHST{T,R};) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator}
 swap_update!(::Matrix{H}, ::R, ::H, ::Matrix{H}, ::R, ::H, ::HubbardSpinHirschHST{T,R}) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator}
@@ -97,7 +97,7 @@ swap_update!(::Matrix{H}, ::R, ::H, ::Matrix{H}, ::R, ::H, ::HubbardSpinHirschHS
 ```@docs
 HubbardSpinGaussHermiteHST
 HubbardSpinGaussHermiteHST(;)
-initialize!(::FermionPathIntegral{H,T,U,R}, ::FermionPathIntegral{H,T,U,R}, ::HubbardSpinGaussHermiteHST{U}) where {H<:Number, T<:Number, U<:Number, R<:Real}
+initialize!(::FermionPathIntegral{H}, ::FermionPathIntegral{H}, ::HubbardSpinGaussHermiteHST{T}) where {H<:Number, T<:Number}
 local_updates!(::Matrix{H}, ::R, ::H, ::Matrix{H}, ::R, ::H, ::HubbardSpinGaussHermiteHST{T,R}) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator}
 reflection_update!(::Matrix{H}, ::R, ::H, ::Matrix{H}, ::R, ::H, ::HubbardSpinGaussHermiteHST{T,R}) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator}
 swap_update!(::Matrix{H}, ::R, ::H, ::Matrix{H}, ::R, ::H, ::HubbardSpinGaussHermiteHST{T,R}) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator}
@@ -108,7 +108,7 @@ swap_update!(::Matrix{H}, ::R, ::H, ::Matrix{H}, ::R, ::H, ::HubbardSpinGaussHer
 ```@docs
 HubbardDensityHirschHST
 HubbardDensityHirschHST(;)
-initialize!(::FermionPathIntegral{H,T,U,R},::FermionPathIntegral{H,T,U,R},::HubbardDensityHirschHST{U},) where {H<:Number, T<:Number, U<:Number, R<:Real}
+initialize!(::FermionPathIntegral{H}, ::FermionPathIntegral{H}, ::HubbardDensityHirschHST{T}) where {H<:Number, T<:Number}
 local_updates!(::Matrix{H}, ::R, ::H, ::Matrix{H}, ::R, ::H, ::HubbardDensityHirschHST{T,R}) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator}
 local_updates!(::Matrix{H}, ::R, ::H, ::HubbardDensityHirschHST{T,R}) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator}
 reflection_update!(::Matrix{H}, ::R, ::H, ::Matrix{H}, ::R, ::H, ::HubbardDensityHirschHST{T,R}) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator}
@@ -122,7 +122,7 @@ swap_update!(::Matrix{H}, ::R, ::H, ::HubbardDensityHirschHST{T,R}) where {H<:Nu
 ```@docs
 HubbardDensityGaussHermiteHST
 HubbardDensityGaussHermiteHST(;)
-initialize!(::FermionPathIntegral{H,T,U,R},::FermionPathIntegral{H,T,U,R},::HubbardDensityGaussHermiteHST{U}) where {H<:Number, T<:Number, U<:Number, R<:Real}
+initialize!(::FermionPathIntegral{H}, ::FermionPathIntegral{H}, ::HubbardDensityGaussHermiteHST{T}) where {H<:Number, T<:Number}
 local_updates!(::Matrix{H}, ::R, ::H, ::Matrix{H}, ::R, ::H, ::HubbardDensityGaussHermiteHST{T,R}) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator}
 local_updates!(::Matrix{H}, ::R, ::H, ::HubbardDensityGaussHermiteHST{T,R}) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator}
 reflection_update!(::Matrix{H}, ::R, ::H, ::Matrix{H}, ::R, ::H, ::HubbardDensityGaussHermiteHST{T,R}) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator}
@@ -148,6 +148,40 @@ reflection_update!(::Matrix{H}, ::R, ::H, ::Matrix{H}, ::R, ::H, ::HubbardIsingH
 reflection_update!(::Matrix{H}, ::R, ::H, ::HubbardIsingHSParameters{R}) where {H<:Number, R<:Real, P<:AbstractPropagator}
 swap_update!(::Matrix{H}, ::R, ::H, ::Matrix{H}, ::R, ::H, ::HubbardIsingHSParameters{R}) where {H<:Number, R<:Real, P<:AbstractPropagator}
 swap_update!(::Matrix{H}, ::R, ::H, ::HubbardIsingHSParameters{R}) where {H<:Number, R<:Real, P<:AbstractPropagator}
+```
+
+## Extended Hubbard Model
+
+- [Extended Hubbard Model Measurements](@ref)
+- [Extended Hubbard Gauss-Hermite Hubbard-Stratonovich Transformation](@ref)
+
+```@docs
+ExtendedHubbardModel
+ExtendedHubbardModel(;)
+ExtendedHubbardParameters
+ExtendedHubbardParameters(;)
+initialize!(::FermionPathIntegral, ::FermionPathIntegral, ::ExtendedHubbardParameters)
+init_renormalized_hubbard_parameters
+```
+
+### Extended Hubbard Model Measurements
+
+```@docs
+measure_ext_hub_energy
+```
+
+### Extended Hubbard Gauss-Hermite Hubbard-Stratonovich Transformation
+
+```@docs
+ExtHubGaussHermiteHST
+ExtHubGaussHermiteHST(;)
+initialize!(::FermionPathIntegral{H}, ::FermionPathIntegral{H}, ::ExtHubGaussHermiteHST{T}) where {H<:Number, T<:Number}
+local_updates!(::Matrix{H}, ::R, ::H, ::Matrix{H}, ::R, ::H, ::ExtHubGaussHermiteHST{T,R}) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator}
+local_updates!(::Matrix{H}, ::R, ::H, ::ExtHubGaussHermiteHST{T,R};) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator}
+reflection_update!(::Matrix{H}, ::R, ::H, ::Matrix{H}, ::R, ::H, ::ExtHubGaussHermiteHST{T,R}) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator}
+reflection_update!(::Matrix{H}, ::R, ::H,::ExtHubGaussHermiteHST{T,R}) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator}
+swap_update!(::Matrix{H}, ::R, ::H,::Matrix{H}, ::R, ::H, ::ExtHubGaussHermiteHST{T,R}) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator}
+swap_update!(::Matrix{H}, ::R, ::H, ::ExtHubGaussHermiteHST{T,R}) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator}
 ```
 
 ## Electron-Phonon Model

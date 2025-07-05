@@ -24,8 +24,8 @@ slice ``l \in [1, L_\tau],`` where ``\tau = \Delta\tau \cdot l`` and ``\beta = \
 - `K::Matrix{T}`: Used to construct hopping matrix to cacluate exponentiated hopping matrix if checkerboard approximation is not being used.
 - `Sb::H`: Keeps track of total bosonic action associated with fermionic path integral.
 - `eigen_ws::HermitianEigenWs{T,Matrix{T},R}`: For calculating eigenvalues and eigenvectors of `K` while avoiding dynamic memory allocations.
-- `u::Vector{H}`: Temporary vector to avoid dynamic allocation when performing local updates.
-- `v::Vector{H}`: Temporary vector to avoid dynamic allocation when performing local updates.
+- `u::Matrix{H}`: Temporary matrix to avoid dynamic allocation when performing local updates.
+- `v::Matrix{H}`: Temporary matrix to avoid dynamic allocation when performing local updates.
 """
 mutable struct FermionPathIntegral{H<:Number, T<:Number, U<:Number, R<:AbstractFloat}
 
@@ -49,9 +49,9 @@ mutable struct FermionPathIntegral{H<:Number, T<:Number, U<:Number, R<:AbstractF
 
     eigen_ws::HermitianEigenWs{T,Matrix{T},R}
 
-    u::Vector{H}
+    u::Matrix{H}
 
-    v::Vector{H}
+    v::Matrix{H}
 end
 
 
@@ -101,7 +101,7 @@ function FermionPathIntegral(;
     Lτ = eval_length_imaginary_axis(β, Δτ)
 
     # get number of orbitals in lattice
-    Norbitals = length(ϵ)
+    Nsites = length(ϵ)
 
     # number of pairs of neighboring orbitals connected by a bond in the lattice
     Nneighbors = size(neighbor_table, 2)
@@ -116,7 +116,7 @@ function FermionPathIntegral(;
     end
 
     # initialize diagonal on-site energy matrix
-    V = zeros(Tv, Norbitals, Lτ)
+    V = zeros(Tv, Nsites, Lτ)
 
     # set the value on-site energy for each imaginary time slice based on the
     # non-interacting tight-binding model parameters
@@ -125,16 +125,16 @@ function FermionPathIntegral(;
     end
 
     # initialize hopping matrix
-    K = zeros(Tk, Norbitals, Norbitals)
+    K = zeros(Tk, Nsites, Nsites)
 
     # initialize workspace for calculating eigenvalue and eigenvector of K while avoid allocations
     eigen_ws = HermitianEigenWs(K, vecs=true)
 
     # allocate temporary vectors
-    u = zeros(H, Norbitals)
-    v = zeros(H, Norbitals)
+    u = zeros(H, Nsites, 1)
+    v = zeros(H, Nsites, 1)
 
-    return FermionPathIntegral{H,Tk,Tv,R}(β, Δτ, Lτ, Norbitals, neighbor_table, t, V, K, Sb, eigen_ws, u, v)
+    return FermionPathIntegral{H,Tk,Tv,R}(β, Δτ, Lτ, Nsites, neighbor_table, t, V, K, Sb, eigen_ws, u, v)
 end
 
 

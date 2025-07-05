@@ -22,9 +22,9 @@ and particle-hole symmetry is ``\epsilon_{\nu,\mathbf{i}} = 0.``
 # Fields
 
 - `ph_sym_form::Bool`: Determines whether the particle-hole symmetric form of the Hubbard interaction is used.
-- `U_orbital::Vector{Int}`: Orbital species in unit cell with finite Hubbard interaction.
-- `U_mean::Vector{T}`: Average Hubbard ``U_\nu`` for a given orbital species in the lattice.
-- `U_std::Vector{T}`: Standard deviation of Hubbard ``U_\nu`` for a given orbital species in the lattice.
+- `U_orbital_ids::Vector{Int}`: Orbital species/IDs in unit cell with finite Hubbard interaction.
+- `U_mean::Vector{T}`: Average Hubbard interaction strength ``U_\nu`` for a given orbital species in the lattice.
+- `U_std::Vector{T}`: Standard deviation of Hubbard interaction strength ``U_\nu`` for a given orbital species in the lattice.
 """
 struct HubbardModel{T<:AbstractFloat}
 
@@ -32,7 +32,7 @@ struct HubbardModel{T<:AbstractFloat}
     ph_sym_form::Bool
 
     # orbital species
-    U_orbital::Vector{Int}
+    U_orbital_ids::Vector{Int}
 
     # average Hubbard U
     U_mean::Vector{T}
@@ -43,6 +43,7 @@ end
 
 @doc raw"""
     HubbardModel(;
+        # KEYWORD ARGUMENTS
         ph_sym_form::Bool,
         U_orbital::AbstractVector{Int},
         U_mean::AbstractVector{T},
@@ -50,8 +51,16 @@ end
     ) where {T<:AbstractFloat}
 
 Initialize and return an instance of the type [`HubbardModel`](@ref).
+
+# Keyword Arguments
+
+- `ph_sym_form::Bool`: Determines whether the particle-hole symmetric form of the Hubbard interaction is used.
+- `U_orbital::Vector{Int}`: Orbital species/IDs in unit cell with finite Hubbard interaction.
+- `U_mean::Vector{T}`: Average Hubbard interaction strength ``U_\nu`` for a given orbital species in the lattice.
+- `U_std::Vector{T}`: Standard deviation of Hubbard interaction strength ``U_\nu`` for a given orbital species in the lattice.
 """
 function HubbardModel(;
+    # KEYWORD ARGUMENTS
     ph_sym_form::Bool,
     U_orbital::AbstractVector{Int},
     U_mean::AbstractVector{T},
@@ -65,12 +74,13 @@ end
 # show struct info as TOML formatted string
 function Base.show(io::IO, ::MIME"text/plain", hm::HubbardModel)
 
-    (; U_orbital, U_mean, U_std, ph_sym_form) = hm
+    (; U_orbital_ids, U_mean, U_std, ph_sym_form) = hm
 
     @printf io "[HubbardModel]\n\n"
-    @printf io "U_orbital_ids     = %s\n" string(U_orbital)
-    @printf io "U_mean            = %s\n" string(round.(U_mean, digits=6))
-    @printf io "U_std             = %s\n" string(round.(U_std, digits=6))
+    @printf io "HUBBARD_IDS = %s\n" string(collect(1:U_orbital_ids))
+    @printf io "ORBITAL_IDS = %s\n" string(U_orbital_ids)
+    @printf io "U_mean      = %s\n" string(round.(U_mean, digits=6))
+    @printf io "U_std       = %s\n" string(round.(U_std, digits=6))
     @printf io "ph_sym_form = %s\n\n" string(ph_sym_form)
 
     return nothing
@@ -86,7 +96,7 @@ Hubbard parameters for finite lattice.
 
 - `U::Vector{T}`: On-site Hubbard interaction for each site with finite Hubbard interaction.
 - `sites::Vector{Int}`: Site index associated with each finite Hubbard `U` interaction.
-- `orbitals::Vector{Int}`: Orbital species in unit cell with finite Hubbard interaction.
+- `orbital_ids::Vector{Int}`: Orbital ID/species in unit cell with finite Hubbard interaction.
 - `ph_sym_form::Bool`: Convention used for Hubbard interaction, refer to [`HubbardModel`](@ref) for more information.
 """
 struct HubbardParameters{T<:AbstractFloat}
@@ -98,7 +108,7 @@ struct HubbardParameters{T<:AbstractFloat}
     sites::Vector{Int}
 
     # orbital species in unit cell with finite hubbard interaction
-    orbitals::Vector{Int}
+    orbital_ids::Vector{Int}
 
     # whether zero on-site energy corresponds to half-filling in atomic limit
     ph_sym_form::Bool
@@ -119,11 +129,11 @@ function HubbardParameters(;
     rng::AbstractRNG
 ) where {D, T<:AbstractFloat}
 
-    (; U_orbital, U_mean, U_std, ph_sym_form) = hubbard_model
+    (; U_orbital_ids, U_mean, U_std, ph_sym_form) = hubbard_model
     (; lattice, unit_cell) = model_geometry
 
     # number of orbitals with finite hubbard interaction in unit cell
-    n_hubbard = length(hubbard_model.U_orbital)
+    n_hubbard = length(hubbard_model.U_orbital_ids)
 
     # number of unit cell in lattice
     N_unitcells = lattice.N
@@ -139,8 +149,11 @@ function HubbardParameters(;
     U′     = reshape(U, (N_unitcells, n_hubbard))
     sites′ = reshape(sites, (N_unitcells, n_hubbard))
 
+    # total number of orbitals in lattice
+    N_orbitals = nsites(unit_cell, lattice)
+
     # iterate over orbitals in the unit cell with finite hubbard interaction
-    for (n,o) in enumerate(U_orbital)
+    for (n,o) in enumerate(U_orbital_ids)
         # iterate over unit cells in the lattice
         for u in 1:N_unitcells
             # calculate the site associated with the hubbard interaction
@@ -150,7 +163,7 @@ function HubbardParameters(;
         end
     end
 
-    return HubbardParameters(U, sites, U_orbital, ph_sym_form)
+    return HubbardParameters(U, sites, U_orbital_ids, ph_sym_form, N_orbitals)
 end
 
 

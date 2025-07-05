@@ -1,5 +1,5 @@
 @doc raw"""
-    HubbardIsingHSParameters{T<:AbstractFloat}
+    HubbardIsingHSParameters{T<:AbstractFloat, H<:Number}
 
 Parameters associated with decoupling the Hubbard interaction using the standard Ising
 Hubbard-Stratonovich (HS) transformation.
@@ -16,7 +16,7 @@ Hubbard-Stratonovich (HS) transformation.
 - `s::Matrix{Int}`: Ising Hubbard-Stratonovich fields.
 - `update_perm::Vector{Int}`: Order in which to iterate over HS fields in time slice when performing local updates.
 """
-struct HubbardIsingHSParameters{T<:AbstractFloat}
+struct HubbardIsingHSParameters{T<:AbstractFloat, H<:Number}
 
     # inverse temperature
     β::T
@@ -226,7 +226,8 @@ function local_updates!(
     @assert fermion_path_integral_up.Sb == fermion_path_integral_dn.Sb "$(fermion_path_integral_up.Sb) ≠ $(fermion_path_integral_dn.Sb)"
 
     (; Δτ, U, α, sites, s, update_perm) = hubbard_ising_parameters
-    (; u, v) = fermion_path_integral_dn
+    u = @view fermion_path_integral_up.u[:,1]
+    v = @view fermion_path_integral_up.v[:,1]
 
     # get temporary storage matrix
     G′ = fermion_greens_calculator_up.G′
@@ -405,7 +406,8 @@ function local_updates!(
 ) where {H<:Number, R<:Real, P<:AbstractPropagator}
 
     (; update_perm, U, α, sites, s, Δτ) = hubbard_ising_parameters
-    (; u, v) = fermion_path_integral
+    u = @view fermion_path_integral.u[:,1]
+    v = @view fermion_path_integral.v[:,1]
 
     # get temporary storage matrix
     G′ = fermion_greens_calculator.G′

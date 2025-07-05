@@ -190,15 +190,47 @@ function initialize_measurements!(
 ) where {T<:AbstractFloat}
 
     (; local_measurements) = measurement_container
+    (; U_orbital_ids) = hubbard_model
 
     # number of orbitals in unit cell
-    norbital = length(local_measurements["density"])
+    n_hubbard = length(U_orbital_ids)
 
     # initialize hubbard energy measurement U⋅nup⋅ndn
-    local_measurements["hubbard_energy"] = zeros(Complex{T}, norbital)
+    local_measurements["hubbard_energy"] = zeros(Complex{T}, n_hubbard)
 
     return nothing
 end
+
+
+@doc raw"""
+    initialize_measurements!(
+        measurement_container::NamedTuple,
+        extended_hubbard_model::ExtendedHubbardModel{T}
+    ) where {T<:AbstractFloat}
+
+Initialize Extended Hubbard model related measurements.
+
+# Initialized Measurements:
+
+- `ext_hubbard_energy`: Refer to [`measure_ext_hub_energy`](@ref).
+"""
+function initialize_measurements!(
+    measurement_container::NamedTuple,
+    extended_hubbard_model::ExtendedHubbardModel{T}
+) where {T<:AbstractFloat}
+
+    (; local_measurements) = measurement_container
+    (; V_bond_ids) = extended_hubbard_model
+
+    # number of extended hubbard interactions
+    n_ehi = length(V_bond_ids)
+
+    # initialize extended hubbard energy measurement
+    local_measurements["ext_hub_energy"] = zeros(Complex{T}, n_ehi)
+
+    return nothing
+end
+
 
 @doc raw"""
     initialize_measurements!(

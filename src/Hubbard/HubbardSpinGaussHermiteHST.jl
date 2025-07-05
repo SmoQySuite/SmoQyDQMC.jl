@@ -11,7 +11,7 @@ different only by a constant energy offset ``U/4`` which does not matter.
 Therefore, we can perform a Gauss-Hermite Hubbard-Statonovich transformation in the spin channel as
 ```math
 e^{-\Delta\tau\left[-\frac{U}{2}\right](\hat{n}_{\uparrow}-\hat{n}_{\downarrow})^{2}}
-    = \frac{1}{4}\sum_{s=\pm1,\pm2}e^{-S_{\text{GH}}(s)-\Delta\tau\hat{V}(s)}+\mathcal{O}\left((\Delta\tau\lambda)^{4}\right),
+    = \frac{1}{4}\sum_{s=\pm1,\pm2}e^{-S_{\text{GH}}(s)-\Delta\tau\hat{V}(s)}+\mathcal{O}\left((\Delta\tau U)^{4}\right),
 ```
 where ``\hat{V}(s)=\alpha\eta(s)(\hat{n}_{\uparrow}-\hat{n}_{\downarrow})`` and ``\alpha = \sqrt{U/(2\Delta\tau)}``.
 In the above expression,
@@ -47,7 +47,7 @@ struct HubbardSpinGaussHermiteHST{T<:Number, E<:AbstractFloat}
     # site index associated with each Hubbard U
     sites::Vector{Int}
 
-    # Ising Hubbard-Stratonovich fields
+    # Hubbard-Stratonovich fields
     s::Matrix{Int}
 
     # order in which to iterate over orbitals when updating Hubbard-Stratonovich fields.
@@ -96,22 +96,22 @@ end
 
 @doc raw"""
     initialize!(
-        fermion_path_integral_up::FermionPathIntegral{H,T,U,R},
-        fermion_path_integral_dn::FermionPathIntegral{H,T,U,R},
-        hst_parameters::HubbardSpinGaussHermiteHST{U}
-    ) where {H<:Number, T<:Number, U<:Number, R<:Real}
+        fermion_path_integral_up::FermionPathIntegral{H},
+        fermion_path_integral_dn::FermionPathIntegral{H},
+        hst_parameters::HubbardSpinGaussHermiteHST{T}
+    ) where {H<:Number, T<:Number}
 
 Initialize the `fermion_path_integral_up` and `fermion_path_integral_dn`
 to reflect the current Hubbard-Stratonovich field configuration stored in the
 `hst_parameters` type.
 """
 function initialize!(
-    fermion_path_integral_up::FermionPathIntegral{H,T,U,R},
-    fermion_path_integral_dn::FermionPathIntegral{H,T,U,R},
-    hst_parameters::HubbardSpinGaussHermiteHST{U}
-) where {H<:Number, T<:Number, U<:Number, R<:Real}
+    fermion_path_integral_up::FermionPathIntegral{H},
+    fermion_path_integral_dn::FermionPathIntegral{H},
+    hst_parameters::HubbardSpinGaussHermiteHST{T}
+) where {H<:Number, T<:Number}
 
-    # make sure bosonic actions match
+    @assert !((H<:Real) &&  (T<:Complex)) "Green's function matrices are real while Hubbard-Stratonovich transformation is complex."
     @assert fermion_path_integral_up.Sb == fermion_path_integral_dn.Sb "$(fermion_path_integral_up.Sb) ≠ $(fermion_path_integral_dn.Sb)"
 
     (; sites, α, s) = hst_parameters
@@ -150,7 +150,7 @@ end
         update_stabilization_frequency::Bool = true
     ) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator}
 
-Perform local updates to spin-channel Hirsch Hubbard-Stratonovich fields.
+Perform local updates to spin-channel Gauss-Hermite Hubbard-Stratonovich fields.
 This method returns a tuple containing `(acceptance_rate, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ)`.
 
 # Arguments
@@ -197,7 +197,8 @@ function local_updates!(
     @assert fermion_path_integral_up.Sb == fermion_path_integral_dn.Sb "$(fermion_path_integral_up.Sb) ≠ $(fermion_path_integral_dn.Sb)"
 
     (; Δτ, U, α, sites, s, update_perm, N) = hst_parameters
-    (; u, v) = fermion_path_integral_dn
+    u = @view fermion_path_integral_up.u[:,1]
+    v = @view fermion_path_integral_up.v[:,1]
 
     # get temporary storage matrix
     G′ = fermion_greens_calculator_up.G′
@@ -333,7 +334,7 @@ end
         rng::AbstractRNG
     ) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator}
 
-Perform a reflection update in which the sign of every spin-channel Hirsch Hubbard-Stratonovich field on a randomly chosen orbital in the lattice is changed.
+Perform a reflection update in which the sign of every spin-channel Gauss-Hermite Hubbard-Stratonovich field on a randomly chosen orbital in the lattice is changed.
 This function returns `(accepted, logdetGup, sgndetGup, logdetGdn, sgndetGdn)`.
 
 # Arguments
@@ -472,7 +473,8 @@ end
         rng::AbstractRNG
     ) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator}
 
-Perform a reflection update in which the sign of every spin-channel Hirsch Hubbard-Stratonovich field on a randomly chosen orbital in the lattice is changed.
+Perform a swap update in which the spin-channel Gauss-Hermite Hubbard-Stratonovich fields used to decouple the Hubbard interaction
+are swapped between a pair of randomly sampled orbitals in the lattice.
 This function returns `(accepted, logdetGup, sgndetGup, logdetGdn, sgndetGdn)`.
 
 # Arguments
