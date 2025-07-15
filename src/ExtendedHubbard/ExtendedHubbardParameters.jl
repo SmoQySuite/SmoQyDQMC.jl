@@ -37,12 +37,12 @@ Initialize an instance of the [`ExtendedHubbardParameters`](@ref) type.
 """
 function ExtendedHubbardParameters(;
     # KEYWORD ARGUMENTS
-    ext_hub_model::ExtendedHubbardModel{T},
+    extended_hubbard_model::ExtendedHubbardModel{T},
     model_geometry::ModelGeometry{D,T},
     rng::AbstractRNG
 ) where {D, T<:AbstractFloat}
 
-    (; V_bond_ids, V_mean, V_std, ph_sym_form) = ext_hub_model
+    (; V_bond_ids, V_mean, V_std, ph_sym_form) = extended_hubbard_model
     (; bonds, unit_cell, lattice) = model_geometry
 
     # number of unit cells in lattice
@@ -63,11 +63,11 @@ function ExtendedHubbardParameters(;
     for i in 1:n
         # iterate over unit cells
         for u in 1:N
-            V′[u,i] = V_mean[u] + randn(rng) * V_std[u]
+            V′[u,i] = V_mean[i] + randn(rng) * V_std[i]
         end
     end
 
-    return ExtendedHubbardParameters{T}(V, neighbor_table, bond_ids, ph_sym_form)
+    return ExtendedHubbardParameters{T}(V, neighbor_table, V_bond_ids, ph_sym_form)
 end
 
 
@@ -105,6 +105,18 @@ function init_renormalized_hubbard_parameters(;
     (; V, neighbor_table, bond_ids) = extended_hubbard_parameters
     (; bonds, unit_cell, lattice) = model_geometry
 
+    
+    # iterate over bonds that define extended hubbard interactions
+    for bond_id in bond_ids
+
+        # get orbital species associated with bond
+        a, b = bonds[bond_id].orbitals
+
+        # check to make sure Hubbard interaction are defined for each type of bond
+        @assert (a ∈ orbital_ids) "Hubbard interaction for ORBITAL_ID = $a needs to initialized in HubbardModel definition. Note that initialization to U = 0 is allowed."
+        @assert (b ∈ orbital_ids) "Hubbard interaction for ORBITAL_ID = $b needs to initialized in HubbardModel definition. Note that initialization to U = 0 is allowed."
+    end
+
     # number of unit cells in lattice
     N = lattice.N
 
@@ -117,36 +129,23 @@ function init_renormalized_hubbard_parameters(;
     # copy bare hubbard interaction
     Ũ = copy(U)
 
-    # reshape for convience
-    Ũ′ = reshape(Ũ, (N, n_U))
-    V′ = rehspae(V, (N, n_V))
+    # iterate over extended Hubbard interaction neighbors
+    for n in axes(neighbor_table, 2)
 
-    # iterate over types of extended Hubbard interations
-    for ext_hub_id in 1:n_V
+        # get the pair of orbitals with extended Hubbard interactions
+        i = neighbor_table[1,n]
+        j = neighbor_table[2,n]
 
-        # get bond ID associated with extended hubbard interaction
-        bond_id = bond_ids[ext_hub_id]
-
-        # get bond definition
-        bond = bonds[bond_id]
-
-        # get pair of orbital species associated with bond definition
-        a, b = bond.orbitals
-
-        # check to make sure Hubbard interaction are defined for each type of bond
-        @assert (a ∈ orbital_ids) "Hubbard interaction for ORBITAL_ID = $a needs to initialized in HubbardModel definition. Note that initialization to U = 0 is allowed."
-        @assert (b ∈ orbital_ids) "Hubbard interaction for ORBITAL_ID = $b needs to initialized in HubbardModel definition. Note that initialization to U = 0 is allowed."
-
-        # get hubbard U index associated with each orbital species
-        hubbard_id_a = findfirst(i->i==a, orbital_ids)
-        hubbard_id_b = findfirst(i->i==b, orbital_ids)
+        # get the Hubbard U index associated with each site
+        m_i = findfirst(e -> e == i, sites)
+        m_j = findfirst(e -> e == j, sites)
 
         # calculate renormalized hubbard interaction
-        @views @. Ũ′[:,hubbard_id_a] -= V′[:,ext_hub_id]
-        @views @. Ũ′[:,hubbard_id_b] -= V′[:,ext_hub_id]
+        Ũ[m_i] -= V[n]
+        Ũ[m_j] -= V[n]
     end
 
-    return HubbardParameters(Ũ, sites, orbitals, ph_sym_form)
+    return HubbardParameters(Ũ, sites, orbital_ids, ph_sym_form)
 end
 
 

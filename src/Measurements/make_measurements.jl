@@ -613,7 +613,7 @@ function make_local_measurements!(
     # measure hubbard energy for each orbital in unit cell
     ext_hub_energies = local_measurements["ext_hub_energy"]
     for ext_hub_id in eachindex(ext_hub_energies)
-        ext_hub_energies[ext_hub_id] += sgn * measure_hubbard_energy(extended_hubbard_parameters, Gup, Gdn, ext_hub_id)
+        ext_hub_energies[ext_hub_id] += sgn * measure_ext_hub_energy(extended_hubbard_parameters, Gup, Gdn, ext_hub_id)
     end
 
     return nothing

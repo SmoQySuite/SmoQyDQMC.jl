@@ -54,7 +54,7 @@ end
 @doc raw"""
     ExtHubGaussHermiteHST(;
         # KEYWORD ARGUMENTS
-        hubbard_parameters::HubbardParameters{E},
+        extended_hubbard_parameters::ExtendedHubbardParameters{E},
         β::E, Δτ::E, rng::AbstractRNG
     ) where {E<:AbstractFloat}
 
@@ -62,7 +62,7 @@ Initialize an instance of the [`ExtHubGaussHermiteHST`](@ref) type.
 """
 function ExtHubGaussHermiteHST(;
     # KEYWORD ARGUMENTS
-    extended_hubbard_parameters::HubbardParameters{E},
+    extended_hubbard_parameters::ExtendedHubbardParameters{E},
     β::E, Δτ::E, rng::AbstractRNG
 ) where {E<:AbstractFloat}
 
@@ -75,7 +75,7 @@ function ExtHubGaussHermiteHST(;
     Lτ = round(Int, β / Δτ)
 
     # calculate HS transformation coefficients
-    α = zeros(T, length(U))
+    α = zeros(T, length(V))
     @. α = sqrt(-T(V)/(2*Δτ))
 
     # number of sites with Hubbard interaction
@@ -140,7 +140,7 @@ function initialize!(
         V_j = @view V[j,:]
         @. V_i += α[n] * eval_η(s_n)
         @. V_j += α[n] * eval_η(s_n)
-        fermion_path_integral.Sb += eval_Sgh(s_i) - 2*Δτ*α[i]*sum(eval_η, s_i)
+        fermion_path_integral.Sb += eval_Sgh(s_n) - 2*Δτ*α[n]*sum(eval_η, s_n)
     end
 
     # resize u and v arrays for performing local updates
@@ -151,6 +151,50 @@ function initialize!(
     end
 
     return nothing
+end
+
+
+# calculate determinant ratio
+function eval_R(
+    G::AbstractMatrix{T}, Δ::E, i::Int, j::Int
+) where {T<:Number, E<:Number}
+
+    return (1 + Δ*(1-G[i,i])) * (1 + Δ*(1-G[j,j])) - Δ^2*G[i,j]*G[j,i]
+end
+
+# PERFORMANCE CRITICAL FUNCTION!!!
+# udpate green's function matrix.
+function update_G!(
+    G::AbstractMatrix{H}, logdetG::E, sgndetG::T,
+    B::AbstractPropagator,
+    Δ::Number, R::Number, i::Int, j::Int,
+    u::AbstractMatrix{H}, v::AbstractMatrix{H}
+) where {H<:Number, T<:Number, E<:Real}
+
+    # vector if indice pairs
+    ij = SVector(i,j)
+    # update spin-up green's function matrix
+    D = SMatrix{2,2}( 1+Δ*(1-G[j,j]) , Δ*G[j,i] , Δ*G[i,j] , 1+Δ*(1-G[i,i]) )
+    # u = G[:,(i,j)]⋅D where u is a (N×2) matrix, G[:,(i,j)] is an (N×2) matrix, and D is a (2×2) matrix
+    G_ij_columns = @view G[:,ij]
+    mul!(u, G_ij_columns, D)
+    # vᵀ = G[(i,j),:] - I[(i,j),:] where vᵀ is a (2×N) matrix, G[(i,j),:] is a (2×N) matrix, and I[(i,j),:] is a (2×N) matrix
+    G_ij_rows = @view G[ij,:]
+    vt = adjoint(v)
+    copyto!(vt, G_ij_rows)
+    vt[1,i] = vt[1,i] - 1
+    vt[2,j] = vt[2,j] - 1
+    # G = G + Δ/R⋅[u⋅vᵀ] = G + Δ/R ⋅ (G[:,(i,j)]⋅D) ⋅ (G[(i,j),:]-I[(i,j),:])
+    BLAS.gemm!('N', 'C', T(Δ/R), u, v, T(1.0), G)
+    # update the propagator matrix
+    B.expmΔτV[i] = (1 + Δ) * B.expmΔτV[i]
+    B.expmΔτV[j] = (1 + Δ) * B.expmΔτV[j]
+    # update determinant
+    invR = inv(R)
+    logdetG′ = logdetG + log(abs(invR))
+    sgndetG′ = sign(invR) * sgndetG
+
+    return logdetG′, sgndetG′
 end
 
 
@@ -176,16 +220,22 @@ This method returns a tuple containing `(acceptance_rate, logdetGup, sgndetGup, 
 
 # Arguments
 
-- `G::Matrix{H}`: Equal-time Green's function matrix.
-- `logdetG::R`: The log of the absolute value of the determinant of the equal-time Green's function matrix, ``\log \vert \det G(\tau,\tau) \vert.``
-- `sgndetG::H`: The sign/phase of the determinant of the equal-time Green's function matrix, ``\det G(\tau,\tau) / \vert \det G(\tau,\tau) \vert.``
+- `Gup::Matrix{H}`: Spin-up equal-time Green's function matrix.
+- `logdetGup::R`: The log of the absolute value of the determinant of the spin-up equal-time Green's function matrix, ``\log \vert \det G_\uparrow(\tau,\tau) \vert.``
+- `sgndetGup::H`: The sign/phase of the determinant of the spin-up equal-time Green's function matrix, ``\det G_\uparrow(\tau,\tau) / \vert \det G_\uparrow(\tau,\tau) \vert.``
+- `Gdn::Matrix{H}`: Spin-down equal-time Green's function matrix.
+- `logdetGdn::R`: The log of the absolute value of the determinant of the spin-down equal-time Green's function matrix, ``\log \vert \det G_\downarrow(\tau,\tau) \vert.``
+- `sgndetGdn::H`: The sign/phase of the determinant of the spin-down equal-time Green's function matrix, ``\det G_\downarrow(\tau,\tau) / \vert \det G_\downarrow(\tau,\tau) \vert.``
 - `hst_parameters::ExtHubGaussHermiteHST{T,R}`: Type representing Hubbard-Stratonovich transformation.
 
 ## Keyword Arguments
 
-- `fermion_path_integral::FermionPathIntegral{H}`: An instance of the [`FermionPathIntegral`](@ref).
-- `fermion_greens_calculator::FermionGreensCalculator{H}`: An instance of the [`FermionGreensCalculator`](https://smoqysuite.github.io/JDQMCFramework.jl/stable/api/#JDQMCFramework.FermionGreensCalculator) type.
-- `B::Vector{P}`: Propagators for each imaginary time slice.
+- `fermion_path_integral_up::FermionPathIntegral{H}`: An instance of the [`FermionPathIntegral`](@ref) type for spin-up electrons.
+- `fermion_path_integral_dn::FermionPathIntegral{H}`: An instance of the [`FermionPathIntegral`](@ref) type for spin-down electrons.
+- `fermion_greens_calculator_up::FermionGreensCalculator{H}`: An instance of the [`FermionGreensCalculator`](https://smoqysuite.github.io/JDQMCFramework.jl/stable/api/#JDQMCFramework.FermionGreensCalculator) type for the spin-up electrons.
+- `fermion_greens_calculator_dn::FermionGreensCalculator{H}`: An instance of the [`FermionGreensCalculator`](https://smoqysuite.github.io/JDQMCFramework.jl/stable/api/#JDQMCFramework.FermionGreensCalculator) type for the spin-down electrons.
+- `Bup::Vector{P}`: Spin-up propagators for each imaginary time slice.
+- `Bdn::Vector{P}`: Spin-dn propagators for each imaginary time slice.
 - `δG_max::R`: Maximum allowed error corrected by numerical stabilization.
 - `δG::R`: Previously recorded maximum error in the Green's function corrected by numerical stabilization.
 - `δθ::R`: Previously recorded maximum error in the sign/phase of the determinant of the equal-time Green's function matrix corrected by numerical stabilization.
@@ -211,7 +261,7 @@ function local_updates!(
     @assert !( (H<:Real) &&  (T<:Complex)) "Green's function matrices are real while Hubbard-Stratonovich transformation is complex."
     @assert fermion_path_integral_up.Sb == fermion_path_integral_dn.Sb "$(fermion_path_integral_up.Sb) ≠ $(fermion_path_integral_dn.Sb)"
 
-    (; Δτ, U, α, neighbor_table, s, update_perm, N) = hst_parameters
+    (; Δτ, α, neighbor_table, s, update_perm, N) = hst_parameters
 
     if size(fermion_path_integral_up.u,2) > 2
         u = @view fermion_path_integral_up.u[:,1:2]
@@ -251,7 +301,7 @@ function local_updates!(
         # shuffle the order in which orbitals/sites will be iterated over
         shuffle!(rng, update_perm)
 
-        # iterate over orbitals in the lattice
+        # iterate over bonds in the lattice
         for n in update_perm
 
             # get the pair of sites coupled associated with extended hubbard interaction
@@ -263,16 +313,16 @@ function local_updates!(
             # energy matrix and bosonic action
             s_nl    = s[n,l]
             η_nl    = eval_η(s_nl)
-            Sb_nl   = eval_Sgh(s_nl) - 2*Δτ*α[n]*η_il
+            Sb_nl   = eval_Sgh(s_nl) - 2*Δτ*α[n]*η_nl
             s_nl′   = sample_new_ghhsf(rng, s_nl)
             η_nl′   = eval_η(s_nl′)
-            Sb_nl′  = eval_Sgh(s_nl′) - 2*Δτ*α[i]*η_nl′
+            Sb_nl′  = eval_Sgh(s_nl′) - 2*Δτ*α[n]*η_nl′
             ΔV_nl   = (+α[n] * η_nl′) - (+α[n] * η_nl)
 
-            # Note that Δ_il = exp(-Δτ[V_il(s′) - V_il(s)]) and Δ_jl = exp(-Δτ[V_jl(s′) - V_jl(s)])
+            # Note that Δ_il = exp(-Δτ[V_il(s′) - V_il(s)]) - 1 and Δ_jl = exp(-Δτ[V_jl(s′) - V_jl(s)]) - 1
             # are equal because we are coupling to a density channel, and there we say that
             # Δ_nl = Δ_il = Δ_jl where n labels the bond connecting sites i and j
-            Δ_nl = exp(-ΔV_nl) - 1
+            Δ_nl = exp(-Δτ*ΔV_nl) - 1
 
             # calculate the determinant ratio for each spin species
             Rup_nl = eval_R(Gup, Δ_nl, i, j)
@@ -282,16 +332,16 @@ function local_updates!(
             ΔSb = Sb_nl′ - Sb_nl
 
             # calculate acceptance probability
-            P_il = abs(exp(-ΔSb) * Rup_nl * Rdn_nl)
+            P_nl = abs(exp(-ΔSb) * Rup_nl * Rdn_nl)
 
             # accept or reject proposed update
-            if rand(rng) < P_il
+            if rand(rng) < P_nl
 
                 # increment the cound of accepted spin flips
                 accepted_spin_flips += 1
 
                 # update HS field
-                s[i,l] = s_il′
+                s[n,l] = s_nl′
 
                 # update diagonal on-site energy matrix
                 Vup[i,l] += ΔV_nl
@@ -304,8 +354,8 @@ function local_updates!(
                 fermion_path_integral_dn.Sb += ΔSb
 
                 # update spin-up green's function matrix
-                logdetGup, sgndetGup = update_G!(Gup, logdetGup, sgndetGup, Δ_nl, Rup_nl, i, j, u, v)
-                logdetGdn, sgndetGdn = update_G!(Gdn, logdetGup, sgndetGup, Δ_nl, Rdn_nl, i, j, u, v)
+                logdetGup, sgndetGup = update_G!(Gup, logdetGup, sgndetGup, Bup_l, Δ_nl, Rup_nl, i, j, u, v)
+                logdetGdn, sgndetGdn = update_G!(Gdn, logdetGdn, sgndetGdn, Bdn_l, Δ_nl, Rdn_nl, i, j, u, v)
             end
         end
 
@@ -352,7 +402,7 @@ end
         # KEYWORD ARGUMENTS
         fermion_path_integral::FermionPathIntegral{H},
         fermion_greens_calculator::FermionGreensCalculator{H},
-        Bup::Vector{P}, δG::R, δθ::R,  rng::AbstractRNG,
+        B::Vector{P}, δG::R, δθ::R,  rng::AbstractRNG,
         δG_max::R = 1e-6, update_stabilization_frequency::Bool = true
     ) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator}
 
@@ -384,14 +434,14 @@ function local_updates!(
     # KEYWORD ARGUMENTS
     fermion_path_integral::FermionPathIntegral{H},
     fermion_greens_calculator::FermionGreensCalculator{H},
-    Bup::Vector{P}, δG::R, δθ::R,  rng::AbstractRNG,
+    B::Vector{P}, δG::R, δθ::R,  rng::AbstractRNG,
     δG_max::R = 1e-6, update_stabilization_frequency::Bool = true
 ) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator}
 
     @assert !( (H<:Real) &&  (T<:Complex)) "Green's function matrices are real while Hubbard-Stratonovich transformation is complex."
-    (; Δτ, U, α, neighbor_table, s, update_perm, N) = hst_parameters
+    (; Δτ, α, neighbor_table, s, update_perm, N) = hst_parameters
     
-    if size(fermion_path_integral_up.u,2) > 2
+    if size(fermion_path_integral.u,2) > 2
         u = @view fermion_path_integral.u[:,1:2]
         v = @view fermion_path_integral.v[:,1:2]
     else
@@ -424,7 +474,7 @@ function local_updates!(
         # shuffle the order in which orbitals/sites will be iterated over
         shuffle!(rng, update_perm)
 
-        # iterate over orbitals in the lattice
+        # iterate over bonds in the lattice
         for n in update_perm
 
             # get the pair of sites coupled associated with extended hubbard interaction
@@ -436,16 +486,16 @@ function local_updates!(
             # energy matrix and bosonic action
             s_nl    = s[n,l]
             η_nl    = eval_η(s_nl)
-            Sb_nl   = eval_Sgh(s_nl) - 2*Δτ*α[n]*η_il
+            Sb_nl   = eval_Sgh(s_nl) - 2*Δτ*α[n]*η_nl
             s_nl′   = sample_new_ghhsf(rng, s_nl)
             η_nl′   = eval_η(s_nl′)
-            Sb_nl′  = eval_Sgh(s_nl′) - 2*Δτ*α[i]*η_nl′
+            Sb_nl′  = eval_Sgh(s_nl′) - 2*Δτ*α[n]*η_nl′
             ΔV_nl   = (+α[n] * η_nl′) - (+α[n] * η_nl)
 
             # Note that Δ_il = exp(-Δτ[V_il(s′) - V_il(s)]) and Δ_jl = exp(-Δτ[V_jl(s′) - V_jl(s)])
             # are equal because we are coupling to a density channel, and there we say that
             # Δ_nl = Δ_il = Δ_jl where n labels the bond connecting sites i and j
-            Δ_nl = exp(-ΔV_nl) - 1
+            Δ_nl = exp(-Δτ*ΔV_nl) - 1
 
             # calculate the determinant ratio for each spin species
             R_nl = eval_R(G, Δ_nl, i, j)
@@ -454,16 +504,16 @@ function local_updates!(
             ΔSb = Sb_nl′ - Sb_nl
 
             # calculate acceptance probability
-            P_il = abs(exp(-ΔSb) * R_nl^2)
+            P_nl = abs(exp(-ΔSb) * R_nl^2)
 
             # accept or reject proposed update
-            if rand(rng) < P_il
+            if rand(rng) < P_nl
 
                 # increment the cound of accepted spin flips
                 accepted_spin_flips += 1
 
                 # update HS field
-                s[i,l] = s_il′
+                s[n,l] = s_nl′
 
                 # update diagonal on-site energy matrix
                 V[i,l] += ΔV_nl
@@ -473,7 +523,7 @@ function local_updates!(
                 fermion_path_integral.Sb += ΔSb
 
                 # update spin-up green's function matrix
-                logdetG, sgndetG = update_G!(G, logdetG, sgndetG, Δ_nl, R_nl, i, j, u, v)
+                logdetG, sgndetG = update_G!(G, logdetG, sgndetG, B_l, Δ_nl, R_nl, i, j, u, v)
             end
         end
 
@@ -499,39 +549,6 @@ function local_updates!(
     acceptance_rate = accepted_spin_flips / length(s)
 
     return (acceptance_rate, logdetG, sgndetG, δG, δθ)
-end
-
-# calculate determinant ratio
-function eval_R(G, Δ, i, j)
-
-    return (1 + Δ*(1-G[i,i])) * (1 + Δ*(1-G[j,j])) - Δ^2*G[i,j]*G[j,i]
-end
-
-# PERFORMANCE CRITICAL FUNCTION!!!
-# udpate green's function matrix.
-function update_G!(G, logdetG, sgndetG, Δ, R, i, j, u, v)
-
-    # vector if indice pairs
-    ij = SVector(i,j)
-    # update spin-up green's function matrix
-    D = SMatrix{2,2}( 1+Δ*(1-G[i,i]) , Δ*G[j,i] , Δ*G[i,j] , 1+Δ*(1-G[j,j]) )
-    # vᵀ = G[(i,j),:] - I[(i,j),:] where vᵀ is a (2×N) matrix, G[(i,j),:] is a (2×N) matrix, and I[(i,j),:] is a (2×N) matrix
-    G_ij_rows = @view G[ij,:]
-    vt = adjoint(v)
-    copyto(vt, G_ij_rows)
-    vt[1,i] = vt[1,j] - 1
-    vt[2,j] = vt[2,j] - 1
-    # u = G[:,(i,j)]⋅D where u is a (N×2) matrix, G[:,(i,j)] is an (N×2) matrix, and D is a (2×2) matrix
-    G_ij_columns = @view G[:,ij]
-    mul!(u, G_ij_columns, D)
-    # G = G + Δ/R⋅[u⋅vᵀ] = G + Δ/R ⋅ (G[:,(i,j)]⋅D) ⋅ (G[(i,j),:]-I[(i,j),:])
-    BLAS.gemm!('N', 'C', Δ/R, u, v, 1.0, G)
-    # update determinant
-    invR = inv(R)
-    logdetG′ = logdetG + log(abs(invR))
-    sgndetG′ = sign(invR) * sgndetG
-
-    return logdetG′, sgndetG′
 end
 
 
@@ -707,7 +724,7 @@ end
         fermion_path_integral::FermionPathIntegral{H},
         fermion_greens_calculator::FermionGreensCalculator{H,R},
         fermion_greens_calculator_alt::FermionGreensCalculator{H,R},
-        Bup::Vector{P}, rng::AbstractRNG
+        B::Vector{P}, rng::AbstractRNG
     ) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator}
 
 Perform a reflection update in which the sign of every density-channel Gauss-Hermite Hubbard-Stratonovich field used to decouple the
@@ -737,7 +754,7 @@ function reflection_update!(
     fermion_path_integral::FermionPathIntegral{H},
     fermion_greens_calculator::FermionGreensCalculator{H,R},
     fermion_greens_calculator_alt::FermionGreensCalculator{H,R},
-    Bup::Vector{P}, rng::AbstractRNG
+    B::Vector{P}, rng::AbstractRNG
 ) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator}
 
     (; Δτ, α, neighbor_table, s, N) = hst_parameters
@@ -928,14 +945,14 @@ function swap_update!(
     ΔSb = Sb′ - Sb
 
     # update potential energy matrices
-    @. Vup_i_n += (+α[i_n]*eval_η(s_n)) - (+α[i_n]*eval_η(s_m))
-    @. Vup_j_n += (+α[j_n]*eval_η(s_n)) - (+α[j_n]*eval_η(s_m))
-    @. Vdn_i_n += (+α[i_n]*eval_η(s_n)) - (+α[i_n]*eval_η(s_m))
-    @. Vdn_j_n += (+α[j_n]*eval_η(s_n)) - (+α[j_n]*eval_η(s_m))
-    @. Vup_i_m += (+α[i_m]*eval_η(s_m)) - (+α[i_m]*eval_η(s_n))
-    @. Vup_j_m += (+α[j_m]*eval_η(s_m)) - (+α[j_m]*eval_η(s_n))
-    @. Vdn_i_m += (+α[i_m]*eval_η(s_m)) - (+α[i_m]*eval_η(s_n))
-    @. Vdn_j_m += (+α[j_m]*eval_η(s_m)) - (+α[j_m]*eval_η(s_n))
+    @. Vup_i_n += (+α[n]*eval_η(s_n)) - (+α[n]*eval_η(s_m))
+    @. Vup_j_n += (+α[n]*eval_η(s_n)) - (+α[n]*eval_η(s_m))
+    @. Vdn_i_n += (+α[n]*eval_η(s_n)) - (+α[n]*eval_η(s_m))
+    @. Vdn_j_n += (+α[n]*eval_η(s_n)) - (+α[n]*eval_η(s_m))
+    @. Vup_i_m += (+α[m]*eval_η(s_m)) - (+α[m]*eval_η(s_n))
+    @. Vup_j_m += (+α[m]*eval_η(s_m)) - (+α[m]*eval_η(s_n))
+    @. Vdn_i_m += (+α[m]*eval_η(s_m)) - (+α[m]*eval_η(s_n))
+    @. Vdn_j_m += (+α[m]*eval_η(s_m)) - (+α[m]*eval_η(s_n))
 
 
     # update propagator matrices
@@ -980,14 +997,14 @@ function swap_update!(
         # flip HS fields back
         swap!(s_n, s_m)
         # revert diagonal on-site energy matrix
-        @. Vup_i_n += (+α[i_n]*eval_η(s_n)) - (+α[i_n]*eval_η(s_m))
-        @. Vup_j_n += (+α[j_n]*eval_η(s_n)) - (+α[j_n]*eval_η(s_m))
-        @. Vdn_i_n += (+α[i_n]*eval_η(s_n)) - (+α[i_n]*eval_η(s_m))
-        @. Vdn_j_n += (+α[j_n]*eval_η(s_n)) - (+α[j_n]*eval_η(s_m))
-        @. Vup_i_m += (+α[i_m]*eval_η(s_m)) - (+α[i_m]*eval_η(s_n))
-        @. Vup_j_m += (+α[j_m]*eval_η(s_m)) - (+α[j_m]*eval_η(s_n))
-        @. Vdn_i_m += (+α[i_m]*eval_η(s_m)) - (+α[i_m]*eval_η(s_n))
-        @. Vdn_j_m += (+α[j_m]*eval_η(s_m)) - (+α[j_m]*eval_η(s_n))
+        @. Vup_i_n += (+α[n]*eval_η(s_n)) - (+α[n]*eval_η(s_m))
+        @. Vup_j_n += (+α[n]*eval_η(s_n)) - (+α[n]*eval_η(s_m))
+        @. Vdn_i_n += (+α[n]*eval_η(s_n)) - (+α[n]*eval_η(s_m))
+        @. Vdn_j_n += (+α[n]*eval_η(s_n)) - (+α[n]*eval_η(s_m))
+        @. Vup_i_m += (+α[m]*eval_η(s_m)) - (+α[m]*eval_η(s_n))
+        @. Vup_j_m += (+α[m]*eval_η(s_m)) - (+α[m]*eval_η(s_n))
+        @. Vdn_i_m += (+α[m]*eval_η(s_m)) - (+α[m]*eval_η(s_n))
+        @. Vdn_j_m += (+α[m]*eval_η(s_m)) - (+α[m]*eval_η(s_n))
         # revert propagator matrices
         @inbounds for l in eachindex(Bup)
             expmΔτVup_l = Bup[l].expmΔτV
@@ -1052,7 +1069,7 @@ function swap_update!(
 ) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator}
 
     (; Δτ, α, neighbor_table, s, N) = hst_parameters
-    G′ = fermion_greens_calculator_up_alt.G′
+    G′ = fermion_greens_calculator_alt.G′
 
     # make sure stabilization frequencies match
     if fermion_greens_calculator.n_stab != fermion_greens_calculator_alt.n_stab
@@ -1090,10 +1107,10 @@ function swap_update!(
     ΔSb = Sb′ - Sb
 
     # update potential energy matrices
-    @. V_i_n += (+α[i_n]*eval_η(s_n)) - (+α[i_n]*eval_η(s_m))
-    @. V_j_n += (+α[j_n]*eval_η(s_n)) - (+α[j_n]*eval_η(s_m))
-    @. V_i_m += (+α[i_m]*eval_η(s_m)) - (+α[i_m]*eval_η(s_n))
-    @. V_j_m += (+α[j_m]*eval_η(s_m)) - (+α[j_m]*eval_η(s_n))
+    @. V_i_n += (+α[n]*eval_η(s_n)) - (+α[n]*eval_η(s_m))
+    @. V_j_n += (+α[n]*eval_η(s_n)) - (+α[n]*eval_η(s_m))
+    @. V_i_m += (+α[m]*eval_η(s_m)) - (+α[m]*eval_η(s_n))
+    @. V_j_m += (+α[m]*eval_η(s_m)) - (+α[m]*eval_η(s_n))
 
 
     # update propagator matrices
@@ -1127,10 +1144,10 @@ function swap_update!(
         # flip HS fields back
         swap!(s_n, s_m)
         # revert diagonal on-site energy matrix
-        @. V_i_n += (+α[i_n]*eval_η(s_n)) - (+α[i_n]*eval_η(s_m))
-        @. V_j_n += (+α[j_n]*eval_η(s_n)) - (+α[j_n]*eval_η(s_m))
-        @. V_i_m += (+α[i_m]*eval_η(s_m)) - (+α[i_m]*eval_η(s_n))
-        @. V_j_m += (+α[j_m]*eval_η(s_m)) - (+α[j_m]*eval_η(s_n))
+        @. V_i_n += (+α[n]*eval_η(s_n)) - (+α[n]*eval_η(s_m))
+        @. V_j_n += (+α[n]*eval_η(s_n)) - (+α[n]*eval_η(s_m))
+        @. V_i_m += (+α[m]*eval_η(s_m)) - (+α[m]*eval_η(s_n))
+        @. V_j_m += (+α[m]*eval_η(s_m)) - (+α[m]*eval_η(s_n))
         # revert propagator matrices
         @inbounds for l in eachindex(B)
             expmΔτV_l = B[l].expmΔτV

@@ -51,27 +51,27 @@ end
 @doc raw"""
     ExtendedHubbardModel(;
         # KEYWORD ARGUMENTS
+        model_geometry::ModelGeometry{D,T},
         ph_sym_form::Bool,
-        V_bonds::Vector{Bond{D}},
+        V_bond::Vector{Bond{D}},
         V_mean::Vector{T},
-        V_std::Vector{T},
-        model_geometry::ModelGeometry{D,T}
+        V_std::Vector{T} = zero(V_mean)
     ) where {T<:AbstractFloat, D}
 
 Initialize and return an instance of the type [`ExtendedHubbardModel`](@ref).
 """
 function ExtendedHubbardModel(;
     # KEYWORD ARGUMENTS
+    model_geometry::ModelGeometry{D,T},
     ph_sym_form::Bool,
-    V_bonds::Vector{Bond{D}},
+    V_bond::Vector{Bond{D}},
     V_mean::Vector{T},
-    V_std::Vector{T},
-    model_geometry::ModelGeometry{D,T}
+    V_std::Vector{T} = zero(V_mean)
 ) where {T<:AbstractFloat, D}
 
-    V_bonds_ids = [add_bond!(bond, model_geometry) for bond in V_bonds]
+    V_bond_ids = [add_bond!(model_geometry, bond) for bond in V_bond]
 
-    return ExtendedHubbardModel{T,D}(ph_sym_form, V_bonds_ids, V_mean, V_std)
+    return ExtendedHubbardModel{T}(ph_sym_form, V_bond_ids, V_mean, V_std)
 end
 
 # show struct info as TOML formatted string

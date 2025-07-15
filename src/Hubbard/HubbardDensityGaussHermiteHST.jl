@@ -130,7 +130,7 @@ function initialize!(
     hst_parameters::HubbardDensityGaussHermiteHST{T},
 ) where {H<:Number, T<:Number}
 
-    @assert !( (H<:Real) &&  (T<:Complex)) "Green's function matrices are real while Hubbard-Stratonovich transformation is complex."
+    @assert !( (H<:Real) &&  (T<:Complex)) "Green's function matrices are real while HubbardDensityGaussHermiteHST is complex."
 
     (; sites, α, s, Δτ) = hst_parameters
     V = fermion_path_integral.V

@@ -77,7 +77,7 @@ function Base.show(io::IO, ::MIME"text/plain", hm::HubbardModel)
     (; U_orbital_ids, U_mean, U_std, ph_sym_form) = hm
 
     @printf io "[HubbardModel]\n\n"
-    @printf io "HUBBARD_IDS = %s\n" string(collect(1:U_orbital_ids))
+    @printf io "HUBBARD_IDS = %s\n" string(collect(1:length(U_orbital_ids)))
     @printf io "ORBITAL_IDS = %s\n" string(U_orbital_ids)
     @printf io "U_mean      = %s\n" string(round.(U_mean, digits=6))
     @printf io "U_std       = %s\n" string(round.(U_std, digits=6))
@@ -163,7 +163,7 @@ function HubbardParameters(;
         end
     end
 
-    return HubbardParameters(U, sites, U_orbital_ids, ph_sym_form, N_orbitals)
+    return HubbardParameters(U, sites, U_orbital_ids, ph_sym_form)
 end
 
 

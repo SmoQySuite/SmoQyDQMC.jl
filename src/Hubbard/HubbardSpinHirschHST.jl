@@ -105,7 +105,7 @@ function initialize!(
     hst_parameters::HubbardSpinHirschHST{T}
 ) where {H<:Number, T<:Number}
 
-    @assert !((H<:Real) &&  (T<:Complex)) "Green's function matrices are real while Hubbard-Stratonovich transformation is complex."
+    @assert !((H<:Real) &&  (T<:Complex)) "Green's function matrices are real while HubbardSpinHirschHST is complex."
     @assert fermion_path_integral_up.Sb == fermion_path_integral_dn.Sb "$(fermion_path_integral_up.Sb) ≠ $(fermion_path_integral_dn.Sb)"
 
     (; sites, α, s) = hst_parameters
