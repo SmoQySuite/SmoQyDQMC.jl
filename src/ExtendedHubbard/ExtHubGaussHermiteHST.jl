@@ -322,7 +322,7 @@ function local_updates!(
             # Note that Δ_il = exp(-Δτ[V_il(s′) - V_il(s)]) - 1 and Δ_jl = exp(-Δτ[V_jl(s′) - V_jl(s)]) - 1
             # are equal because we are coupling to a density channel, and there we say that
             # Δ_nl = Δ_il = Δ_jl where n labels the bond connecting sites i and j
-            Δ_nl = exp(-Δτ*ΔV_nl) - 1
+            Δ_nl = expm1(-Δτ*ΔV_nl)
 
             # calculate the determinant ratio for each spin species
             Rup_nl = eval_R(Gup, Δ_nl, i, j)
