@@ -161,7 +161,6 @@ ExtendedHubbardModel(;)
 ExtendedHubbardParameters
 ExtendedHubbardParameters(;)
 initialize!(::FermionPathIntegral, ::FermionPathIntegral, ::ExtendedHubbardParameters)
-init_renormalized_hubbard_parameters
 ```
 
 ### Extended Hubbard Model Measurements
@@ -173,15 +172,16 @@ measure_ext_hub_energy
 ### Extended Hubbard Gauss-Hermite Hubbard-Stratonovich Transformation
 
 ```@docs
-ExtHubGaussHermiteHST
-ExtHubGaussHermiteHST(;)
-initialize!(::FermionPathIntegral{H}, ::FermionPathIntegral{H}, ::ExtHubGaussHermiteHST{T}) where {H<:Number, T<:Number}
-local_updates!(::Matrix{H}, ::R, ::H, ::Matrix{H}, ::R, ::H, ::ExtHubGaussHermiteHST{T,R}) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator}
-local_updates!(::Matrix{H}, ::R, ::H, ::ExtHubGaussHermiteHST{T,R};) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator}
-reflection_update!(::Matrix{H}, ::R, ::H, ::Matrix{H}, ::R, ::H, ::ExtHubGaussHermiteHST{T,R}) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator}
-reflection_update!(::Matrix{H}, ::R, ::H,::ExtHubGaussHermiteHST{T,R}) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator}
-swap_update!(::Matrix{H}, ::R, ::H,::Matrix{H}, ::R, ::H, ::ExtHubGaussHermiteHST{T,R}) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator}
-swap_update!(::Matrix{H}, ::R, ::H, ::ExtHubGaussHermiteHST{T,R}) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator}
+ExtHubDensityGaussHermiteHST
+ExtHubDensityGaussHermiteHST(;)
+init_renormalized_hubbard_parameters
+initialize!(::FermionPathIntegral{H}, ::FermionPathIntegral{H}, ::ExtHubDensityGaussHermiteHST{T}) where {H<:Number, T<:Number}
+local_updates!(::Matrix{H}, ::R, ::H, ::Matrix{H}, ::R, ::H, ::ExtHubDensityGaussHermiteHST{T,R}) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator}
+local_updates!(::Matrix{H}, ::R, ::H, ::ExtHubDensityGaussHermiteHST{T,R};) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator}
+reflection_update!(::Matrix{H}, ::R, ::H, ::Matrix{H}, ::R, ::H, ::ExtHubDensityGaussHermiteHST{T,R}) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator}
+reflection_update!(::Matrix{H}, ::R, ::H,::ExtHubDensityGaussHermiteHST{T,R}) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator}
+swap_update!(::Matrix{H}, ::R, ::H,::Matrix{H}, ::R, ::H, ::ExtHubDensityGaussHermiteHST{T,R}) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator}
+swap_update!(::Matrix{H}, ::R, ::H, ::ExtHubDensityGaussHermiteHST{T,R}) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator}
 ```
 
 ## Electron-Phonon Model

@@ -2,9 +2,9 @@
 EditURL = "../../../tutorials/holstein_honeycomb_density_tuning.jl"
 ```
 
+# 2d) Honeycomb Holstein Model with Density Tuning
 Download this example as a [Julia script](../assets/scripts/tutorials/holstein_honeycomb_density_tuning.jl).
 
-# 2d) Honeycomb Holstein Model with Density Tuning
 In this example we demonstrate how to introduce chemical potential and density tuning to the previous
 [2c) Honeycomb Holstein Model with Checkpointing](@ref) tutorial.
 Specifically, we show how to use the algorithm introduced in

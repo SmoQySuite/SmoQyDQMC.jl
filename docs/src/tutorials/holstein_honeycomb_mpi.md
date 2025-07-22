@@ -2,9 +2,8 @@
 EditURL = "../../../tutorials/holstein_honeycomb_mpi.jl"
 ```
 
-Download this example as a [Julia script](../assets/scripts/tutorials/holstein_honeycomb_mpi.jl).
-
 # 2b) Honeycomb Holstein Model with MPI Parallelization
+Download this example as a [Julia script](../assets/scripts/tutorials/holstein_honeycomb_mpi.jl).
 
 ## Import packages
 We now need to import the [MPI.jl](https://github.com/JuliaParallel/MPI.jl.git) package as well.

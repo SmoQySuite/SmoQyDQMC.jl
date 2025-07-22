@@ -2,9 +2,8 @@
 EditURL = "../../../tutorials/hubbard_square_mpi.jl"
 ```
 
-Download this example as a [Julia script](../assets/scripts/tutorials/hubbard_square_mpi.jl).
-
 # 1b) Square Hubbard Model with MPI Parallelization
+Download this example as a [Julia script](../assets/scripts/tutorials/hubbard_square_mpi.jl).
 
 This tutorial will build on the previous [1a) Square Hubbard Model](@ref) tutorial, demonstrating
 how to add parallelization with MPI using the [MPI.jl](https://github.com/JuliaParallel/MPI.jl.git) package.

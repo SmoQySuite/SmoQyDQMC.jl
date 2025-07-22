@@ -2,9 +2,8 @@
 EditURL = "../../../tutorials/holstein_honeycomb.jl"
 ```
 
-Download this example as a [Julia script](../assets/scripts/tutorials/holstein_honeycomb.jl).
-
 # 2a) Honeycomb Holstein Model
+Download this example as a [Julia script](../assets/scripts/tutorials/holstein_honeycomb.jl).
 
 In this example we will work through simulating the Holstein model on a honeycomb lattice.
 The Holstein Hamiltonian is given by

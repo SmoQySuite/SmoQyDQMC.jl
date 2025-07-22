@@ -4,48 +4,29 @@
         simulation_info::SimulationInfo
     )
 
-    merge_bins(;
-        # KEYWORD ARGUMENTS
-        datafolder::String,
-        pID::Int
-    )
-
-Merge the seperate HDF5 files contained the binned measurements into a single HDF5.
+Merge the seperate HDF5 files containing the binned measurements into a single HDF5 file.
+This is true even if the HDF5 "files" containing the binned data were [held in memory](https://juliaio.github.io/HDF5.jl/stable/#In-memory-HDF5-files)
+during the simulation (`simulation_info.write_bins_concurrent = false`) instead of being actively written to file
+during the simulation (`simulation_info.write_bins_concurrent = true`).
 """
 function merge_bins(
     # ARGUMENTS
     simulation_info::SimulationInfo
 )
 
-    (; datafolder, pID) = simulation_info
-    merge_bins(
-        datafolder = datafolder,
-        pID = pID
-    )
-
-    return nothing
-end
-
-function merge_bins(;
-    # KEYWORD ARGUMENTS
-    datafolder::String,
-    pID::Int
-)
+    (; bin_files, write_bins_concurrent, datafolder, pID) = simulation_info
 
     # get the directory containing the HDF5 bin files
     binfolder = joinpath(datafolder, "bins")
 
-    # get the directory containing the HDF5 bin files for current pID
-    pID_binfolder = joinpath(binfolder, "pID-$pID")
+    # construct filename for the merged HDF5 file
+    filename = joinpath(binfolder, "bins_pID-$(pID).h5")
 
-    # check HDF5 files still need to be merged
-    if isdir(pID_binfolder)
-
-        # construct filename for the merged HDF5 file
-        filename = joinpath(binfolder, "bins_pID-$(pID).h5")
+    # check HDF5 files still needs to be merged
+    if !isfile(filename)
         
         # count the number of bins
-        N_bins = length(readdir(pID_binfolder))
+        N_bins = length(bin_files)
 
         # open new HDF5 file to contain all the binned data
         h5open(filename, "w") do fout
@@ -53,30 +34,37 @@ function merge_bins(;
             fout["pID"] = pID
             # Record the number of bins
             fout["N_BINS"] = N_bins
-            # open first bin file
-            h5open(joinpath(pID_binfolder, "bin-1.h5"), "r") do fin
-                # initialize/allocate HDF5 file to contain all binned data
-                init_hdf5_bins_file(fout, fin, N_bins)
-                # copy contents of first bin file over
-                copyto_hdf5_bin(fout, fin, 1)
-                # record inverse temperature and system size
-                fout["BETA"] = read(fin["BETA"])
-                fout["N_ORBITALS"] = read(fin["N_ORBITALS"])
-            end
+            # open first HDF5 bin file
+            fin = write_bins_concurrent ? h5open(String(bin_files[1]), "r") : h5open(bin_files[1], "r"; name = "in_mem_bin.h5")
+            # initialize/allocate HDF5 file to contain all binned data
+            init_hdf5_bins_file(fout, fin, N_bins)
+            # copy contents of first bin file over
+            copyto_hdf5_bin(fout, fin, 1)
+            # record inverse temperature and system size
+            fout["BETA"] = read(fin["BETA"])
+            fout["N_ORBITALS"] = read(fin["N_ORBITALS"])
+            # close first HDF5 bin file
+            close(fin)
             # iterate over remaining bin files
             for bin in 2:N_bins
-                # construct bin files
-                binfile = @sprintf "bin-%d.h5" bin
                 # open HDF5 bin file
-                h5open(joinpath(pID_binfolder, binfile), "r") do fin
-                    # copy contents of first bin file over
-                    copyto_hdf5_bin(fout, fin, bin)
-                end
+                fin = write_bins_concurrent ? h5open(String(bin_files[bin]), "r") : h5open(bin_files[bin], "r"; name = "in_mem_bin.h5")
+                # copy contents of first bin file over
+                copyto_hdf5_bin(fout, fin, bin)
+                # close HDF5 bin file
+                close(fin)
             end
         end
 
-        # delete pID bin folder
-        rm(pID_binfolder, recursive = true)
+        # if HDF5 bin files were written during the simulation
+        if write_bins_concurrent
+
+            # get the directory containing the HDF5 bin files for current pID
+            pID_binfolder = joinpath(binfolder, "pID-$pID")
+
+            # delete pID bin folder
+            rm(pID_binfolder, recursive = true)
+        end
     end
 
     return nothing

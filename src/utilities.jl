@@ -10,6 +10,7 @@ function swap!(a::AbstractArray{T}, b::AbstractArray{T}) where {T}
     return nothing
 end
 
+# if x = 0 then return 1, otherwise just return sign(x)
 sign_or_0to1(x::T) where {T<:Number} = iszero(x) ? one(T) : sign(x)
 
 # default bosonic action evaluation method

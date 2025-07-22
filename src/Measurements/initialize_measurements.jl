@@ -501,7 +501,8 @@ On the other hand, if `id_pairs` is passed and `ids = nothing`, then the composi
                          & = \frac{1}{N}\sum_{n}\sum_{\mathbf{i}}c_{n}\langle\hat{O}_{\mathbf{i}+\mathbf{r},\eta_{n}}^{\dagger}(\tau)\hat{O}_{\mathbf{i},\nu_{n}}^{\phantom{\dagger}}(0)\rangle,
 \end{align*}
 ```
-where the ``n`` index runs over pairs the pairs of labels/IDs ``(\eta_n,\nu_n)`` specified by the `id_pairs` keyword argument.
+where the ``n`` index runs over pairs of labels/IDs ``(\nu_n, \eta_n)`` specified by the `id_pairs` keyword argument.
+Note that the order of the label/ID pair ``(\nu_n, \eta_n)`` reflects how each tuple in the `id_pairs` vector will be interpreted.
 Once again, operator type ``\hat{O}^{\nu_n}`` and corresponding correlation function type ``C_{\mathbf{r}}^{\eta_n,\nu_n}(\tau)`` are specified by the `correlation` keyword.
 The corresponding fourier transform of this composite correlation function measurement is given by
 ```math

@@ -1,5 +1,5 @@
 @doc raw"""
-    ExtHubGaussHermiteHST{T<:Number, E<:AbstractFloat}
+    ExtHubDensityGaussHermiteHST{T<:Number, E<:AbstractFloat}
 
 This type represents a Hubbard-Stratonovich (HS) transformation for decoupling the extended Hubbard interaction,
 where the introduced HS fields take on the four discrete values ``s \in \{ -2, -1, +1, +2 \}.``
@@ -20,7 +20,7 @@ and
 ```
 Note that ``\alpha`` is strictly real when ``V \le 0`` and strictly imaginary when ``V > 0``.
 """
-struct ExtHubGaussHermiteHST{T<:Number, E<:AbstractFloat}
+struct ExtHubDensityGaussHermiteHST{T<:Number, E<:AbstractFloat}
 
     # inverse temperature
     β::E
@@ -48,25 +48,31 @@ struct ExtHubGaussHermiteHST{T<:Number, E<:AbstractFloat}
 
     # order in which to iterate over orbitals when updating Hubbard-Stratonovich fields.
     update_perm::Vector{Int}
+
+    # record the bond ID types associated with extended hubbard interactions
+    bond_ids::Vector{Int}
+
+    # whether particle-hole symmetric form for extended Hubbard interaction was used
+    ph_sym_form::Bool
 end
 
 
 @doc raw"""
-    ExtHubGaussHermiteHST(;
+    ExtHubDensityGaussHermiteHST(;
         # KEYWORD ARGUMENTS
         extended_hubbard_parameters::ExtendedHubbardParameters{E},
         β::E, Δτ::E, rng::AbstractRNG
     ) where {E<:AbstractFloat}
 
-Initialize an instance of the [`ExtHubGaussHermiteHST`](@ref) type.
+Initialize an instance of the [`ExtHubDensityGaussHermiteHST`](@ref) type.
 """
-function ExtHubGaussHermiteHST(;
+function ExtHubDensityGaussHermiteHST(;
     # KEYWORD ARGUMENTS
     extended_hubbard_parameters::ExtendedHubbardParameters{E},
     β::E, Δτ::E, rng::AbstractRNG
 ) where {E<:AbstractFloat}
 
-    (; V, neighbor_table) = extended_hubbard_parameters
+    (; V, neighbor_table, bond_ids, ph_sym_form) = extended_hubbard_parameters
 
     # if any attractive Hubbard interactions, then complex field coefficients
     T = any(v -> v > 0, V) ? Complex{E} : E
@@ -87,7 +93,85 @@ function ExtHubGaussHermiteHST(;
     # initialize update permuation order
     update_perm = collect(1:N)
 
-    return ExtHubGaussHermiteHST{T,E}(β, Δτ, Lτ, N, V, α, neighbor_table, s, update_perm)
+    return ExtHubDensityGaussHermiteHST{T,E}(β, Δτ, Lτ, N, V, α, neighbor_table, s, update_perm, bond_ids, ph_sym_form)
+end
+
+
+@doc raw"""
+    init_renormalized_hubbard_parameters(;
+        # KEYWORD ARGUMENTS
+        hubbard_parameters::HubbardParameters{E},
+        hst_parameters::ExtHubDensityGaussHermiteHST{T,E},
+        model_geometry::ModelGeometry{D,E}
+    ) where {D, T<:Number, E<:AbstractFloat}
+
+Returns a new instance of the [`HubbardParameters`](@ref) type with the Hubbard interactions renormalized
+based on the [`ExtHubDensityGaussHermiteHST`](@ref) definition. Refer to the definition of the
+[`ExtendedHubbardModel`](@ref) to see where this renormalization of the local Hubbard interaction comes from.
+
+Note that either both the local and extended Hubbard interactions need to be initialized using the particle-hole
+symmetric or asymmetric form for the interaction (as specified by `ph_sym_form` keyword argument), and cannot use opposite conventions.
+Additionally, the [`HubbardModel`](@ref) defintion used to create the `hubbard_parameters` instance of the [`HubbardParameters`](@ref)
+passed to this function must initialize a Hubbard interaction on each type of orbital species/ID appearing
+in an extended Hubbard interaction, even if this means initializing the local Hubbard interaction to ``U = 0``.
+"""
+function init_renormalized_hubbard_parameters(;
+    # KEYWORD ARGUMENTS
+    hubbard_parameters::HubbardParameters{E},
+    hst_parameters::ExtHubDensityGaussHermiteHST{T,E},
+    model_geometry::ModelGeometry{D,E}
+) where {D, T<:Number, E<:AbstractFloat}
+
+    @assert(
+        hubbard_parameters.ph_sym_form == hst_parameters.ph_sym_form,
+        "Either both the local and extended Hubbard interactions need to use the particle-hole symmetric or asymmetric form, they cannot use opposite conventions."
+    )
+
+    (; U, sites, orbital_ids, ph_sym_form) = hubbard_parameters
+    (; V, neighbor_table, bond_ids) = hst_parameters
+    (; bonds, unit_cell, lattice) = model_geometry
+
+    
+    # iterate over bonds that define extended hubbard interactions
+    for bond_id in bond_ids
+
+        # get orbital species associated with bond
+        a, b = bonds[bond_id].orbitals
+
+        # check to make sure Hubbard interaction are defined for each type of bond
+        @assert (a ∈ orbital_ids) "Hubbard interaction for ORBITAL_ID = $a needs to initialized in HubbardModel definition. Note that initialization to U = 0 is allowed."
+        @assert (b ∈ orbital_ids) "Hubbard interaction for ORBITAL_ID = $b needs to initialized in HubbardModel definition. Note that initialization to U = 0 is allowed."
+    end
+
+    # number of unit cells in lattice
+    N = lattice.N
+
+    # number of types of extended Hubbard interactions
+    n_V = length(bond_ids)
+
+    # number of types of Hubbard interactions
+    n_U = length(orbital_ids)
+
+    # copy bare hubbard interaction
+    Ũ = copy(U)
+
+    # iterate over extended Hubbard interaction neighbors
+    for n in axes(neighbor_table, 2)
+
+        # get the pair of orbitals with extended Hubbard interactions
+        i = neighbor_table[1,n]
+        j = neighbor_table[2,n]
+
+        # get the Hubbard U index associated with each site
+        m_i = findfirst(e -> e == i, sites)
+        m_j = findfirst(e -> e == j, sites)
+
+        # calculate renormalized hubbard interaction
+        Ũ[m_i] -= V[n]
+        Ũ[m_j] -= V[n]
+    end
+
+    return HubbardParameters(Ũ, sites, orbital_ids, ph_sym_form)
 end
 
 
@@ -95,21 +179,21 @@ end
     initialize!(
         fermion_path_integral_up::FermionPathIntegral{H},
         fermion_path_integral_dn::FermionPathIntegral{H},
-        hst_parameters::ExtHubGaussHermiteHST{T}
+        hst_parameters::ExtHubDensityGaussHermiteHST{T}
     ) where {H<:Number, T<:Number}
 
     initialize!(
         fermion_path_integral::FermionPathIntegral{H},
-        hst_parameters::ExtHubGaussHermiteHST{T},
+        hst_parameters::ExtHubDensityGaussHermiteHST{T},
     ) where {H<:Number, T<:Number}
 
 Initialize [`FermionPathIntegral`](@ref) instances to reflect the initial
-HS field configuration represented by the [`ExtHubGaussHermiteHST`](@ref) type.
+HS field configuration represented by the [`ExtHubDensityGaussHermiteHST`](@ref) type.
 """
 function initialize!(
     fermion_path_integral_up::FermionPathIntegral{H},
     fermion_path_integral_dn::FermionPathIntegral{H},
-    hst_parameters::ExtHubGaussHermiteHST{T}
+    hst_parameters::ExtHubDensityGaussHermiteHST{T}
 ) where {H<:Number, T<:Number}
 
     # make sure bosonic actions match
@@ -123,7 +207,7 @@ end
 
 function initialize!(
     fermion_path_integral::FermionPathIntegral{H},
-    hst_parameters::ExtHubGaussHermiteHST{T},
+    hst_parameters::ExtHubDensityGaussHermiteHST{T},
 ) where {H<:Number, T<:Number}
 
     @assert !( (H<:Real) &&  (T<:Complex)) "Green's function matrices are real while Hubbard-Stratonovich transformation is complex."
@@ -203,7 +287,7 @@ end
         # ARGUMENTS
         Gup::Matrix{H}, logdetGup::R, sgndetGup::H,
         Gdn::Matrix{H}, logdetGdn::R, sgndetGdn::H,
-        hst_parameters::ExtHubGaussHermiteHST{T,R};
+        hst_parameters::ExtHubDensityGaussHermiteHST{T,R};
         # KEYWORD ARGUMENTS
         fermion_path_integral_up::FermionPathIntegral{H},
         fermion_path_integral_dn::FermionPathIntegral{H},
@@ -226,7 +310,7 @@ This method returns a tuple containing `(acceptance_rate, logdetGup, sgndetGup, 
 - `Gdn::Matrix{H}`: Spin-down equal-time Green's function matrix.
 - `logdetGdn::R`: The log of the absolute value of the determinant of the spin-down equal-time Green's function matrix, ``\log \vert \det G_\downarrow(\tau,\tau) \vert.``
 - `sgndetGdn::H`: The sign/phase of the determinant of the spin-down equal-time Green's function matrix, ``\det G_\downarrow(\tau,\tau) / \vert \det G_\downarrow(\tau,\tau) \vert.``
-- `hst_parameters::ExtHubGaussHermiteHST{T,R}`: Type representing Hubbard-Stratonovich transformation.
+- `hst_parameters::ExtHubDensityGaussHermiteHST{T,R}`: Type representing Hubbard-Stratonovich transformation.
 
 ## Keyword Arguments
 
@@ -246,7 +330,7 @@ function local_updates!(
     # ARGUMENTS
     Gup::Matrix{H}, logdetGup::R, sgndetGup::H,
     Gdn::Matrix{H}, logdetGdn::R, sgndetGdn::H,
-    hst_parameters::ExtHubGaussHermiteHST{T,R};
+    hst_parameters::ExtHubDensityGaussHermiteHST{T,R};
     # KEYWORD ARGUMENTS
     fermion_path_integral_up::FermionPathIntegral{H},
     fermion_path_integral_dn::FermionPathIntegral{H},
@@ -398,7 +482,7 @@ end
     local_updates!(
         # ARGUMENTS
         G::Matrix{H}, logdetG::R, sgndetG::H,
-        hst_parameters::ExtHubGaussHermiteHST{T,R};
+        hst_parameters::ExtHubDensityGaussHermiteHST{T,R};
         # KEYWORD ARGUMENTS
         fermion_path_integral::FermionPathIntegral{H},
         fermion_greens_calculator::FermionGreensCalculator{H},
@@ -414,7 +498,7 @@ This method returns a tuple containing `(acceptance_rate, logdetG, sgndetG, δG,
 - `G::Matrix{H}`: Equal-time Green's function matrix.
 - `logdetG::R`: The log of the absolute value of the determinant of the equal-time Green's function matrix, ``\log \vert \det G(\tau,\tau) \vert.``
 - `sgndetG::H`: The sign/phase of the determinant of the equal-time Green's function matrix, ``\det G(\tau,\tau) / \vert \det G(\tau,\tau) \vert.``
-- `hst_parameters::ExtHubGaussHermiteHST{T,R}`: Type representing Hubbard-Stratonovich transformation.
+- `hst_parameters::ExtHubDensityGaussHermiteHST{T,R}`: Type representing Hubbard-Stratonovich transformation.
 
 ## Keyword Arguments
 
@@ -430,7 +514,7 @@ This method returns a tuple containing `(acceptance_rate, logdetG, sgndetG, δG,
 function local_updates!(
     # ARGUMENTS
     G::Matrix{H}, logdetG::R, sgndetG::H,
-    hst_parameters::ExtHubGaussHermiteHST{T,R};
+    hst_parameters::ExtHubDensityGaussHermiteHST{T,R};
     # KEYWORD ARGUMENTS
     fermion_path_integral::FermionPathIntegral{H},
     fermion_greens_calculator::FermionGreensCalculator{H},
@@ -557,7 +641,7 @@ end
         # ARGUMENTS
         Gup::Matrix{H}, logdetGup::R, sgndetGup::H,
         Gdn::Matrix{H}, logdetGdn::R, sgndetGdn::H,
-        hst_parameters::ExtHubGaussHermiteHST{T,R};
+        hst_parameters::ExtHubDensityGaussHermiteHST{T,R};
         # KEYWORD ARGUMENTS
         fermion_path_integral_up::FermionPathIntegral{H},
         fermion_path_integral_dn::FermionPathIntegral{H},
@@ -581,7 +665,7 @@ This function returns `(accepted, logdetG, sgndetG)`.
 - `Gdn::Matrix{H}`: Spin-down eqaul-time Greens function matrix.
 - `logdetGdn::R`: Log of the determinant of the spin-down eqaul-time Greens function matrix.
 - `sgndetGdn::H`: Sign/phase of the determinant of the spin-down eqaul-time Greens function matrix.
-- `hst_parameters::ExtHubGaussHermiteHST{T,R}`: Hubbard-Stratonovich fields and associated parameters to update.
+- `hst_parameters::ExtHubDensityGaussHermiteHST{T,R}`: Hubbard-Stratonovich fields and associated parameters to update.
 
 # Keyword Arguments
 
@@ -599,7 +683,7 @@ function reflection_update!(
     # ARGUMENTS
     Gup::Matrix{H}, logdetGup::R, sgndetGup::H,
     Gdn::Matrix{H}, logdetGdn::R, sgndetGdn::H,
-    hst_parameters::ExtHubGaussHermiteHST{T,R};
+    hst_parameters::ExtHubDensityGaussHermiteHST{T,R};
     # KEYWORD ARGUMENTS
     fermion_path_integral_up::FermionPathIntegral{H},
     fermion_path_integral_dn::FermionPathIntegral{H},
@@ -719,7 +803,7 @@ end
     reflection_update!(
         # ARGUMENTS
         G::Matrix{H}, logdetG::R, sgndetG::H,
-        hst_parameters::ExtHubGaussHermiteHST{T,R};
+        hst_parameters::ExtHubDensityGaussHermiteHST{T,R};
         # KEYWORD ARGUMENTS
         fermion_path_integral::FermionPathIntegral{H},
         fermion_greens_calculator::FermionGreensCalculator{H,R},
@@ -736,7 +820,7 @@ This function returns `(accepted, logdetG, sgndetG)`.
 - `G::Matrix{H}`: Equal-time Greens function matrix.
 - `logdetG::R`: Log of the determinant of the spin-up equal-time Greens function matrix.
 - `sgndetG::H`: Sign/phase of the determinant of the spin-up equal-time Greens function matrix.
-- `hst_parameters::ExtHubGaussHermiteHST{T,R}`: Hubbard-Stratonovich fields and associated parameters to update.
+- `hst_parameters::ExtHubDensityGaussHermiteHST{T,R}`: Hubbard-Stratonovich fields and associated parameters to update.
 
 # Keyword Arguments
 
@@ -749,7 +833,7 @@ This function returns `(accepted, logdetG, sgndetG)`.
 function reflection_update!(
     # ARGUMENTS
     G::Matrix{H}, logdetG::R, sgndetG::H,
-    hst_parameters::ExtHubGaussHermiteHST{T,R};
+    hst_parameters::ExtHubDensityGaussHermiteHST{T,R};
     # KEYWORD ARGUMENTS
     fermion_path_integral::FermionPathIntegral{H},
     fermion_greens_calculator::FermionGreensCalculator{H,R},
@@ -839,7 +923,7 @@ end
         # ARGUMENTS
         Gup::Matrix{H}, logdetGup::R, sgndetGup::H,
         Gdn::Matrix{H}, logdetGdn::R, sgndetGdn::H,
-        hst_parameters::ExtHubGaussHermiteHST{T,R};
+        hst_parameters::ExtHubDensityGaussHermiteHST{T,R};
         # KEYWORD ARGUMENTS
         fermion_path_integral_up::FermionPathIntegral{H},
         fermion_path_integral_dn::FermionPathIntegral{H},
@@ -863,7 +947,7 @@ This function returns `(accepted, logdetGup, sgndetGup, logdetGdn, sgndetGdn)`.
 - `Gdn::Matrix{H}`: Spin-down eqaul-time Greens function matrix.
 - `logdetGdn::R`: Log of the determinant of the spin-down eqaul-time Greens function matrix.
 - `sgndetGdn::H`: Sign/phase of the determinant of the spin-down eqaul-time Greens function matrix.
-- `hst_parameters::ExtHubGaussHermiteHST{T,R}`: Hubbard-Stratonovich fields and associated parameters to update.
+- `hst_parameters::ExtHubDensityGaussHermiteHST{T,R}`: Hubbard-Stratonovich fields and associated parameters to update.
 
 # Keyword Arguments
 
@@ -881,7 +965,7 @@ function swap_update!(
     # ARGUMENTS
     Gup::Matrix{H}, logdetGup::R, sgndetGup::H,
     Gdn::Matrix{H}, logdetGdn::R, sgndetGdn::H,
-    hst_parameters::ExtHubGaussHermiteHST{T,R};
+    hst_parameters::ExtHubDensityGaussHermiteHST{T,R};
     # KEYWORD ARGUMENTS
     fermion_path_integral_up::FermionPathIntegral{H},
     fermion_path_integral_dn::FermionPathIntegral{H},
@@ -1028,7 +1112,7 @@ end
     swap_update!(
         # ARGUMENTS
         G::Matrix{H}, logdetG::R, sgndetG::H,
-        hst_parameters::ExtHubGaussHermiteHST{T,R};
+        hst_parameters::ExtHubDensityGaussHermiteHST{T,R};
         # KEYWORD ARGUMENTS
         fermion_path_integral::FermionPathIntegral{H},
         fermion_greens_calculator::FermionGreensCalculator{H,R},
@@ -1046,7 +1130,7 @@ This function returns `(accepted, logdetG, sgndetG)`.
 - `G::Matrix{H}`: Equal-time Greens function matrix.
 - `logdetG::R`: Log of the determinant of the equal-time Greens function matrix.
 - `sgndetG::H`: Sign/phase of the determinant of the equal-time Greens function matrix.
-- `hst_parameters::ExtHubGaussHermiteHST{T,R}`: Hubbard-Stratonovich fields and associated parameters to update.
+- `hst_parameters::ExtHubDensityGaussHermiteHST{T,R}`: Hubbard-Stratonovich fields and associated parameters to update.
 
 # Keyword Arguments
 
@@ -1059,7 +1143,7 @@ This function returns `(accepted, logdetG, sgndetG)`.
 function swap_update!(
     # ARGUMENTS
     G::Matrix{H}, logdetG::R, sgndetG::H,
-    hst_parameters::ExtHubGaussHermiteHST{T,R};
+    hst_parameters::ExtHubDensityGaussHermiteHST{T,R};
     # KEYWORD ARGUMENTS
     fermion_path_integral::FermionPathIntegral{H},
     fermion_greens_calculator::FermionGreensCalculator{H,R},

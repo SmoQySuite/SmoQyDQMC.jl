@@ -13,8 +13,20 @@ a previous simulation.
 - `datafolder::String`: The data folder, including filepath, given by `joinpath(filepath, datafolder_name)`.
 - `pID::Int`: MPI process ID, defaults to 0 if MPI not being used.
 - `sID::Int`: Simulation ID.
+- `write_bins_concurrent::Bool`: Whether binned data will be written to HDF5 during the simulation or held in memory until the end of the simulation.
+- `bin_files::Vector{Vector{UInt8}}`: Represents the HDF5 files containing the binned data.
 - `resuming::Bool`: Whether current simulation is resuming a previous simulation (`true`) or starting a new one (`false`).
 - `smoqy_version::VersionNumber`: Version of [SmoQyDQMC.jl](https://github.com/SmoQySuite/SmoQyDQMC.jl) used in simulation.
+
+# Notes
+
+If `write_bins_concurrent = true`, then the elements of `bin_files` correspond to the HDF5 bin filenames, assuming the vector elements are converted to strings.
+If `write_bins_concurrent = false`, then the elements of the `bin_files` correspond to a byte vector representation of a HDF5 file containing the binned data.
+For small simulations that run very fast setting `write_bins_concurrent = false` can make sense, as it significantly reduces the frequency of file IO during the simulation.
+This can cause issues on some clusters with respect to overtaxing the cluster network if data is being written to file too frequently during the simulation.
+However, for most larger simulations it is advisable to set `write_bins_concurrent = true` as this significantly reduces the memory footprint of the simulation,
+particularly when making time-displaced correlation measurements. Also, setting `write_bins_concurrent = false` dramatically increases the size of the checkpoint
+files if checkpointing is occurring during the simulation, as the checkpoint files now need to contain all the binned data collected during the simulation.
 """
 mutable struct SimulationInfo
 
@@ -36,6 +48,12 @@ mutable struct SimulationInfo
     # simulation ID number
     sID::Int
 
+    # if binned data will be held in memory or written to file during the simulation
+    write_bins_concurrent::Bool
+
+    # HDF5 bin files
+    bin_files::Vector{Vector{UInt8}}
+
     # whether previous simulation is being resumed or a new one is begininning
     resuming::Bool
 
@@ -44,11 +62,25 @@ mutable struct SimulationInfo
 end
 
 @doc raw"""
-    SimulationInfo(; datafolder_prefix::String, filepath::String = ".", sID::Int=0, pID::Int=0)
+    SimulationInfo(;
+        # KEYWORD ARGUMENTS
+        datafolder_prefix::String,
+        filepath::String = ".",
+        write_bins_concurrent::Bool = true,
+        sID::Int=0,
+        pID::Int=0
+    )
 
 Initialize and return in instance of the type [`SimulationInfo`](@ref).
 """
-function SimulationInfo(; datafolder_prefix::String, filepath::String = ".", sID::Int=0, pID::Int=0)
+function SimulationInfo(;
+    # KEYWORD ARGUMENTS
+    datafolder_prefix::String,
+    filepath::String = ".",
+    write_bins_concurrent::Bool = true,
+    sID::Int=0,
+    pID::Int=0
+)
 
     # initialize data folder names
     datafolder_name = @sprintf "%s-%d" datafolder_prefix sID
@@ -66,7 +98,10 @@ function SimulationInfo(; datafolder_prefix::String, filepath::String = ".", sID
     # if directory already exists then must be resuming simulation
     resuming = isdir(datafolder)
 
-    return SimulationInfo(filepath, datafolder_prefix, datafolder_name, datafolder, pID, sID, resuming, SMOQYDQMC_VERSION)
+    # initialize bin files
+    bin_files = Vector{UInt8}[]
+
+    return SimulationInfo(filepath, datafolder_prefix, datafolder_name, datafolder, pID, sID, write_bins_concurrent, bin_files, resuming, SMOQYDQMC_VERSION)
 end
 
 # print struct info as TOML format
@@ -125,10 +160,13 @@ end
 
 function initialize_datafolder(sim_info::SimulationInfo)
 
-    (; pID, datafolder) = sim_info
+    (; pID, datafolder, write_bins_concurrent) = sim_info
 
     # make subdirectory for binned data to be written to
-    mkpath(joinpath(datafolder, "bins", "pID-$(pID)"))
+    bin_dir = mkpath(joinpath(datafolder, "bins"))
+    if write_bins_concurrent
+        mkpath(joinpath(bin_dir, "pID-$(pID)"))
+    end
 
     return nothing
 end

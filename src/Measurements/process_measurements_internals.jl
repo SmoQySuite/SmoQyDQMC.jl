@@ -78,7 +78,7 @@ function _process_measurements(
     ]
 
     # preallocate arrays for jackknife
-    jackknife_samples = (similar(binned_sgns[1]), similar(binned_sgns[1]))
+    jackknife_sample_means = (similar(binned_sgns[1]), similar(binned_sgns[1]))
     jackknife_g = similar(binned_sgns[1])
 
     # type of reported mean and standard deviations
@@ -108,7 +108,7 @@ function _process_measurements(
             for n in 1:N_pIDs
                 # calculate stats for current file with reweighting
                 vals = read(H5BinFiles[n]["GLOBAL"][key])
-                avg, err = binning_analysis(vals, binned_sgns[n], jackknife_samples, jackknife_g)
+                avg, err = binning_analysis(vals, binned_sgns[n], jackknife_sample_means, jackknife_g)
                 average += avg
                 variance += abs2(err)
             end
@@ -157,7 +157,7 @@ function _process_measurements(
             # iterate over output dataset elements
             for c in CartesianIndices(dims)
                 # calculate stats using jackknife reweighting
-                avg, err = binning_analysis(Measurement_In[:,c.I...], binned_sgns[n], jackknife_samples, jackknife_g)
+                avg, err = binning_analysis(Measurement_In[:,c.I...], binned_sgns[n], jackknife_sample_means, jackknife_g)
                 Mean_Out[c] += avg
                 Var_Out[c] += abs2(err)
             end
@@ -173,37 +173,37 @@ function _process_measurements(
     # process standard equal-time correlation measurements
     process_correlations!(
         H5StatsFile, H5BinFiles, "CORRELATIONS/STANDARD/EQUAL-TIME",
-        binned_sgns, jackknife_samples, jackknife_g
+        binned_sgns, jackknife_sample_means, jackknife_g
     )
 
     # process standard time-displaced correlation measurements
     process_correlations!(
         H5StatsFile, H5BinFiles, "CORRELATIONS/STANDARD/TIME-DISPLACED",
-        binned_sgns, jackknife_samples, jackknife_g
+        binned_sgns, jackknife_sample_means, jackknife_g
     )
 
     # process standard integrated correlation measurements
     process_correlations!(
         H5StatsFile, H5BinFiles, "CORRELATIONS/STANDARD/INTEGRATED",
-        binned_sgns, jackknife_samples, jackknife_g
+        binned_sgns, jackknife_sample_means, jackknife_g
     )
 
     # process composite equal-time correlation measurements
     process_correlations!(
         H5StatsFile, H5BinFiles, "CORRELATIONS/COMPOSITE/EQUAL-TIME",
-        binned_sgns, jackknife_samples, jackknife_g
+        binned_sgns, jackknife_sample_means, jackknife_g
     )
 
     # process composite time-displaced correlation measurements
     process_correlations!(
         H5StatsFile, H5BinFiles, "CORRELATIONS/COMPOSITE/TIME-DISPLACED",
-        binned_sgns, jackknife_samples, jackknife_g
+        binned_sgns, jackknife_sample_means, jackknife_g
     )
 
     # process composite integrated correlation measurements
     process_correlations!(
         H5StatsFile, H5BinFiles, "CORRELATIONS/COMPOSITE/INTEGRATED",
-        binned_sgns, jackknife_samples, jackknife_g
+        binned_sgns, jackknife_sample_means, jackknife_g
     )
 
     # close all the input HDF5 bin files
@@ -227,7 +227,7 @@ function process_correlations!(
     H5BinFiles::Vector{HDF5.File},
     correlation_type::String,
     binned_sgns::Vector{Vector{Complex{T}}},
-    jackknife_samples = (similar(binned_sgns), similar(binned_sgns)),
+    jackknife_sample_means = (similar(binned_sgns), similar(binned_sgns)),
     jackknife_g = similar(binned_sgns)
 ) where {T<:AbstractFloat}
 
@@ -254,7 +254,7 @@ function process_correlations!(
             # iterate over output dataset elements
             for c in CartesianIndices(dims)
                 # calculate statistics using jackknife reweighting for position-space correlation
-                avg, err = binning_analysis(Correlation_Dataset_In[:,c.I...], binned_sgns[n], jackknife_samples, jackknife_g)
+                avg, err = binning_analysis(Correlation_Dataset_In[:,c.I...], binned_sgns[n], jackknife_sample_means, jackknife_g)
                 Mean_Out[c] += avg
                 Var_Out[c] += abs2(err)
             end
@@ -276,7 +276,7 @@ function process_correlations!(
             # iterate over output dataset elements
             for c in CartesianIndices(dims)
                 # calculate statistics using jackknife reweighting for position-space correlation
-                avg, err = binning_analysis(Correlation_Dataset_In[:,c.I...], binned_sgns[n], jackknife_samples, jackknife_g)
+                avg, err = binning_analysis(Correlation_Dataset_In[:,c.I...], binned_sgns[n], jackknife_sample_means, jackknife_g)
                 Mean_Out[c] += avg
                 Var_Out[c] += abs2(err)
             end
@@ -411,7 +411,7 @@ end
 function binning_analysis(
     data::AbstractVector{Complex{T}},
     sgn::AbstractVector{Complex{T}},
-    jackknife_samples = (similar(sgn), similar(sgn)),
+    jackknife_sample_means = (similar(sgn), similar(sgn)),
     jackknife_g = similar(sgn)
 ) where {T<:AbstractFloat}
 
@@ -419,7 +419,7 @@ function binning_analysis(
     binned_data = bin_means(data, N_bins)
     avg, err = jackknife(
         /, binned_data, sgn,
-        jackknife_samples = jackknife_samples,
+        jackknife_sample_means = jackknife_sample_means,
         jackknife_g = jackknife_g
     )
 

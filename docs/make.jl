@@ -33,10 +33,10 @@ function build_examples(example_sources, destdir)
         # relative path is hardcoded according to the layout of `gh-pages` branch,
         # which is set up by `Documenter.deploydocs`.
         function preprocess(str)
-            """
-            # Download this example as a [Julia script]($assetsdir/scripts/$script_type/$name.jl).
-
-            """ * str
+            lines = split(str, "\n")
+            insert!(lines, 2, "# Download this example as a [Julia script]($assetsdir/scripts/$script_type/$name.jl).\n")
+            str = join(lines, "\n")
+            return str
         end
         # Write to `src/$destpath/$name.md`
         Literate.markdown(

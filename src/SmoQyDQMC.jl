@@ -116,15 +116,15 @@ export ExtendedHubbardModel
 
 # Define ExtendedHubbardParameters
 include("ExtendedHubbard/ExtendedHubbardParameters.jl")
-export ExtendedHubbardParameters, init_renormalized_hubbard_parameters
+export ExtendedHubbardParameters
 
 # Define Extended Hubbard model local energy measurement
 include("ExtendedHubbard/ext_hub_model_measurements.jl")
 export measure_ext_hub_energy
 
 # Define Extended Hubbard Gauss-Hermite Hubbard-Stratonovich Transformation
-include("ExtendedHubbard/ExtHubGaussHermiteHST.jl")
-export ExtHubGaussHermiteHST
+include("ExtendedHubbard/ExtHubDensityGaussHermiteHST.jl")
+export ExtHubDensityGaussHermiteHST, init_renormalized_hubbard_parameters
 
 ###########################
 ## ELECTRON-PHONON MODEL ##

@@ -2,9 +2,9 @@
 EditURL = "../../../tutorials/hubbard_square_checkpoint.jl"
 ```
 
+# 1c) Square Hubbard Model with Checkpointing
 Download this example as a [Julia script](../assets/scripts/tutorials/hubbard_square_checkpoint.jl).
 
-# 1c) Square Hubbard Model with Checkpointing
 In this tutorial we demonstrate how to introduce checkpointing to the previous
 [1b) Square Hubbard Model with MPI Parallelization](@ref) tutorial, allowing for simulations to be
 resumed if terminated prior to completion.

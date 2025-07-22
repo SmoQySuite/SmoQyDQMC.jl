@@ -65,12 +65,15 @@ function measure_bare_hopping_energy(
 
     # iterate over each bond/hopping
     @fastmath @inbounds for n in axes(nt, 2)
-        # get the pair of hoppings
-        j = nt[1,n] # annihilate electron on orbital j
-        i = nt[2,n] # create electron on orbital i
-        # calculate the hopping energy
-        hij = -G[j,i] # hopping amplitude from site j to site i
-        h += (-t′[n] * hij) + conj(-t′[n] * hij)
+        # hopping from site j to site i: -⟨t₀[i,j]⋅cᵀ[i]c[j] + (t₀[i,j])ᵀ⋅cᵀ[i]⋅c[j]⟩
+        j = nt[1,n]
+        i = nt[2,n]
+        # hopping amplitude from site j to site i: ⟨cᵀ[i]c[j]⟩ = -⟨c[j]cᵀ[i]⟩ = -G[j,i]
+        hij = -G[j,i]
+        # hopping amplitude from site i to site j: ⟨cᵀ[j]c[i]⟩ = -⟨c[i]cᵀ[j]⟩ = -G[i,j]
+        hji = -G[i,j]
+        # calculate the bare hopping energy
+        h += -t′[n] * hij + conj(-t′[n]) * hji
     end
 
     # noramalize the measurement
@@ -110,12 +113,15 @@ function measure_hopping_energy(
 
     # iterate over each bond/hopping
     @fastmath @inbounds for n in axes(nt, 2)
-        # get the pair of hoppings
-        j = nt[1,n] # annihilate electron on orbital j
-        i = nt[2,n] # create electron on orbital i
-        # calculate the hopping energy
-        hij = -G[j,i] # hopping amplitude from site j to site i
-        h += (-t′[n] * hij) + conj(-t′[n] * hij)
+        # hopping from site j to site i: -⟨t₀[i,j]⋅cᵀ[i]c[j] + (t₀[i,j])ᵀ⋅cᵀ[i]⋅c[j]⟩
+        j = nt[1,n]
+        i = nt[2,n]
+        # hopping amplitude from site j to site i: ⟨cᵀ[i]c[j]⟩ = -⟨c[j]cᵀ[i]⟩ = -G[j,i]
+        hij = -G[j,i]
+        # hopping amplitude from site i to site j: ⟨cᵀ[j]c[i]⟩ = -⟨c[i]cᵀ[j]⟩ = -G[i,j]
+        hji = -G[i,j]
+        # calculate the bare hopping energy
+        h += -t′[n] * hij + conj(-t′[n]) * hji
     end
 
     # noramalize the measurement

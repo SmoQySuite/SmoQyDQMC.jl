@@ -286,16 +286,6 @@ function TightBindingParameters(;
         @. ϵ_i = tight_binding_model.ϵ_mean[i] + tight_binding_model.ϵ_std[i] * ϵ_i
     end
 
-    # get number of bond definitions in model
-    nbonds = length(tight_binding_model.t_bonds)
-
-    # get the id for for each bond
-    bond_ids = copy(tight_binding_model.t_bond_ids)
-    bond_slices = UnitRange{Int}[]
-    for i in eachindex(bond_ids)
-        push!(bond_slices, (i-1)*N+1:i*N)
-    end
-
     # construct neighbor table for hoppings
     t_bonds = tight_binding_model.t_bonds::Vector{Bond{D}}
     if length(t_bonds) > 0
@@ -303,6 +293,17 @@ function TightBindingParameters(;
     else
         neighbor_table = Matrix{Int}(undef,2,0)
     end
+
+    # get th slice of bonds in the neighbor_table associated with
+    # hopping ID (and corresponding bond ID)
+    bond_ids = copy(tight_binding_model.t_bond_ids)
+    bond_slices = UnitRange{Int}[]
+    for i in eachindex(bond_ids)
+        push!(bond_slices, (i-1)*N+1:i*N)
+    end
+
+    # get number of bond definitions in model
+    nbonds = length(tight_binding_model.t_bonds)
 
     # get total number of bonds in lattice
     Nbonds = size(neighbor_table, 2)

@@ -90,7 +90,7 @@ function _process_measurements(
     binned_sign = bin_means(read(H5BinFile["GLOBAL/sgn"]), N_bins)
 
     # preallocate arrays for jackknife
-    jackknife_samples = (similar(binned_sign), similar(binned_sign))
+    jackknife_sample_means = (similar(binned_sign), similar(binned_sign))
     jackknife_g = similar(binned_sign)
 
     # type of reported mean and standard deviations
@@ -115,7 +115,7 @@ function _process_measurements(
         else
             avg, err = jackknife(
                 /, binned_vals, binned_sign,
-                jackknife_samples = jackknife_samples,
+                jackknife_sample_means = jackknife_sample_means,
                 jackknife_g = jackknife_g
             )
             err = abs2(err)
@@ -166,7 +166,7 @@ function _process_measurements(
             # calculate statistics
             Measurement_Mean[c], Measurement_Std[c] = binning_analysis(
                 Measurement_In[:,c.I...], binned_sign,
-                jackknife_samples, jackknife_g
+                jackknife_sample_means, jackknife_g
             )
         end
         # calculate variances
@@ -192,7 +192,7 @@ function _process_measurements(
         comm, H5StatsFile, H5BinFile,
         "CORRELATIONS/STANDARD/EQUAL-TIME",
         standard_equal_time,
-        binned_sign, jackknife_samples, jackknife_g
+        binned_sign, jackknife_sample_means, jackknife_g
     )
 
     # process standard time-displaced correlations
@@ -200,7 +200,7 @@ function _process_measurements(
         comm, H5StatsFile, H5BinFile,
         "CORRELATIONS/STANDARD/TIME-DISPLACED",
         standard_time_displaced,
-        binned_sign, jackknife_samples, jackknife_g
+        binned_sign, jackknife_sample_means, jackknife_g
     )
 
     # process standard INTEGRATED correlations
@@ -208,7 +208,7 @@ function _process_measurements(
         comm, H5StatsFile, H5BinFile,
         "CORRELATIONS/STANDARD/INTEGRATED",
         standard_integrated,
-        binned_sign, jackknife_samples, jackknife_g
+        binned_sign, jackknife_sample_means, jackknife_g
     )
 
     # process composite equal-time correlations
@@ -216,7 +216,7 @@ function _process_measurements(
         comm, H5StatsFile, H5BinFile,
         "CORRELATIONS/COMPOSITE/EQUAL-TIME",
         composite_equal_time,
-        binned_sign, jackknife_samples, jackknife_g
+        binned_sign, jackknife_sample_means, jackknife_g
     )
 
     # process composite time-displaced correlations
@@ -224,7 +224,7 @@ function _process_measurements(
         comm, H5StatsFile, H5BinFile,
         "CORRELATIONS/COMPOSITE/TIME-DISPLACED",
         composite_time_displaced,
-        binned_sign, jackknife_samples, jackknife_g
+        binned_sign, jackknife_sample_means, jackknife_g
     )
 
     # process composite INTEGRATED correlations
@@ -232,7 +232,7 @@ function _process_measurements(
         comm, H5StatsFile, H5BinFile,
         "CORRELATIONS/COMPOSITE/INTEGRATED",
         composite_integrated,
-        binned_sign, jackknife_samples, jackknife_g
+        binned_sign, jackknife_sample_means, jackknife_g
     )
 
     # delete HDF5 files containing binned data
@@ -250,7 +250,7 @@ function process_correlations!(
     correlation_type::String,
     correlations::Vector{String},
     binned_sign::Vector{Complex{T}},
-    jackknife_samples = (similar(binned_signs), similar(binned_signs)),
+    jackknife_sample_means = (similar(binned_signs), similar(binned_signs)),
     jackknife_g = similar(binned_signs)
 ) where {T<:AbstractFloat}
 
@@ -275,7 +275,7 @@ function process_correlations!(
             # calculate stats
             avg, err = binning_analysis(
                 Position_In[:,c.I...], binned_sign,
-                jackknife_samples, jackknife_g
+                jackknife_sample_means, jackknife_g
             )
             # record stats
             Mean_Out[c] = avg
@@ -306,7 +306,7 @@ function process_correlations!(
             # calculate stats
             avg, err = binning_analysis(
                 Momentum_In[:,c.I...], binned_sign,
-                jackknife_samples, jackknife_g
+                jackknife_sample_means, jackknife_g
             )
             # record stats
             Mean_Out[c] = avg
