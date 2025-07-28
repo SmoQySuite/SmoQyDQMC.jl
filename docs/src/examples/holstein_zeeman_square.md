@@ -2,9 +2,8 @@
 EditURL = "../../../examples/holstein_zeeman_square.jl"
 ```
 
-Download this example as a [Julia script](../assets/scripts/examples/holstein_zeeman_square.jl).
-
 # Square Holstein Model with Zeeman Splitting
+Download this example as a [Julia script](../assets/scripts/examples/holstein_zeeman_square.jl).
 
 In this example we write a script to simulate the Holstein model on a square lattice in an external applied magentic field
 perpendicular to the lattice, manifesting as a Zeeman splitting in the on-site energies between the spin up and down electrons.

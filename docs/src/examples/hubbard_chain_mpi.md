@@ -2,9 +2,8 @@
 EditURL = "../../../examples/hubbard_chain_mpi.jl"
 ```
 
-Download this example as a [Julia script](../assets/scripts/examples/hubbard_chain_mpi.jl).
-
 # Hubbard Chain with MPI
+Download this example as a [Julia script](../assets/scripts/examples/hubbard_chain_mpi.jl).
 
 In this example we simulate the same system as in example 1, the half-filled Hubbard chain.
 However, in this example we use MPI, via the [`MPI.jl`](https://github.com/JuliaParallel/MPI.jl.git),

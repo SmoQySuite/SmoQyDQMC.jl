@@ -2,9 +2,8 @@
 EditURL = "../../../examples/hubbard_chain.jl"
 ```
 
-Download this example as a [Julia script](../assets/scripts/examples/hubbard_chain.jl).
-
 # Hubbard Chain
+Download this example as a [Julia script](../assets/scripts/examples/hubbard_chain.jl).
 
 In this first example we will work through simulating the repulsive Hubbard model
 on a 1D chain at half-filling.

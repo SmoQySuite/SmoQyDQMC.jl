@@ -2,9 +2,8 @@
 EditURL = "../../../examples/holstein_kagome.jl"
 ```
 
-Download this example as a [Julia script](../assets/scripts/examples/holstein_kagome.jl).
-
 # Kagome Holstein Model with Density Tuning
+Download this example as a [Julia script](../assets/scripts/examples/holstein_kagome.jl).
 
 In this script we simulate the Holstein model on the Kagome lattice, with a Hamiltonian given by
 ```math

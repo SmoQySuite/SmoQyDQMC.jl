@@ -2,9 +2,8 @@
 EditURL = "../../../examples/bssh_chain.jl"
 ```
 
-Download this example as a [Julia script](../assets/scripts/examples/bssh_chain.jl).
-
 # Bond Su-Schrieffer-Heeger Chain
+Download this example as a [Julia script](../assets/scripts/examples/bssh_chain.jl).
 
 In this example we simulate the bond Su-Schrieffer-Heeger (BSSH) model on a 1D chain,
 with a Hamiltonian given by

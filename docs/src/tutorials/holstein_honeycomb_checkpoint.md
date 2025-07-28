@@ -2,9 +2,9 @@
 EditURL = "../../../tutorials/holstein_honeycomb_checkpoint.jl"
 ```
 
+# 2c) Honeycomb Holstein Model with Checkpointing
 Download this example as a [Julia script](../assets/scripts/tutorials/holstein_honeycomb_checkpoint.jl).
 
-# 2c) Honeycomb Holstein Model with Checkpointing
 In this tutorial we demonstrate how to introduce checkpointing to the previous
 [2b) Honeycomb Holstein Model with MPI Parallelization](@ref) tutorial, allowing for simulations to be
 resumed if terminated prior to completion.

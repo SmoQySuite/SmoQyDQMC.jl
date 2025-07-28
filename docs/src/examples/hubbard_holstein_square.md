@@ -2,9 +2,8 @@
 EditURL = "../../../examples/hubbard_holstein_square.jl"
 ```
 
-Download this example as a [Julia script](../assets/scripts/examples/hubbard_holstein_square.jl).
-
 # Square Hubbard-Holstein Model
+Download this example as a [Julia script](../assets/scripts/examples/hubbard_holstein_square.jl).
 
 In this example we write a script to simulate the Hubbard-Holstein model on a square lattice, with a Hamiltonian given by
 ```math

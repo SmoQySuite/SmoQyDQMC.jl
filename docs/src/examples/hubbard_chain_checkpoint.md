@@ -2,9 +2,8 @@
 EditURL = "../../../examples/hubbard_chain_checkpoint.jl"
 ```
 
-Download this example as a [Julia script](../assets/scripts/examples/hubbard_chain_checkpoint.jl).
-
 # Hubbard Chain with Checkpointing
+Download this example as a [Julia script](../assets/scripts/examples/hubbard_chain_checkpoint.jl).
 
 In this script we take the script from the previous example and introduce
 checkpointing, so that if the simulation is killed at some point it can resumed

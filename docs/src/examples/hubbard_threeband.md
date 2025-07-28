@@ -2,9 +2,8 @@
 EditURL = "../../../examples/hubbard_threeband.jl"
 ```
 
-Download this example as a [Julia script](../assets/scripts/examples/hubbard_threeband.jl).
-
 # Three-Band Hubbard Model
+Download this example as a [Julia script](../assets/scripts/examples/hubbard_threeband.jl).
 
 In this example we simulate an effective two-dimensional 3-band Hubbard model
 meant to represent a copper-oxide plane in the superconducting cuprates, with a Hamiltonian

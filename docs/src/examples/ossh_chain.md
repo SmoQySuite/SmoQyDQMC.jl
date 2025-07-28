@@ -2,9 +2,8 @@
 EditURL = "../../../examples/ossh_chain.jl"
 ```
 
-Download this example as a [Julia script](../assets/scripts/examples/ossh_chain.jl).
-
 # Optical Su-Schrieffer-Heeger Chain
+Download this example as a [Julia script](../assets/scripts/examples/ossh_chain.jl).
 
 In this example we simulate the optical Su-Schrieffer-Heeger (OSSH) model on a 1D chain,
 with a Hamiltonian given by

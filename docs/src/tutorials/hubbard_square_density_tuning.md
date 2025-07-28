@@ -2,9 +2,9 @@
 EditURL = "../../../tutorials/hubbard_square_density_tuning.jl"
 ```
 
+# 1d) Square Hubbard Model with Density Tuning
 Download this example as a [Julia script](../assets/scripts/tutorials/hubbard_square_density_tuning.jl).
 
-# 1d) Square Hubbard Model with Density Tuning
 In this example we demonstrate how to introduce chemical potential and density tuning to the previous
 [1c) Square Hubbard Model with Checkpointing](@ref) tutorial.
 Specifically, we show how to use the algorithm introduced in

@@ -2,9 +2,8 @@
 EditURL = "../../../examples/holstein_chain.jl"
 ```
 
-Download this example as a [Julia script](../assets/scripts/examples/holstein_chain.jl).
-
 # Holstein Chain with Density Tuning
+Download this example as a [Julia script](../assets/scripts/examples/holstein_chain.jl).
 
 In this example we simulate the Holstein model for electron-phonon models on a 1D chain given by
 ```math

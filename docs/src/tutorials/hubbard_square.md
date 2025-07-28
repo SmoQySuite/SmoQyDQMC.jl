@@ -2,9 +2,8 @@
 EditURL = "../../../tutorials/hubbard_square.jl"
 ```
 
-Download this example as a [Julia script](../assets/scripts/tutorials/hubbard_square.jl).
-
 # 1a) Square Hubbard Model
+Download this example as a [Julia script](../assets/scripts/tutorials/hubbard_square.jl).
 
 In this example we will work through simulating the repulsive Hubbard model on a square lattice.
 The Hubbard Hamiltonian for a square lattice given by

@@ -2,9 +2,8 @@
 EditURL = "../../../examples/hubbard_honeycomb.jl"
 ```
 
-Download this example as a [Julia script](../assets/scripts/examples/hubbard_honeycomb.jl).
-
 # Honeycomb Hubbard model
+Download this example as a [Julia script](../assets/scripts/examples/hubbard_honeycomb.jl).
 
 In this script we simulate the Hubbard model on a Honeycomb lattice, with a Hamiltonian given by
 ```math
