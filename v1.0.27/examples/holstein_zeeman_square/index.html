@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Square Holstein Model with Zeeman Splitting · SmoQyDQMC.jl</title><meta name="title" content="Square Holstein Model with Zeeman Splitting · SmoQyDQMC.jl"/><meta property="og:title" content="Square Holstein Model with Zeeman Splitting · SmoQyDQMC.jl"/><meta property="twitter:title" content="Square Holstein Model with Zeeman Splitting · SmoQyDQMC.jl"/><meta name="description" content="Documentation for SmoQyDQMC.jl."/><meta property="og:description" content="Documentation for SmoQyDQMC.jl."/><meta property="twitter:description" content="Documentation for SmoQyDQMC.jl."/><meta property="og:url" content="https://smoqysuite.github.io/SmoQyDQMC.jl/stable/examples/holstein_zeeman_square/"/><meta property="twitter:url" content="https://smoqysuite.github.io/SmoQyDQMC.jl/stable/examples/holstein_zeeman_square/"/><link rel="canonical" href="https://smoqysuite.github.io/SmoQyDQMC.jl/stable/examples/holstein_zeeman_square/"/><script data-outdated-warner src="../../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../search_index.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-mocha.css" data-theme-name="catppuccin-mocha"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-macchiato.css" data-theme-name="catppuccin-macchiato"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-frappe.css" data-theme-name="catppuccin-frappe"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-latte.css" data-theme-name="catppuccin-latte"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../../">SmoQyDQMC.jl</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../../">Home</a></li><li><a class="tocitem" href="../../hamiltonian/">Supported Hamiltonians</a></li><li><a class="tocitem" href="../../simulation_output/">Simulation Output Overview</a></li><li><a class="tocitem" href="../../api/">API</a></li><li><span class="tocitem">Tutorials</span><ul><li><a class="tocitem" href="../../tutorials/hubbard_square/">1a) Square Hubbard Model</a></li><li><a class="tocitem" href="../../tutorials/hubbard_square_mpi/">1b) Square Hubbard Model with MPI Parallelization</a></li><li><a class="tocitem" href="../../tutorials/hubbard_square_checkpoint/">1c) Square Hubbard Model with Checkpointing</a></li><li><a class="tocitem" href="../../tutorials/hubbard_square_density_tuning/">1d) Square Hubbard Model with Density Tuning</a></li><li><a class="tocitem" href="../../tutorials/holstein_honeycomb/">2a) Honeycomb Holstein Model</a></li><li><a class="tocitem" href="../../tutorials/holstein_honeycomb_mpi/">2b) Honeycomb Holstein Model with MPI Parallelization</a></li><li><a class="tocitem" href="../../tutorials/holstein_honeycomb_checkpoint/">2c) Honeycomb Holstein Model with Checkpointing</a></li><li><a class="tocitem" href="../../tutorials/holstein_honeycomb_density_tuning/">2d) Honeycomb Holstein Model with Density Tuning</a></li></ul></li><li><span class="tocitem">Examples</span><ul><li><a class="tocitem" href="../hubbard_chain/">Hubbard Chain</a></li><li><a class="tocitem" href="../hubbard_chain_mpi/">Hubbard Chain with MPI</a></li><li><a class="tocitem" href="../hubbard_chain_checkpoint/">Hubbard Chain with Checkpointing</a></li><li><a class="tocitem" href="../holstein_chain/">Holstein Chain with Density Tuning</a></li><li><a class="tocitem" href="../ossh_chain/">Optical Su-Schrieffer-Heeger Chain</a></li><li><a class="tocitem" href="../bssh_chain/">Bond Su-Schrieffer-Heeger Chain</a></li><li><a class="tocitem" href="../hubbard_holstein_square/">Square Hubbard-Holstein Model</a></li><li><a class="tocitem" href="../hubbard_threeband/">Three-Band Hubbard Model</a></li><li><a class="tocitem" href="../holstein_kagome/">Kagome Holstein Model with Density Tuning</a></li><li><a class="tocitem" href="../hubbard_honeycomb/">Honeycomb Hubbard model</a></li><li class="is-active"><a class="tocitem" href>Square Holstein Model with Zeeman Splitting</a></li></ul></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Examples</a></li><li class="is-active"><a href>Square Holstein Model with Zeeman Splitting</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Square Holstein Model with Zeeman Splitting</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/SmoQySuite/SmoQyDQMC.jl/blob/main/examples/holstein_zeeman_square.jl#" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="Square-Holstein-Model-with-Zeeman-Splitting"><a class="docs-heading-anchor" href="#Square-Holstein-Model-with-Zeeman-Splitting">Square Holstein Model with Zeeman Splitting</a><a id="Square-Holstein-Model-with-Zeeman-Splitting-1"></a><a class="docs-heading-anchor-permalink" href="#Square-Holstein-Model-with-Zeeman-Splitting" title="Permalink"></a></h1><p>Download this example as a <a href="../../assets/scripts/examples/holstein_zeeman_square.jl">Julia script</a>.</p><p>In this example we write a script to simulate the Holstein model on a square lattice in an external applied magentic field perpendicular to the lattice, manifesting as a Zeeman splitting in the on-site energies between the spin up and down electrons. More generally, this examples demonstrates how to simulate models with explicit spin-dependence appearing in the Hamiltonian. The Hamiltonian is given by</p><p class="math-container">\[\begin{align*}
+\hat{H} = &amp; -t \sum_{\sigma,\langle i, j \rangle} (\hat{c}^{\dagger}_{\sigma,i}, \hat{c}^{\phantom \dagger}_{\sigma,j} + {\rm h.c.})
+            + \sum_{\sigma,i}(\epsilon_\sigma - \mu) \hat{n}_{\sigma,i}\\
+          &amp; + \alpha \sum_{\sigma,i} \hat{X}_i (\hat{n}_{\sigma,i} - \tfrac{1}{2}) \\
+          &amp; + \sum_i \left( \frac{1}{2M}\hat{P}_i^2 + \frac{1}{2}M\Omega^2\hat{X}_i^2 \right),
+\end{align*}\]</p><p>where <span>$\hat{c}^\dagger_{\sigma,i} \ (\hat{c}^{\phantom \dagger}_{\sigma,i})$</span> creates (annihilates) a spin <span>$\sigma$</span> electron on site <span>$i$</span> in the lattice, and <span>$\hat{n}_{\sigma,i} = \hat{c}^\dagger_{\sigma,i} \hat{c}^{\phantom \dagger}_{\sigma,i}$</span> is the spin-<span>$\sigma$</span> electron number operator for site <span>$i$</span>. The nearest-neighbor hopping amplitude is <span>$t$</span> and <span>$\mu$</span> is the chemical potential. The Zeeman splitting is reflected in the on-site energies taking on spin-resolved values <span>$\epsilon_\pm = \pm \Delta\epsilon/2$</span>. The strength of the repulsive Hubbard interaction is controlled by <span>$U&gt;0$</span>. <span>$\hat{X}_i \ (\hat{P}_i)$</span> is the phonon position (momentum) operator for a dispersionless mode placed on site <span>$i$</span> with phonon frequency <span>$\Omega$</span> and corresponding ion mass <span>$M$</span>. The stength of the Holstein electron-phonon is controlled by the parameter <span>$\alpha$</span>.</p><p>A short test simulation using the script associated with this example can be run as</p><pre><code class="nohighlight hljs">&gt; julia hubbard_holstein_square.jl 0 1.0 0.1 0.1 0.0 4.0 4 1000 5000 50</code></pre><p>which simulates the Holstein model on a <span>$L = 4$</span> square lattice, with <span>$\Delta\epsilon = 1.0$</span>, <span>$\Omega = 0.1$</span>, <span>$\alpha = 0.1$</span> and <span>$\mu = 0.0$</span> at an inverse temperature of <span>$\beta = 4.0$</span>. In this simulation the Hubbard-Stranonovich and phonon fields are thermalized with <code>N_burnin = 1000</code> rounds of updates, followed by <code>N_udpates = 5000</code> rounds of updates with measurements being made. Bin averaged measurements are written to file <code>N_bins = 50</code> during the simulation.</p><p>Below you will find the source code from the julia script linked at the top of this page, but with additional comments giving more detailed explanations for what certain parts of the code are doing. Additionally, this script demonstrates how to calculate the extended s-wave and d-wave pair susceptibilities.</p><pre><code class="language-julia hljs">using LinearAlgebra
+using Random
+using Printf
+
+using SmoQyDQMC
+import SmoQyDQMC.LatticeUtilities  as lu
+import SmoQyDQMC.JDQMCFramework    as dqmcf
+import SmoQyDQMC.JDQMCMeasurements as dqmcm
+
+# Define top-level function for running DQMC simulation
+function run_holstein_zeeman_square_simulation(sID, Δϵ, Ω, α, μ, β, L, N_burnin, N_updates, N_bins; filepath = &quot;.&quot;)
+
+    # Construct the foldername the data will be written to.
+    datafolder_prefix = @sprintf &quot;holstein_zeeman_square_ez%.2f_w%.2f_a%.2f_mu%.2f_L%d_b%.2f&quot; Δϵ Ω α μ L β
+
+    # Initialize an instance of the SimulationInfo type.
+    simulation_info = SimulationInfo(
+        filepath = filepath,
+        datafolder_prefix = datafolder_prefix,
+        sID = sID
+    )
+
+    # Initialize the directory the data will be written to.
+    initialize_datafolder(simulation_info)
+
+    # Initialize a random number generator that will be used throughout the simulation.
+    seed = abs(rand(Int))
+    rng = Xoshiro(seed)
+
+    # Set the discretization in imaginary time for the DQMC simulation.
+    Δτ = 0.10
+
+    # Calculate the length of the imaginary time axis, Lτ = β/Δτ.
+    Lτ = dqmcf.eval_length_imaginary_axis(β, Δτ)
+
+    # This flag indicates whether or not to use the checkboard approximation to
+    # represent the exponentiated hopping matrix exp(-Δτ⋅K)
+    checkerboard = false
+
+    # Whether the propagator matrices should be represented using the
+    # symmetric form B = exp(-Δτ⋅K/2)⋅exp(-Δτ⋅V)⋅exp(-Δτ⋅K/2)
+    # or the asymetric form B = exp(-Δτ⋅V)⋅exp(-Δτ⋅K)
+    symmetric = false
+
+    # Set the initial period in imaginary time slices with which the Green&#39;s function matrices
+    # will be recomputed using a numerically stable procedure.
+    n_stab = 10
+
+    # Specify the maximum allowed error in any element of the Green&#39;s function matrix that is
+    # corrected by performing numerical stabiliziation.
+    δG_max = 1e-6
+
+    # Calculate the bins size.
+    bin_size = div(N_updates, N_bins)
+
+    # Number of fermionic time-steps in HMC update.
+    Nt = 4
+
+    # Fermionic time-step used in HMC update.
+    Δt = π/(2*Ω)/Nt
+
+    # Initialize a dictionary to store additional information about the simulation.
+    additional_info = Dict(
+        &quot;dG_max&quot; =&gt; δG_max,
+        &quot;N_burnin&quot; =&gt; N_burnin,
+        &quot;N_updates&quot; =&gt; N_updates,
+        &quot;N_bins&quot; =&gt; N_bins,
+        &quot;bin_size&quot; =&gt; bin_size,
+        &quot;hmc_acceptance_rate&quot; =&gt; 0.0,
+        &quot;reflection_acceptance_rate&quot; =&gt; 0.0,
+        &quot;n_stab_init&quot; =&gt; n_stab,
+        &quot;symmetric&quot; =&gt; symmetric,
+        &quot;checkerboard&quot; =&gt; checkerboard,
+        &quot;seed&quot; =&gt; seed,
+        &quot;Nt&quot; =&gt; Nt,
+        &quot;dt&quot; =&gt; Δt,
+    )
+
+    #######################
+    ### DEFINE THE MODEL ##
+    #######################
+
+    # Initialize an instance of the type UnitCell.
+    unit_cell = lu.UnitCell(lattice_vecs = [[1.0, 0.0],
+                                            [0.0, 1.0]],
+                            basis_vecs   = [[0.0, 0.0]])
+
+    # Initialize an instance of the type Lattice.
+    lattice = lu.Lattice(
+        L = [L, L],
+        periodic = [true, true]
+    )
+
+    # Initialize an instance of the ModelGeometry type.
+    model_geometry = ModelGeometry(unit_cell, lattice)
+
+    # Get the number of orbitals in the lattice.
+    N = lu.nsites(unit_cell, lattice)
+
+    # Define the nearest-neighbor bond in the +x direction.
+    bond_px = lu.Bond(orbitals = (1,1), displacement = [1,0])
+
+    # Add nearest-neighbor bond in the +x direction.
+    bond_px_id = add_bond!(model_geometry, bond_px)
+
+    # Define the nearest-neighbor bond in the +y direction.
+    bond_py = lu.Bond(orbitals = (1,1), displacement = [0,1])
+
+    # Add the nearest-neighbor bond in the +y direction.
+    bond_py_id = add_bond!(model_geometry, bond_py)
+
+    # Here we define bonds to points in the negative x and y directions respectively.
+    # We do this in order to be able to measure all the pairing channels we need
+    # in order to reconstruct the extended s-wave and d-wave pair susceptibilities.
+
+    # Define the nearest-neighbor bond in the -x direction.
+    bond_nx = lu.Bond(orbitals = (1,1), displacement = [-1,0])
+
+    # Add nearest-neighbor bond in the -x direction.
+    bond_nx_id = add_bond!(model_geometry, bond_nx)
+
+    # Define the nearest-neighbor bond in the -y direction.
+    bond_ny = lu.Bond(orbitals = (1,1), displacement = [0,-1])
+
+    # Add the nearest-neighbor bond in the -y direction.
+    bond_ny_id = add_bond!(model_geometry, bond_ny)
+
+    # Next we define the various Hamiltonian parameters for spin-up and spin-down seperately.
+    # Here, only the on-site energy will be different between the two spin species, but in
+    # general any other parameter appearing in the tight-binding model could as well, including
+    # including the mircoscropic interaction constants.
+
+    # Define nearest-neighbor hopping amplitude, setting the energy scale for the system.
+    t = 1.0
+
+    # Define the spin-up tight-binding model
+    tight_binding_model_up = TightBindingModel(
+        model_geometry = model_geometry,
+        t_bonds = [bond_px, bond_py],
+        t_mean = [t, t],
+        μ = μ,
+        ϵ_mean = [+Δϵ]
+    )
+
+    # Define the spin-down tight-binding model
+    tight_binding_model_dn = TightBindingModel(
+        model_geometry = model_geometry,
+        t_bonds = [bond_px, bond_py],
+        t_mean = [t, t],
+        μ = μ,
+        ϵ_mean = [-Δϵ]
+    )
+
+    # Initialize a null electron-phonon model.
+    electron_phonon_model = ElectronPhononModel(
+        model_geometry = model_geometry,
+        tight_binding_model_up = tight_binding_model_up,
+        tight_binding_model_dn = tight_binding_model_up
+    )
+
+    # Define a dispersionless electron-phonon mode to live on each site in the lattice.
+    phonon = PhononMode(orbital = 1, Ω_mean = Ω)
+
+    # Add the phonon mode definition to the electron-phonon model.
+    phonon_id = add_phonon_mode!(
+        electron_phonon_model = electron_phonon_model,
+        phonon_mode = phonon
+    )
+
+    # Define a spin-up on-site Holstein coupling between the electron and the local dispersionless phonon mode.
+    holstein_coupling_up = HolsteinCoupling(
+    	model_geometry = model_geometry,
+    	phonon_mode = phonon_id,
+    	bond = lu.Bond(orbitals = (1,1), displacement = [0,0]),
+    	α_mean = α
+    )
+
+    # Define a spin-down on-site Holstein coupling between the electron and the local dispersionless phonon mode.
+    holstein_coupling_dn = HolsteinCoupling(
+    	model_geometry = model_geometry,
+    	phonon_mode = phonon_id,
+    	bond = lu.Bond(orbitals = (1,1), displacement = [0,0]),
+    	α_mean = α
+    )
+
+    # Add the Holstein coupling definition to the model.
+    holstein_coupling_id = add_holstein_coupling!(
+    	electron_phonon_model = electron_phonon_model,
+    	holstein_coupling_up = holstein_coupling_up,
+        holstein_coupling_dn = holstein_coupling_dn,
+    	model_geometry = model_geometry
+    )
+
+    # Write the model summary to file.
+    model_summary(
+        simulation_info = simulation_info,
+        β = β, Δτ = Δτ,
+        model_geometry = model_geometry,
+        tight_binding_model_up = tight_binding_model_up,
+        tight_binding_model_dn = tight_binding_model_dn,
+        interactions = (electron_phonon_model,)
+    )
+
+    #########################################
+    ### INITIALIZE FINITE MODEL PARAMETERS ##
+    #########################################
+
+    # Initialize spin-up tight-binding parameters.
+    tight_binding_parameters_up = TightBindingParameters(
+        tight_binding_model = tight_binding_model_up,
+        model_geometry = model_geometry,
+        rng = rng
+    )
+
+    # Initialize spin-down tight-binding parameters.
+    tight_binding_parameters_dn = TightBindingParameters(
+        tight_binding_model = tight_binding_model_dn,
+        model_geometry = model_geometry,
+        rng = rng
+    )
+
+    # Initialize electron-phonon parameters.
+    electron_phonon_parameters = ElectronPhononParameters(
+        β = β, Δτ = Δτ,
+        electron_phonon_model = electron_phonon_model,
+        tight_binding_parameters_up = tight_binding_parameters_up,
+        tight_binding_parameters_dn = tight_binding_parameters_dn,
+        model_geometry = model_geometry,
+        rng = rng
+    )
+
+    ##############################
+    ### INITIALIZE MEASUREMENTS ##
+    ##############################
+
+    # Initialize the container that measurements will be accumulated into.
+    measurement_container = initialize_measurement_container(model_geometry, β, Δτ)
+
+    # Initialize the tight-binding model related measurements, like the hopping energy.
+    initialize_measurements!(measurement_container, tight_binding_model_up, tight_binding_model_up)
+
+    # Initialize the electron-phonon interaction related measurements.
+    initialize_measurements!(measurement_container, electron_phonon_model)
+
+    # Now we define the various correlation function measurements we would like to make.
+    # Note that relative to the other examples, we include spin-resolved correlation
+    # measurements as the underlying model being simulated is spin-dependent.
+
+    # Initialize the single-particle spin-up electron Green&#39;s function measurement.
+    initialize_correlation_measurements!(
+        measurement_container = measurement_container,
+        model_geometry = model_geometry,
+        correlation = &quot;greens_up&quot;,
+        time_displaced = true,
+        pairs = [(1, 1)]
+    )
+
+    # Initialize the single-particle spin-down electron Green&#39;s function measurement.
+    initialize_correlation_measurements!(
+        measurement_container = measurement_container,
+        model_geometry = model_geometry,
+        correlation = &quot;greens_dn&quot;,
+        time_displaced = true,
+        pairs = [(1, 1)]
+    )
+
+    # Initialize the phonon Green&#39;s function measurement.
+    initialize_correlation_measurements!(
+        measurement_container = measurement_container,
+        model_geometry = model_geometry,
+        correlation = &quot;phonon_greens&quot;,
+        time_displaced = true,
+        pairs = [(1, 1)]
+    )
+
+    # Initialize total density correlation function measurement.
+    initialize_correlation_measurements!(
+        measurement_container = measurement_container,
+        model_geometry = model_geometry,
+        correlation = &quot;density&quot;,
+        time_displaced = false,
+        integrated = true,
+        pairs = [(1, 1)]
+    )
+
+    # Initialize spin-up density correlation function measurement.
+    initialize_correlation_measurements!(
+        measurement_container = measurement_container,
+        model_geometry = model_geometry,
+        correlation = &quot;density_upup&quot;,
+        time_displaced = false,
+        integrated = true,
+        pairs = [(1, 1)]
+    )
+
+    # Initialize spin-down density correlation function measurement.
+    initialize_correlation_measurements!(
+        measurement_container = measurement_container,
+        model_geometry = model_geometry,
+        correlation = &quot;density_dndn&quot;,
+        time_displaced = false,
+        integrated = true,
+        pairs = [(1, 1)]
+    )
+
+    # Initialize mixed-spin density correlation function measurement.
+    initialize_correlation_measurements!(
+        measurement_container = measurement_container,
+        model_geometry = model_geometry,
+        correlation = &quot;density_updn&quot;,
+        time_displaced = false,
+        integrated = true,
+        pairs = [(1, 1)]
+    )
+
+    # Initialize the spin-z correlation function measurement.
+    initialize_correlation_measurements!(
+        measurement_container = measurement_container,
+        model_geometry = model_geometry,
+        correlation = &quot;spin_z&quot;,
+        time_displaced = false,
+        integrated = true,
+        pairs = [(1, 1)]
+    )
+
+    # Initialize the total current correlation function measurement
+    initialize_correlation_measurements!(
+        measurement_container = measurement_container,
+        model_geometry = model_geometry,
+        correlation = &quot;current&quot;,
+        time_displaced = false,
+        integrated = true,
+        pairs = [(1, 1), # hopping ID pair for x-direction hopping
+                 (2, 2)] # hopping ID pair for y-direction hopping
+    )
+
+    # Initialize the sub-directories to which the various measurements will be written.
+    initialize_measurement_directories(
+        simulation_info = simulation_info,
+        measurement_container = measurement_container
+    )
+
+    #############################
+    ### SET-UP DQMC SIMULATION ##
+    #############################
+
+    # Allocate FermionPathIntegral type for both the spin-up and spin-down electrons.
+    fermion_path_integral_up = FermionPathIntegral(tight_binding_parameters = tight_binding_parameters_up, β = β, Δτ = Δτ)
+    fermion_path_integral_dn = FermionPathIntegral(tight_binding_parameters = tight_binding_parameters_dn, β = β, Δτ = Δτ)
+
+    # Initialize the fermion path integral type with respect to electron-phonon interaction.
+    initialize!(fermion_path_integral_up, fermion_path_integral_dn, electron_phonon_parameters)
+
+    # Initialize the imaginary-time propagators for each imaginary-time slice for both the
+    # spin-up and spin-down electrons.
+    Bup = initialize_propagators(fermion_path_integral_up, symmetric=symmetric, checkerboard=checkerboard)
+    Bdn = initialize_propagators(fermion_path_integral_dn, symmetric=symmetric, checkerboard=checkerboard)
+
+    # Initialize FermionGreensCalculator for the spin-up and spin-down electrons.
+    fermion_greens_calculator_up = dqmcf.FermionGreensCalculator(Bup, β, Δτ, n_stab)
+    fermion_greens_calculator_dn = dqmcf.FermionGreensCalculator(Bdn, β, Δτ, n_stab)
+
+    # Initialize alternate fermion greens calculator required for performing various global updates.
+    fermion_greens_calculator_up_alt = dqmcf.FermionGreensCalculator(fermion_greens_calculator_up)
+    fermion_greens_calculator_dn_alt = dqmcf.FermionGreensCalculator(fermion_greens_calculator_dn)
+
+    # Allcoate matrices for spin-up and spin-down electron Green&#39;s function matrices.
+    Gup = zeros(eltype(Bup[1]), size(Bup[1]))
+    Gdn = zeros(eltype(Bdn[1]), size(Bdn[1]))
+
+    # Initialize the spin-up and spin-down electron Green&#39;s function matrices, also
+    # calculating their respective determinants as the same time.
+    logdetGup, sgndetGup = dqmcf.calculate_equaltime_greens!(Gup, fermion_greens_calculator_up)
+    logdetGdn, sgndetGdn = dqmcf.calculate_equaltime_greens!(Gdn, fermion_greens_calculator_dn)
+
+    # Initialize Hamitlonian/Hybrid monte carlo (HMC) updater.
+    hmc_updater = EFAHMCUpdater(
+        electron_phonon_parameters = electron_phonon_parameters,
+        G = Gup, Nt = Nt, Δt = Δt
+    )
+
+    # Allocate matrices for various time-displaced Green&#39;s function matrices.
+    Gup_ττ = similar(Gup) # G↑(τ,τ)
+    Gup_τ0 = similar(Gup) # G↑(τ,0)
+    Gup_0τ = similar(Gup) # G↑(0,τ)
+    Gdn_ττ = similar(Gdn) # G↓(τ,τ)
+    Gdn_τ0 = similar(Gdn) # G↓(τ,0)
+    Gdn_0τ = similar(Gdn) # G↓(0,τ)
+
+    # Initialize variables to keep track of the largest numerical error in the
+    # Green&#39;s function matrices corrected by numerical stabalization.
+    δG = zero(typeof(logdetGup))
+    δθ = zero(typeof(sgndetGup))
+
+    ####################################
+    ### BURNIN/THERMALIZATION UPDATES ##
+    ####################################
+
+    # Iterate over burnin/thermalization updates.
+    for n in 1:N_burnin
+
+        # Perform a reflection update.
+        (accepted, logdetGup, sgndetGup, logdetGdn, sgndetGdn) = reflection_update!(
+            Gup, logdetGup, sgndetGup,
+            Gdn, logdetGdn, sgndetGdn,
+            electron_phonon_parameters,
+            fermion_path_integral_up = fermion_path_integral_up,
+            fermion_path_integral_dn = fermion_path_integral_dn,
+            fermion_greens_calculator_up = fermion_greens_calculator_up,
+            fermion_greens_calculator_dn = fermion_greens_calculator_dn,
+            fermion_greens_calculator_up_alt = fermion_greens_calculator_up_alt,
+            fermion_greens_calculator_dn_alt = fermion_greens_calculator_dn_alt,
+            Bup = Bup, Bdn = Bdn, rng = rng, phonon_types = (phonon_id,)
+        )
+
+        # Record whether the reflection update was accepted or rejected.
+        additional_info[&quot;reflection_acceptance_rate&quot;] += accepted
+
+        # Perform an HMC update.
+        (accepted, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = hmc_update!(
+            Gup, logdetGup, sgndetGup,
+            Gdn, logdetGdn, sgndetGdn,
+            electron_phonon_parameters,
+            hmc_updater,
+            fermion_path_integral_up = fermion_path_integral_up,
+            fermion_path_integral_dn = fermion_path_integral_dn,
+            fermion_greens_calculator_up = fermion_greens_calculator_up,
+            fermion_greens_calculator_dn = fermion_greens_calculator_dn,
+            fermion_greens_calculator_up_alt = fermion_greens_calculator_up_alt,
+            fermion_greens_calculator_dn_alt = fermion_greens_calculator_dn_alt,
+            Bup = Bup, Bdn = Bdn,
+            δG_max = δG_max, δG = δG, δθ = δθ, rng = rng
+        )
+
+        # Record whether the HMC update was accepted or rejected.
+        additional_info[&quot;hmc_acceptance_rate&quot;] += accepted
+    end
+
+    ################################
+    ### START MAKING MEAUSREMENTS ##
+    ################################
+
+    # Re-initialize variables to keep track of the largest numerical error in the
+    # Green&#39;s function matrices corrected by numerical stabalization.
+    δG = zero(typeof(logdetGup))
+    δθ = zero(typeof(sgndetGup))
+
+    # Iterate over the number of bin, i.e. the number of time measurements will be dumped to file.
+    for bin in 1:N_bins
+
+        # Iterate over the number of updates and measurements performed in the current bin.
+        for n in 1:bin_size
+
+            # Perform a reflection update.
+            (accepted, logdetGup, sgndetGup, logdetGdn, sgndetGdn) = reflection_update!(
+                Gup, logdetGup, sgndetGup,
+                Gdn, logdetGdn, sgndetGdn,
+                electron_phonon_parameters,
+                fermion_path_integral_up = fermion_path_integral_up,
+                fermion_path_integral_dn = fermion_path_integral_dn,
+                fermion_greens_calculator_up = fermion_greens_calculator_up,
+                fermion_greens_calculator_dn = fermion_greens_calculator_dn,
+                fermion_greens_calculator_up_alt = fermion_greens_calculator_up_alt,
+                fermion_greens_calculator_dn_alt = fermion_greens_calculator_dn_alt,
+                Bup = Bup, Bdn = Bdn, rng = rng, phonon_types = (phonon_id,)
+            )
+
+            # Record whether the reflection update was accepted or rejected.
+            additional_info[&quot;reflection_acceptance_rate&quot;] += accepted
+
+            # Perform an HMC update.
+            (accepted, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = hmc_update!(
+                Gup, logdetGup, sgndetGup,
+                Gdn, logdetGdn, sgndetGdn,
+                electron_phonon_parameters,
+                hmc_updater,
+                fermion_path_integral_up = fermion_path_integral_up,
+                fermion_path_integral_dn = fermion_path_integral_dn,
+                fermion_greens_calculator_up = fermion_greens_calculator_up,
+                fermion_greens_calculator_dn = fermion_greens_calculator_dn,
+                fermion_greens_calculator_up_alt = fermion_greens_calculator_up_alt,
+                fermion_greens_calculator_dn_alt = fermion_greens_calculator_dn_alt,
+                Bup = Bup, Bdn = Bdn,
+                δG_max = δG_max, δG = δG, δθ = δθ, rng = rng
+            )
+
+            # Record whether the HMC update was accepted or rejected.
+            additional_info[&quot;hmc_acceptance_rate&quot;] += accepted
+
+            # Make measurements, with the results being added to the measurement container.
+            (logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = make_measurements!(
+                measurement_container,
+                logdetGup, sgndetGup, Gup, Gup_ττ, Gup_τ0, Gup_0τ,
+                logdetGdn, sgndetGdn, Gdn, Gdn_ττ, Gdn_τ0, Gdn_0τ,
+                fermion_path_integral_up = fermion_path_integral_up,
+                fermion_path_integral_dn = fermion_path_integral_dn,
+                fermion_greens_calculator_up = fermion_greens_calculator_up,
+                fermion_greens_calculator_dn = fermion_greens_calculator_dn,
+                Bup = Bup, Bdn = Bdn, δG_max = δG_max, δG = δG, δθ = δθ,
+                model_geometry = model_geometry,
+                tight_binding_parameters_up = tight_binding_parameters_up,
+                tight_binding_parameters_dn = tight_binding_parameters_dn,
+                coupling_parameters = (electron_phonon_parameters,)
+            )
+        end
+
+        # Write the average measurements for the current bin to file.
+        write_measurements!(
+            measurement_container = measurement_container,
+            simulation_info = simulation_info,
+            model_geometry = model_geometry,
+            bin = bin,
+            bin_size = bin_size,
+            Δτ = Δτ
+        )
+    end
+
+    # Calculate acceptance rates.
+    additional_info[&quot;hmc_acceptance_rate&quot;] /= (N_updates + N_burnin)
+    additional_info[&quot;reflection_acceptance_rate&quot;] /= (N_updates + N_burnin)
+
+    # Record the final numerical stabilization period that the simulation settled on.
+    additional_info[&quot;n_stab_final&quot;] = fermion_greens_calculator_up.n_stab
+
+    # Record the maximum numerical error corrected by numerical stablization.
+    additional_info[&quot;dG&quot;] = δG
+
+    #################################
+    ### PROCESS SIMULATION RESULTS ##
+    #################################
+
+    # Process the simulation results, calculating final error bars for all measurements,
+    # writing final statisitics to CSV files.
+    process_measurements(simulation_info.datafolder, N_bins)
+
+    # Write simulation summary TOML file.
+    save_simulation_info(simulation_info, additional_info)
+
+    return nothing
+end
+
+
+# Only excute if the script is run directly from the command line.
+if abspath(PROGRAM_FILE) == @__FILE__
+
+    # Read in the command line arguments.
+    sID = parse(Int, ARGS[1]) # simulation ID
+    Δϵ = parse(Float64, ARGS[2])
+    Ω = parse(Float64, ARGS[3])
+    α = parse(Float64, ARGS[4])
+    μ = parse(Float64, ARGS[5])
+    β = parse(Float64, ARGS[6])
+    L = parse(Int, ARGS[7])
+    N_burnin = parse(Int, ARGS[8])
+    N_updates = parse(Int, ARGS[9])
+    N_bins = parse(Int, ARGS[10])
+
+    # Run the simulation.
+    run_holstein_zeeman_square_simulation(sID, Δϵ, Ω, α, μ, β, L, N_burnin, N_updates, N_bins)
+end</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../hubbard_honeycomb/">« Honeycomb Hubbard model</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.14.1 on <span class="colophon-date" title="Monday 28 July 2025 15:20">Monday 28 July 2025</span>. Using Julia version 1.11.6.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

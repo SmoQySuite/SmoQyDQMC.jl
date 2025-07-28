@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>2c) Honeycomb Holstein Model with Checkpointing · SmoQyDQMC.jl</title><meta name="title" content="2c) Honeycomb Holstein Model with Checkpointing · SmoQyDQMC.jl"/><meta property="og:title" content="2c) Honeycomb Holstein Model with Checkpointing · SmoQyDQMC.jl"/><meta property="twitter:title" content="2c) Honeycomb Holstein Model with Checkpointing · SmoQyDQMC.jl"/><meta name="description" content="Documentation for SmoQyDQMC.jl."/><meta property="og:description" content="Documentation for SmoQyDQMC.jl."/><meta property="twitter:description" content="Documentation for SmoQyDQMC.jl."/><meta property="og:url" content="https://smoqysuite.github.io/SmoQyDQMC.jl/stable/tutorials/holstein_honeycomb_checkpoint/"/><meta property="twitter:url" content="https://smoqysuite.github.io/SmoQyDQMC.jl/stable/tutorials/holstein_honeycomb_checkpoint/"/><link rel="canonical" href="https://smoqysuite.github.io/SmoQyDQMC.jl/stable/tutorials/holstein_honeycomb_checkpoint/"/><script data-outdated-warner src="../../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../search_index.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-mocha.css" data-theme-name="catppuccin-mocha"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-macchiato.css" data-theme-name="catppuccin-macchiato"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-frappe.css" data-theme-name="catppuccin-frappe"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-latte.css" data-theme-name="catppuccin-latte"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../../">SmoQyDQMC.jl</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../../">Home</a></li><li><a class="tocitem" href="../../hamiltonian/">Supported Hamiltonians</a></li><li><a class="tocitem" href="../../simulation_output/">Simulation Output Overview</a></li><li><a class="tocitem" href="../../api/">API</a></li><li><span class="tocitem">Tutorials</span><ul><li><a class="tocitem" href="../hubbard_square/">1a) Square Hubbard Model</a></li><li><a class="tocitem" href="../hubbard_square_mpi/">1b) Square Hubbard Model with MPI Parallelization</a></li><li><a class="tocitem" href="../hubbard_square_checkpoint/">1c) Square Hubbard Model with Checkpointing</a></li><li><a class="tocitem" href="../hubbard_square_density_tuning/">1d) Square Hubbard Model with Density Tuning</a></li><li><a class="tocitem" href="../holstein_honeycomb/">2a) Honeycomb Holstein Model</a></li><li><a class="tocitem" href="../holstein_honeycomb_mpi/">2b) Honeycomb Holstein Model with MPI Parallelization</a></li><li class="is-active"><a class="tocitem" href>2c) Honeycomb Holstein Model with Checkpointing</a><ul class="internal"><li><a class="tocitem" href="#Import-packages"><span>Import packages</span></a></li><li><a class="tocitem" href="#Specify-simulation-parameters"><span>Specify simulation parameters</span></a></li><li><a class="tocitem" href="#Initialize-simulation"><span>Initialize simulation</span></a></li><li><a class="tocitem" href="#Initialize-simulation-metadata"><span>Initialize simulation metadata</span></a></li><li><a class="tocitem" href="#Initialize-model"><span>Initialize model</span></a></li><li><a class="tocitem" href="#Initialize-model-parameters"><span>Initialize model parameters</span></a></li><li><a class="tocitem" href="#Initialize-meuasurements"><span>Initialize meuasurements</span></a></li><li><a class="tocitem" href="#Write-first-checkpoint"><span>Write first checkpoint</span></a></li><li><a class="tocitem" href="#Load-checkpoint"><span>Load checkpoint</span></a></li><li><a class="tocitem" href="#Setup-DQMC-simulation"><span>Setup DQMC simulation</span></a></li><li><a class="tocitem" href="#Setup-EFA-HMC-Updates"><span>Setup EFA-HMC Updates</span></a></li><li><a class="tocitem" href="#Thermalize-system"><span>Thermalize system</span></a></li><li><a class="tocitem" href="#Make-measurements"><span>Make measurements</span></a></li><li><a class="tocitem" href="#Record-simulation-metadata"><span>Record simulation metadata</span></a></li><li><a class="tocitem" href="#Post-process-results"><span>Post-process results</span></a></li><li><a class="tocitem" href="#Execute-script"><span>Execute script</span></a></li></ul></li><li><a class="tocitem" href="../holstein_honeycomb_density_tuning/">2d) Honeycomb Holstein Model with Density Tuning</a></li></ul></li><li><span class="tocitem">Examples</span><ul><li><a class="tocitem" href="../../examples/hubbard_chain/">Hubbard Chain</a></li><li><a class="tocitem" href="../../examples/hubbard_chain_mpi/">Hubbard Chain with MPI</a></li><li><a class="tocitem" href="../../examples/hubbard_chain_checkpoint/">Hubbard Chain with Checkpointing</a></li><li><a class="tocitem" href="../../examples/holstein_chain/">Holstein Chain with Density Tuning</a></li><li><a class="tocitem" href="../../examples/ossh_chain/">Optical Su-Schrieffer-Heeger Chain</a></li><li><a class="tocitem" href="../../examples/bssh_chain/">Bond Su-Schrieffer-Heeger Chain</a></li><li><a class="tocitem" href="../../examples/hubbard_holstein_square/">Square Hubbard-Holstein Model</a></li><li><a class="tocitem" href="../../examples/hubbard_threeband/">Three-Band Hubbard Model</a></li><li><a class="tocitem" href="../../examples/holstein_kagome/">Kagome Holstein Model with Density Tuning</a></li><li><a class="tocitem" href="../../examples/hubbard_honeycomb/">Honeycomb Hubbard model</a></li><li><a class="tocitem" href="../../examples/holstein_zeeman_square/">Square Holstein Model with Zeeman Splitting</a></li></ul></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Tutorials</a></li><li class="is-active"><a href>2c) Honeycomb Holstein Model with Checkpointing</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>2c) Honeycomb Holstein Model with Checkpointing</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/SmoQySuite/SmoQyDQMC.jl/blob/main/tutorials/holstein_honeycomb_checkpoint.jl#" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="2c)-Honeycomb-Holstein-Model-with-Checkpointing"><a class="docs-heading-anchor" href="#2c)-Honeycomb-Holstein-Model-with-Checkpointing">2c) Honeycomb Holstein Model with Checkpointing</a><a id="2c)-Honeycomb-Holstein-Model-with-Checkpointing-1"></a><a class="docs-heading-anchor-permalink" href="#2c)-Honeycomb-Holstein-Model-with-Checkpointing" title="Permalink"></a></h1><p>Download this example as a <a href="../../assets/scripts/tutorials/holstein_honeycomb_checkpoint.jl">Julia script</a>.</p><p>In this tutorial we demonstrate how to introduce checkpointing to the previous <a href="../holstein_honeycomb_mpi/#2b)-Honeycomb-Holstein-Model-with-MPI-Parallelization">2b) Honeycomb Holstein Model with MPI Parallelization</a> tutorial, allowing for simulations to be resumed if terminated prior to completion.</p><h2 id="Import-packages"><a class="docs-heading-anchor" href="#Import-packages">Import packages</a><a id="Import-packages-1"></a><a class="docs-heading-anchor-permalink" href="#Import-packages" title="Permalink"></a></h2><p>No changes need to made to this section of the code from the previous <a href="../holstein_honeycomb_mpi/#2b)-Honeycomb-Holstein-Model-with-MPI-Parallelization">2b) Honeycomb Holstein Model with MPI Parallelization</a> tutorial.</p><pre><code class="language-julia hljs">using SmoQyDQMC
+import SmoQyDQMC.LatticeUtilities as lu
+import SmoQyDQMC.JDQMCFramework as dqmcf
+
+using Random
+using Printf
+using MPI</code></pre><h2 id="Specify-simulation-parameters"><a class="docs-heading-anchor" href="#Specify-simulation-parameters">Specify simulation parameters</a><a id="Specify-simulation-parameters-1"></a><a class="docs-heading-anchor-permalink" href="#Specify-simulation-parameters" title="Permalink"></a></h2><p>Compared to the previous <a href="../holstein_honeycomb_mpi/#2b)-Honeycomb-Holstein-Model-with-MPI-Parallelization">2b) Honeycomb Holstein Model with MPI Parallelization</a> tutorial, we have added two new keyword arguments to the <code>run_simulation</code> function:</p><ul><li><code>checkpoint_freq</code>: When going to write a new checkpoint file, only write one if more than <code>checkpoint_freq</code> hours have passed since the last checkpoint file was written.</li><li><code>runtime_limit</code>: If after writing a new checkpoint file more than <code>runtime_limit</code> hours have passed since the simulation started, terminate the simulation.</li></ul><p>The <code>runtime_limit = Inf</code> default behavior means there is no runtime limit for the simulation.</p><pre><code class="language-julia hljs"># Top-level function to run simulation.
+function run_simulation(
+    comm::MPI.Comm; # MPI communicator.
+    # KEYWORD ARGUMENTS
+    sID, # Simulation ID.
+    Ω, # Phonon energy.
+    α, # Electron-phonon coupling.
+    μ, # Chemical potential.
+    L, # System size.
+    β, # Inverse temperature.
+    N_therm, # Number of thermalization updates.
+    N_updates, # Total number of measurements and measurement updates.
+    N_bins, # Number of times bin-averaged measurements are written to file.
+    checkpoint_freq, # Frequency with which checkpoint files are written in hours.
+    runtime_limit = Inf, # Simulation runtime limit in hours.
+    Δτ = 0.05, # Discretization in imaginary time.
+    n_stab = 10, # Numerical stabilization period in imaginary-time slices.
+    δG_max = 1e-6, # Threshold for numerical error corrected by stabilization.
+    symmetric = false, # Whether symmetric propagator definition is used.
+    checkerboard = false, # Whether checkerboard approximation is used.
+    seed = abs(rand(Int)), # Seed for random number generator.
+    filepath = &quot;.&quot; # Filepath to where data folder will be created.
+)</code></pre><h2 id="Initialize-simulation"><a class="docs-heading-anchor" href="#Initialize-simulation">Initialize simulation</a><a id="Initialize-simulation-1"></a><a class="docs-heading-anchor-permalink" href="#Initialize-simulation" title="Permalink"></a></h2><p>We need to make a few modifications to this portion of the code as compared to the previous tutorial in order for checkpointing to work. First, we record need to record the simulation start time, which we do by initializing a variable <code>start_timestamp = time()</code>. Second, we need to convert the <code>checkpoint_freq</code> and <code>runtime_limit</code> from hours to seconds.</p><pre><code class="language-julia hljs">    # Record when the simulation began.
+    start_timestamp = time()
+
+    # Convert runtime limit from hours to seconds.
+    runtime_limit = runtime_limit * 60.0^2
+
+    # Convert checkpoint frequency from hours to seconds.
+    checkpoint_freq = checkpoint_freq * 60.0^2
+
+    # Construct the foldername the data will be written to.
+    datafolder_prefix = @sprintf &quot;holstein_honeycomb_w%.2f_a%.2f_mu%.2f_L%d_b%.2f&quot; Ω α μ L β
+
+    # Get MPI process ID.
+    pID = MPI.Comm_rank(comm)
+
+    # Initialize simulation info.
+    simulation_info = SimulationInfo(
+        filepath = filepath,
+        datafolder_prefix = datafolder_prefix,
+        sID = sID,
+        pID = pID
+    )
+
+    # Initialize the directory the data will be written to.
+    initialize_datafolder(comm, simulation_info)</code></pre><h2 id="Initialize-simulation-metadata"><a class="docs-heading-anchor" href="#Initialize-simulation-metadata">Initialize simulation metadata</a><a id="Initialize-simulation-metadata-1"></a><a class="docs-heading-anchor-permalink" href="#Initialize-simulation-metadata" title="Permalink"></a></h2><p>At this point we need to introduce branching logic to handle whether a new simulation is being started, or a previous simulation is being resumed. We do this by checking the <code>simulation_info.resuming</code> boolean value. If <code>simulation_info.resuming = true</code>, then we are resuming a previous simulation, while <code>simulation_info.resuming = false</code> indicates we are starting a new simulation. Therefore, the section of code immediately below handles the case that we are starting a new simulation.</p><p>We also introduce and initialize two new variables <code>n_therm = 1</code> and <code>n_updates = 1</code> which will keep track of how many rounds of thermalization and measurement updates have been performed. These two variables will needed to be included in the checkpoint files we write later in the simulation, as they will indicate where to resume a previously terminated simulation.</p><pre><code class="language-julia hljs">    # If starting a new simulation i.e. not resuming a previous simulation.
+    if !simulation_info.resuming
+
+        # Begin thermalization updates from start.
+        n_therm = 1
+
+        # Begin measurement updates from start.
+        n_updates = 1
+
+        # Initialize random number generator
+        rng = Xoshiro(seed)
+
+        # Initialize additiona_info dictionary
+        metadata = Dict()
+
+        # Record simulation parameters.
+        metadata[&quot;N_therm&quot;] = N_therm
+        metadata[&quot;N_updates&quot;] = N_updates
+        metadata[&quot;N_bins&quot;] = N_bins
+        metadata[&quot;n_stab&quot;] = n_stab
+        metadata[&quot;dG_max&quot;] = δG_max
+        metadata[&quot;symmetric&quot;] = symmetric
+        metadata[&quot;checkerboard&quot;] = checkerboard
+        metadata[&quot;seed&quot;] = seed
+        metadata[&quot;hmc_acceptance_rate&quot;] = 0.0
+        metadata[&quot;reflection_acceptance_rate&quot;] = 0.0
+        metadata[&quot;swap_acceptance_rate&quot;] = 0.0</code></pre><h2 id="Initialize-model"><a class="docs-heading-anchor" href="#Initialize-model">Initialize model</a><a id="Initialize-model-1"></a><a class="docs-heading-anchor-permalink" href="#Initialize-model" title="Permalink"></a></h2><p>No changes need to made to this section of the code from the previous <a href="../holstein_honeycomb_mpi/#2b)-Honeycomb-Holstein-Model-with-MPI-Parallelization">2b) Honeycomb Holstein Model with MPI Parallelization</a> tutorial.</p><pre><code class="language-julia hljs">        # Define the unit cell.
+        unit_cell = lu.UnitCell(
+            lattice_vecs = [[3/2,√3/2],
+                            [3/2,-√3/2]],
+            basis_vecs   = [[0.,0.],
+                            [1.,0.]]
+        )
+
+        # Define finite lattice with periodic boundary conditions.
+        lattice = lu.Lattice(
+            L = [L, L],
+            periodic = [true, true]
+        )
+
+        # Initialize model geometry.
+        model_geometry = ModelGeometry(unit_cell, lattice)
+
+        # Define the first nearest-neighbor bond in a honeycomb lattice.
+        bond_1 = lu.Bond(orbitals = (1,2), displacement = [0,0])
+
+        # Add the first nearest-neighbor bond in a honeycomb lattice to the model.
+        bond_1_id = add_bond!(model_geometry, bond_1)
+
+        # Define the second nearest-neighbor bond in a honeycomb lattice.
+        bond_2 = lu.Bond(orbitals = (1,2), displacement = [-1,0])
+
+        # Add the second nearest-neighbor bond in a honeycomb lattice to the model.
+        bond_2_id = add_bond!(model_geometry, bond_2)
+
+        # Define the third nearest-neighbor bond in a honeycomb lattice.
+        bond_3 = lu.Bond(orbitals = (1,2), displacement = [0,-1])
+
+        # Add the third nearest-neighbor bond in a honeycomb lattice to the model.
+        bond_3_id = add_bond!(model_geometry, bond_3)
+
+        # Set neartest-neighbor hopping amplitude to unity,
+        # setting the energy scale in the model.
+        t = 1.0
+
+        # Define the honeycomb tight-binding model.
+        tight_binding_model = TightBindingModel(
+            model_geometry = model_geometry,
+            t_bonds        = [bond_1, bond_2, bond_3], # defines hopping
+            t_mean         = [t, t, t], # defines corresponding hopping amplitude
+            μ              = μ, # set chemical potential
+            ϵ_mean         = [0.0, 0.0] # set the (mean) on-site energy
+        )
+
+        # Initialize a null electron-phonon model.
+        electron_phonon_model = ElectronPhononModel(
+            model_geometry = model_geometry,
+            tight_binding_model = tight_binding_model
+        )
+
+        # Define a dispersionless electron-phonon mode to live on each site in the lattice.
+        phonon_1 = PhononMode(orbital = 1, Ω_mean = Ω)
+
+        # Add the phonon mode definition to the electron-phonon model.
+        phonon_1_id = add_phonon_mode!(
+            electron_phonon_model = electron_phonon_model,
+            phonon_mode = phonon_1
+        )
+
+        # Define a dispersionless electron-phonon mode to live on each site in the lattice.
+        phonon_2 = PhononMode(orbital = 2, Ω_mean = Ω)
+
+        # Add the phonon mode definition to the electron-phonon model.
+        phonon_2_id = add_phonon_mode!(
+            electron_phonon_model = electron_phonon_model,
+            phonon_mode = phonon_2
+        )
+
+        # Define first local Holstein coupling for first phonon mode.
+        holstein_coupling_1 = HolsteinCoupling(
+            model_geometry = model_geometry,
+            phonon_mode = phonon_1_id,
+            # Couple the first phonon mode to first orbital in the unit cell.
+            bond = lu.Bond(orbitals = (1,1), displacement = [0, 0]),
+            α_mean = α
+        )
+
+        # Add the first local Holstein coupling definition to the model.
+        holstein_coupling_1_id = add_holstein_coupling!(
+            electron_phonon_model = electron_phonon_model,
+            holstein_coupling = holstein_coupling_1,
+            model_geometry = model_geometry
+        )
+
+        # Define first local Holstein coupling for first phonon mode.
+        holstein_coupling_2 = HolsteinCoupling(
+            model_geometry = model_geometry,
+            phonon_mode = phonon_2_id,
+            # Couple the second phonon mode to second orbital in the unit cell.
+            bond = lu.Bond(orbitals = (2,2), displacement = [0, 0]),
+            α_mean = α
+        )
+
+        # Add the first local Holstein coupling definition to the model.
+        holstein_coupling_2_id = add_holstein_coupling!(
+            electron_phonon_model = electron_phonon_model,
+            holstein_coupling = holstein_coupling_2,
+            model_geometry = model_geometry
+        )
+
+        # Write model summary TOML file specifying Hamiltonian that will be simulated.
+        model_summary(
+            simulation_info = simulation_info,
+            β = β, Δτ = Δτ,
+            model_geometry = model_geometry,
+            tight_binding_model = tight_binding_model,
+            interactions = (electron_phonon_model,)
+        )</code></pre><h2 id="Initialize-model-parameters"><a class="docs-heading-anchor" href="#Initialize-model-parameters">Initialize model parameters</a><a id="Initialize-model-parameters-1"></a><a class="docs-heading-anchor-permalink" href="#Initialize-model-parameters" title="Permalink"></a></h2><p>No changes need to made to this section of the code from the previous <a href="../holstein_honeycomb_mpi/#2b)-Honeycomb-Holstein-Model-with-MPI-Parallelization">2b) Honeycomb Holstein Model with MPI Parallelization</a> tutorial.</p><pre><code class="language-julia hljs">        # Initialize tight-binding parameters.
+        tight_binding_parameters = TightBindingParameters(
+            tight_binding_model = tight_binding_model,
+            model_geometry = model_geometry,
+            rng = rng
+        )
+
+        # Initialize electron-phonon parameters.
+        electron_phonon_parameters = ElectronPhononParameters(
+            β = β, Δτ = Δτ,
+            electron_phonon_model = electron_phonon_model,
+            tight_binding_parameters = tight_binding_parameters,
+            model_geometry = model_geometry,
+            rng = rng
+        )</code></pre><h2 id="Initialize-meuasurements"><a class="docs-heading-anchor" href="#Initialize-meuasurements">Initialize meuasurements</a><a id="Initialize-meuasurements-1"></a><a class="docs-heading-anchor-permalink" href="#Initialize-meuasurements" title="Permalink"></a></h2><p>No changes need to made to this section of the code from the previous <a href="../holstein_honeycomb_mpi/#2b)-Honeycomb-Holstein-Model-with-MPI-Parallelization">2b) Honeycomb Holstein Model with MPI Parallelization</a> tutorial.</p><pre><code class="language-julia hljs">        # Initialize the container that measurements will be accumulated into.
+        measurement_container = initialize_measurement_container(model_geometry, β, Δτ)
+
+        # Initialize the tight-binding model related measurements, like the hopping energy.
+        initialize_measurements!(measurement_container, tight_binding_model)
+
+        # Initialize the electron-phonon interaction related measurements.
+        initialize_measurements!(measurement_container, electron_phonon_model)
+
+        # Initialize the single-particle electron Green&#39;s function measurement.
+        initialize_correlation_measurements!(
+            measurement_container = measurement_container,
+            model_geometry = model_geometry,
+            correlation = &quot;greens&quot;,
+            time_displaced = true,
+            pairs = [
+                # Measure green&#39;s functions for all pairs or orbitals.
+                (1, 1), (2, 2), (1, 2)
+            ]
+        )
+
+        # Initialize the single-particle electron Green&#39;s function measurement.
+        initialize_correlation_measurements!(
+            measurement_container = measurement_container,
+            model_geometry = model_geometry,
+            correlation = &quot;phonon_greens&quot;,
+            time_displaced = true,
+            pairs = [
+                # Measure green&#39;s functions for all pairs of modes.
+                (1, 1), (2, 2), (1, 2)
+            ]
+        )
+
+        # Initialize density correlation function measurement.
+        initialize_correlation_measurements!(
+            measurement_container = measurement_container,
+            model_geometry = model_geometry,
+            correlation = &quot;density&quot;,
+            time_displaced = false,
+            integrated = true,
+            pairs = [
+                (1, 1), (2, 2),
+            ]
+        )
+
+        # Initialize the pair correlation function measurement.
+        initialize_correlation_measurements!(
+            measurement_container = measurement_container,
+            model_geometry = model_geometry,
+            correlation = &quot;pair&quot;,
+            time_displaced = false,
+            integrated = true,
+            pairs = [
+                # Measure local s-wave pair susceptibility associated with
+                # each orbital in the unit cell.
+                (1, 1), (2, 2)
+            ]
+        )
+
+        # Initialize the spin-z correlation function measurement.
+        initialize_correlation_measurements!(
+            measurement_container = measurement_container,
+            model_geometry = model_geometry,
+            correlation = &quot;spin_z&quot;,
+            time_displaced = false,
+            integrated = true,
+            pairs = [
+                (1, 1), (2, 2)
+            ]
+        )
+
+        # Initialize CDW correlation measurement.
+        initialize_composite_correlation_measurement!(
+            measurement_container = measurement_container,
+            model_geometry = model_geometry,
+            name = &quot;cdw&quot;,
+            correlation = &quot;density&quot;,
+            ids = [1, 2],
+            coefficients = [1.0, -1.0],
+            time_displaced = false,
+            integrated = true
+        )
+
+        # Initialize the sub-directories to which the various measurements will be written.
+        initialize_measurement_directories(comm, simulation_info, measurement_container)</code></pre><h2 id="Write-first-checkpoint"><a class="docs-heading-anchor" href="#Write-first-checkpoint">Write first checkpoint</a><a id="Write-first-checkpoint-1"></a><a class="docs-heading-anchor-permalink" href="#Write-first-checkpoint" title="Permalink"></a></h2><p>This section of code needs to be added so that a first checkpoint file is written before beginning a new simulation. We do this using the <a href="../../api/#SmoQyDQMC.write_jld2_checkpoint"><code>write_jld2_checkpoint</code></a> function. This function all return the epoch timestamp <code>checkpoint_timestamp</code> corresponding to when the checkpoint file was written.</p><pre><code class="language-julia hljs">        # Write initial checkpoint file.
+        checkpoint_timestamp = write_jld2_checkpoint(
+            comm,
+            simulation_info;
+            checkpoint_freq = checkpoint_freq,
+            start_timestamp = start_timestamp,
+            runtime_limit = runtime_limit,
+            # Contents of checkpoint file below.
+            n_therm, n_updates,
+            tight_binding_parameters, electron_phonon_parameters,
+            measurement_container, model_geometry, metadata, rng
+        )</code></pre><h2 id="Load-checkpoint"><a class="docs-heading-anchor" href="#Load-checkpoint">Load checkpoint</a><a id="Load-checkpoint-1"></a><a class="docs-heading-anchor-permalink" href="#Load-checkpoint" title="Permalink"></a></h2><p>If we are resuming a simulation that was previously terminated prior to completion, then we need to load the most recent checkpoint file using the <a href="../../api/#SmoQyDQMC.read_jld2_checkpoint"><code>read_jld2_checkpoint</code></a> function. The cotents of the checkpoint file are returned as a dictionary <code>checkpoint</code> by the <a href="../../api/#SmoQyDQMC.read_jld2_checkpoint"><code>read_jld2_checkpoint</code></a> function. We then extract the cotents of the checkpoint file from the <code>checkpoint</code> dictionary.</p><pre><code class="language-julia hljs">    # If resuming a previous simulation.
+    else
+
+        # Load the checkpoint file.
+        checkpoint, checkpoint_timestamp = read_jld2_checkpoint(simulation_info)
+
+        # Unpack contents of checkpoint dictionary.
+        tight_binding_parameters    = checkpoint[&quot;tight_binding_parameters&quot;]
+        electron_phonon_parameters  = checkpoint[&quot;electron_phonon_parameters&quot;]
+        measurement_container       = checkpoint[&quot;measurement_container&quot;]
+        model_geometry              = checkpoint[&quot;model_geometry&quot;]
+        metadata                    = checkpoint[&quot;metadata&quot;]
+        rng                         = checkpoint[&quot;rng&quot;]
+        n_therm                     = checkpoint[&quot;n_therm&quot;]
+        n_updates                   = checkpoint[&quot;n_updates&quot;]
+    end</code></pre><h2 id="Setup-DQMC-simulation"><a class="docs-heading-anchor" href="#Setup-DQMC-simulation">Setup DQMC simulation</a><a id="Setup-DQMC-simulation-1"></a><a class="docs-heading-anchor-permalink" href="#Setup-DQMC-simulation" title="Permalink"></a></h2><p>No changes need to made to this section of the code from the previous <a href="../holstein_honeycomb_mpi/#2b)-Honeycomb-Holstein-Model-with-MPI-Parallelization">2b) Honeycomb Holstein Model with MPI Parallelization</a> tutorial.</p><pre><code class="language-julia hljs">    # Allocate a single FermionPathIntegral for both spin-up and down electrons.
+    fermion_path_integral = FermionPathIntegral(tight_binding_parameters = tight_binding_parameters, β = β, Δτ = Δτ)
+
+    # Initialize FermionPathIntegral type to account for electron-phonon interaction.
+    initialize!(fermion_path_integral, electron_phonon_parameters)
+
+    # Initialize imaginary-time propagators for all imaginary-time slices.
+    B = initialize_propagators(fermion_path_integral, symmetric=symmetric, checkerboard=checkerboard)
+
+    # Initialize FermionGreensCalculator type.
+    fermion_greens_calculator = dqmcf.FermionGreensCalculator(B, β, Δτ, n_stab)
+
+    # Initialize alternate fermion greens calculator required for performing EFA-HMC, reflection and swap updates below.
+    fermion_greens_calculator_alt = dqmcf.FermionGreensCalculator(fermion_greens_calculator)
+
+    # Allcoate equal-time electron Green&#39;s function matrix.
+    G = zeros(eltype(B[1]), size(B[1]))
+
+    # Initialize electron Green&#39;s function matrx, also calculating the matrix determinant as the same time.
+    logdetG, sgndetG = dqmcf.calculate_equaltime_greens!(G, fermion_greens_calculator)
+
+    # Allocate matrices for various time-displaced Green&#39;s function matrices.
+    G_ττ = similar(G) # G(τ,τ)
+    G_τ0 = similar(G) # G(τ,0)
+    G_0τ = similar(G) # G(0,τ)
+
+    # Initialize diagonostic parameters to asses numerical stability.
+    δG = zero(logdetG)
+    δθ = zero(sgndetG)</code></pre><h2 id="Setup-EFA-HMC-Updates"><a class="docs-heading-anchor" href="#Setup-EFA-HMC-Updates">Setup EFA-HMC Updates</a><a id="Setup-EFA-HMC-Updates-1"></a><a class="docs-heading-anchor-permalink" href="#Setup-EFA-HMC-Updates" title="Permalink"></a></h2><p>No changes need to made to this section of the code from the previous <a href="../holstein_honeycomb_mpi/#2b)-Honeycomb-Holstein-Model-with-MPI-Parallelization">2b) Honeycomb Holstein Model with MPI Parallelization</a> tutorial.</p><pre><code class="language-julia hljs">    # Number of fermionic time-steps in HMC update.
+    Nt = 10
+
+    # Fermionic time-step used in HMC update.
+    Δt = π/(2*Ω*Nt)
+
+    # Initialize Hamitlonian/Hybrid monte carlo (HMC) updater.
+    hmc_updater = EFAHMCUpdater(
+        electron_phonon_parameters = electron_phonon_parameters,
+        G = G, Nt = Nt, Δt = Δt
+    )</code></pre><h2 id="Thermalize-system"><a class="docs-heading-anchor" href="#Thermalize-system">Thermalize system</a><a id="Thermalize-system-1"></a><a class="docs-heading-anchor-permalink" href="#Thermalize-system" title="Permalink"></a></h2><p>The first change we need to make to this section is to have the for-loop iterate from <code>n_therm:N_therm</code> instead of <code>1:N_therm</code>. The other change we need make to this section of the code from the previous <a href="../hubbard_square_mpi/#1b)-Square-Hubbard-Model-with-MPI-Parallelization">1b) Square Hubbard Model with MPI Parallelization</a> tutorial is to add a call to the <a href="../../api/#SmoQyDQMC.write_jld2_checkpoint"><code>write_jld2_checkpoint</code></a> function at the end of each iteration of the for-loop in which we perform the thermalization updates. When calling this function we need to pass it the timestamp for the previous checkpoint <code>checkpoint_timestamp</code> so that the function can determine if a new checkpoint file needs to be written. If a new checkpoint file is written then the <code>checkpoint_timestamp</code> variable will be updated to reflect this, otherwise it will remain unchanged.</p><pre><code class="language-julia hljs">    # Iterate over number of thermalization updates to perform.
+    for update in n_therm:N_therm
+
+        # Perform a reflection update.
+        (accepted, logdetG, sgndetG) = reflection_update!(
+            G, logdetG, sgndetG, electron_phonon_parameters,
+            fermion_path_integral = fermion_path_integral,
+            fermion_greens_calculator = fermion_greens_calculator,
+            fermion_greens_calculator_alt = fermion_greens_calculator_alt,
+            B = B, rng = rng
+        )
+
+        # Record whether the reflection update was accepted or rejected.
+        metadata[&quot;reflection_acceptance_rate&quot;] += accepted
+
+        # Perform a swap update.
+        (accepted, logdetG, sgndetG) = swap_update!(
+            G, logdetG, sgndetG, electron_phonon_parameters,
+            fermion_path_integral = fermion_path_integral,
+            fermion_greens_calculator = fermion_greens_calculator,
+            fermion_greens_calculator_alt = fermion_greens_calculator_alt,
+            B = B, rng = rng
+        )
+
+        # Record whether the reflection update was accepted or rejected.
+        metadata[&quot;swap_acceptance_rate&quot;] += accepted
+
+        # Perform an HMC update.
+        (accepted, logdetG, sgndetG, δG, δθ) = hmc_update!(
+            G, logdetG, sgndetG, electron_phonon_parameters, hmc_updater,
+            fermion_path_integral = fermion_path_integral,
+            fermion_greens_calculator = fermion_greens_calculator,
+            fermion_greens_calculator_alt = fermion_greens_calculator_alt,
+            B = B, δG_max = δG_max, δG = δG, δθ = δθ, rng = rng
+        )
+
+        # Record whether the HMC update was accepted or rejected.
+        metadata[&quot;hmc_acceptance_rate&quot;] += accepted
+
+        # Write checkpoint file.
+        checkpoint_timestamp = write_jld2_checkpoint(
+            comm,
+            simulation_info;
+            checkpoint_timestamp = checkpoint_timestamp,
+            checkpoint_freq = checkpoint_freq,
+            start_timestamp = start_timestamp,
+            runtime_limit = runtime_limit,
+            # Contents of checkpoint file below.
+            n_therm  = update + 1,
+            n_updates = 1,
+            tight_binding_parameters, electron_phonon_parameters,
+            measurement_container, model_geometry, metadata, rng
+        )
+    end</code></pre><h2 id="Make-measurements"><a class="docs-heading-anchor" href="#Make-measurements">Make measurements</a><a id="Make-measurements-1"></a><a class="docs-heading-anchor-permalink" href="#Make-measurements" title="Permalink"></a></h2><p>Again, we need to modify the for-loop so that it runs from <code>n_updates:N_updates</code> instead of <code>1:N_updates</code>. The only other change we need to make to this section of the code from the previous <a href="../holstein_honeycomb_mpi/#2b)-Honeycomb-Holstein-Model-with-MPI-Parallelization">2b) Honeycomb Holstein Model with MPI Parallelization</a> tutorial is to add a call to the <a href="../../api/#SmoQyDQMC.write_jld2_checkpoint"><code>write_jld2_checkpoint</code></a> function at the end of each iteration of the for-loop in which we perform updates and measurements. Note that we set <code>n_therm = N_therm + 1</code> when writing the checkpoint file to ensure that when the simulation is resumed the thermalization updates are not repeated.</p><pre><code class="language-julia hljs">    # Reset diagonostic parameters used to monitor numerical stability to zero.
+    δG = zero(logdetG)
+    δθ = zero(sgndetG)
+
+    # Calculate the bin size.
+    bin_size = N_updates ÷ N_bins
+
+    # Iterate over updates and measurements.
+    for update in n_updates:N_updates
+
+        # Perform a reflection update.
+        (accepted, logdetG, sgndetG) = reflection_update!(
+            G, logdetG, sgndetG, electron_phonon_parameters,
+            fermion_path_integral = fermion_path_integral,
+            fermion_greens_calculator = fermion_greens_calculator,
+            fermion_greens_calculator_alt = fermion_greens_calculator_alt,
+            B = B, rng = rng
+        )
+
+        # Record whether the reflection update was accepted or rejected.
+        metadata[&quot;reflection_acceptance_rate&quot;] += accepted
+
+        # Perform a swap update.
+        (accepted, logdetG, sgndetG) = swap_update!(
+            G, logdetG, sgndetG, electron_phonon_parameters,
+            fermion_path_integral = fermion_path_integral,
+            fermion_greens_calculator = fermion_greens_calculator,
+            fermion_greens_calculator_alt = fermion_greens_calculator_alt,
+            B = B, rng = rng
+        )
+
+        # Record whether the reflection update was accepted or rejected.
+        metadata[&quot;swap_acceptance_rate&quot;] += accepted
+
+        # Perform an HMC update.
+        (accepted, logdetG, sgndetG, δG, δθ) = hmc_update!(
+            G, logdetG, sgndetG, electron_phonon_parameters, hmc_updater,
+            fermion_path_integral = fermion_path_integral,
+            fermion_greens_calculator = fermion_greens_calculator,
+            fermion_greens_calculator_alt = fermion_greens_calculator_alt,
+            B = B, δG_max = δG_max, δG = δG, δθ = δθ, rng = rng
+        )
+
+        # Record whether the HMC update was accepted or rejected.
+        metadata[&quot;hmc_acceptance_rate&quot;] += accepted
+
+        # Make measurements.
+        (logdetG, sgndetG, δG, δθ) = make_measurements!(
+            measurement_container,
+            logdetG, sgndetG, G, G_ττ, G_τ0, G_0τ,
+            fermion_path_integral = fermion_path_integral,
+            fermion_greens_calculator = fermion_greens_calculator,
+            B = B, δG_max = δG_max, δG = δG, δθ = δθ,
+            model_geometry = model_geometry, tight_binding_parameters = tight_binding_parameters,
+            coupling_parameters = (electron_phonon_parameters,)
+        )
+
+        # Write the bin-averaged measurements to file if update ÷ bin_size == 0.
+        write_measurements!(
+            measurement_container = measurement_container,
+            simulation_info = simulation_info,
+            model_geometry = model_geometry,
+            update = update,
+            bin_size = bin_size,
+            Δτ = Δτ
+        )
+
+        # Write checkpoint file.
+        checkpoint_timestamp = write_jld2_checkpoint(
+            comm,
+            simulation_info;
+            checkpoint_timestamp = checkpoint_timestamp,
+            checkpoint_freq = checkpoint_freq,
+            start_timestamp = start_timestamp,
+            runtime_limit = runtime_limit,
+            # Contents of checkpoint file below.
+            n_therm  = N_therm + 1,
+            n_updates = update + 1,
+            tight_binding_parameters, electron_phonon_parameters,
+            measurement_container, model_geometry, metadata, rng
+        )
+    end</code></pre><h2 id="Record-simulation-metadata"><a class="docs-heading-anchor" href="#Record-simulation-metadata">Record simulation metadata</a><a id="Record-simulation-metadata-1"></a><a class="docs-heading-anchor-permalink" href="#Record-simulation-metadata" title="Permalink"></a></h2><p>No changes need to made to this section of the code from the previous <a href="../holstein_honeycomb_mpi/#2b)-Honeycomb-Holstein-Model-with-MPI-Parallelization">2b) Honeycomb Holstein Model with MPI Parallelization</a> tutorial.</p><pre><code class="language-julia hljs">    # Calculate acceptance rates.
+    metadata[&quot;hmc_acceptance_rate&quot;] /= (N_updates + N_therm)
+    metadata[&quot;reflection_acceptance_rate&quot;] /= (N_updates + N_therm)
+    metadata[&quot;swap_acceptance_rate&quot;] /= (N_updates + N_therm)
+
+    # Record largest numerical error encountered during simulation.
+    metadata[&quot;dG&quot;] = δG
+
+    # Write simulation metadata to simulation_info.toml file.
+    save_simulation_info(simulation_info, metadata)</code></pre><h2 id="Post-process-results"><a class="docs-heading-anchor" href="#Post-process-results">Post-process results</a><a id="Post-process-results-1"></a><a class="docs-heading-anchor-permalink" href="#Post-process-results" title="Permalink"></a></h2><p>From the last <a href="../holstein_honeycomb_mpi/#2b)-Honeycomb-Holstein-Model-with-MPI-Parallelization">2b) Honeycomb Holstein Model with MPI Parallelization</a> tutorial, we now need to add a call to the <a href="../../api/#SmoQyDQMC.rename_complete_simulation"><code>rename_complete_simulation</code></a> function once the results are processed. This function renames the data folder to begin with <code>complete_*</code>, making it simple to identify which simulations ran to completion and which ones need to be resumed from the last checkpoint file. This function also deletes the checkpoint files that were written during the simulation.</p><pre><code class="language-julia hljs">    # Process the simulation results, calculating final error bars for all measurements,
+    # writing final statisitics to CSV files.
+    process_measurements(comm, simulation_info.datafolder, N_bins, time_displaced = true)
+
+    # Merge binary files containing binned data into a single file.
+    compress_jld2_bins(comm, folder = simulation_info.datafolder)
+
+    # Rename the data folder to indicate the simulation is complete.
+    simulation_info = rename_complete_simulation(
+        comm, simulation_info,
+        delete_jld2_checkpoints = true
+    )
+
+    return nothing
+end # end of run_simulation function</code></pre><h2 id="Execute-script"><a class="docs-heading-anchor" href="#Execute-script">Execute script</a><a id="Execute-script-1"></a><a class="docs-heading-anchor-permalink" href="#Execute-script" title="Permalink"></a></h2><p>To execute the script, we have added two new command line arguments allowing for the assignment of both the <code>checkpoint_freq</code> and <code>runtime_limit</code> values. Therefore, a simulation can be run with the command</p><pre><code class="language-bash hljs">mpiexecjl -n 16 julia holstein_honeycomb_checkpoint.jl 1 1.0 1.5 0.0 3 4.0 5000 10000 100 0.5</code></pre><p>or</p><pre><code class="language-bash hljs">srun julia holstein_honeycomb_checkpoint.jl 1 1.0 1.5 0.0 3 4.0 5000 10000 100 0.5</code></pre><p>Refer to the previous <a href="../hubbard_square_mpi/#1b)-Square-Hubbard-Model-with-MPI-Parallelization">1b) Square Hubbard Model with MPI Parallelization</a> tutorial for more details on how to run the simulation script using MPI.</p><p>In the example calls above the code will write a new checkpoint if more than 30 minutes (0.5 hours) has passed since the last checkpoint file was written. Note that these same commands are used to both begin a new simulation and also resume a previous simulation. This is a useful feature when submitting jobs on a cluster, as it allows the same job file to be used for both starting new simulations and resuming ones that still need to finish.</p><pre><code class="language-julia hljs"># Only excute if the script is run directly from the command line.
+if abspath(PROGRAM_FILE) == @__FILE__
+
+    # Initialize MPI
+    MPI.Init()
+
+    # Initialize the MPI communicator.
+    comm = MPI.COMM_WORLD
+
+    # Run the simulation.
+    run_simulation(
+        comm;
+        sID             = parse(Int,     ARGS[1]),  # Simulation ID.
+        Ω               = parse(Float64, ARGS[2]),  # Phonon energy.
+        α               = parse(Float64, ARGS[3]),  # Electron-phonon coupling.
+        μ               = parse(Float64, ARGS[4]),  # Chemical potential.
+        L               = parse(Int,     ARGS[5]),  # System size.
+        β               = parse(Float64, ARGS[6]),  # Inverse temperature.
+        N_therm         = parse(Int,     ARGS[7]),  # Number of thermalization updates.
+        N_updates       = parse(Int,     ARGS[8]),  # Total number of measurements and measurement updates.
+        N_bins          = parse(Int,     ARGS[9]),  # Number of times bin-averaged measurements are written to file.
+        checkpoint_freq = parse(Float64, ARGS[10]), # Frequency with which checkpoint files are written in hours.
+    )
+
+    # Finalize MPI.
+    MPI.Finalize()
+end</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../holstein_honeycomb_mpi/">« 2b) Honeycomb Holstein Model with MPI Parallelization</a><a class="docs-footer-nextpage" href="../holstein_honeycomb_density_tuning/">2d) Honeycomb Holstein Model with Density Tuning »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.14.1 on <span class="colophon-date" title="Monday 28 July 2025 15:20">Monday 28 July 2025</span>. Using Julia version 1.11.6.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
