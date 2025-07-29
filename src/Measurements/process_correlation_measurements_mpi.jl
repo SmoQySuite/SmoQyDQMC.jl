@@ -135,7 +135,7 @@ function _process_correlation_measurement(
     correlation_var = correlation_std
 
     # pre-allocate arrays for jackknife
-    jackknife_samples = (zeros(Complex{T}, N_bins), zeros(Complex{T}, N_bins))
+    jackknife_sample_means = (zeros(Complex{T}, N_bins), zeros(Complex{T}, N_bins))
     jackknife_g = zeros(Complex{T}, N_bins)
 
     # if root process
@@ -172,7 +172,7 @@ function _process_correlation_measurement(
                 # calculate average and error for current pID
                 fill!(correlation_avg, 0)
                 fill!(correlation_var, 0)
-                analyze_correlations!(correlation_avg, correlation_var, binned_correlation, binned_sign, jackknife_samples, jackknife_g)
+                analyze_correlations!(correlation_avg, correlation_var, binned_correlation, binned_sign, jackknife_sample_means, jackknife_g)
 
                 # collect all the results
                 MPI.Reduce!(correlation_avg, +, comm)
@@ -200,7 +200,7 @@ function _process_correlation_measurement(
             # reset correlation containers
             fill!(correlation_avg, 0)
             fill!(correlation_std, 0)
-            analyze_correlations!(correlation_avg, correlation_var, binned_correlation, binned_sign, jackknife_samples, jackknife_g)
+            analyze_correlations!(correlation_avg, correlation_var, binned_correlation, binned_sign, jackknife_sample_means, jackknife_g)
 
             # collect all the results
             MPI.Reduce!(correlation_avg, +, comm)
@@ -246,7 +246,7 @@ function _process_composite_correlation_measurement(
     correlation_var = correlation_std
 
     # pre-allocate arrays for jackknife
-    jackknife_samples = (zeros(Complex{T}, N_bins), zeros(Complex{T}, N_bins))
+    jackknife_sample_means = (zeros(Complex{T}, N_bins), zeros(Complex{T}, N_bins))
     jackknife_g = zeros(Complex{T}, N_bins)
 
     # if root process
@@ -277,7 +277,7 @@ function _process_composite_correlation_measurement(
             # calculate average and error for current pID
             fill!(correlation_avg, 0)
             fill!(correlation_var, 0)
-            analyze_correlations!(correlation_avg, correlation_var, binned_correlation, binned_sign, jackknife_samples, jackknife_g)
+            analyze_correlations!(correlation_avg, correlation_var, binned_correlation, binned_sign, jackknife_sample_means, jackknife_g)
 
             # collect all the results
             MPI.Reduce!(correlation_avg, +, comm)
@@ -301,7 +301,7 @@ function _process_composite_correlation_measurement(
         # reset correlation containers
         fill!(correlation_avg, 0)
         fill!(correlation_std, 0)
-        analyze_correlations!(correlation_avg, correlation_var, binned_correlation, binned_sign, jackknife_samples, jackknife_g)
+        analyze_correlations!(correlation_avg, correlation_var, binned_correlation, binned_sign, jackknife_sample_means, jackknife_g)
 
         # collect all the results
         MPI.Reduce!(correlation_avg, +, comm)
@@ -349,7 +349,7 @@ function _process_correlation_measurement(
     correlation_var = correlation_std
 
     # pre-allocate arrays for jackknife
-    jackknife_samples = (zeros(Complex{T}, N_bins), zeros(Complex{T}, N_bins))
+    jackknife_sample_means = (zeros(Complex{T}, N_bins), zeros(Complex{T}, N_bins))
     jackknife_g = zeros(Complex{T}, N_bins)
 
     # if root process
@@ -389,7 +389,7 @@ function _process_correlation_measurement(
                     # calculate average and error for current pID
                     fill!(correlation_avg, 0)
                     fill!(correlation_var, 0)
-                    analyze_correlations!(correlation_avg, correlation_var, binned_correlation, binned_sign, jackknife_samples, jackknife_g)
+                    analyze_correlations!(correlation_avg, correlation_var, binned_correlation, binned_sign, jackknife_sample_means, jackknife_g)
 
                     # collect all the results
                     MPI.Reduce!(correlation_avg, +, comm)
@@ -419,7 +419,7 @@ function _process_correlation_measurement(
                 # calculate average and error for current pID
                 fill!(correlation_avg, 0)
                 fill!(correlation_var, 0)
-                analyze_correlations!(correlation_avg, correlation_var, binned_correlation, binned_sign, jackknife_samples, jackknife_g)
+                analyze_correlations!(correlation_avg, correlation_var, binned_correlation, binned_sign, jackknife_sample_means, jackknife_g)
 
                 # collect all the results
                 MPI.Reduce!(correlation_avg, +, comm)
@@ -466,7 +466,7 @@ function _process_composite_correlation_measurement(
     correlation_var = correlation_std
 
     # pre-allocate arrays for jackknife
-    jackknife_samples = (zeros(Complex{T}, N_bins), zeros(Complex{T}, N_bins))
+    jackknife_sample_means = (zeros(Complex{T}, N_bins), zeros(Complex{T}, N_bins))
     jackknife_g = zeros(Complex{T}, N_bins)
 
     # if root process
@@ -500,7 +500,7 @@ function _process_composite_correlation_measurement(
                 # calculate average and error for current pID
                 fill!(correlation_avg, 0)
                 fill!(correlation_var, 0)
-                analyze_correlations!(correlation_avg, correlation_var, binned_correlation, binned_sign, jackknife_samples, jackknife_g)
+                analyze_correlations!(correlation_avg, correlation_var, binned_correlation, binned_sign, jackknife_sample_means, jackknife_g)
 
                 # collect all the results
                 MPI.Reduce!(correlation_avg, +, comm)
@@ -525,7 +525,7 @@ function _process_composite_correlation_measurement(
             # calculate average and error for current pID
             fill!(correlation_avg, 0)
             fill!(correlation_var, 0)
-            analyze_correlations!(correlation_avg, correlation_var, binned_correlation, binned_sign, jackknife_samples, jackknife_g)
+            analyze_correlations!(correlation_avg, correlation_var, binned_correlation, binned_sign, jackknife_sample_means, jackknife_g)
 
             # collect all the results
             MPI.Reduce!(correlation_avg, +, comm)

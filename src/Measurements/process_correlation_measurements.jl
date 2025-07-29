@@ -342,7 +342,7 @@ function _process_correlation_measurement(
     correlation_var = correlation_std
 
     # pre-allocate arrays for jackknife
-    jackknife_samples = (zeros(Complex{T}, N_bins), zeros(Complex{T}, N_bins))
+    jackknife_sample_means = (zeros(Complex{T}, N_bins), zeros(Complex{T}, N_bins))
     jackknife_g = zeros(Complex{T}, N_bins)
 
     # get correlation ID pairs
@@ -391,7 +391,7 @@ function _process_correlation_measurement(
                     read_correlation_measurement!(binned_correlation, folder, correlation, l, space, n, pID, bin_intervals)
 
                     # calculate average and error for current pID
-                    analyze_correlations!(correlation_avg, correlation_var, binned_correlation, binned_signs[i], jackknife_samples, jackknife_g)
+                    analyze_correlations!(correlation_avg, correlation_var, binned_correlation, binned_signs[i], jackknife_sample_means, jackknife_g)
                 end
 
                 # normalize stats
@@ -441,7 +441,7 @@ function _process_composite_correlation_measurement(
     correlation_var = correlation_std
 
     # pre-allocate arrays for jackknife
-    jackknife_samples = (zeros(Complex{T}, N_bins), zeros(Complex{T}, N_bins))
+    jackknife_sample_means = (zeros(Complex{T}, N_bins), zeros(Complex{T}, N_bins))
     jackknife_g = zeros(Complex{T}, N_bins)
 
     # stats filename
@@ -481,7 +481,7 @@ function _process_composite_correlation_measurement(
                 read_correlation_measurement!(binned_correlation, folder, name, l, space, pID, bin_intervals)
 
                 # calculate average and error for current pID
-                analyze_correlations!(correlation_avg, correlation_var, binned_correlation, binned_signs[i], jackknife_samples, jackknife_g)
+                analyze_correlations!(correlation_avg, correlation_var, binned_correlation, binned_signs[i], jackknife_sample_means, jackknife_g)
             end
 
             # normalize stats
@@ -530,7 +530,7 @@ function _process_correlation_measurement(
     correlation_var = correlation_std
 
     # pre-allocate arrays for jackknife
-    jackknife_samples = (zeros(Complex{T}, N_bins), zeros(Complex{T}, N_bins))
+    jackknife_sample_means = (zeros(Complex{T}, N_bins), zeros(Complex{T}, N_bins))
     jackknife_g = zeros(Complex{T}, N_bins)
 
     # get correlation ID pairs
@@ -576,7 +576,7 @@ function _process_correlation_measurement(
                 read_correlation_measurement!(binned_correlation, folder, correlation, type, space, n, pID, bin_intervals)
 
                 # calculate average and error for current pID
-                analyze_correlations!(correlation_avg, correlation_var, binned_correlation, binned_signs[i], jackknife_samples, jackknife_g)
+                analyze_correlations!(correlation_avg, correlation_var, binned_correlation, binned_signs[i], jackknife_sample_means, jackknife_g)
             end
 
             # normalize stats
@@ -625,7 +625,7 @@ function _process_composite_correlation_measurement(
     correlation_var = correlation_std
 
     # pre-allocate arrays for jackknife
-    jackknife_samples = (zeros(Complex{T}, N_bins), zeros(Complex{T}, N_bins))
+    jackknife_sample_means = (zeros(Complex{T}, N_bins), zeros(Complex{T}, N_bins))
     jackknife_g = zeros(Complex{T}, N_bins)
 
     # stats filename
@@ -662,7 +662,7 @@ function _process_composite_correlation_measurement(
             read_correlation_measurement!(binned_correlation, folder, name, type, space, pID, bin_intervals)
 
             # calculate average and error for current pID
-            analyze_correlations!(correlation_avg, correlation_var, binned_correlation, binned_signs[i], jackknife_samples, jackknife_g)
+            analyze_correlations!(correlation_avg, correlation_var, binned_correlation, binned_signs[i], jackknife_sample_means, jackknife_g)
         end
 
         # normalize stats
@@ -871,7 +871,7 @@ function analyze_correlations!(
     correlations_var::AbstractArray{T},
     binned_correlations::AbstractArray{Complex{T}},
     binned_sign::Vector{Complex{T}},
-    jackknife_samples::Tuple{Vector{Complex{T}},Vector{Complex{T}}},
+    jackknife_sample_means::Tuple{Vector{Complex{T}},Vector{Complex{T}}},
     jackknife_g::Vector{Complex{T}}
 ) where {T<:AbstractFloat}
 
@@ -884,7 +884,7 @@ function analyze_correlations!(
         # calculate correlation stats
         C, ΔC = jackknife(
             /, binned_vals, binned_sign,
-            jackknife_samples = jackknife_samples,
+            jackknife_sample_means = jackknife_sample_means,
             jackknife_g = jackknife_g
         )
         correlations_avg[c] += C
