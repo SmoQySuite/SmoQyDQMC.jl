@@ -31,9 +31,9 @@ function merge_bins(
         # open new HDF5 file to contain all the binned data
         h5open(filename, "w") do fout
             # Record the process ID
-            fout["pID"] = pID
+            attributes(fout)["PID"] = pID
             # Record the number of bins
-            fout["N_BINS"] = N_bins
+            attributes(fout)["N_BINS"] = N_bins
             # open first HDF5 bin file
             fin = write_bins_concurrent ? h5open(String(bin_files[1]), "r") : h5open(bin_files[1], "r"; name = "in_mem_bin.h5")
             # initialize/allocate HDF5 file to contain all binned data
@@ -41,8 +41,8 @@ function merge_bins(
             # copy contents of first bin file over
             copyto_hdf5_bin(fout, fin, 1)
             # record inverse temperature and system size
-            fout["BETA"] = read(fin["BETA"])
-            fout["N_ORBITALS"] = read(fin["N_ORBITALS"])
+            attributes(fout)["BETA"] = read_attribute(fin, "BETA")
+            attributes(fout)["N_ORBITALS"] = read_attribute(fin, "N_ORBITALS")
             # close first HDF5 bin file
             close(fin)
             # iterate over remaining bin files
@@ -109,8 +109,8 @@ function init_hdf5_bins_file(
     for key in keys(StandardEqualTime_Bin)
         Correlation_Bin = StandardEqualTime_Bin[key]
         Correlation = create_group(StandardEqualTime, key)
-        Correlation["ID_PAIRS"] = read(Correlation_Bin["ID_PAIRS"])
-        Correlation["ID_TYPE"] = read(Correlation_Bin["ID_TYPE"])
+        attributes(Correlation)["ID_PAIRS"] = read_attribute(Correlation_Bin, "ID_PAIRS")
+        attributes(Correlation)["ID_TYPE"] = read_attribute(Correlation_Bin, "ID_TYPE")
         Position_Bin = Correlation_Bin["POSITION"]
         Position = create_dataset(Correlation, "POSITION", eltype(Position_Bin), (N_bins, size(Position_Bin)...))
         Momentum_Bin = Correlation_Bin["MOMENTUM"]
@@ -125,8 +125,8 @@ function init_hdf5_bins_file(
     for key in keys(StandardTimeDisplaced_Bin)
         Correlation_Bin = StandardTimeDisplaced_Bin[key]
         Correlation = create_group(StandardTimeDisplaced, key)
-        Correlation["ID_PAIRS"] = read(Correlation_Bin["ID_PAIRS"])
-        Correlation["ID_TYPE"] = read(Correlation_Bin["ID_TYPE"])
+        attributes(Correlation)["ID_PAIRS"] = read_attribute(Correlation_Bin, "ID_PAIRS")
+        attributes(Correlation)["ID_TYPE"] = read_attribute(Correlation_Bin, "ID_TYPE")
         Position_Bin = Correlation_Bin["POSITION"]
         Position = create_dataset(Correlation, "POSITION", eltype(Position_Bin), (N_bins, size(Position_Bin)...))
         Momentum_Bin = Correlation_Bin["MOMENTUM"]
@@ -141,8 +141,8 @@ function init_hdf5_bins_file(
     for key in keys(StandardIntegrated_Bin)
         Correlation_Bin = StandardIntegrated_Bin[key]
         Correlation = create_group(StandardIntegrated, key)
-        Correlation["ID_PAIRS"] = read(Correlation_Bin["ID_PAIRS"])
-        Correlation["ID_TYPE"] = read(Correlation_Bin["ID_TYPE"])
+        attributes(Correlation)["ID_PAIRS"] = read_attribute(Correlation_Bin, "ID_PAIRS")
+        attributes(Correlation)["ID_TYPE"] = read_attribute(Correlation_Bin, "ID_TYPE")
         Position_Bin = Correlation_Bin["POSITION"]
         Position = create_dataset(Correlation, "POSITION", eltype(Position_Bin), (N_bins, size(Position_Bin)...))
         Momentum_Bin = Correlation_Bin["MOMENTUM"]

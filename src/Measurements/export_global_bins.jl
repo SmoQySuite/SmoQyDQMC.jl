@@ -87,10 +87,10 @@ function export_global_bins_to_h5(;
         Measurements = create_group(H5GlobalFile, "GLOBAL")
 
         # record the pIDs
-        H5GlobalFile["pIDs"] = pIDs
+        attributes(H5GlobalFile)["PIDS"] = pIDs
 
         # dimension labels
-        H5GlobalFile["DIM_LABLES"] = ["BIN", "pID"]
+        attributes(H5GlobalFile)["DIM_LABELS"] = ["BIN", "PID"]
 
         # get list of global measurements
         global_measurements = isempty(global_measurements) ? keys(H5BinFiles[1]["GLOBAL"]) : global_measurements

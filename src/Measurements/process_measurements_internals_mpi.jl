@@ -46,7 +46,7 @@ function _process_measurements(
     H5BinFile = h5open(h5_bin_filename, "r")
 
     # get the number of bins
-    N_data_bins = read(H5BinFile, "N_BINS")
+    N_data_bins = read_attribute(H5BinFile, "N_BINS")
     N_bins = isnothing(N_bins) ? N_data_bins : N_bins
     @assert (N_data_bins % N_bins) == 0
 
@@ -78,13 +78,21 @@ function _process_measurements(
         )
 
         # record pIDs associated with stats HDF5 files
-        H5StatsFile["pIDs"] = pIDs
+        attributes(H5StatsFile)["PIDS"] = pIDs
     end
     MPI.Barrier(comm)
 
     # get system size and inverse temperature
-    N_orbitals = read(H5BinFile, "N_ORBITALS")
-    β = read(H5BinFile, "BETA")
+    N_orbitals = read_attribute(H5BinFile, "N_ORBITALS")
+    β = read_attribute(H5BinFile, "BETA")
+
+    # record metadata about stats
+    if isroot
+        # record metadata about stats to computes
+        attributes(H5StatsFile)["BETA"] = β
+        attributes(H5StatsFile)["N_ORBITALS"] = N_orbitals
+        attributes(H5StatsFile)["N_BINS"] = N_bins
+    end
 
     # calculate the binned average sign for each HDF5 containing binned data
     binned_sign = bin_means(read(H5BinFile["GLOBAL/sgn"]), N_bins)

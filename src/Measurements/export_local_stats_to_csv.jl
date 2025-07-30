@@ -110,7 +110,7 @@ function _export_local_stats_to_csv(
 )
 
     # get process IDs from HDF5 stats file
-    pIDs = read(H5File, "pIDs")
+    pIDs = read_attribute(H5File, "PIDS")
 
     # construct csv filename
     filename = (

@@ -101,12 +101,12 @@ function export_correlation_bins_to_h5(;
     h5open(filename, "w") do file
 
         # record the pIDs
-        file["pIDs"] = pIDs
+        attributes(file)["PIDS"] = pIDs
 
-        # record the correlation being measured
-        file["CORRELATION"] = correlation
-        file["TYPE"] = Type
-        file["SPACE"] = Space
+        # record info about measured correlation
+        attributes(file)["CORRELATION"] = correlation
+        attributes(file)["TYPE"] = Type
+        attributes(file)["SPACE"] = Space
 
         # get correlation in group
         Correlation_Group_In = H5BinFiles[1]["CORRELATIONS"][Category][Type][correlation]
@@ -115,21 +115,20 @@ function export_correlation_bins_to_h5(;
         Correlation_In = Correlation_Group_In[Space]
 
         # record ID type and pairs
-        if haskey(Correlation_In, "ID_TYPE")
-            file["ID_TYPE"] = read(Correlation_Group_In["ID_TYPE"])
-            file["ID_PAIRS"] = read(Correlation_Group_In["ID_PAIRS"])
+        if haskey(attrs(Correlation_In), "ID_TYPE")
+            attributes(file)["ID_TYPE"] = read_attribute(Correlation_Group_In, "ID_TYPE")
+            attributes(file)["ID_PAIRS"] = read_attribute(Correlation_Group_In, "ID_PAIRS")
         end
 
-        # record dimensional labels of dataset
-        bin_dim_labels = read_attribute(Correlation_In, "DIM_LABELS")
-        file["DIM_LABEL"] = ["BIN", "pID", bin_dim_labels[2:end]...]
-
-        # initialize datasets for mean and standard devation
+        # initialize dataset to contain binned data
         in_dims = size(Correlation_In)
         N_bins = in_dims[1]
         out_dims = (N_bins, N_pIDs, in_dims[2:end]...)
         Data = create_dataset(file, "DATA", eltype(Correlation_In), out_dims)
-        
+
+        # record dimensional labels of dataset
+        bin_dim_labels = read_attribute(Correlation_In, "DIM_LABELS")
+        attributes(Data)["DIM_LABELS"] = ["BIN", "PID", bin_dim_labels[2:end]...]        
 
         # get the assignment slice for dataset
         slice = tuple((1:d for d in in_dims[2:end])...)

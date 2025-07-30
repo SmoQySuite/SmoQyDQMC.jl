@@ -87,13 +87,13 @@ function export_local_bins_to_h5(;
     h5open(filename, "w") do H5LocalFile
 
         # record the pIDs
-        H5LocalFile["pIDs"] = pIDs
+        attributes(H5LocalFile)["PIDS"] = pIDs
 
         # allocate datset to contain binned sign data
         dims = (size(H5BinFiles[1]["GLOBAL"]["sgn"])..., length(pIDs))
         Sign = create_dataset(H5LocalFile, "SIGN", eltype(H5BinFiles[1]["GLOBAL"]["sgn"]), dims)
         Tdata = eltype(Sign)
-        attributes(Sign)["DIM_LABELS"] = ["BIN", "pID"]
+        attributes(Sign)["DIM_LABELS"] = ["BIN", "PID"]
         # record the binned sign data
         for i in eachindex(H5BinFiles)
             Sign[:,i] = read(H5BinFiles[i]["GLOBAL"]["sgn"])
@@ -110,7 +110,7 @@ function export_local_bins_to_h5(;
             dims = size(Measurement_In)
             Measurement = create_dataset(Local, measurement, Tdata, (dims[1], length(pIDs), dims[2]))
             attributes(Measurement)["ID_TYPE"] = read_attribute(Measurement_In, "ID_TYPE")
-            attributes(Measurement)["DIM_LABELS"] = ["BIN", "pID", "ID"]
+            attributes(Measurement)["DIM_LABELS"] = ["BIN", "PID", "ID"]
             # record the local measurement
             for i in eachindex(H5BinFiles)
                 Measurement[:,i,:] = read(H5BinFiles[i]["LOCAL"][measurement])

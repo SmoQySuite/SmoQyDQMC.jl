@@ -66,9 +66,9 @@ function write_measurements!(;
             # Length of imaginary time axis
             Lτ = measurement_container.Lτ
             # record inverse temperature
-            file["BETA"] = Lτ * Δτ
+            attributes(file)["BETA"] = Lτ * Δτ
             # record total number of orbitals in lattice
-            file["N_ORBITALS"] = nsites(unit_cell, lattice)
+            attributes(file)["N_ORBITALS"] = nsites(unit_cell, lattice)
         end
 
         # write global measurements to group
@@ -115,10 +115,10 @@ function write_measurements!(;
             StandardEqualTimeCorrelation = create_group(StandardEqualTime, correlation)
 
             # record ID pairs that were measured
-            StandardEqualTimeCorrelation["ID_PAIRS"] = id_pairs
+            attributes(StandardEqualTimeCorrelation)["ID_PAIRS"] = id_pairs
 
             # record the ID type corresponding to correlation measurement
-            StandardEqualTimeCorrelation["ID_TYPE"] = id_type
+            attributes(StandardEqualTimeCorrelation)["ID_TYPE"] = id_type
 
             # record the position space correlations
             StandardEqualTimeCorrelation["POSITION"] = stack(correlations)
@@ -180,10 +180,10 @@ function write_measurements!(;
                 StandardTimeDisplacedCorrelation = create_group(StandardTimeDisplaced, correlation)
 
                 # record ID pairs that were measured
-                StandardTimeDisplacedCorrelation["ID_PAIRS"] = id_pairs
+                attributes(StandardTimeDisplacedCorrelation)["ID_PAIRS"] = id_pairs
 
                 # record the ID type corresponding to correlation measurement
-                StandardTimeDisplacedCorrelation["ID_TYPE"] = id_type
+                attributes(StandardTimeDisplacedCorrelation)["ID_TYPE"] = id_type
 
                 # record the position space correlations
                 StandardTimeDisplacedCorrelation["POSITION"] = stack(correlations)
@@ -200,10 +200,10 @@ function write_measurements!(;
                 StandardIntegratedCorrelation = create_group(StandardIntegrated, correlation)
 
                 # record ID pairs that were measured
-                StandardIntegratedCorrelation["ID_PAIRS"] = id_pairs
+                attributes(StandardIntegratedCorrelation)["ID_PAIRS"] = id_pairs
 
                 # record the ID type corresponding to correlation measurement
-                StandardIntegratedCorrelation["ID_TYPE"] = id_type
+                attributes(StandardIntegratedCorrelation)["ID_TYPE"] = id_type
 
                 # calculate position-space standard integrated correlation function
                 for i in eachindex(correlations)

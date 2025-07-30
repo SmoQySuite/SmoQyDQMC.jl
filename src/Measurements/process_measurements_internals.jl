@@ -58,19 +58,24 @@ function _process_measurements(
     )
 
     # record pIDs associated with stats HDF5 files
-    H5StatsFile["pIDs"] = pIDs
+    attributes(H5StatsFile)["PIDS"] = pIDs
 
     # number of HDF5 files containing binned data
     N_pIDs = length(pIDs)
 
     # get the number of bins
-    N_data_bins = read(H5BinFiles[1], "N_BINS")
+    N_data_bins = read_attribute(H5BinFiles[1], "N_BINS")
     N_bins = isnothing(N_bins) ? N_data_bins : N_bins
     @assert (N_data_bins % N_bins) == 0
 
     # get system size and inverse temperature
-    N_orbitals = read(H5BinFiles[1], "N_ORBITALS")
-    β = read(H5BinFiles[1], "BETA")
+    N_orbitals = read_attribute(H5BinFiles[1], "N_ORBITALS")
+    β = read_attribute(H5BinFiles[1], "BETA")
+
+    # record metadata about stats to computes
+    attributes(H5StatsFile)["BETA"] = β
+    attributes(H5StatsFile)["N_ORBITALS"] = N_orbitals
+    attributes(H5StatsFile)["N_BINS"] = N_bins
 
     # calculate the binned average sign for each HDF5 containing binned data
     binned_sgns = [
@@ -324,7 +329,7 @@ function allocate_stats_file!(
         for key in keys(Local_In)
             Local_Measurement_In = Local_In[key]
             Local_Measurement_Out = create_group(Local_Out, key)
-            Local_Measurement_Out["ID_TYPE"] = read_attribute(Local_Measurement_In, "ID_TYPE")
+            attributes(Local_Measurement_Out)["ID_TYPE"] = read_attribute(Local_Measurement_In, "ID_TYPE")
         end
     end
 
@@ -394,14 +399,14 @@ function init_correlation_type_group!(
     for key in correlations
         Correlation_In = CorrelationTypeGroup_In[key]
         Correlation_Out = create_group(CorrelationTypeGroup_Out, key)
-        if haskey(Correlation_In, "ID_TYPE")
-            Correlation_Out["ID_TYPE"] = read(Correlation_In["ID_TYPE"])
-            Correlation_Out["ID_PAIRS"] = read(Correlation_In["ID_PAIRS"])
+        if haskey(attrs(Correlation_In), "ID_TYPE")
+            attributes(Correlation_Out)["ID_TYPE"] = read_attribute(Correlation_In, "ID_TYPE")
+            attributes(Correlation_Out)["ID_PAIRS"] = read_attribute(Correlation_In, "ID_PAIRS")
         end
         Position = create_group(Correlation_Out, "POSITION")
         Momentum = create_group(Correlation_Out, "MOMENTUM")
-        Position["DIM_LABELS"] = read_attribute(Correlation_In["POSITION"], "DIM_LABELS")[2:end]
-        Momentum["DIM_LABELS"] = read_attribute(Correlation_In["MOMENTUM"], "DIM_LABELS")[2:end]
+        attributes(Position)["DIM_LABELS"] = read_attribute(Correlation_In["POSITION"], "DIM_LABELS")[2:end]
+        attributes(Momentum)["DIM_LABELS"] = read_attribute(Correlation_In["MOMENTUM"], "DIM_LABELS")[2:end]
     end
 
     return nothing

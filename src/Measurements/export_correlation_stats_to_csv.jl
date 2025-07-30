@@ -111,7 +111,7 @@ function _export_correlation_stats_to_csv(
 )
 
     # get pIDs associated with HDF5 stats file
-    pIDs = read(H5File, "pIDs")
+    pIDs = read_attribute(H5File, "PIDS")
 
     # determine whether standard or composite correlation measurement
     category = haskey(CORRELATION_FUNCTIONS, correlation) ? "STANDARD" : "COMPOSITE"
@@ -171,7 +171,7 @@ function _export_composite_correlation_stats_to_csv(
     dims = size(Mean)
 
     # read in the dim labels
-    dim_labels = read(Correlation, "DIM_LABELS")
+    dim_labels = read_attribute(Correlation, "DIM_LABELS")
 
     # number of space-time dimensions
     D = length(dims)
@@ -228,10 +228,10 @@ function _export_standard_correlation_stats_to_csv(
     Correlation_Group = H5File["CORRELATIONS"]["STANDARD"][type][correlation]
 
     # get id type
-    id_type = read(Correlation_Group, "ID_TYPE")
+    id_type = read_attribute(Correlation_Group, "ID_TYPE")
 
     # get id pairs
-    id_pairs = read(Correlation_Group, "ID_PAIRS")
+    id_pairs = read_attribute(Correlation_Group, "ID_PAIRS")
 
     # extract correlation group
     Correlation = Correlation_Group[space]
@@ -244,7 +244,7 @@ function _export_standard_correlation_stats_to_csv(
     dims = size(Mean)
 
     # read in the dim labels
-    dim_labels = read(Correlation, "DIM_LABELS")
+    dim_labels = read_attribute(Correlation, "DIM_LABELS")
 
     # number of space-time dimensions
     D = length(dims) - 1

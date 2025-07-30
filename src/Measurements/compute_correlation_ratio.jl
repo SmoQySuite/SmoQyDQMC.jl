@@ -162,7 +162,7 @@ function _compute_correlation_ratio(
     Momentum = Correlation["MOMENTUM"]
 
     # load all ID pairs
-    all_id_pairs = map(p -> tuple(p...), read(Correlation, "ID_PAIRS"))
+    all_id_pairs = map(p -> tuple(p...), read_attribute(Correlation, "ID_PAIRS"))
 
     # iterate over ID pairs
     for i in eachindex(id_pairs)

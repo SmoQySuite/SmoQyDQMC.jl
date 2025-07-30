@@ -236,10 +236,10 @@ function write_standard_index_key(
     dims = size(Correlation)[2:end]
 
     # get ID pairs
-    id_pairs = read(Correlation_Group["ID_PAIRS"])
+    id_pairs = read_attribute(Correlation_Group, "ID_PAIRS")
 
     # get ID type
-    id_type = read(Correlation_Group["ID_TYPE"])
+    id_type = read_attribute(Correlation_Group, "ID_TYPE")
 
     # open csv file
     open(filename, "w") do file
