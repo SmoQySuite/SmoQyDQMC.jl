@@ -85,11 +85,16 @@ function _process_measurements(
     # get system size and inverse temperature
     N_orbitals = read_attribute(H5BinFile, "N_ORBITALS")
     β = read_attribute(H5BinFile, "BETA")
+    Δτ = read_attribute(H5BinFiles[1], "DELTA_TAU")
+    Lτ = read_attribute(H5BinFiles[1], "L_TAU")
+
 
     # record metadata about stats
     if isroot
         # record metadata about stats to computes
         attributes(H5StatsFile)["BETA"] = β
+        attributes(H5StatsFile)["DELTA_TAU"] = Δτ
+        attributes(H5StatsFile)["L_TAU"] = Lτ
         attributes(H5StatsFile)["N_ORBITALS"] = N_orbitals
         attributes(H5StatsFile)["N_BINS"] = N_bins
     end

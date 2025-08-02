@@ -281,6 +281,10 @@ export process_measurements
 include("Measurements/compute_correlation_ratio.jl")
 export compute_correlation_ratio, compute_composite_correlation_ratio
 
+# export function to compute function of correlation measurements
+include("Measurements/compute_function_of_correlations.jl")
+export compute_function_of_correlations
+
 # utilties for checkpoint simulations
 include("Measurements/checkpointing_utilities.jl")
 export write_jld2_checkpoint, read_jld2_checkpoint

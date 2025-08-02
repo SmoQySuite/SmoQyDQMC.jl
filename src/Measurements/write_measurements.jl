@@ -67,6 +67,10 @@ function write_measurements!(;
             Lτ = measurement_container.Lτ
             # record inverse temperature
             attributes(file)["BETA"] = Lτ * Δτ
+            # record the imaginary-time discretization
+            attributes(file)["DELTA_TAU"] = Δτ
+            # record the length of the imaginary-time axis
+            attributes(file)["L_TAU"] = Lτ
             # record total number of orbitals in lattice
             attributes(file)["N_ORBITALS"] = nsites(unit_cell, lattice)
         end

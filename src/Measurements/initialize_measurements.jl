@@ -372,7 +372,7 @@ function initialize_correlation_measurements!(;
 )  where {T<:AbstractFloat, D, N}
 
     # set integrated to false for electron green's function
-    if (integrated == true) && startswith(correlation, "greens")
+    if (integrated == true) && (correlation ∈ ("greens", "greens_up", "greens_dn"))
         integrated = false
     # if time-displaced measurements are being made then also make integrated measurements
     elseif time_displaced == true
@@ -544,7 +544,7 @@ function initialize_composite_correlation_measurement!(;
     )
 
     # set integrated to false for electron green's function
-    if (integrated == true) && startswith(correlation, "greens")
+    if (integrated == true) && (correlation ∈ ("greens", "greens_up", "greens_dn"))
         integrated = false
     # if time-displaced measurements are being made then also make integrated measurements
     elseif time_displaced == true

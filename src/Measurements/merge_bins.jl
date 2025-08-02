@@ -40,9 +40,6 @@ function merge_bins(
             init_hdf5_bins_file(fout, fin, N_bins)
             # copy contents of first bin file over
             copyto_hdf5_bin(fout, fin, 1)
-            # record inverse temperature and system size
-            attributes(fout)["BETA"] = read_attribute(fin, "BETA")
-            attributes(fout)["N_ORBITALS"] = read_attribute(fin, "N_ORBITALS")
             # close first HDF5 bin file
             close(fin)
             # iterate over remaining bin files
@@ -75,6 +72,12 @@ function init_hdf5_bins_file(
     fin::HDF5.File,
     N_bins::Int
 )
+
+    # record some standard meta data
+    attributes(fout)["BETA"] = read_attribute(fin, "BETA")
+    attributes(fout)["DELTA_TAU"] = read_attribute(fin, "DELTA_TAU")
+    attributes(fout)["L_TAU"] = read_attribute(fin, "L_TAU")
+    attributes(fout)["N_ORBITALS"] = read_attribute(fin, "N_ORBITALS")
 
     # initialize global measurements
     Global = create_group(fout, "GLOBAL")
