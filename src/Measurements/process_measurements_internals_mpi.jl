@@ -82,15 +82,14 @@ function _process_measurements(
     end
     MPI.Barrier(comm)
 
-    # get system size and inverse temperature
-    N_orbitals = read_attribute(H5BinFile, "N_ORBITALS")
-    β = read_attribute(H5BinFile, "BETA")
-    Δτ = read_attribute(H5BinFiles[1], "DELTA_TAU")
-    Lτ = read_attribute(H5BinFiles[1], "L_TAU")
-
 
     # record metadata about stats
     if isroot
+        # get system size and inverse temperature
+        N_orbitals = read_attribute(H5BinFile, "N_ORBITALS")
+        β = read_attribute(H5BinFile, "BETA")
+        Δτ = read_attribute(H5BinFile, "DELTA_TAU")
+        Lτ = read_attribute(H5BinFile, "L_TAU")
         # record metadata about stats to computes
         attributes(H5StatsFile)["BETA"] = β
         attributes(H5StatsFile)["DELTA_TAU"] = Δτ
