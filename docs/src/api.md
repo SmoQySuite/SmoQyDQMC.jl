@@ -316,6 +316,7 @@ save_simulation_info
 process_measurements
 compute_correlation_ratio
 compute_composite_correlation_ratio
+compute_function_of_correlations
 ```
 
 ### Export Measurements

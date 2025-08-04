@@ -72,6 +72,7 @@ function run_simulation(;
     δG_max = 1e-6, # Threshold for numerical error corrected by stabilization.
     symmetric = false, # Whether symmetric propagator definition is used.
     checkerboard = false, # Whether checkerboard approximation is used.
+    write_files_concurrent = true, # Whether to write binned data to file during simulation or hold it in memory.
     seed = abs(rand(Int)), # Seed for random number generator.
     filepath = "." # Filepath to where data folder will be created.
 )
@@ -81,8 +82,11 @@ function run_simulation(;
 In this first part of the script we name and initialize our simulation, creating the data folder our simulation results will be written to.
 This is done by initializing an instances of the [`SimulationInfo`](@ref) type, and then calling the [`initialize_datafolder`](@ref) function.
 
-Next we record relevant simulation parameters to the `metadata` dictionary.
-Think of the `metadata` dictionary as a place to record any additional information during the simulation that will not otherwise be automatically recorded and written to file.
+Note that the `write_files_concurrent` keyword arguments controls whether or not binned simulations measurement data
+is written to file during the simulation, or held in memory and only written to file once the simulation is complete.
+The default behavior is to `write_files_concurrent = true` to mitigate concerns regarding the simulation using too much memory.
+However, when performing simulations of small systems that do not take very long, writing data to file too frequently can
+sometimes cause network latency issues on some clusters and HPS systems, in which case it may be advisable to set `write_files_concurrent = false`.
 
 ````julia
     # Construct the foldername the data will be written to.
@@ -92,6 +96,7 @@ Think of the `metadata` dictionary as a place to record any additional informati
     simulation_info = SimulationInfo(
         filepath = filepath,
         datafolder_prefix = datafolder_prefix,
+        write_files_concurrent = write_files_concurrent,
         sID = sID
     )
 
@@ -292,6 +297,7 @@ To clarify, both the [`TightBindingModel`](@ref) and [`HubbardModel`](@ref) type
 defining the model in a translationally invariant way. As [SmoQyDQMC.jl](https://github.com/SmoQySuite/SmoQyDQMC.jl.git) supports
 random disorder in the terms appearing in the Hamiltonian, it is necessary to initialize seperate parameter values for each unit cell in the lattice.
 For instance, we need to initialize a seperate number to represent the on-site energy for each orbital in our finite lattice.
+To do so we need to initialize an instance of the [`TightBindingParameters`](@ref) and [`HubbardParameters`](@ref) types.
 
 ````julia
     # Initialize tight-binding parameters.
@@ -302,26 +308,29 @@ For instance, we need to initialize a seperate number to represent the on-site e
     )
 
     # Initialize Hubbard interaction parameters.
-    hubbard_params = HubbardParameters(
+    hubbard_parameters = HubbardParameters(
         model_geometry = model_geometry,
         hubbard_model = hubbard_model,
         rng = rng
     )
+````
 
-    # Apply Ising Hubbard-Stranonvich (HS) transformation to decouple the Hubbard interaction,
+Having initialized the Hubbard Hamiltonian parameters above, we now need to decouple the interaction by applying a Hubbard-Stratonovich (HS) transformation
+to decouple the local Hubbard interaction, thereby introducing the HS fields that will be sampled during the simulation.
+The [SmoQyDQMC.jl](https://github.com/SmoQySuite/SmoQyDQMC.jl.git) package implements four types of Hubbard-Statonovich transformations
+for decoupling the local Hubbard interaction, represented by the four types [`HubbardDensityHirschHST`](@ref), [`HubbardDensityGaussHermiteHST`](@ref),
+[`HubbardSpinHirschHST`](@ref) and [`HubbardSpinGaussHermiteHST`]. In this example we will use the [`HubbardSpinHirschHST`](@ref) type
+to decouple the local Hubabrd interactions.
+
+````julia
+    # Apply Spin Hirsch Hubbard-Stranonvich (HS) transformation to decouple the Hubbard interaction,
     # and initialize the corresponding HS fields that will be sampled in the DQMC simulation.
-    hubbard_stratonovich_params = HubbardIsingHSParameters(
+    hst_parameters = HubbardSpinHirschHST(
         β = β, Δτ = Δτ,
-        hubbard_parameters = hubbard_params,
+        hubbard_parameters = hubbard_parameters,
         rng = rng
     )
 ````
-
-Let me quickly clarify the difference between the [`HubbardParameters`](@ref) and [`HubbardIsingHSParameters`](@ref) types initialized above.
-The [`HubbardParameters`](@ref) type simply defines the Hubbard interaction parameters, agnostic to Hubbard-Stratonovich (HS) transformation that
-will be used to decouple the Hubbard interaction. Then the [`HubbardIsingHSParameters`](@ref) type actually applies a HS
-transformation to the Hubbard interaction, with the `hubbard_stratonovich_params.s` array
-containing the HS fields that will be sampled during the DQMC simulation.
 
 ## [Initialize meuasurements](@id hubbard_square_initialize_measurements)
 
@@ -418,22 +427,32 @@ is the d-wave pair creation operator. We do this using the [`initialize_composit
 ## [Setup DQMC simulation](@id hubbard_square_setup_dqmc)
 This section of the code sets up the DQMC simulation by allocating the initializing the relevant types and arrays we will need in the simulation.
 
-This section of code is perhaps the most opaque and difficult to understand, and will be discussed in more detail once written.
+This portion of code is perhaps the most opaque and difficult to understand, and will be discussed in more detail once written.
 That said, you do not need to fully comprehend everything that goes on in this section as most of it is fairly boilerplate,
 and will not need to be changed much once written.
 This is true even if you want to modify this script to perform a DQMC simulation for a different Hamiltonian.
 
 ````julia
-    # Allocate FermionPathIntegral type for both the spin-up and spin-down electrons.
-    fermion_path_integral_up = FermionPathIntegral(tight_binding_parameters = tight_binding_parameters, β = β, Δτ = Δτ)
-    fermion_path_integral_dn = FermionPathIntegral(tight_binding_parameters = tight_binding_parameters, β = β, Δτ = Δτ)
+    # Allocate FermionPathIntegral type for spin-up electrons.
+    fermion_path_integral_up = FermionPathIntegral(
+        tight_binding_parameters = tight_binding_parameters, β = β, Δτ = Δτ,
+        forced_complex_potential = (U < 0),
+        forced_complex_kinetic = false
+    )
+
+    # Allocate FermionPathIntegral type for spin-down electrons.
+    fermion_path_integral_dn = FermionPathIntegral(
+        tight_binding_parameters = tight_binding_parameters, β = β, Δτ = Δτ,
+        forced_complex_potential = (U < 0),
+        forced_complex_kinetic = false
+    )
 
     # Initialize FermionPathIntegral type for both the spin-up and spin-down electrons to account for Hubbard interaction.
-    initialize!(fermion_path_integral_up, fermion_path_integral_dn, hubbard_params)
+    initialize!(fermion_path_integral_up, fermion_path_integral_dn, hubbard_parameters)
 
     # Initialize FermionPathIntegral type for both the spin-up and spin-down electrons to account for the current
     # Hubbard-Stratonovich field configuration.
-    initialize!(fermion_path_integral_up, fermion_path_integral_dn, hubbard_stratonovich_params)
+    initialize!(fermion_path_integral_up, fermion_path_integral_dn, hst_parameters)
 
     # Initialize imaginary-time propagators for all imaginary-time slices for spin-up and spin-down electrons.
     Bup = initialize_propagators(fermion_path_integral_up, symmetric=symmetric, checkerboard=checkerboard)
@@ -485,7 +504,13 @@ The purpose of the [`FermionPathIntegral`](@ref) type is to contain the minimal 
 Each instance of the [`FermionPathIntegral`](@ref) type is first allocated and initialized to just reflect the non-interacting component of the Hamiltonian.
 Then the two subsequent `initialize!` calls modify the [`FermionPathIntegral`](@ref) type to reflect the contributions from the Hubbard interaction and initial HS field configuration.
 
-Then the [`initialize_propagators`](@ref) function allocates and initializes the ``B_{\sigma,l}`` propagator matrices
+Note that if the keyword arguments `forced_complex_potential` and `forced_complex_kinetic` are set to `true` then the ``V_{\sigma,l}``
+and ``K_{\sigma,l}`` matrices are forced to be complex matrices, respectively. This is important, as the Hubbard-Stratonovich transform represented by the
+[`HubbardSpinHirschHST`](@ref) type used in this example is real if ``U \ge 0`` and complex if ``U < 0``. Therefore, we need to set
+`forced_complex_potential = (U < 0)` to account for this fact if we want this example to work for both repulsive and attractive Hubbard interactions.
+The oppposite would be true if we had instead used [`HubbardDensityHirschHST`](@ref) decoupling scheme instead.
+
+Next, the [`initialize_propagators`](@ref) function allocates and initializes the ``B_{\sigma,l}`` propagator matrices
 to reflect the current state of the ``K_{\sigma,l}`` and ``V_{\sigma,l}`` matrices as represented by the [`FermionPathIntegral`](@ref) type.
 If `symmetric = true`, then the propagator matrices take the form
 ```math
@@ -545,7 +570,7 @@ In the block of code below, `N_therm` is the number of local sweeps and reflecti
         # Perform reflection update for HS fields with randomly chosen site.
         (accepted, logdetGup, sgndetGup, logdetGdn, sgndetGdn) = reflection_update!(
             Gup, logdetGup, sgndetGup, Gdn, logdetGdn, sgndetGdn,
-            hubbard_stratonovich_params,
+            hst_parameters,
             fermion_path_integral_up = fermion_path_integral_up,
             fermion_path_integral_dn = fermion_path_integral_dn,
             fermion_greens_calculator_up = fermion_greens_calculator_up,
@@ -561,7 +586,7 @@ In the block of code below, `N_therm` is the number of local sweeps and reflecti
         # Perform sweep all imaginary-time slice and orbitals, attempting an update to every HS field.
         (acceptance_rate, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = local_updates!(
             Gup, logdetGup, sgndetGup, Gdn, logdetGdn, sgndetGdn,
-            hubbard_stratonovich_params,
+            hst_parameters,
             fermion_path_integral_up = fermion_path_integral_up,
             fermion_path_integral_dn = fermion_path_integral_dn,
             fermion_greens_calculator_up = fermion_greens_calculator_up,
@@ -598,7 +623,7 @@ The bin-averaged measurements are written to file once `bin_size` measurements a
         # Perform reflection update for HS fields with randomly chosen site.
         (accepted, logdetGup, sgndetGup, logdetGdn, sgndetGdn) = reflection_update!(
             Gup, logdetGup, sgndetGup, Gdn, logdetGdn, sgndetGdn,
-            hubbard_stratonovich_params,
+            hst_parameters,
             fermion_path_integral_up = fermion_path_integral_up,
             fermion_path_integral_dn = fermion_path_integral_dn,
             fermion_greens_calculator_up = fermion_greens_calculator_up,
@@ -614,7 +639,7 @@ The bin-averaged measurements are written to file once `bin_size` measurements a
         # Perform sweep all imaginary-time slice and orbitals, attempting an update to every HS field.
         (acceptance_rate, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = local_updates!(
             Gup, logdetGup, sgndetGup, Gdn, logdetGdn, sgndetGdn,
-            hubbard_stratonovich_params,
+            hst_parameters,
             fermion_path_integral_up = fermion_path_integral_up,
             fermion_path_integral_dn = fermion_path_integral_dn,
             fermion_greens_calculator_up = fermion_greens_calculator_up,
@@ -637,7 +662,7 @@ The bin-averaged measurements are written to file once `bin_size` measurements a
             fermion_greens_calculator_dn = fermion_greens_calculator_dn,
             Bup = Bup, Bdn = Bdn, δG_max = δG_max, δG = δG, δθ = δθ,
             model_geometry = model_geometry, tight_binding_parameters = tight_binding_parameters,
-            coupling_parameters = (hubbard_params, hubbard_stratonovich_params)
+            coupling_parameters = (hubbard_parameters, hst_parameters)
         )
 
         # Write the bin-averaged measurements to file if update ÷ bin_size == 0.

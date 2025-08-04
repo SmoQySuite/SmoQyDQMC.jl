@@ -51,6 +51,7 @@ function run_simulation(
     δG_max = 1e-6, # Threshold for numerical error corrected by stabilization.
     symmetric = false, # Whether symmetric propagator definition is used.
     checkerboard = false, # Whether checkerboard approximation is used.
+    write_files_concurrent = true, # Whether to write binned data to file during simulation or hold it in memory.
     seed = abs(rand(Int)), # Seed for random number generator.
     filepath = "." # Filepath to where data folder will be created.
 )
@@ -77,6 +78,7 @@ try proceeding beyond this point until the data folder has been initialized.
     simulation_info = SimulationInfo(
         filepath = filepath,
         datafolder_prefix = datafolder_prefix,
+        write_files_concurrent = write_files_concurrent,
         sID = sID,
         pID = pID
     )
@@ -237,7 +239,7 @@ No changes need to made to this section of the code from the previous [1a) Squar
     )
 
     # Initialize Hubbard interaction parameters.
-    hubbard_params = HubbardParameters(
+    hubbard_parameters = HubbardParameters(
         model_geometry = model_geometry,
         hubbard_model = hubbard_model,
         rng = rng
@@ -245,9 +247,9 @@ No changes need to made to this section of the code from the previous [1a) Squar
 
     # Apply Ising Hubbard-Stranonvich (HS) transformation to decouple the Hubbard interaction,
     # and initialize the corresponding HS fields that will be sampled in the DQMC simulation.
-    hubbard_stratonovich_params = HubbardIsingHSParameters(
+    hst_parameters = HubbardSpinHirschHST(
         β = β, Δτ = Δτ,
-        hubbard_parameters = hubbard_params,
+        hubbard_parameters = hubbard_parameters,
         rng = rng
     )
 ````
@@ -321,16 +323,26 @@ No changes need to made to this section of the code from the previous [1a) Squar
 No changes need to made to this section of the code from the previous [1a) Square Hubbard Model](@ref) tutorial.
 
 ````julia
-    # Allocate FermionPathIntegral type for both the spin-up and spin-down electrons.
-    fermion_path_integral_up = FermionPathIntegral(tight_binding_parameters = tight_binding_parameters, β = β, Δτ = Δτ)
-    fermion_path_integral_dn = FermionPathIntegral(tight_binding_parameters = tight_binding_parameters, β = β, Δτ = Δτ)
+    # Allocate FermionPathIntegral type for spin-up electrons.
+    fermion_path_integral_up = FermionPathIntegral(
+        tight_binding_parameters = tight_binding_parameters, β = β, Δτ = Δτ,
+        forced_complex_potential = (U < 0),
+        forced_complex_kinetic = false
+    )
+
+    # Allocate FermionPathIntegral type for spin-down electrons.
+    fermion_path_integral_dn = FermionPathIntegral(
+        tight_binding_parameters = tight_binding_parameters, β = β, Δτ = Δτ,
+        forced_complex_potential = (U < 0),
+        forced_complex_kinetic = false
+    )
 
     # Initialize FermionPathIntegral type for both the spin-up and spin-down electrons to account for Hubbard interaction.
-    initialize!(fermion_path_integral_up, fermion_path_integral_dn, hubbard_params)
+    initialize!(fermion_path_integral_up, fermion_path_integral_dn, hubbard_parameters)
 
     # Initialize FermionPathIntegral type for both the spin-up and spin-down electrons to account for the current
     # Hubbard-Stratonovich field configuration.
-    initialize!(fermion_path_integral_up, fermion_path_integral_dn, hubbard_stratonovich_params)
+    initialize!(fermion_path_integral_up, fermion_path_integral_dn, hst_parameters)
 
     # Initialize imaginary-time propagators for all imaginary-time slices for spin-up and spin-down electrons.
     Bup = initialize_propagators(fermion_path_integral_up, symmetric=symmetric, checkerboard=checkerboard)
@@ -376,7 +388,7 @@ No changes need to made to this section of the code from the previous [1a) Squar
         # Perform reflection update for HS fields with randomly chosen site.
         (accepted, logdetGup, sgndetGup, logdetGdn, sgndetGdn) = reflection_update!(
             Gup, logdetGup, sgndetGup, Gdn, logdetGdn, sgndetGdn,
-            hubbard_stratonovich_params,
+            hst_parameters,
             fermion_path_integral_up = fermion_path_integral_up,
             fermion_path_integral_dn = fermion_path_integral_dn,
             fermion_greens_calculator_up = fermion_greens_calculator_up,
@@ -392,7 +404,7 @@ No changes need to made to this section of the code from the previous [1a) Squar
         # Perform sweep all imaginary-time slice and orbitals, attempting an update to every HS field.
         (acceptance_rate, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = local_updates!(
             Gup, logdetGup, sgndetGup, Gdn, logdetGdn, sgndetGdn,
-            hubbard_stratonovich_params,
+            hst_parameters,
             fermion_path_integral_up = fermion_path_integral_up,
             fermion_path_integral_dn = fermion_path_integral_dn,
             fermion_greens_calculator_up = fermion_greens_calculator_up,
@@ -423,7 +435,7 @@ No changes need to made to this section of the code from the previous [1a) Squar
         # Perform reflection update for HS fields with randomly chosen site.
         (accepted, logdetGup, sgndetGup, logdetGdn, sgndetGdn) = reflection_update!(
             Gup, logdetGup, sgndetGup, Gdn, logdetGdn, sgndetGdn,
-            hubbard_stratonovich_params,
+            hst_parameters,
             fermion_path_integral_up = fermion_path_integral_up,
             fermion_path_integral_dn = fermion_path_integral_dn,
             fermion_greens_calculator_up = fermion_greens_calculator_up,
@@ -439,7 +451,7 @@ No changes need to made to this section of the code from the previous [1a) Squar
         # Perform sweep all imaginary-time slice and orbitals, attempting an update to every HS field.
         (acceptance_rate, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = local_updates!(
             Gup, logdetGup, sgndetGup, Gdn, logdetGdn, sgndetGdn,
-            hubbard_stratonovich_params,
+            hst_parameters,
             fermion_path_integral_up = fermion_path_integral_up,
             fermion_path_integral_dn = fermion_path_integral_dn,
             fermion_greens_calculator_up = fermion_greens_calculator_up,
@@ -462,7 +474,7 @@ No changes need to made to this section of the code from the previous [1a) Squar
             fermion_greens_calculator_dn = fermion_greens_calculator_dn,
             Bup = Bup, Bdn = Bdn, δG_max = δG_max, δG = δG, δθ = δθ,
             model_geometry = model_geometry, tight_binding_parameters = tight_binding_parameters,
-            coupling_parameters = (hubbard_params, hubbard_stratonovich_params)
+            coupling_parameters = (hubbard_parameters, hst_parameters)
         )
 
         # Write the bin-averaged measurements to file if update ÷ bin_size == 0.
