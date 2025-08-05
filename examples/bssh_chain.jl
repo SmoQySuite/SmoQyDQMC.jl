@@ -1,11 +1,22 @@
-# # 2c) Honeycomb Holstein Model with Checkpointing
-# In this tutorial we demonstrate how to introduce checkpointing to the previous
-# [2b) Honeycomb Holstein Model with MPI Parallelization](@ref) tutorial, allowing for simulations to be
-# resumed if terminated prior to completion.
+# # Bond Su-Schrieffer-Heeger Chain
+#
+# In this example we simulate the optical Su-Schrieffer-Heeger (OSSH) model on a 1D chain, with a Hamiltonian given by
+# ```math
+# \begin{align*}
+# \hat{H} = \sum_i \left( \frac{1}{2M}\hat{P}_{\langle i+1, i \rangle}^2 + \frac{1}{2}M\Omega^2\hat{X}_{\langle i+1, i \rangle}^2 \right)
+#           - \sum_{\sigma,i} [t-\alpha\hat{X}_{\langle i+1, i \rangle}] (\hat{c}^{\dagger}_{\sigma,i+1}, \hat{c}^{\phantom \dagger}_{\sigma,i} + {\rm h.c.})
+#           - \mu \sum_{\sigma,i} \hat{n}_{\sigma,i},
+# \end{align*}
+# ```
+# in which the fluctuations in the position of dispersionless phonon modes placed on each site in the lattice modulate the
+# hopping amplitude between neighboring sites.
+# In the above expression ``\hat{c}^\dagger_{\sigma,i} \ (\hat{c}^{\phantom \dagger}_{\sigma,i})`` creation (annihilation) operator
+# a spin ``\sigma`` electron on site ``i`` in the lattice, and ``\hat{n}_{\sigma,i} = \hat{c}^\dagger_{\sigma,i} \hat{c}^{\phantom \dagger}_{\sigma,i}``
+# is corresponding electron number operator. The phonon position (momentum) operator for the dispersionless phonon mode on the bond connecting sites ``i`` and ``i+1`` 
+# is given by ``\hat{X}_{\langle i+1,i\rangle} \ (\hat{P}_{\langle i+1,i\rangle})``, where ``\Omega`` and ``M`` are the phonon frequency and associated ion mass respectively.
+# Lastly, the strength of the electron-phonon coupling is controlled by the parameter ``\alpha``.
 
-# ## Import packages
-# No changes need to made to this section of the code from the previous
-# [2b) Honeycomb Holstein Model with MPI Parallelization](@ref) tutorial.
+# Note that this example scipt comes with all the bells and whistles so to speak, including support for MPI parallelizaiton as well as checkpointing.
 
 using SmoQyDQMC
 import SmoQyDQMC.LatticeUtilities as lu
@@ -14,13 +25,6 @@ import SmoQyDQMC.JDQMCFramework as dqmcf
 using Random
 using Printf
 using MPI
-
-# ## Specify simulation parameters
-# Compared to the previous [2b) Honeycomb Holstein Model with MPI Parallelization](@ref) tutorial, we have added
-# two new keyword arguments to the `run_simulation` function:
-# - `checkpoint_freq`: When going to write a new checkpoint file, only write one if more than `checkpoint_freq` hours have passed since the last checkpoint file was written.
-# - `runtime_limit`: If after writing a new checkpoint file more than `runtime_limit` hours have passed since the simulation started, terminate the simulation.
-# The `runtime_limit = Inf` default behavior means there is no runtime limit for the simulation.
 
 ## Top-level function to run simulation.
 function run_simulation(
@@ -42,16 +46,10 @@ function run_simulation(
     δG_max = 1e-6, # Threshold for numerical error corrected by stabilization.
     symmetric = false, # Whether symmetric propagator definition is used.
     checkerboard = false, # Whether checkerboard approximation is used.
-    write_bins_concurrent = true, # Whether to write HDF5 bins during the simulation.
+    write_bins_concurrent = true, # Whether to write the HDF5 bins files during the simulation.
     seed = abs(rand(Int)), # Seed for random number generator.
     filepath = "." # Filepath to where data folder will be created.
 )
-
-# ## Initialize simulation
-# We need to make a few modifications to this portion of the code as compared to the previous tutorial
-# in order for checkpointing to work. First, we record need to record the simulation start time,
-# which we do by initializing a variable `start_timestamp = time()`.
-# Second, we need to convert the `checkpoint_freq` and `runtime_limit` from hours to seconds.
 
     ## Record when the simulation began.
     start_timestamp = time()
@@ -63,14 +61,14 @@ function run_simulation(
     checkpoint_freq = checkpoint_freq * 60.0^2
 
     ## Construct the foldername the data will be written to.
-    datafolder_prefix = @sprintf "holstein_honeycomb_w%.2f_a%.2f_mu%.2f_L%d_b%.2f" Ω α μ L β
+    datafolder_prefix = @sprintf "bssh_chain_w%.2f_a%.2f_mu%.2f_L%d_b%.2f" Ω α μ L β
 
     ## Get MPI process ID.
     pID = MPI.Comm_rank(comm)
 
     ## Initialize simulation info.
     simulation_info = SimulationInfo(
-        filepath = filepath,                     
+        filepath = filepath,
         datafolder_prefix = datafolder_prefix,
         write_bins_concurrent = write_bins_concurrent,
         sID = sID,
@@ -79,19 +77,6 @@ function run_simulation(
 
     ## Initialize the directory the data will be written to.
     initialize_datafolder(comm, simulation_info)
-
-# ## Initialize simulation metadata
-# At this point we need to introduce branching logic to handle whether a new simulation is being started,
-# or a previous simulation is being resumed.
-# We do this by checking the `simulation_info.resuming` boolean value.
-# If `simulation_info.resuming = true`, then we are resuming a previous simulation, while
-# `simulation_info.resuming = false` indicates we are starting a new simulation.
-# Therefore, the section of code immediately below handles the case that we are starting a new simulation.
-
-# We also introduce and initialize two new variables `n_therm = 1` and `n_updates = 1` which will keep track
-# of how many rounds of thermalization and measurement updates have been performed. These two variables will
-# needed to be included in the checkpoint files we write later in the simulation, as they will indicate
-# where to resume a previously terminated simulation.
 
     ## If starting a new simulation i.e. not resuming a previous simulation.
     if !simulation_info.resuming
@@ -121,62 +106,38 @@ function run_simulation(
         metadata["reflection_acceptance_rate"] = 0.0
         metadata["swap_acceptance_rate"] = 0.0
 
-# ## Initialize model
-# No changes need to made to this section of the code from the previous
-# [2b) Honeycomb Holstein Model with MPI Parallelization](@ref) tutorial.
+        ## Initialize an instance of the type UnitCell.
+        unit_cell = lu.UnitCell(lattice_vecs = [[1.0]],
+                                basis_vecs   = [[0.0]])
 
-        ## Define lattice vectors.
-        a1 = [+3/2, +√3/2]
-        a2 = [+3/2, -√3/2]
-
-        ## Define basis vectors for two orbitals in the honeycomb unit cell.
-        r1 = [0.0, 0.0] # Location of first orbital in unit cell.
-        r2 = [1.0, 0.0] # Location of second orbital in unit cell.
-
-        ## Define the unit cell.
-        unit_cell = lu.UnitCell(
-            lattice_vecs = [a1, a2],
-            basis_vecs   = [r1, r2]
-        )
-
-        ## Define finite lattice with periodic boundary conditions.
+        ## Initialize an instance of the type Lattice.
         lattice = lu.Lattice(
-            L = [L, L],
-            periodic = [true, true]
+            L = [L],
+            periodic = [true]
         )
 
-        ## Initialize model geometry.
+        ## Get the number of sites in the lattice.
+        N = lu.nsites(unit_cell, lattice)
+
+        ## Initialize an instance of the ModelGeometry type.
         model_geometry = ModelGeometry(unit_cell, lattice)
 
-        ## Define the first nearest-neighbor bond in a honeycomb lattice.
-        bond_1 = lu.Bond(orbitals = (1,2), displacement = [0,0])
+        ## Define the nearest-neighbor bond for a 1D chain.
+        bond = lu.Bond(orbitals = (1,1), displacement = [1])
 
-        ## Add the first nearest-neighbor bond in a honeycomb lattice to the model.
-        bond_1_id = add_bond!(model_geometry, bond_1)
+        ## Add this bond to the model, by adding it to the ModelGeometry type.
+        bond_id = add_bond!(model_geometry, bond)
 
-        ## Define the second nearest-neighbor bond in a honeycomb lattice.
-        bond_2 = lu.Bond(orbitals = (1,2), displacement = [-1,0])
-
-        ## Add the second nearest-neighbor bond in a honeycomb lattice to the model.
-        bond_2_id = add_bond!(model_geometry, bond_2)
-
-        ## Define the third nearest-neighbor bond in a honeycomb lattice.
-        bond_3 = lu.Bond(orbitals = (1,2), displacement = [0,-1])
-
-        ## Add the third nearest-neighbor bond in a honeycomb lattice to the model.
-        bond_3_id = add_bond!(model_geometry, bond_3)
-
-        ## Set neartest-neighbor hopping amplitude to unity,
-        ## setting the energy scale in the model.
+        ## Define nearest-neighbor hopping amplitude, setting the energy scale for the system.
         t = 1.0
 
-        ## Define the honeycomb tight-binding model.
+        ## Define the tight-binding model
         tight_binding_model = TightBindingModel(
             model_geometry = model_geometry,
-            t_bonds        = [bond_1, bond_2, bond_3], # defines hopping
-            t_mean         = [t, t, t], # defines corresponding hopping amplitude
-            μ              = μ, # set chemical potential
-            ϵ_mean         = [0.0, 0.0] # set the (mean) on-site energy
+            t_bonds = [bond], # defines hopping
+            t_mean = [t],     ## defines corresponding hopping amplitude
+            μ = μ,            ## set chemical potential
+            ϵ_mean = [0.]     ## set the (mean) on-site energy
         )
 
         ## Initialize a null electron-phonon model.
@@ -185,58 +146,48 @@ function run_simulation(
             tight_binding_model = tight_binding_model
         )
 
-        ## Define a dispersionless electron-phonon mode to live on each site in the lattice.
-        phonon_1 = PhononMode(
-            basis_vec = r1,
+        ## Define a dispersionless electron-phonon mode to live on each bond in the lattice.
+        phonon = PhononMode(
+            basis_vec = [0.5],
             Ω_mean = Ω
         )
 
-        ## Add the phonon mode definition to the electron-phonon model.
-        phonon_1_id = add_phonon_mode!(
+        ## Add bond ssh phonon to electron-phonon model.
+        phonon_id = add_phonon_mode!(
             electron_phonon_model = electron_phonon_model,
-            phonon_mode = phonon_1
+            phonon_mode = phonon
         )
 
-        ## Define a dispersionless electron-phonon mode to live on the second sublattice.
-        phonon_2 = PhononMode(
-            basis_vec = r2,
-            Ω_mean = Ω
+        ## Define frozen phonon mode with infinite mass.
+        fphonon = PhononMode(
+            basis_vec = [0.0],
+            Ω_mean = Ω,
+            M = Inf # Set phonon mass to infinity.
         )
 
-        ## Add the phonon mode definition to the electron-phonon model.
-        phonon_2_id = add_phonon_mode!(
+        ## Add frozen phonon mode to model.
+        fphonon_id = add_phonon_mode!(
             electron_phonon_model = electron_phonon_model,
-            phonon_mode = phonon_2
+            phonon_mode = fphonon
         )
 
-        ## Define first local Holstein coupling for first phonon mode.
-        holstein_coupling_1 = HolsteinCoupling(
+        ## Defines ssh e-ph coupling such that total effective hopping is t_eff = t-α⋅X .
+        bssh_coupling = SSHCoupling(
             model_geometry = model_geometry,
-            phonon_id = phonon_1_id,
-            orbital_id = 1,
-            displacement = [0, 0],
-            α_mean = α,
-            ph_sym_form = true,
+            tight_binding_model = tight_binding_model,
+            phonon_ids = (fphonon_id, phonon_id),
+            bond = bond,
+            α_mean = α
         )
 
-        ## Add the first local Holstein coupling definition to the model.
-        holstein_coupling_1_id = add_holstein_coupling!(
+        ## Add bond SSH coupling to the electron-phonon model.
+        bssh_coupling_id = add_ssh_coupling!(
             electron_phonon_model = electron_phonon_model,
-            holstein_coupling = holstein_coupling_1,
-            model_geometry = model_geometry
+            ssh_coupling = bssh_coupling,
+            tight_binding_model = tight_binding_model
         )
 
-        ## Define first local Holstein coupling for first phonon mode.
-        holstein_coupling_2 = HolsteinCoupling(
-            model_geometry = model_geometry,
-            phonon_id = phonon_2_id,
-            orbital_id = 2,
-            displacement = [0, 0],
-            α_mean = α,
-            ph_sym_form = true,
-        )
-
-        ## Write model summary TOML file specifying Hamiltonian that will be simulated.
+        ## Write a model summary to file.
         model_summary(
             simulation_info = simulation_info,
             β = β, Δτ = Δτ,
@@ -244,10 +195,6 @@ function run_simulation(
             tight_binding_model = tight_binding_model,
             interactions = (electron_phonon_model,)
         )
-
-# ## Initialize model parameters
-# No changes need to made to this section of the code from the previous
-# [2b) Honeycomb Holstein Model with MPI Parallelization](@ref) tutorial.
 
         ## Initialize tight-binding parameters.
         tight_binding_parameters = TightBindingParameters(
@@ -264,10 +211,6 @@ function run_simulation(
             model_geometry = model_geometry,
             rng = rng
         )
-
-# ## Initialize meuasurements
-# No changes need to made to this section of the code from the previous
-# [2b) Honeycomb Holstein Model with MPI Parallelization](@ref) tutorial.
 
         ## Initialize the container that measurements will be accumulated into.
         measurement_container = initialize_measurement_container(model_geometry, β, Δτ)
@@ -286,7 +229,7 @@ function run_simulation(
             time_displaced = true,
             pairs = [
                 ## Measure green's functions for all pairs or orbitals.
-                (1, 1), (2, 2), (1, 2)
+                (1, 1),
             ]
         )
 
@@ -298,7 +241,7 @@ function run_simulation(
             time_displaced = true,
             pairs = [
                 ## Measure green's functions for all pairs of modes.
-                (1, 1), (2, 2), (1, 2)
+                (1, 1),
             ]
         )
 
@@ -310,7 +253,7 @@ function run_simulation(
             time_displaced = false,
             integrated = true,
             pairs = [
-                (1, 1), (2, 2),
+                (1, 1),
             ]
         )
 
@@ -324,7 +267,7 @@ function run_simulation(
             pairs = [
                 ## Measure local s-wave pair susceptibility associated with
                 ## each orbital in the unit cell.
-                (1, 1), (2, 2)
+                (1, 1),
             ]
         )
 
@@ -336,39 +279,9 @@ function run_simulation(
             time_displaced = false,
             integrated = true,
             pairs = [
-                (1, 1), (2, 2)
+                (1, 1),
             ]
         )
-
-        ## Initialize measurement of electron Green's function traced
-        ## over both orbitals in the unit cell.
-        initialize_composite_correlation_measurement!(
-            measurement_container = measurement_container,
-            model_geometry = model_geometry,
-            name = "tr_greens",
-            correlation = "greens",
-            id_pairs = [(1,1), (2,2)],
-            coefficients = [1.0, 1.0],
-            time_displaced = true,
-        )
-
-        ## Initialize CDW correlation measurement.
-        initialize_composite_correlation_measurement!(
-            measurement_container = measurement_container,
-            model_geometry = model_geometry,
-            name = "cdw",
-            correlation = "density",
-            ids = [1, 2],
-            coefficients = [1.0, -1.0],
-            time_displaced = false,
-            integrated = true
-        )
-
-# ## Write first checkpoint
-# This section of code needs to be added so that a first checkpoint file is written before
-# beginning a new simulation. We do this using the [`write_jld2_checkpoint`](@ref) function.
-# This function all return the epoch timestamp `checkpoint_timestamp` corresponding to when
-# the checkpoint file was written.
 
         ## Write initial checkpoint file.
         checkpoint_timestamp = write_jld2_checkpoint(
@@ -382,12 +295,6 @@ function run_simulation(
             tight_binding_parameters, electron_phonon_parameters,
             measurement_container, model_geometry, metadata, rng
         )
-
-# ## Load checkpoint
-# If we are resuming a simulation that was previously terminated prior to completion, then
-# we need to load the most recent checkpoint file using the [`read_jld2_checkpoint`](@ref) function.
-# The cotents of the checkpoint file are returned as a dictionary `checkpoint` by the [`read_jld2_checkpoint`](@ref) function.
-# We then extract the cotents of the checkpoint file from the `checkpoint` dictionary.
 
     ## If resuming a previous simulation.
     else
@@ -406,10 +313,6 @@ function run_simulation(
         n_updates                   = checkpoint["n_updates"]
     end
 
-# ## Setup DQMC simulation
-# No changes need to made to this section of the code from the previous
-# [2b) Honeycomb Holstein Model with MPI Parallelization](@ref) tutorial.
-
     ## Allocate a single FermionPathIntegral for both spin-up and down electrons.
     fermion_path_integral = FermionPathIntegral(tight_binding_parameters = tight_binding_parameters, β = β, Δτ = Δτ)
 
@@ -422,7 +325,7 @@ function run_simulation(
     ## Initialize FermionGreensCalculator type.
     fermion_greens_calculator = dqmcf.FermionGreensCalculator(B, β, Δτ, n_stab)
 
-    ## Initialize alternate fermion greens calculator required for performing EFA-HMC, reflection and swap updates below. 
+    ## Initialize alternate fermion greens calculator required for performing EFA-HMC, reflection and swap updates below.
     fermion_greens_calculator_alt = dqmcf.FermionGreensCalculator(fermion_greens_calculator)
 
     ## Allcoate equal-time electron Green's function matrix.
@@ -440,10 +343,6 @@ function run_simulation(
     δG = zero(logdetG)
     δθ = zero(logdetG)
 
-# ## Setup EFA-HMC Updates
-# No changes need to made to this section of the code from the previous
-# [2b) Honeycomb Holstein Model with MPI Parallelization](@ref) tutorial.
-
     ## Number of fermionic time-steps in HMC update.
     Nt = 10
 
@@ -455,16 +354,6 @@ function run_simulation(
         electron_phonon_parameters = electron_phonon_parameters,
         G = G, Nt = Nt, Δt = Δt
     )
-
-# ## Thermalize system
-# The first change we need to make to this section is to have the for-loop iterate from `n_therm:N_therm` instead of `1:N_therm`.
-# The other change we need make to this section of the code from the previous [1b) Square Hubbard Model with MPI Parallelization](@ref) tutorial
-# is to add a call to the [`write_jld2_checkpoint`](@ref) function at the end of each iteration of the
-# for-loop in which we perform the thermalization updates.
-# When calling this function we need to pass it the timestamp for the previous checkpoint `checkpoint_timestamp`
-# so that the function can determine if a new checkpoint file needs to be written.
-# If a new checkpoint file is written then the `checkpoint_timestamp` variable will be updated to reflect this,
-# otherwise it will remain unchanged.
 
     ## Iterate over number of thermalization updates to perform.
     for update in n_therm:N_therm
@@ -520,15 +409,6 @@ function run_simulation(
             measurement_container, model_geometry, metadata, rng
         )
     end
-
-# ## Make measurements
-# Again, we need to modify the for-loop so that it runs from `n_updates:N_updates` instead of `1:N_updates`.
-# The only other change we need to make to this section of the code from the previous
-# [2b) Honeycomb Holstein Model with MPI Parallelization](@ref) tutorial
-# is to add a call to the [`write_jld2_checkpoint`](@ref) function at the end of each iteration of the
-# for-loop in which we perform updates and measurements.
-# Note that we set `n_therm = N_therm + 1` when writing the checkpoint file to ensure that when the simulation
-# is resumed the thermalization updates are not repeated.
 
     ## Reset diagonostic parameters used to monitor numerical stability to zero.
     δG = zero(logdetG)
@@ -613,15 +493,8 @@ function run_simulation(
         )
     end
 
-# ## Merge binned data
-# No changes need to made to this section of the code from the previous [2a) Honeycomb Holstein Model](@ref) tutorial.
-
     ## Merge binned data into a single HDF5 file.
     merge_bins(simulation_info)
-
-# ## Record simulation metadata
-# No changes need to made to this section of the code from the previous
-# [2b) Honeycomb Holstein Model with MPI Parallelization](@ref) tutorial.
 
     ## Calculate acceptance rates.
     metadata["hmc_acceptance_rate"] /= (N_updates + N_therm)
@@ -633,13 +506,6 @@ function run_simulation(
 
     ## Write simulation metadata to simulation_info.toml file.
     save_simulation_info(simulation_info, metadata)
-
-# ## Post-process results
-# From the last [2b) Honeycomb Holstein Model with MPI Parallelization](@ref) tutorial, we now recommend adding
-# a call to the [`rename_complete_simulation`](@ref) function once the results are processed.
-# This function renames the data folder to begin with `complete_*`, making it simple to identify which
-# simulations ran to completion and which ones need to be resumed from the last checkpoint file.
-# This function also deletes the checkpoint files that were written during the simulation.
 
     ## Process the simulation results, calculating final error bars for all measurements.
     ## writing final statisitics to CSV files.
@@ -653,23 +519,6 @@ function run_simulation(
         delimiter = " "
     )
 
-    ## Calculate CDW correlation ratio.
-    Rcdw, ΔRcdw = compute_composite_correlation_ratio(
-        datafolder = simulation_info.datafolder,
-        name = "cdw",
-        type = "equal-time",
-        q_point = (0, 0),
-        q_neighbors = [
-            (1,0),   (0,1),   (1,1),
-            (L-1,0), (0,L-1), (L-1,L-1)
-        ]
-    )
-
-    ## Record the AFM correlation ratio mean and standard deviation.
-    metadata["Rcdw_mean_real"] = real(Rcdw)
-    metadata["Rcdw_mean_imag"] = imag(Rcdw)
-    metadata["Rcdw_std"]       = ΔRcdw
-
     ## Write simulation summary TOML file.
     save_simulation_info(simulation_info, metadata)
 
@@ -681,25 +530,6 @@ function run_simulation(
 
     return nothing
 end # end of run_simulation function
-
-# ## Execute script
-# To execute the script, we have added two new command line arguments allowing for the assignment of both
-# the `checkpoint_freq` and `runtime_limit` values.
-# Therefore, a simulation can be run with the command
-# ```bash
-# mpiexecjl -n 16 julia holstein_honeycomb_checkpoint.jl 1 1.0 1.5 0.0 3 4.0 5000 10000 100 0.5
-# ```
-# or 
-# ```bash
-# srun julia holstein_honeycomb_checkpoint.jl 1 1.0 1.5 0.0 3 4.0 5000 10000 100 0.5
-# ```
-# Refer to the previous [1b) Square Hubbard Model with MPI Parallelization](@ref) tutorial for more details on how to run the simulation
-# script using MPI.
-
-# In the example calls above the code will write a new checkpoint if more than 30 minutes (0.5 hours) has passed since the last checkpoint file was written.
-# Note that these same commands are used to both begin a new simulation and also resume a previous simulation.
-# This is a useful feature when submitting jobs on a cluster, as it allows the same job file to be used for
-# both starting new simulations and resuming ones that still need to finish.
 
 ## Only excute if the script is run directly from the command line.
 if abspath(PROGRAM_FILE) == @__FILE__

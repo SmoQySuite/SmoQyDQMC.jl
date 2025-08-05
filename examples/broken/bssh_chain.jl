@@ -368,7 +368,7 @@ function run_bssh_chain_simulation(sID, Ω, α, μ, β, L, N_burnin, N_updates, 
             fermion_path_integral = fermion_path_integral,
             fermion_greens_calculator = fermion_greens_calculator,
             fermion_greens_calculator_alt = fermion_greens_calculator_alt,
-            B = B, rng = rng, phonon_type_pairs = ((phonon_id, phonon_id),)
+            B = B, rng = rng, phonon_id_pairs = ((phonon_id, phonon_id),)
         )
 
         ## Record whether the swap update was accepted or rejected.
@@ -408,7 +408,7 @@ function run_bssh_chain_simulation(sID, Ω, α, μ, β, L, N_burnin, N_updates, 
                 fermion_path_integral = fermion_path_integral,
                 fermion_greens_calculator = fermion_greens_calculator,
                 fermion_greens_calculator_alt = fermion_greens_calculator_alt,
-                B = B, rng = rng, phonon_type_pairs = ((phonon_id, phonon_id),)
+                B = B, rng = rng, phonon_id_pairs = ((phonon_id, phonon_id),)
             )
 
             ## Record whether the swap update was accepted or rejected.

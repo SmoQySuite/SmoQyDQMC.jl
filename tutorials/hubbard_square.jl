@@ -62,7 +62,7 @@ function run_simulation(;
     δG_max = 1e-6, # Threshold for numerical error corrected by stabilization.
     symmetric = false, # Whether symmetric propagator definition is used.
     checkerboard = false, # Whether checkerboard approximation is used.
-    write_files_concurrent = true, # Whether to write binned data to file during simulation or hold it in memory.
+    write_bins_concurrent = true, # Whether to write binned data to file during simulation or hold it in memory.
     seed = abs(rand(Int)), # Seed for random number generator.
     filepath = "." # Filepath to where data folder will be created.
 )
@@ -71,9 +71,9 @@ function run_simulation(;
 # In this first part of the script we name and initialize our simulation, creating the data folder our simulation results will be written to.
 # This is done by initializing an instances of the [`SimulationInfo`](@ref) type, and then calling the [`initialize_datafolder`](@ref) function.
 
-# Note that the `write_files_concurrent` keyword arguments controls whether or not binned simulations measurement data
+# Note that the `write_bins_concurrent` keyword arguments controls whether or not binned simulations measurement data
 # is written to file during the simulation, or held in memory and only written to file once the simulation is complete.
-# The default behavior is to `write_files_concurrent = true` to mitigate concerns regarding the simulation using too much memory.
+# The default behavior is to `write_bins_concurrent = true` to mitigate concerns regarding the simulation using too much memory.
 # However, when performing simulations of small systems that do not take very long, writing data to file too frequently can
 # sometimes cause network latency issues on some clusters and HPS systems, in which case it may be advisable to set `write_files_concurrent = false`.
 
@@ -84,7 +84,7 @@ function run_simulation(;
     simulation_info = SimulationInfo(
         filepath = filepath,                     
         datafolder_prefix = datafolder_prefix,
-        write_files_concurrent = write_files_concurrent,
+        write_bins_concurrent = write_bins_concurrent,
         sID = sID
     )
 

@@ -31,11 +31,8 @@ import SmoQyDQMC.JDQMCFramework as dqmcf
 using Random
 using Printf
 using MPI
-````
 
-Top-level function to run simulation.
-
-````julia
+# Top-level function to run simulation.
 function run_simulation(
     comm::MPI.Comm; # MPI communicator.
     # KEYWORD ARGUMENTS
@@ -524,11 +521,8 @@ function run_simulation(
 
     return nothing
 end # end of run_simulation function
-````
 
-Only excute if the script is run directly from the command line.
-
-````julia
+# Only excute if the script is run directly from the command line.
 if abspath(PROGRAM_FILE) == @__FILE__
 
     # Initialize MPI

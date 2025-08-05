@@ -26,7 +26,7 @@ using Random
 using Printf
 using MPI
 
-# Top-level function to run simulation.
+## Top-level function to run simulation.
 function run_simulation(
     comm::MPI.Comm; # MPI communicator.
     ## KEYWORD ARGUMENTS
@@ -46,6 +46,7 @@ function run_simulation(
     δG_max = 1e-6, # Threshold for numerical error corrected by stabilization.
     symmetric = false, # Whether symmetric propagator definition is used.
     checkerboard = false, # Whether checkerboard approximation is used.
+    write_bins_concurrent = true, # Whether to write the HDF5 bins files during the simulation.
     seed = abs(rand(Int)), # Seed for random number generator.
     filepath = "." # Filepath to where data folder will be created.
 )
@@ -69,6 +70,7 @@ function run_simulation(
     simulation_info = SimulationInfo(
         filepath = filepath,
         datafolder_prefix = datafolder_prefix,
+        write_bins_concurrent = write_bins_concurrent,
         sID = sID,
         pID = pID
     )
@@ -156,7 +158,7 @@ function run_simulation(
             phonon_mode = phonon
         )
 
-        ## Defines total effective hopping amplitude given by t_eff = t-α⋅(Xᵢ₊₁-Xᵢ).
+        ## Defines ssh e-ph coupling such that total effective hopping is t_eff = t-α⋅(Xᵢ₊₁-Xᵢ).
         ossh_coupling = SSHCoupling(
             model_geometry = model_geometry,
             tight_binding_model = tight_binding_model,
@@ -516,7 +518,7 @@ function run_simulation(
     return nothing
 end # end of run_simulation function
 
-# Only excute if the script is run directly from the command line.
+## Only excute if the script is run directly from the command line.
 if abspath(PROGRAM_FILE) == @__FILE__
 
     ## Initialize MPI

@@ -155,18 +155,18 @@ end
 
 @doc raw"""
     initialize!(
-        fermion_path_integral_up::FermionPathIntegral{T,E},
-        fermion_path_integral_dn::FermionPathIntegral{T,E},
-        electron_phonon_parameters::ElectronPhononParameters{T,E}
-    ) where {T,E}
+        fermion_path_integral_up::FermionPathIntegral{H,T},
+        fermion_path_integral_dn::FermionPathIntegral{H,T},
+        electron_phonon_parameters::ElectronPhononParameters{T,R}
+    ) where {H<:Number, T<:Number, R<:AbstractFloat}
 
 Initialize the contribution of an [`ElectronPhononParameters`](@ref) to a [`FermionPathIntegral`](@ref).
 """
 function initialize!(
-    fermion_path_integral_up::FermionPathIntegral{T,E},
-    fermion_path_integral_dn::FermionPathIntegral{T,E},
-    electron_phonon_parameters::ElectronPhononParameters{T,E}
-) where {T,E}
+    fermion_path_integral_up::FermionPathIntegral{H,T},
+    fermion_path_integral_dn::FermionPathIntegral{H,T},
+    electron_phonon_parameters::ElectronPhononParameters{T,R}
+) where {H<:Number, T<:Number, R<:AbstractFloat}
 
     # initialize spin up fermion path integral
     initialize!(fermion_path_integral_up, electron_phonon_parameters, spin = +1)
@@ -179,18 +179,22 @@ end
 
 @doc raw"""
     initialize!(
-        fermion_path_integral::FermionPathIntegral{T,E},
-        electron_phonon_parameters::ElectronPhononParameters{T,E};
-        spin::Int = +1,
-    ) where {T,E}
+        # ARGUMENTS
+        fermion_path_integral::FermionPathIntegral{H,T},
+        electron_phonon_parameters::ElectronPhononParameters{T,R};
+        # KEYWORD ARGUMENTS
+        spin::Int = +1
+    ) where {H<:Number, T<:Number, R<:AbstractFloat}
 
 Initialize the contribution of an [`ElectronPhononParameters`](@ref) to a [`FermionPathIntegral`](@ref).
 """
 function initialize!(
-    fermion_path_integral::FermionPathIntegral{T,E},
-    electron_phonon_parameters::ElectronPhononParameters{T,E};
+    # ARGUMENTS
+    fermion_path_integral::FermionPathIntegral{H,T},
+    electron_phonon_parameters::ElectronPhononParameters{T,R};
+    # KEYWORD ARGUMENTS
     spin::Int = +1
-) where {T,E}
+) where {H<:Number, T<:Number, R<:AbstractFloat}
 
     x = electron_phonon_parameters.x
     if isone(spin)
@@ -216,22 +220,22 @@ end
 
 @doc raw"""
     update!(
-        fermion_path_integral_up::FermionPathIntegral{T,E},
-        fermion_path_integral_dn::FermionPathIntegral{T,E},
-        electron_phonon_parameters::ElectronPhononParameters{T,E},
-        x′::Matrix{E},
-        x::Matrix{E}
-    ) where {T,E}
+        fermion_path_integral_up::FermionPathIntegral{H,T},
+        fermion_path_integral_dn::FermionPathIntegral{H,T},
+        electron_phonon_parameters::ElectronPhononParameters{T,R},
+        x′::Matrix{R},
+        x::Matrix{R}
+    ) where {H<:Number, T<:Number, R<:AbstractFloat}
 
 Update a [`FermionPathIntegral`](@ref) to reflect a change in the phonon configuration from `x` to `x′`.
 """
 function update!(
-    fermion_path_integral_up::FermionPathIntegral{T,E},
-    fermion_path_integral_dn::FermionPathIntegral{T,E},
-    electron_phonon_parameters::ElectronPhononParameters{T,E},
-    x′::Matrix{E},
-    x::Matrix{E}
-) where {T,E}
+    fermion_path_integral_up::FermionPathIntegral{H,T},
+    fermion_path_integral_dn::FermionPathIntegral{H,T},
+    electron_phonon_parameters::ElectronPhononParameters{T,R},
+    x′::Matrix{R},
+    x::Matrix{R}
+) where {H<:Number, T<:Number, R<:AbstractFloat}
 
     # update spin up fermion path integral
     update!(fermion_path_integral_up, electron_phonon_parameters, x′, x, spin = +1)
@@ -244,22 +248,26 @@ end
 
 @doc raw"""
     update!(
-        fermion_path_integral::FermionPathIntegral{T,E},
-        electron_phonon_parameters::ElectronPhononParameters{T,E},
-        x′::Matrix{E},
-        x::Matrix{E};
+        # ARGUMENTS
+        fermion_path_integral::FermionPathIntegral{H,T},
+        electron_phonon_parameters::ElectronPhononParameters{T,R},
+        x′::Matrix{R},
+        x::Matrix{R};
+        # KEYWORD ARGUMENTS
         spin::Int = +1
-    ) where {T,E}
+    ) where {H<:Number, T<:Number, R<:AbstractFloat}
 
 Update a [`FermionPathIntegral`](@ref) to reflect a change in the phonon configuration from `x` to `x′`.
 """
 function update!(
-    fermion_path_integral::FermionPathIntegral{T,E},
-    electron_phonon_parameters::ElectronPhononParameters{T,E},
-    x′::Matrix{E},
-    x::Matrix{E};
+    # ARGUMENTS
+    fermion_path_integral::FermionPathIntegral{H,T},
+    electron_phonon_parameters::ElectronPhononParameters{T,R},
+    x′::Matrix{R},
+    x::Matrix{R};
+    # KEYWORD ARGUMENTS
     spin::Int = +1
-) where {T,E}
+) where {H<:Number, T<:Number, R<:AbstractFloat}
 
     if isone(spin)
         holstein_parameters = electron_phonon_parameters.holstein_parameters_up
@@ -281,21 +289,27 @@ function update!(
 end
 
 @doc raw"""
-    update!(fermion_path_integral::FermionPathIntegral{T,E},
-        electron_phonon_parameters::ElectronPhononParameters{T,E},
-        x::Matrix{E},
+    update!(
+        # ARGUMENTS
+        fermion_path_integral::FermionPathIntegral{H,T},
+        electron_phonon_parameters::ElectronPhononParameters{T,R},
+        x::Matrix{R},
         sgn::Int;
+        # KEYWORD ARGUMENTS
         spin::Int = +1
-    ) where {T,E}
+    ) where {H<:Number, T<:Number, R<:AbstractFloat}
 
 Update a [`FermionPathIntegral`](@ref) according to `sgn * x`.
 """
-function update!(fermion_path_integral::FermionPathIntegral{T,E},
-    electron_phonon_parameters::ElectronPhononParameters{T,E},
-    x::Matrix{E},
+function update!(
+    # ARGUMENTS
+    fermion_path_integral::FermionPathIntegral{H,T},
+    electron_phonon_parameters::ElectronPhononParameters{T,R},
+    x::Matrix{R},
     sgn::Int;
+    # KEYWORD ARGUMENTS
     spin::Int = +1
-) where {T,E}
+) where {H<:Number, T<:Number, R<:AbstractFloat}
 
     if isone(spin)
         holstein_parameters = electron_phonon_parameters.holstein_parameters_up

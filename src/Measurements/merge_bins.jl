@@ -22,7 +22,7 @@ function merge_bins(
     # construct filename for the merged HDF5 file
     filename = joinpath(binfolder, "bins_pID-$(pID).h5")
 
-    # check HDF5 files still needs to be merged
+    # check HDF5 files still needs to be merged by checking if merged HDF5 already exists for not
     if !isfile(filename)
         
         # count the number of bins

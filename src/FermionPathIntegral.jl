@@ -378,7 +378,7 @@ function calculate_exp_V!(
 ) where {H, T, U, P<:AbstractPropagator{T,U}}
 
     # iterate over imaginary time slices
-    @inbounds for l in eachindex(B)
+    for l in eachindex(B)
 
         # calculate exponentiated diagonal on-site energy matrix for imaginary time slice τ=Δτ⋅l
         calculate_exp_V!(B[l], fpi, l)

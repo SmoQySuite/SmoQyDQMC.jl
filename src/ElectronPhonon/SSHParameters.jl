@@ -228,11 +228,11 @@ end
 # and the phonon field configuration `x`, where `sgn = ±1` determines whether the SSH
 # contribution to the total hopping energy is either added or subtracted.
 function update!(
-    fermion_path_integral::FermionPathIntegral{T,E},
+    fermion_path_integral::FermionPathIntegral{H,T},
     ssh_parameters::SSHParameters{T},
-    x::Matrix{E},
+    x::Matrix{R},
     sgn::Int
-) where {T,E}
+) where {H<:Number, T<:Number, R<:AbstractFloat}
 
     (; t, Lτ) = fermion_path_integral
     (; Nssh, α, α2, α3, α4, coupling_to_phonon, coupling_to_hopping) = ssh_parameters

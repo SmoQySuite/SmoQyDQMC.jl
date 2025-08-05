@@ -219,11 +219,11 @@ SmoQyDQMC.PhononParameters
 SmoQyDQMC.HolsteinParameters
 SmoQyDQMC.SSHParameters
 SmoQyDQMC.DispersionParameters
-initialize!(::FermionPathIntegral{T,E}, ::FermionPathIntegral{T,E}, ::ElectronPhononParameters{T,E}) where {T,E}
-initialize!(::FermionPathIntegral{T,E}, ::ElectronPhononParameters{T,E}) where {T,E}
-update!(::FermionPathIntegral{T,E}, ::FermionPathIntegral{T,E}, ::ElectronPhononParameters{T,E}, ::Matrix{E}, ::Matrix{E}) where {T,E}
-update!(::FermionPathIntegral{T,E}, ::ElectronPhononParameters{T,E}, ::Matrix{E}, ::Matrix{E}) where {T,E}
-update!(::FermionPathIntegral{T,E}, ::ElectronPhononParameters{T,E}, ::Matrix{E}, ::Int) where {T,E}
+initialize!(::FermionPathIntegral{H,T}, ::FermionPathIntegral{H,T}, ::ElectronPhononParameters{T,R}) where {H<:Number, T<:Number, R<:AbstractFloat}
+initialize!(::FermionPathIntegral{H,T}, ::ElectronPhononParameters{T,R}) where {H<:Number, T<:Number, R<:AbstractFloat}
+update!(::FermionPathIntegral{H,T}, ::FermionPathIntegral{H,T}, ::ElectronPhononParameters{T,R}, ::Matrix{R}, ::Matrix{R}) where {H<:Number, T<:Number, R<:AbstractFloat}
+update!(::FermionPathIntegral{H,T}, ::ElectronPhononParameters{T,R}, ::Matrix{R}, ::Matrix{R}) where {H<:Number, T<:Number, R<:AbstractFloat}
+update!(::FermionPathIntegral{H,T}, ::ElectronPhononParameters{T,R}, ::Matrix{R}, ::Int) where {H<:Number, T<:Number, R<:AbstractFloat}
 ```
 
 ### Electron-Phonon Measurements

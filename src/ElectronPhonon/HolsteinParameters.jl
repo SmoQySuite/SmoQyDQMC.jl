@@ -185,11 +185,11 @@ end
 # and the phonon field configuration `x`, where `sgn = ±1` determines whether the Holstein
 # contribution to the on-site energy matrix is either being added or subtracted.
 function update!(
-    fermion_path_integral::FermionPathIntegral{T,E},
-    holstein_parameters::HolsteinParameters{E},
-    x::Matrix{E},
+    fermion_path_integral::FermionPathIntegral{H},
+    holstein_parameters::HolsteinParameters{R},
+    x::Matrix{R},
     sgn::Int
-) where {T,E}
+) where {H<:Number, R<:AbstractFloat}
 
     (; V, Lτ) = fermion_path_integral
     (; Nholstein, α, α2, α3, α4, coupling_to_phonon, coupling_to_site) = holstein_parameters

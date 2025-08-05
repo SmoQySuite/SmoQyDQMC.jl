@@ -12,7 +12,7 @@
         fermion_greens_calculator_up_alt::FermionGreensCalculator{H,R},
         fermion_greens_calculator_dn_alt::FermionGreensCalculator{H,R},
         Bup::Vector{P}, Bdn::Vector{P}, rng::AbstractRNG,
-        phonon_type_pairs = nothing
+        phonon_id_pairs = nothing
     ) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator{T}}
 
 Randomly sample a pairs of phonon modes and exchange the phonon fields associated with the pair of phonon modes.
@@ -39,7 +39,7 @@ This function returns `(accepted, logdetGup, sgndetGup, logdetGdn, sgndetGdn)`.
 - `Bup::Vector{P}`: Spin-up propagators for each imaginary time slice.
 - `Bdn::Vector{P}`: Spin-down propagators for each imaginary time slice.
 - `rng::AbstractRNG`: Random number generator used in method instead of global random number generator, important for reproducibility.
-- `phonon_type_pairs = nothing`: Collection of phonon type pairs (specified by pairs of `PHONON_ID` values) in the unit cell to randomly sample a phonon modes from. If `nothing` then all phonon mode pairs in the unit cell are considered.
+- `phonon_id_pairs = nothing`: Collection of phonon type pairs (specified by pairs of `PHONON_ID` values) in the unit cell to randomly sample a phonon modes from. If `nothing` then all phonon mode pairs in the unit cell are considered.
 """
 function swap_update!(
     # ARGUMENTS
@@ -54,7 +54,7 @@ function swap_update!(
     fermion_greens_calculator_up_alt::FermionGreensCalculator{H,R},
     fermion_greens_calculator_dn_alt::FermionGreensCalculator{H,R},
     Bup::Vector{P}, Bdn::Vector{P}, rng::AbstractRNG,
-    phonon_type_pairs = nothing
+    phonon_id_pairs = nothing
 ) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator{T}}
 
     @assert fermion_path_integral_up.Sb == fermion_path_integral_dn.Sb "$(fermion_path_integral_up.Sb) ≠ $(fermion_path_integral_dn.Sb)"
@@ -86,12 +86,13 @@ function swap_update!(
 
     # total number of phonon modes
     Nphonon = phonon_parameters.Nphonon
+    @assert Nphonon > 1 "There is only one phonon mode in the lattice, therefore a swap update cannot be performed."
 
     # number of unit cells
     Nunitcells = Nphonon ÷ nphonon
 
     # sample random phonon mode
-    phonon_mode_i, phonon_mode_j = _sample_phonon_mode_pair(rng, nphonon, Nunitcells, M, phonon_type_pairs)
+    phonon_mode_i, phonon_mode_j = _sample_phonon_mode_pair(rng, nphonon, Nunitcells, M, phonon_id_pairs)
 
     # whether the exponentiated on-site energy matrix needs to be updated with the phonon field,
     # true if phonon mode appears in holstein coupling
@@ -235,7 +236,7 @@ end
         fermion_greens_calculator::FermionGreensCalculator{H,R},
         fermion_greens_calculator_alt::FermionGreensCalculator{H,R},
         B::Vector{P}, rng::AbstractRNG,
-        phonon_type_pairs = nothing
+        phonon_id_pairs = nothing
     ) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator{T}}
 
 Randomly sample a pairs of phonon modes and exchange the phonon fields associated with the pair of phonon modes.
@@ -255,7 +256,7 @@ This function returns `(accepted, logdetG, sgndetG)`.
 - `fermion_greens_calculator_alt::FermionGreensCalculator{H,R}`: Used to calculate matrix factorizations for proposed state.
 - `B::Vector{P}`: Propagators for each imaginary time slice.
 - `rng::AbstractRNG`: Random number generator used in method instead of global random number generator, important for reproducibility.
-- `phonon_type_pairs = nothing`: Collection of phonon type pairs in the unit cell to randomly sample a phonon modes from. If `nothing` then all phonon mode pairs in the unit cell are considered.
+- `phonon_id_pairs = nothing`: Collection of phonon type pairs in the unit cell to randomly sample a phonon modes from. If `nothing` then all phonon mode pairs in the unit cell are considered.
 """
 function swap_update!(
     # ARGUMENTS
@@ -266,7 +267,7 @@ function swap_update!(
     fermion_greens_calculator::FermionGreensCalculator{H,R},
     fermion_greens_calculator_alt::FermionGreensCalculator{H,R},
     B::Vector{P}, rng::AbstractRNG,
-    phonon_type_pairs = nothing
+    phonon_id_pairs = nothing
 ) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator{T}}
 
     G′ = fermion_greens_calculator_alt.G′
@@ -288,12 +289,13 @@ function swap_update!(
 
     # total number of phonon modes
     Nphonon = phonon_parameters.Nphonon
+    @assert Nphonon > 1 "There is only one phonon mode in the lattice, therefore a swap update cannot be performed."
 
     # number of unit cells
     Nunitcells = Nphonon ÷ nphonon
 
     # sample random phonon mode
-    phonon_mode_i, phonon_mode_j = _sample_phonon_mode_pair(rng, nphonon, Nunitcells, M, phonon_type_pairs)
+    phonon_mode_i, phonon_mode_j = _sample_phonon_mode_pair(rng, nphonon, Nunitcells, M, phonon_id_pairs)
 
     # whether the exponentiated on-site energy matrix needs to be updated with the phonon field,
     # true if phonon mode appears in holstein coupling
@@ -403,56 +405,50 @@ end
 
 
 # sample a pair of random phonon modes
-function _sample_phonon_mode_pair(rng::AbstractRNG, nphonon::Int, Nunitcells::Int, masses::Vector{T}, phonon_type_pairs = nothing) where {T<:AbstractFloat}
+function _sample_phonon_mode_pair(rng::AbstractRNG, nphonon::Int, Nunitcells::Int, masses::Vector{T}, phonon_id_pairs = nothing) where {T<:AbstractFloat}
 
-    # sample a pair of phonon types
-    if isnothing(phonon_type_pairs)
-        phonon_type_pair = ( rand(rng, 1:nphonon) , rand(rng, 1:nphonon) )
+    # if phonon id pairs not passed
+    if isnothing(phonon_id_pairs)
+
+        # determine which phonon IDs have finite and not infinite mass
+        m = reshape(masses, Nunitcells, nphonon)
+        phonon_ids = filter(n -> !isinf(m[1,n]), 1:nphonon)
+        # sample a pair of phonon IDs
+        phonon_id_pair = (rand(rng, phonon_ids), rand(rng, phonon_ids))
     else
-        n = rand(rng, 1:length(phonon_type_pairs))
-        phonon_type_pair = phonon_type_pairs[n]
+
+        # sample one of the phonon ID pairs
+        phonon_id_pair = rand(rng, phonon_id_pairs)
+        phonon_id_pair = isa(phonon_id_pair, NTuple{2,Int}) ? phonon_id_pair : tuple(phonon_id_pair...)
     end
+
+    # check to make sure phonon_id_pair is correct type
+    @assert isa(phonon_id_pair, NTuple{2,Int}) "Each element of `phonon_id_pairs` must be convertable to a `Tuple{Int,Int}` type."
     
-    return _sample_phonon_mode_pair(rng, nphonon, Nunitcells, masses, phonon_type_pair)
+    return _sample_phonon_mode_pair(rng, nphonon, Nunitcells, masses, phonon_id_pair)
 end
 
 # sample a pair of random phonon modes
-function _sample_phonon_mode_pair(rng::AbstractRNG, nphonon::Int, Nunitcells::Int, masses::Vector{T}, phonon_type_pair::NTuple{2,Int}) where {T<:AbstractFloat}
+function _sample_phonon_mode_pair(rng::AbstractRNG, nphonon::Int, Nunitcells::Int, masses::Vector{T}, phonon_id_pair::NTuple{2,Int}) where {T<:AbstractFloat}
 
-    # initialize phonon mode 1 to zero
-    phonon_mode_1 = 0
-    
-    # initialize phonon mode 1 mass to zero
-    mass = zero(T)
+    # get the id pair
+    id1, id2 = phonon_id_pair
 
-    # sample phonon mode 1
-    while iszero(phonon_mode_1) || isinf(mass)
+    # if two phonon IDs are the same
+    if id1 == id2
 
-        # sample unit cell 1
-        unit_cell_1 = rand(rng, 1:Nunitcells)
+        # sample two phonon modes, making sure they are different
+        index1, index2 = draw2(rng, Nunitcells)
+        phonon1 = index1 + (id1-1) * Nunitcells
+        phonon2 = index2 + (id2-1) * Nunitcells
 
-        # sample phonon mode 1
-        phonon_mode_1 = (phonon_type_pair[1] - 1) * Nunitcells + unit_cell_1
+    # if two phonon IDs are different
+    else
 
-        # get mass of phonon mode 1
-        mass = masses[phonon_mode_1]
+        # sample two phonon modes
+        phonon1 = rand(rng, 1:Nunitcells) + (id1-1) * Nunitcells
+        phonon2 = rand(rng, 1:Nunitcells) + (id2-1) * Nunitcells
     end
 
-    # initialize phonon mode 2 to phonon mode 1
-    phonon_mode_2 = phonon_mode_1
-
-    # sample phonon mode 2
-    while phonon_mode_1 == phonon_mode_2 || isinf(mass)
-
-        # sample unit cell 2
-        unit_cell_2 = rand(rng, 1:Nunitcells)
-
-        # sample phonon mode 2
-        phonon_mode_2 = (phonon_type_pair[2] - 1) * Nunitcells + unit_cell_2
-
-        # get mass of phonon mode 2
-        mass = masses[phonon_mode_2]
-    end
-
-    return (phonon_mode_1, phonon_mode_2)
+    return (phonon1, phonon2)
 end

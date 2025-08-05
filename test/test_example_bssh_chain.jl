@@ -1,6 +1,6 @@
-@testitem "Honeycomb Holstein with Checkpoints Tutorial" begin
+@testitem "Bond SSH Chain Example" begin
 
-    include("../tutorials/holstein_honeycomb_checkpoint.jl")
+    include("../examples/bssh_chain.jl")
     MPI.Init()
     @test isnothing(
         run_simulation(
@@ -9,7 +9,7 @@
             Ω = 1.0,
             α = 1.0,
             μ = 0.0,
-            L = 3,
+            L = 4,
             β = 1.0,
             N_therm = 1,
             N_updates = 2,
