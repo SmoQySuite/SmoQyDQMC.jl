@@ -1,15 +1,15 @@
 ```@meta
-EditURL = "../../../examples/ossh_chain.jl"
+EditURL = "../../../examples/bssh_chain.jl"
 ```
 
-# Optical Su-Schrieffer-Heeger Chain
-Download this example as a [Julia script](../assets/scripts/examples/ossh_chain.jl).
+# Bond Su-Schrieffer-Heeger Chain
+Download this example as a [Julia script](../assets/scripts/examples/bssh_chain.jl).
 
 In this example we simulate the optical Su-Schrieffer-Heeger (OSSH) model on a 1D chain, with a Hamiltonian given by
 ```math
 \begin{align*}
-\hat{H} = \sum_i \left( \frac{1}{2M}\hat{P}_i^2 + \frac{1}{2}M\Omega^2\hat{X}_i^2 \right)
-          - \sum_{\sigma,i} [t-\alpha(\hat{X}_{i+1}-\hat{X}_{i})] (\hat{c}^{\dagger}_{\sigma,i+1}, \hat{c}^{\phantom \dagger}_{\sigma,i} + {\rm h.c.})
+\hat{H} = \sum_i \left( \frac{1}{2M}\hat{P}_{\langle i+1, i \rangle}^2 + \frac{1}{2}M\Omega^2\hat{X}_{\langle i+1, i \rangle}^2 \right)
+          - \sum_{\sigma,i} [t-\alpha\hat{X}_{\langle i+1, i \rangle}] (\hat{c}^{\dagger}_{\sigma,i+1}, \hat{c}^{\phantom \dagger}_{\sigma,i} + {\rm h.c.})
           - \mu \sum_{\sigma,i} \hat{n}_{\sigma,i},
 \end{align*}
 ```
@@ -17,8 +17,8 @@ in which the fluctuations in the position of dispersionless phonon modes placed 
 hopping amplitude between neighboring sites.
 In the above expression ``\hat{c}^\dagger_{\sigma,i} \ (\hat{c}^{\phantom \dagger}_{\sigma,i})`` creation (annihilation) operator
 a spin ``\sigma`` electron on site ``i`` in the lattice, and ``\hat{n}_{\sigma,i} = \hat{c}^\dagger_{\sigma,i} \hat{c}^{\phantom \dagger}_{\sigma,i}``
-is corresponding electron number operator. The phonon position (momentum) operator for the dispersionless phonon mode on site ``i``
-is given by ``\hat{X}_i \ (\hat{P}_i)``, where ``\Omega`` and ``M`` are the phonon frequency and associated ion mass respectively.
+is corresponding electron number operator. The phonon position (momentum) operator for the dispersionless phonon mode on the bond connecting sites ``i`` and ``i+1``
+is given by ``\hat{X}_{\langle i+1,i\rangle} \ (\hat{P}_{\langle i+1,i\rangle})``, where ``\Omega`` and ``M`` are the phonon frequency and associated ion mass respectively.
 Lastly, the strength of the electron-phonon coupling is controlled by the parameter ``\alpha``.
 
 Note that this example scipt comes with all the bells and whistles so to speak, including support for MPI parallelizaiton as well as checkpointing.
@@ -67,7 +67,7 @@ function run_simulation(
     checkpoint_freq = checkpoint_freq * 60.0^2
 
     # Construct the foldername the data will be written to.
-    datafolder_prefix = @sprintf "ossh_chain_w%.2f_a%.2f_mu%.2f_L%d_b%.2f" Ω α μ L β
+    datafolder_prefix = @sprintf "bssh_chain_w%.2f_a%.2f_mu%.2f_L%d_b%.2f" Ω α μ L β
 
     # Get MPI process ID.
     pID = MPI.Comm_rank(comm)
@@ -152,31 +152,44 @@ function run_simulation(
             tight_binding_model = tight_binding_model
         )
 
-        # Define a dispersionless electron-phonon mode to live on each site in the lattice.
+        # Define a dispersionless electron-phonon mode to live on each bond in the lattice.
         phonon = PhononMode(
-            basis_vec = [0.0],
+            basis_vec = [0.5],
             Ω_mean = Ω
         )
 
-        # Add optical ssh phonon to electron-phonon model.
+        # Add bond ssh phonon to electron-phonon model.
         phonon_id = add_phonon_mode!(
             electron_phonon_model = electron_phonon_model,
             phonon_mode = phonon
         )
 
-        # Defines ssh e-ph coupling such that total effective hopping is t_eff = t-α⋅(Xᵢ₊₁-Xᵢ).
-        ossh_coupling = SSHCoupling(
+        # Define frozen phonon mode with infinite mass.
+        fphonon = PhononMode(
+            basis_vec = [0.0],
+            Ω_mean = Ω,
+            M = Inf # Set phonon mass to infinity.
+        )
+
+        # Add frozen phonon mode to model.
+        fphonon_id = add_phonon_mode!(
+            electron_phonon_model = electron_phonon_model,
+            phonon_mode = fphonon
+        )
+
+        # Defines ssh e-ph coupling such that total effective hopping is t_eff = t-α⋅X .
+        bssh_coupling = SSHCoupling(
             model_geometry = model_geometry,
             tight_binding_model = tight_binding_model,
-            phonon_ids = (phonon_id, phonon_id),
+            phonon_ids = (fphonon_id, phonon_id),
             bond = bond,
             α_mean = α
         )
 
-        # Add optical SSH coupling to the electron-phonon model.
-        ossh_coupling_id = add_ssh_coupling!(
+        # Add bond SSH coupling to the electron-phonon model.
+        bssh_coupling_id = add_ssh_coupling!(
             electron_phonon_model = electron_phonon_model,
-            ssh_coupling = ossh_coupling,
+            ssh_coupling = bssh_coupling,
             tight_binding_model = tight_binding_model
         )
 

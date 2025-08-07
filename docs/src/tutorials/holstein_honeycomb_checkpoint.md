@@ -51,6 +51,7 @@ function run_simulation(
     δG_max = 1e-6, # Threshold for numerical error corrected by stabilization.
     symmetric = false, # Whether symmetric propagator definition is used.
     checkerboard = false, # Whether checkerboard approximation is used.
+    write_bins_concurrent = true, # Whether to write HDF5 bins during the simulation.
     seed = abs(rand(Int)), # Seed for random number generator.
     filepath = "." # Filepath to where data folder will be created.
 )
@@ -82,6 +83,7 @@ Second, we need to convert the `checkpoint_freq` and `runtime_limit` from hours 
     simulation_info = SimulationInfo(
         filepath = filepath,
         datafolder_prefix = datafolder_prefix,
+        write_bins_concurrent = write_bins_concurrent,
         sID = sID,
         pID = pID
     )
