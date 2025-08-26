@@ -71,11 +71,11 @@ function run_simulation(;
 # In this first part of the script we name and initialize our simulation, creating the data folder our simulation results will be written to.
 # This is done by initializing an instances of the [`SimulationInfo`](@ref) type, and then calling the [`initialize_datafolder`](@ref) function.
 
-# Note that the `write_bins_concurrent` keyword arguments controls whether or not binned simulations measurement data
+# Note that the `write_bins_concurrent` keyword arguments controls whether or not binned simulation measurement data
 # is written to file during the simulation, or held in memory and only written to file once the simulation is complete.
 # The default behavior is to `write_bins_concurrent = true` to mitigate concerns regarding the simulation using too much memory.
 # However, when performing simulations of small systems that do not take very long, writing data to file too frequently can
-# sometimes cause network latency issues on some clusters and HPS systems, in which case it may be advisable to set `write_files_concurrent = false`.
+# sometimes cause network latency issues on some clusters and HPC systems, in which case it may be advisable to set `write_bins_concurrent = false`.
 
     ## Construct the foldername the data will be written to.
     datafolder_prefix = @sprintf "hubbard_square_U%.2f_tp%.2f_mu%.2f_L%d_b%.2f" U t′ μ L β
@@ -396,10 +396,34 @@ function run_simulation(;
 # ## [Setup DQMC simulation](@id hubbard_square_setup_dqmc)
 # This section of the code sets up the DQMC simulation by allocating the initializing the relevant types and arrays we will need in the simulation.
 
-# This portion of code is perhaps the most opaque and difficult to understand, and will be discussed in more detail once written.
+# This portion of code is perhaps the most opaque and difficult to understand, and quite a bit of exposition is included describing it.
 # That said, you do not need to fully comprehend everything that goes on in this section as most of it is fairly boilerplate,
 # and will not need to be changed much once written.
 # This is true even if you want to modify this script to perform a DQMC simulation for a different Hamiltonian.
+
+# To start, two instances of the [`FermionPathIntegral`](@ref) type are allocated, one for each electron spin species.
+# Recall that after performing a HS transformation to decouple the Hubbard interaction, the resulting
+# Hamiltonian is quadratic in fermion creation and annihilation operators, but fluctuates in imaginary-time as a result of introducing the HS fields.
+# Therefore, this Hamiltonian may be expressed as
+# ```math
+# \hat{H}_l = \sum_\sigma \hat{\mathbf{c}}_\sigma^\dagger \left[ H_{\sigma,l} \right] \hat{\mathbf{c}}_\sigma
+# = \sum_\sigma \hat{\mathbf{c}}_\sigma^\dagger \left[ K_{\sigma,l} + V_{\sigma,l} \right] \hat{\mathbf{c}}_\sigma,
+# ```
+# at imaginary-time ``\tau = \Delta\tau \cdot l``.
+# where ``\hat{\mathbf{c}}_\sigma \ (\hat{\mathbf{c}}_\sigma^\dagger)`` is a column (row) vector of spin-``\sigma`` electron annihilation (creation) operators for each orbital in the lattice.
+# Here ``H_{\sigma,l}`` is the spin-``\sigma`` Hamiltonian matrix for imaginary-time ``\tau``, which can be expressed as the sum of the
+# electron kinetic and potential energy matrices ``K_{\sigma,l}`` and ``V_{\sigma,l}``, respectively.
+# The purpose of the [`FermionPathIntegral`](@ref) type is to contain the minimal information required to reconstruct each ``K_{\sigma,l}`` and ``V_{\sigma,l}`` matrix.
+# Each instance of the [`FermionPathIntegral`](@ref) type is first allocated and initialized to just reflect the non-interacting component of the Hamiltonian.
+# Then the two subsequent `initialize!` calls modify the [`FermionPathIntegral`](@ref) type to reflect the contributions from the Hubbard interaction and initial HS field configuration.
+
+# Note that if the keyword arguments `forced_complex_potential` and `forced_complex_kinetic` are set to `true` then the ``V_{\sigma,l}``
+# and ``K_{\sigma,l}`` matrices are forced to be complex matrices, respectively. If instead set to false then their type is inferred from
+# the instance of `tight_binding_parameters` passed during initialization.
+# This is important, as the Hubbard-Stratonovich transform represented by the
+# [`HubbardSpinHirschHST`](@ref) type used in this example is real if ``U \ge 0`` and complex if ``U < 0``. Therefore, we need to set
+# `forced_complex_potential = (U < 0)` to account for this fact if we want this example to work for both repulsive and attractive Hubbard interactions.
+# The oppposite would be true if we had instead used [`HubbardDensityHirschHST`](@ref) decoupling scheme instead.
 
     ## Allocate FermionPathIntegral type for spin-up electrons.
     fermion_path_integral_up = FermionPathIntegral(
@@ -422,61 +446,6 @@ function run_simulation(;
     ## Hubbard-Stratonovich field configuration.
     initialize!(fermion_path_integral_up, fermion_path_integral_dn, hst_parameters)
 
-    ## Initialize imaginary-time propagators for all imaginary-time slices for spin-up and spin-down electrons.
-    Bup = initialize_propagators(fermion_path_integral_up, symmetric=symmetric, checkerboard=checkerboard)
-    Bdn = initialize_propagators(fermion_path_integral_dn, symmetric=symmetric, checkerboard=checkerboard)
-
-    ## Initialize FermionGreensCalculator type for spin-up and spin-down electrons.
-    fermion_greens_calculator_up = dqmcf.FermionGreensCalculator(Bup, β, Δτ, n_stab)
-    fermion_greens_calculator_dn = dqmcf.FermionGreensCalculator(Bdn, β, Δτ, n_stab)
-
-    ## Initialize alternate FermionGreensCalculator type for performing reflection updates.
-    fermion_greens_calculator_up_alt = dqmcf.FermionGreensCalculator(fermion_greens_calculator_up)
-    fermion_greens_calculator_dn_alt = dqmcf.FermionGreensCalculator(fermion_greens_calculator_dn)
-
-    ## Allcoate matrices for spin-up and spin-down electron Green's function matrices.
-    Gup = zeros(eltype(Bup[1]), size(Bup[1]))
-    Gdn = zeros(eltype(Bdn[1]), size(Bdn[1]))
-
-    ## Initialize the spin-up and spin-down electron Green's function matrices, also
-    ## calculating their respective determinants as the same time.
-    logdetGup, sgndetGup = dqmcf.calculate_equaltime_greens!(Gup, fermion_greens_calculator_up)
-    logdetGdn, sgndetGdn = dqmcf.calculate_equaltime_greens!(Gdn, fermion_greens_calculator_dn)
-
-    ## Allocate matrices for various time-displaced Green's function matrices.
-    Gup_ττ = similar(Gup) # Gup(τ,τ)
-    Gup_τ0 = similar(Gup) # Gup(τ,0)
-    Gup_0τ = similar(Gup) # Gup(0,τ)
-    Gdn_ττ = similar(Gdn) # Gdn(τ,τ)
-    Gdn_τ0 = similar(Gdn) # Gdn(τ,0)
-    Gdn_0τ = similar(Gdn) # Gdn(0,τ)
-
-    ## Initialize diagonostic parameters to asses numerical stability.
-    δG = zero(logdetGup)
-    δθ = zero(logdetGup)
-
-# At the start of this section, two instances of the [`FermionPathIntegral`](@ref) type are allocated, one for each electron spin species.
-# Recall that after performing a HS transformation to decouple the Hubbard interaction, the resulting
-# Hamiltonian is quadratic in fermion creation and annihilation operators, but fluctuates in imaginary-time as a result of introducing the HS fields.
-# Therefore, this Hamiltonian may be expressed as
-# ```math
-# \hat{H}_l = \sum_\sigma \hat{\mathbf{c}}_\sigma^\dagger \left[ H_{\sigma,l} \right] \hat{\mathbf{c}}_\sigma
-# = \sum_\sigma \hat{\mathbf{c}}_\sigma^\dagger \left[ K_{\sigma,l} + V_{\sigma,l} \right] \hat{\mathbf{c}}_\sigma,
-# ```
-# at imaginary-time ``\tau = \Delta\tau \cdot l``,
-# where ``\hat{\mathbf{c}}_\sigma \ (\hat{\mathbf{c}}_\sigma^\dagger)`` is a column (row) vector of spin-``\sigma`` electron annihilation (creation) operators for each orbital in the lattice.
-# Here ``H_{\sigma,l}`` is the spin-``\sigma`` Hamiltonian matrix for imaginary-time ``\tau``, which can be expressed as the sum of the
-# electron kinetic and potential energy matrices ``K_{\sigma,l}`` and ``V_{\sigma,l}``, respectively.
-# The purpose of the [`FermionPathIntegral`](@ref) type is to contain the minimal information required to reconstruct each ``K_{\sigma,l}`` and ``V_{\sigma,l}`` matrices.
-# Each instance of the [`FermionPathIntegral`](@ref) type is first allocated and initialized to just reflect the non-interacting component of the Hamiltonian.
-# Then the two subsequent `initialize!` calls modify the [`FermionPathIntegral`](@ref) type to reflect the contributions from the Hubbard interaction and initial HS field configuration.
-
-# Note that if the keyword arguments `forced_complex_potential` and `forced_complex_kinetic` are set to `true` then the ``V_{\sigma,l}``
-# and ``K_{\sigma,l}`` matrices are forced to be complex matrices, respectively. This is important, as the Hubbard-Stratonovich transform represented by the
-# [`HubbardSpinHirschHST`](@ref) type used in this example is real if ``U \ge 0`` and complex if ``U < 0``. Therefore, we need to set
-# `forced_complex_potential = (U < 0)` to account for this fact if we want this example to work for both repulsive and attractive Hubbard interactions.
-# The oppposite would be true if we had instead used [`HubbardDensityHirschHST`](@ref) decoupling scheme instead.
-
 # Next, the [`initialize_propagators`](@ref) function allocates and initializes the ``B_{\sigma,l}`` propagator matrices
 # to reflect the current state of the ``K_{\sigma,l}`` and ``V_{\sigma,l}`` matrices as represented by the [`FermionPathIntegral`](@ref) type.
 # If `symmetric = true`, then the propagator matrices take the form
@@ -490,16 +459,45 @@ function run_simulation(;
 # If `checkerboard = true`, then the exponentiated kinetic energy matrices ``e^{-\Delta\tau K_{\sigma,l}} \ \left( \text{ or } e^{-\Delta\tau K_{\sigma,l}/2} \right)``
 # are represented using the sparse checkerboard approximation, otherwise they are computed exactly.
 
+    ## Initialize imaginary-time propagators for all imaginary-time slices for spin-up and spin-down electrons.
+    Bup = initialize_propagators(fermion_path_integral_up, symmetric=symmetric, checkerboard=checkerboard)
+    Bdn = initialize_propagators(fermion_path_integral_dn, symmetric=symmetric, checkerboard=checkerboard)
+
 # Next, four instances of the [`FermionGreensCalculator`](https://smoqysuite.github.io/JDQMCFramework.jl/stable/api/#JDQMCFramework.FermionGreensCalculator)
 # type are initialized, which are used to take care of numerical stabilization behind the scenes in the DQMC simulation.
 # Here `n_stab` is the period in imaginary-time with which numerical stabilization is performed, and is typically on the order of ``n_{\rm stab} \sim 10.``
 
+    ## Initialize FermionGreensCalculator type for spin-up and spin-down electrons.
+    fermion_greens_calculator_up = dqmcf.FermionGreensCalculator(Bup, β, Δτ, n_stab)
+    fermion_greens_calculator_dn = dqmcf.FermionGreensCalculator(Bdn, β, Δτ, n_stab)
+
+    ## Initialize alternate FermionGreensCalculator type for performing reflection updates.
+    fermion_greens_calculator_up_alt = dqmcf.FermionGreensCalculator(fermion_greens_calculator_up)
+    fermion_greens_calculator_dn_alt = dqmcf.FermionGreensCalculator(fermion_greens_calculator_dn)
+
 # Now we allocate and initialize the equal-time Green's function matrix ``G_\sigma(0,0)`` for both spin species (`Gup` and `Gdn`).
 # The initiliazation process also returns ``\log | \det G_\sigma(0,0) |`` (`logdetGup` and `logdetGdn`) and ``{\rm sgn} \det G_\sigma(0,0)`` (`sgndetGup` and `sgndetGdn`).
 
-# Finally, we allocate matrices to represent the equal-time and time-displaced Green's function matrices ``G_\sigma(\tau,\tau)`` (`Gup_ττ` and `Gdn_ττ`),
+    ## Allcoate matrices for spin-up and spin-down electron Green's function matrices.
+    Gup = zeros(eltype(Bup[1]), size(Bup[1]))
+    Gdn = zeros(eltype(Bdn[1]), size(Bdn[1]))
+
+    ## Initialize the spin-up and spin-down electron Green's function matrices, also
+    ## calculating their respective determinants as the same time.
+    logdetGup, sgndetGup = dqmcf.calculate_equaltime_greens!(Gup, fermion_greens_calculator_up)
+    logdetGdn, sgndetGdn = dqmcf.calculate_equaltime_greens!(Gdn, fermion_greens_calculator_dn)
+
+# We also need to allocate matrices to represent the equal-time and time-displaced Green's function matrices ``G_\sigma(\tau,\tau)`` (`Gup_ττ` and `Gdn_ττ`),
 # ``G_\sigma(\tau, 0)`` (`Gup_τ0` and `Gdn_τ0`), and ``G_\sigma(0,\tau)`` (`Gup_0τ` and `Gdn_0τ`) for ``\tau \ne 0``.
 # All of these various Green's function matrices are required if we want to make time-displaced correlation function measurements.
+
+    ## Allocate matrices for various time-displaced Green's function matrices.
+    Gup_ττ = similar(Gup) # Gup(τ,τ)
+    Gup_τ0 = similar(Gup) # Gup(τ,0)
+    Gup_0τ = similar(Gup) # Gup(0,τ)
+    Gdn_ττ = similar(Gdn) # Gdn(τ,τ)
+    Gdn_τ0 = similar(Gdn) # Gdn(τ,0)
+    Gdn_0τ = similar(Gdn) # Gdn(0,τ)
 
 # Lastly, we initialize two diagonostic parameters `δG` and `δθ` to asses numerical stability during the simulation.
 # The `δG`  parameter is particularly important to keep track of during the simulation, and is defined as
@@ -509,6 +507,10 @@ function run_simulation(;
 # i.e. the maximum magnitude numerical error corrected by numerical stabilization for any Green's function matrix element.
 # The ``\delta \theta`` diagnostic parameter reports the error in the phase of the fermion determnant as it can in general be complex,
 # but this is less important to keep track of in most situations.
+
+    ## Initialize diagonostic parameters to asses numerical stability.
+    δG = zero(logdetGup)
+    δθ = zero(logdetGup)
 
 # ## Thermalize system
 # The next section of code performs updates to thermalize the system prior to beginning measurements.
