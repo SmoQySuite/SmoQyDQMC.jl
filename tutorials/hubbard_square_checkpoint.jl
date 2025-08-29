@@ -248,17 +248,17 @@ function run_simulation(
         )
 
         ## Initialize Hubbard interaction parameters.
-        hubbard_params = HubbardParameters(
+        hubbard_parameters = HubbardParameters(
             model_geometry = model_geometry,
             hubbard_model = hubbard_model,
             rng = rng
         )
 
-        ## Apply Ising Hubbard-Stranonvich (HS) transformation to decouple the Hubbard interaction,
+        ## Apply Ising Hubbard-Stratonovich (HS) transformation to decouple the Hubbard interaction,
         ## and initialize the corresponding HS fields that will be sampled in the DQMC simulation.
-        hubbard_stratonovich_params = HubbardIsingHSParameters(
+        hst_parameters = HubbardSpinHirschHST(
             β = β, Δτ = Δτ,
-            hubbard_parameters = hubbard_params,
+            hubbard_parameters = hubbard_parameters,
             rng = rng
         )
 
@@ -341,7 +341,7 @@ function run_simulation(
             runtime_limit = runtime_limit,
             ## Contents of checkpoint file below.
             n_therm, n_updates,
-            tight_binding_parameters, hubbard_params, hubbard_stratonovich_params,
+            tight_binding_parameters, hubbard_parameters, hst_parameters,
             measurement_container, model_geometry, metadata, rng
         )
 
@@ -359,8 +359,8 @@ function run_simulation(
 
         ## Unpack contents of checkpoint dictionary.
         tight_binding_parameters    = checkpoint["tight_binding_parameters"]
-        hubbard_params              = checkpoint["hubbard_params"]
-        hubbard_stratonovich_params = checkpoint["hubbard_stratonovich_params"]
+        hubbard_parameters              = checkpoint["hubbard_parameters"]
+        hst_parameters = checkpoint["hst_parameters"]
         measurement_container       = checkpoint["measurement_container"]
         model_geometry              = checkpoint["model_geometry"]
         metadata                    = checkpoint["metadata"]
@@ -377,11 +377,11 @@ function run_simulation(
     fermion_path_integral_dn = FermionPathIntegral(tight_binding_parameters = tight_binding_parameters, β = β, Δτ = Δτ)
 
     ## Initialize FermionPathIntegral type for both the spin-up and spin-down electrons to account for Hubbard interaction.
-    initialize!(fermion_path_integral_up, fermion_path_integral_dn, hubbard_params)
+    initialize!(fermion_path_integral_up, fermion_path_integral_dn, hubbard_parameters)
 
     ## Initialize FermionPathIntegral type for both the spin-up and spin-down electrons to account for the current
     ## Hubbard-Stratonovich field configuration.
-    initialize!(fermion_path_integral_up, fermion_path_integral_dn, hubbard_stratonovich_params)
+    initialize!(fermion_path_integral_up, fermion_path_integral_dn, hst_parameters)
 
     ## Initialize imaginary-time propagators for all imaginary-time slices for spin-up and spin-down electrons.
     Bup = initialize_propagators(fermion_path_integral_up, symmetric=symmetric, checkerboard=checkerboard)
@@ -432,7 +432,7 @@ function run_simulation(
         ## Perform reflection update for HS fields with randomly chosen site.
         (accepted, logdetGup, sgndetGup, logdetGdn, sgndetGdn) = reflection_update!(
             Gup, logdetGup, sgndetGup, Gdn, logdetGdn, sgndetGdn,
-            hubbard_stratonovich_params,
+            hst_parameters,
             fermion_path_integral_up = fermion_path_integral_up,
             fermion_path_integral_dn = fermion_path_integral_dn,
             fermion_greens_calculator_up = fermion_greens_calculator_up,
@@ -448,7 +448,7 @@ function run_simulation(
         ## Perform sweep all imaginary-time slice and orbitals, attempting an update to every HS field.
         (acceptance_rate, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = local_updates!(
             Gup, logdetGup, sgndetGup, Gdn, logdetGdn, sgndetGdn,
-            hubbard_stratonovich_params,
+            hst_parameters,
             fermion_path_integral_up = fermion_path_integral_up,
             fermion_path_integral_dn = fermion_path_integral_dn,
             fermion_greens_calculator_up = fermion_greens_calculator_up,
@@ -471,7 +471,7 @@ function run_simulation(
             ## Contents of checkpoint file below.
             n_therm = update + 1,
             n_updates = 1,
-            tight_binding_parameters, hubbard_params, hubbard_stratonovich_params,
+            tight_binding_parameters, hubbard_parameters, hst_parameters,
             measurement_container, model_geometry, metadata, rng
         )
     end
@@ -498,7 +498,7 @@ function run_simulation(
         ## Perform reflection update for HS fields with randomly chosen site.
         (accepted, logdetGup, sgndetGup, logdetGdn, sgndetGdn) = reflection_update!(
             Gup, logdetGup, sgndetGup, Gdn, logdetGdn, sgndetGdn,
-            hubbard_stratonovich_params,
+            hst_parameters,
             fermion_path_integral_up = fermion_path_integral_up,
             fermion_path_integral_dn = fermion_path_integral_dn,
             fermion_greens_calculator_up = fermion_greens_calculator_up,
@@ -514,7 +514,7 @@ function run_simulation(
         ## Perform sweep all imaginary-time slice and orbitals, attempting an update to every HS field.
         (acceptance_rate, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = local_updates!(
             Gup, logdetGup, sgndetGup, Gdn, logdetGdn, sgndetGdn,
-            hubbard_stratonovich_params,
+            hst_parameters,
             fermion_path_integral_up = fermion_path_integral_up,
             fermion_path_integral_dn = fermion_path_integral_dn,
             fermion_greens_calculator_up = fermion_greens_calculator_up,
@@ -537,7 +537,7 @@ function run_simulation(
             fermion_greens_calculator_dn = fermion_greens_calculator_dn,
             Bup = Bup, Bdn = Bdn, δG_max = δG_max, δG = δG, δθ = δθ,
             model_geometry = model_geometry, tight_binding_parameters = tight_binding_parameters,
-            coupling_parameters = (hubbard_params, hubbard_stratonovich_params)
+            coupling_parameters = (hubbard_parameters, hst_parameters)
         )
 
         ## Write the bin-averaged measurements to file if update ÷ bin_size == 0.
@@ -561,7 +561,7 @@ function run_simulation(
             ## Contents of checkpoint file below.
             n_therm  = N_therm + 1,
             n_updates = update + 1,
-            tight_binding_parameters, hubbard_params, hubbard_stratonovich_params,
+            tight_binding_parameters, hubbard_parameters, hst_parameters,
             measurement_container, model_geometry, metadata, rng
         )
     end

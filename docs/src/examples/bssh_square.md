@@ -112,13 +112,16 @@ function run_simulation(
         metadata["swap_acceptance_rate"] = 0.0
 
         # Initialize an instance of the type UnitCell.
-        unit_cell = lu.UnitCell(lattice_vecs = [[1.0]],
-                                basis_vecs   = [[0.0]])
+        unit_cell = lu.UnitCell(
+            lattice_vecs = [[1.0, 0.0],
+                            [0.0, 1.0]],
+            basis_vecs   = [[0.0, 0.0]]
+        )
 
         # Initialize an instance of the type Lattice.
         lattice = lu.Lattice(
-            L = [L],
-            periodic = [true]
+            L = [L,L],
+            periodic = [true,true]
         )
 
         # Get the number of sites in the lattice.
@@ -183,7 +186,7 @@ function run_simulation(
 
         # Define frozen phonon mode with infinite mass.
         fphonon = PhononMode(
-            basis_vec = [0.0],
+            basis_vec = [0.0,0.0],
             Ω_mean = Ω,
             M = Inf # Set phonon mass to infinity.
         )
