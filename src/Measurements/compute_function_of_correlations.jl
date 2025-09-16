@@ -5,7 +5,7 @@
         # KEYWORD ARGUMENTS
         f::Function,
         datafolder::String,
-        correlations::AbstractVector{NamedTuple},
+        correlations::AbstractVector{<:NamedTuple},
         num_bins::Int = 0,
         pIDs::Vector{Int} = Int[],
     )
@@ -14,7 +14,7 @@
         # KEYWORD ARGUMENTS
         f::Function,
         datafolder::String,
-        correlations::AbstractVector{NamedTuple},
+        correlations::AbstractVector{<:NamedTuple},
         num_bins::Int = 0,
         pIDs::Union{Int,Vector{Int}} = Int[]
     )
@@ -44,7 +44,7 @@ function compute_function_of_correlations(
     # KEYWORD ARGUMENTS
     f::Function,
     datafolder::String,
-    correlations::AbstractVector{NamedTuple},
+    correlations::AbstractVector{<:NamedTuple},
     num_bins::Int = 0,
     pIDs::Vector{Int} = Int[],
 )
@@ -124,7 +124,7 @@ function _compute_function_of_correlations(
     f::Function,
     datafolder::String,
     pID::Int,
-    correlations::Vector{NamedTuple},
+    correlations::Vector{<:NamedTuple},
     num_bins::Int
 )
 
@@ -212,7 +212,7 @@ function _read_correlation_bins(
 
         # make sure valid imaginary-time is passed
         @assert(
-            haskey(correlation, :τ) && iszero(mod(correlation.τ, Δτ)),
+            (haskey(correlation, :l)) || iszero(mod(correlation.τ, Δτ)),
             "The passed imaginary-time :τ cannot be mapped to an imaginary-time slice as (τ%Δτ)≠0."
         )
 

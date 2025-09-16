@@ -48,7 +48,8 @@ function update_chemical_potential!(
 
     # calculate sign
     @assert fermion_path_integral_up.Sb == fermion_path_integral_dn.Sb "$(fermion_path_integral_up.Sb) ≠ $(fermion_path_integral_dn.Sb)"
-    sgn = sign(exp(-fermion_path_integral_up.Sb)) * sgndetGup * sgndetGdn
+    Sb = fermion_path_integral_up
+    sgn = isreal(Sb) ? sign(sgndetGup * sgndetGdn) : sign(exp(-1im*imag(Sb)) * sgndetGup * sgndetGdn)
 
     # calculate average density
     nup = measure_n(Gup)
@@ -112,7 +113,8 @@ function update_chemical_potential!(
     μ′ = tight_binding_parameters.μ
 
     # calculate sign
-    sgn = sign(exp(-fermion_path_integral.Sb)) * sgndetG^2
+    Sb = fermion_path_integral.Sb
+    sgn = isreal(Sb) ? sign(sgndetG^2) : sign(exp(-1im*imag(Sb)) * sgndetG^2)
 
     # calculate average density
     n = 2 * measure_n(G)

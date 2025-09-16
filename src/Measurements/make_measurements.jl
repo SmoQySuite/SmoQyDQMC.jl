@@ -70,7 +70,7 @@ function make_measurements!(
 
     # calculate sign
     Sb = fermion_path_integral_up.Sb
-    sgn = sign(exp(-Sb) * inv(sgndetGup) * inv(sgndetGdn)) 
+    sgn = isreal(Sb) ? sign(sgndetGup * sgndetGdn) : sign(exp(-1im*imag(Sb)) * sgndetGup * sgndetGdn)
 
     # make global measurements
     global_measurements = measurement_container.global_measurements
@@ -250,7 +250,7 @@ function make_measurements!(
 
     # calculate sign
     Sb = fermion_path_integral.Sb
-    sgn = sign(exp(-Sb) * inv(sgndetG)^2)
+    sgn = isreal(Sb) ? sign(sgndetG^2) : sign(exp(-1im*imag(Sb)) * sgndetG^2)
 
     # make global measurements
     global_measurements = measurement_container.global_measurements
@@ -490,14 +490,18 @@ function make_local_measurements!(
     end
 
     # make tight-binding measurements
-    make_local_measurements!(local_measurements, Gup, Gdn, sgn, model_geometry,
-                             tight_binding_parameters_up, tight_binding_parameters_dn,
-                             fermion_path_integral_up, fermion_path_integral_dn)
+    make_local_measurements!(
+        local_measurements, Gup, Gdn, sgn, model_geometry,
+        tight_binding_parameters_up, tight_binding_parameters_dn,
+        fermion_path_integral_up, fermion_path_integral_dn
+    )
 
     # make local measurements associated with couplings
     for coupling_parameter in coupling_parameters
-        make_local_measurements!(local_measurements, Gup, Gdn, sgn, model_geometry,
-                                 coupling_parameter, tight_binding_parameters_up, tight_binding_parameters_dn)
+        make_local_measurements!(
+            local_measurements, Gup, Gdn, sgn, model_geometry,
+            coupling_parameter, tight_binding_parameters_up, tight_binding_parameters_dn
+        )
     end
     
     return nothing
