@@ -70,7 +70,7 @@ function make_measurements!(
 
     # calculate sign
     Sb = fermion_path_integral_up.Sb
-    sgn = isreal(Sb) ? sign(sgndetGup * sgndetGdn) : sign(exp(-1im*imag(Sb)) * sgndetGup * sgndetGdn)
+    sgn = isreal(Sb) ? sign(inv(sgndetGup) * inv(sgndetGdn)) : sign(exp(-1im*imag(Sb)) * inv(sgndetGup) * inv(sgndetGdn))
 
     # make global measurements
     global_measurements = measurement_container.global_measurements
@@ -250,7 +250,7 @@ function make_measurements!(
 
     # calculate sign
     Sb = fermion_path_integral.Sb
-    sgn = isreal(Sb) ? sign(sgndetG^2) : sign(exp(-1im*imag(Sb)) * sgndetG^2)
+    sgn = isreal(Sb) ? sign(inv(sgndetG)^2) : sign(exp(-1im*imag(Sb)) * inv(sgndetG)^2)
 
     # make global measurements
     global_measurements = measurement_container.global_measurements
