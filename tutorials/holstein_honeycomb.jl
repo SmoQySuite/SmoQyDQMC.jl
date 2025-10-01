@@ -354,7 +354,7 @@ function run_simulation(;
 
 # It is also useful to initialize more specialized composite correlation function measurements.
 
-# First, it can be useful to measure the time-displacedsingle-particle electron Green's function traced over both orbitals in the unit cell.
+# First, it can be useful to measure the time-displaced single-particle electron Green's function traced over both orbitals in the unit cell.
 # We can easily implement this measurement using the [`initialize_composite_correlation_measurement!`](@ref) function, as shown below.
 
     ## Initialize measurement of electron Green's function traced
@@ -615,7 +615,7 @@ function run_simulation(;
     ## Write simulation metadata to simulation_info.toml file.
     save_simulation_info(simulation_info, metadata)
 
-# ## [Post-process results]
+# ## Post-process results
 # In this final section of code we post-process the binned data.
 # This includes calculating the final estimates for the mean and error of all measured observables,
 # which will be written to an HDF5 file using the [`process_measurements`](@ref) function.

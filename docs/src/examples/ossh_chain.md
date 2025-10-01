@@ -152,7 +152,7 @@ function run_simulation(
             tight_binding_model = tight_binding_model
         )
 
-        # Define a dispersionless electron-phonon mode to live on each site in the lattice.
+        # Define a dispersionless phonon mode to live on each site in the lattice.
         phonon = PhononMode(
             basis_vec = [0.0],
             Ω_mean = Ω

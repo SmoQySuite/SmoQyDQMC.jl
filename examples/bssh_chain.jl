@@ -16,7 +16,7 @@
 # is given by ``\hat{X}_{\langle i+1,i\rangle} \ (\hat{P}_{\langle i+1,i\rangle})``, where ``\Omega`` and ``M`` are the phonon frequency and associated ion mass respectively.
 # Lastly, the strength of the electron-phonon coupling is controlled by the parameter ``\alpha``.
 
-# Note that this example scipt comes with all the bells and whistles so to speak, including support for MPI parallelizaiton as well as checkpointing.
+# Note that this example script comes with all the bells and whistles so to speak, including support for MPI parallelizaiton as well as checkpointing.
 
 using SmoQyDQMC
 import SmoQyDQMC.LatticeUtilities as lu

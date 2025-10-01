@@ -1,29 +1,23 @@
-```@meta
-EditURL = "../../../examples/bssh_chain.jl"
-```
+# # Square Optical Su-Schrieffer-Heeger Model
+#
+# In this example we simulate the optical Su-Schrieffer-Heeger (OSSH) model on a square lattice, with a Hamiltonian given by
+# ```math
+# \begin{align*}
+# \hat{H} & = \sum_{\mathbf{i}}\left(\frac{1}{2M}\hat{P}_{\mathbf{i},x}^{2}+\frac{1}{2}M\Omega^{2}\hat{X}_{\mathbf{i}}^{2}\right) + \sum_{\mathbf{i}}\left(\frac{1}{2M}\hat{P}_{\mathbf{i},y}^{2}+\frac{1}{2}M\Omega^{2}\hat{Y}_{\mathbf{i}}^{2}\right) \\
+#         & - \sum_{\mathbf{i},\sigma}\left[t-\alpha\left(\hat{X}_{\mathbf{i}+\mathbf{x}}-\hat{X}_{\mathbf{i}}\right)\right]\left(\hat{c}_{\sigma,\mathbf{i}+\mathbf{x}}^{\dagger}\hat{c}_{\sigma,\mathbf{i}}^{\phantom{\dagger}}+\hat{c}_{\sigma,\mathbf{i}}^{\dagger}\hat{c}_{\sigma,\mathbf{i}+\mathbf{x}}^{\phantom{\dagger}}\right) \\
+#         & - \sum_{\mathbf{i},\sigma}\left[t-\alpha\left(\hat{Y}_{\mathbf{i}+\mathbf{y}}-\hat{Y}_{\mathbf{i}}\right)\right]\left(\hat{c}_{\sigma,\mathbf{i}+\mathbf{y}}^{\dagger}\hat{c}_{\sigma,\mathbf{i}}^{\phantom{\dagger}}+\hat{c}_{\sigma,\mathbf{i}}^{\dagger}\hat{c}_{\sigma,\mathbf{i}+\mathbf{y}}^{\phantom{\dagger}}\right) \\
+#         & - \mu\sum_{\mathbf{i},\sigma}\hat{n}_{\sigma,\mathbf{i}},
+# \end{align*}
+# ```
+# in which the fluctuations in the position of dispersionless phonon modes placed on each site in the lattice modulate the hopping amplitude between neighboring sites.
+# In the above expression ``\hat{c}^\dagger_{\sigma,\mathbf{i}} \ (\hat{c}^{\phantom \dagger}_{\sigma,\mathbf{i}})`` creation (annihilation) operator
+# a spin ``\sigma`` electron on site ``\mathbf{i}`` in the lattice, and ``\hat{n}_{\sigma,\mathbf{i}} = \hat{c}^\dagger_{\sigma,\mathbf{i}} \hat{c}^{\phantom \dagger}_{\sigma,\mathbf{i}}``
+# is corresponding electron number operator. The phonon position (momentum) operator for the dispersionless phonon mode on site ``\mathbf{i}``
+# is given by ``\hat{X}_{\mathbf{i}} \ (\hat{P}_{\mathbf{i}})``, where ``\Omega`` and ``M`` are the phonon frequency and associated ion mass respectively.
+# Lastly, the strength of the electron-phonon coupling is controlled by the parameter ``\alpha``.
 
-# Bond Su-Schrieffer-Heeger Chain
-Download this example as a [Julia script](../assets/scripts/examples/bssh_chain.jl).
+# Note that this example scipt comes with all the bells and whistles so to speak, including support for MPI parallelizaiton as well as checkpointing.
 
-In this example we simulate the optical Su-Schrieffer-Heeger (OSSH) model on a 1D chain, with a Hamiltonian given by
-```math
-\begin{align*}
-\hat{H} = \sum_i \left( \frac{1}{2M}\hat{P}_{\langle i+1, i \rangle}^2 + \frac{1}{2}M\Omega^2\hat{X}_{\langle i+1, i \rangle}^2 \right)
-          - \sum_{\sigma,i} [t-\alpha\hat{X}_{\langle i+1, i \rangle}] (\hat{c}^{\dagger}_{\sigma,i+1}, \hat{c}^{\phantom \dagger}_{\sigma,i} + {\rm h.c.})
-          - \mu \sum_{\sigma,i} \hat{n}_{\sigma,i},
-\end{align*}
-```
-in which the fluctuations in the position of dispersionless phonon modes placed on each site in the lattice modulate the
-hopping amplitude between neighboring sites.
-In the above expression ``\hat{c}^\dagger_{\sigma,i} \ (\hat{c}^{\phantom \dagger}_{\sigma,i})`` creation (annihilation) operator
-a spin ``\sigma`` electron on site ``i`` in the lattice, and ``\hat{n}_{\sigma,i} = \hat{c}^\dagger_{\sigma,i} \hat{c}^{\phantom \dagger}_{\sigma,i}``
-is corresponding electron number operator. The phonon position (momentum) operator for the dispersionless phonon mode on the bond connecting sites ``i`` and ``i+1``
-is given by ``\hat{X}_{\langle i+1,i\rangle} \ (\hat{P}_{\langle i+1,i\rangle})``, where ``\Omega`` and ``M`` are the phonon frequency and associated ion mass respectively.
-Lastly, the strength of the electron-phonon coupling is controlled by the parameter ``\alpha``.
-
-Note that this example script comes with all the bells and whistles so to speak, including support for MPI parallelizaiton as well as checkpointing.
-
-````julia
 using SmoQyDQMC
 import SmoQyDQMC.LatticeUtilities as lu
 import SmoQyDQMC.JDQMCFramework as dqmcf
@@ -32,10 +26,10 @@ using Random
 using Printf
 using MPI
 
-# Top-level function to run simulation.
+## Top-level function to run simulation.
 function run_simulation(
     comm::MPI.Comm; # MPI communicator.
-    # KEYWORD ARGUMENTS
+    ## KEYWORD ARGUMENTS
     sID, # Simulation ID.
     Ω, # Phonon energy.
     α, # Electron-phonon coupling.
@@ -57,22 +51,22 @@ function run_simulation(
     filepath = "." # Filepath to where data folder will be created.
 )
 
-    # Record when the simulation began.
+    ## Record when the simulation began.
     start_timestamp = time()
 
-    # Convert runtime limit from hours to seconds.
+    ## Convert runtime limit from hours to seconds.
     runtime_limit = runtime_limit * 60.0^2
 
-    # Convert checkpoint frequency from hours to seconds.
+    ## Convert checkpoint frequency from hours to seconds.
     checkpoint_freq = checkpoint_freq * 60.0^2
 
-    # Construct the foldername the data will be written to.
-    datafolder_prefix = @sprintf "bssh_chain_w%.2f_a%.2f_mu%.2f_L%d_b%.2f" Ω α μ L β
+    ## Construct the foldername the data will be written to.
+    datafolder_prefix = @sprintf "square_ossh_w%.2f_a%.2f_mu%.2f_L%d_b%.2f" Ω α μ L β
 
-    # Get MPI process ID.
+    ## Get MPI process ID.
     pID = MPI.Comm_rank(comm)
 
-    # Initialize simulation info.
+    ## Initialize simulation info.
     simulation_info = SimulationInfo(
         filepath = filepath,
         datafolder_prefix = datafolder_prefix,
@@ -81,25 +75,25 @@ function run_simulation(
         pID = pID
     )
 
-    # Initialize the directory the data will be written to.
+    ## Initialize the directory the data will be written to.
     initialize_datafolder(comm, simulation_info)
 
-    # If starting a new simulation i.e. not resuming a previous simulation.
+    ## If starting a new simulation i.e. not resuming a previous simulation.
     if !simulation_info.resuming
 
-        # Begin thermalization updates from start.
+        ## Begin thermalization updates from start.
         n_therm = 1
 
-        # Begin measurement updates from start.
+        ## Begin measurement updates from start.
         n_updates = 1
 
-        # Initialize random number generator
+        ## Initialize random number generator
         rng = Xoshiro(seed)
 
-        # Initialize additiona_info dictionary
+        ## Initialize additiona_info dictionary
         metadata = Dict()
 
-        # Record simulation parameters.
+        ## Record simulation parameters.
         metadata["N_therm"] = N_therm
         metadata["N_updates"] = N_updates
         metadata["N_bins"] = N_bins
@@ -112,88 +106,112 @@ function run_simulation(
         metadata["reflection_acceptance_rate"] = 0.0
         metadata["swap_acceptance_rate"] = 0.0
 
-        # Initialize an instance of the type UnitCell.
-        unit_cell = lu.UnitCell(lattice_vecs = [[1.0]],
-                                basis_vecs   = [[0.0]])
-
-        # Initialize an instance of the type Lattice.
-        lattice = lu.Lattice(
-            L = [L],
-            periodic = [true]
+        ## Initialize an instance of the type UnitCell.
+        unit_cell = lu.UnitCell(
+            lattice_vecs = [[1.0,0.0],
+                            [0.0,1.0]],
+            basis_vecs   = [[0.0,0.0]]
         )
 
-        # Get the number of sites in the lattice.
+        ## Initialize an instance of the type Lattice.
+        lattice = lu.Lattice(
+            L = [L,L],
+            periodic = [true,true]
+        )
+
+        ## Get the number of sites in the lattice.
         N = lu.nsites(unit_cell, lattice)
 
-        # Initialize an instance of the ModelGeometry type.
+        ## Initialize an instance of the ModelGeometry type.
         model_geometry = ModelGeometry(unit_cell, lattice)
 
-        # Define the nearest-neighbor bond for a 1D chain.
-        bond = lu.Bond(orbitals = (1,1), displacement = [1])
+        ## Define the nearest-neighbor bond in the x-direction.
+        bond_x = lu.Bond(orbitals = (1,1), displacement = [1,0])
 
-        # Add this bond to the model, by adding it to the ModelGeometry type.
-        bond_id = add_bond!(model_geometry, bond)
+        ## Add this bond in x-direction to the model geometry.
+        bond_x_id = add_bond!(model_geometry, bond_x)
 
-        # Define nearest-neighbor hopping amplitude, setting the energy scale for the system.
+        ## Define the nearest-neighbor bond in the y-direction.
+        bond_y = lu.Bond(orbitals = (1,1), displacement = [0,1])
+
+        ## Add this bond in y-direction to the model geometry.
+        bond_y_id = add_bond!(model_geometry, bond_y)
+
+        ## Define nearest-neighbor hopping amplitude, setting the energy scale for the system.
         t = 1.0
 
-        # Define the tight-binding model
+        ## Define the tight-binding model
         tight_binding_model = TightBindingModel(
             model_geometry = model_geometry,
-            t_bonds = [bond], # defines hopping
-            t_mean = [t],     ## defines corresponding hopping amplitude
-            μ = μ,            ## set chemical potential
-            ϵ_mean = [0.]     ## set the (mean) on-site energy
+            t_bonds = [bond_x, bond_y], # defines hopping
+            t_mean = [t, t], # defines corresponding hopping amplitude
+            μ = μ, # set chemical potential
+            ϵ_mean = [0.] # set the (mean) on-site energy
         )
 
-        # Initialize a null electron-phonon model.
+        ## Initialize a null electron-phonon model.
         electron_phonon_model = ElectronPhononModel(
             model_geometry = model_geometry,
             tight_binding_model = tight_binding_model
         )
 
-        # Define a dispersionless electron-phonon mode to live on each bond in the lattice.
-        phonon = PhononMode(
-            basis_vec = [0.5],
+        ## Define a dispersionless phonon mode to represent vibrations in the x-direction.
+        phonon_x = PhononMode(
+            basis_vec = [0.0,0.0],
             Ω_mean = Ω
         )
 
-        # Add bond ssh phonon to electron-phonon model.
-        phonon_id = add_phonon_mode!(
+        ## Add x-direction optical ssh phonon to electron-phonon model.
+        phonon_x_id = add_phonon_mode!(
             electron_phonon_model = electron_phonon_model,
-            phonon_mode = phonon
+            phonon_mode = phonon_x
         )
 
-        # Define frozen phonon mode with infinite mass.
-        fphonon = PhononMode(
-            basis_vec = [0.0],
-            Ω_mean = Ω,
-            M = Inf # Set phonon mass to infinity.
+        ## Define a dispersionless phonon mode to represent vibrations in the y-direction.
+        phonon_y = PhononMode(
+            basis_vec = [0.0,0.0],
+            Ω_mean = Ω
         )
 
-        # Add frozen phonon mode to model.
-        fphonon_id = add_phonon_mode!(
+        ## Add y-direction optical ssh phonon to electron-phonon model.
+        phonon_y_id = add_phonon_mode!(
             electron_phonon_model = electron_phonon_model,
-            phonon_mode = fphonon
+            phonon_mode = phonon_y
         )
 
-        # Defines ssh e-ph coupling such that total effective hopping is t_eff = t-α⋅X .
-        bssh_coupling = SSHCoupling(
+        ## Defines ssh e-ph coupling such that total effective hopping.
+        ossh_x_coupling = SSHCoupling(
             model_geometry = model_geometry,
             tight_binding_model = tight_binding_model,
-            phonon_ids = (fphonon_id, phonon_id),
-            bond = bond,
+            phonon_ids = (phonon_x_id, phonon_x_id),
+            bond = bond_x,
             α_mean = α
         )
 
-        # Add bond SSH coupling to the electron-phonon model.
-        bssh_coupling_id = add_ssh_coupling!(
+        ## Add x-direction optical SSH coupling to the electron-phonon model.
+        ossh_x_coupling_id = add_ssh_coupling!(
             electron_phonon_model = electron_phonon_model,
-            ssh_coupling = bssh_coupling,
+            ssh_coupling = ossh_x_coupling,
             tight_binding_model = tight_binding_model
         )
 
-        # Write a model summary to file.
+        ## Defines ssh e-ph coupling such that total effective hopping.
+        ossh_y_coupling = SSHCoupling(
+            model_geometry = model_geometry,
+            tight_binding_model = tight_binding_model,
+            phonon_ids = (phonon_y_id, phonon_y_id),
+            bond = bond_y,
+            α_mean = α
+        )
+
+        ## Add y-direction optical SSH coupling to the electron-phonon model.
+        ossh_y_coupling_id = add_ssh_coupling!(
+            electron_phonon_model = electron_phonon_model,
+            ssh_coupling = ossh_y_coupling,
+            tight_binding_model = tight_binding_model
+        )
+
+        ## Write a model summary to file.
         model_summary(
             simulation_info = simulation_info,
             β = β, Δτ = Δτ,
@@ -202,14 +220,14 @@ function run_simulation(
             interactions = (electron_phonon_model,)
         )
 
-        # Initialize tight-binding parameters.
+        ## Initialize tight-binding parameters.
         tight_binding_parameters = TightBindingParameters(
             tight_binding_model = tight_binding_model,
             model_geometry = model_geometry,
             rng = rng
         )
 
-        # Initialize electron-phonon parameters.
+        ## Initialize electron-phonon parameters.
         electron_phonon_parameters = ElectronPhononParameters(
             β = β, Δτ = Δτ,
             electron_phonon_model = electron_phonon_model,
@@ -218,40 +236,40 @@ function run_simulation(
             rng = rng
         )
 
-        # Initialize the container that measurements will be accumulated into.
+        ## Initialize the container that measurements will be accumulated into.
         measurement_container = initialize_measurement_container(model_geometry, β, Δτ)
 
-        # Initialize the tight-binding model related measurements, like the hopping energy.
+        ## Initialize the tight-binding model related measurements, like the hopping energy.
         initialize_measurements!(measurement_container, tight_binding_model)
 
-        # Initialize the electron-phonon interaction related measurements.
+        ## Initialize the electron-phonon interaction related measurements.
         initialize_measurements!(measurement_container, electron_phonon_model)
 
-        # Initialize the single-particle electron Green's function measurement.
+        ## Initialize the single-particle electron Green's function measurement.
         initialize_correlation_measurements!(
             measurement_container = measurement_container,
             model_geometry = model_geometry,
             correlation = "greens",
             time_displaced = true,
             pairs = [
-                # Measure green's functions for all pairs or orbitals.
+                ## Measure green's functions for all pairs or orbitals.
                 (1, 1),
             ]
         )
 
-        # Initialize the single-particle electron Green's function measurement.
+        ## Initialize the single-particle electron Green's function measurement.
         initialize_correlation_measurements!(
             measurement_container = measurement_container,
             model_geometry = model_geometry,
             correlation = "phonon_greens",
             time_displaced = true,
             pairs = [
-                # Measure green's functions for all pairs of modes.
+                ## Measure green's functions for all pairs of modes.
                 (1, 1),
             ]
         )
 
-        # Initialize density correlation function measurement.
+        ## Initialize density correlation function measurement.
         initialize_correlation_measurements!(
             measurement_container = measurement_container,
             model_geometry = model_geometry,
@@ -263,7 +281,7 @@ function run_simulation(
             ]
         )
 
-        # Initialize the pair correlation function measurement.
+        ## Initialize the pair correlation function measurement.
         initialize_correlation_measurements!(
             measurement_container = measurement_container,
             model_geometry = model_geometry,
@@ -271,13 +289,13 @@ function run_simulation(
             time_displaced = false,
             integrated = true,
             pairs = [
-                # Measure local s-wave pair susceptibility associated with
-                # each orbital in the unit cell.
+                ## Measure local s-wave pair susceptibility associated with
+                ## each orbital in the unit cell.
                 (1, 1),
             ]
         )
 
-        # Initialize the spin-z correlation function measurement.
+        ## Initialize the spin-z correlation function measurement.
         initialize_correlation_measurements!(
             measurement_container = measurement_container,
             model_geometry = model_geometry,
@@ -289,26 +307,26 @@ function run_simulation(
             ]
         )
 
-        # Write initial checkpoint file.
+        ## Write initial checkpoint file.
         checkpoint_timestamp = write_jld2_checkpoint(
             comm,
             simulation_info;
             checkpoint_freq = checkpoint_freq,
             start_timestamp = start_timestamp,
             runtime_limit = runtime_limit,
-            # Contents of checkpoint file below.
+            ## Contents of checkpoint file below.
             n_therm, n_updates,
             tight_binding_parameters, electron_phonon_parameters,
             measurement_container, model_geometry, metadata, rng
         )
 
-    # If resuming a previous simulation.
+    ## If resuming a previous simulation.
     else
 
-        # Load the checkpoint file.
+        ## Load the checkpoint file.
         checkpoint, checkpoint_timestamp = read_jld2_checkpoint(simulation_info)
 
-        # Unpack contents of checkpoint dictionary.
+        ## Unpack contents of checkpoint dictionary.
         tight_binding_parameters    = checkpoint["tight_binding_parameters"]
         electron_phonon_parameters  = checkpoint["electron_phonon_parameters"]
         measurement_container       = checkpoint["measurement_container"]
@@ -319,52 +337,52 @@ function run_simulation(
         n_updates                   = checkpoint["n_updates"]
     end
 
-    # Allocate a single FermionPathIntegral for both spin-up and down electrons.
+    ## Allocate a single FermionPathIntegral for both spin-up and down electrons.
     fermion_path_integral = FermionPathIntegral(tight_binding_parameters = tight_binding_parameters, β = β, Δτ = Δτ)
 
-    # Initialize FermionPathIntegral type to account for electron-phonon interaction.
+    ## Initialize FermionPathIntegral type to account for electron-phonon interaction.
     initialize!(fermion_path_integral, electron_phonon_parameters)
 
-    # Initialize imaginary-time propagators for all imaginary-time slices.
+    ## Initialize imaginary-time propagators for all imaginary-time slices.
     B = initialize_propagators(fermion_path_integral, symmetric=symmetric, checkerboard=checkerboard)
 
-    # Initialize FermionGreensCalculator type.
+    ## Initialize FermionGreensCalculator type.
     fermion_greens_calculator = dqmcf.FermionGreensCalculator(B, β, Δτ, n_stab)
 
-    # Initialize alternate fermion greens calculator required for performing EFA-HMC, reflection and swap updates below.
+    ## Initialize alternate fermion greens calculator required for performing EFA-HMC, reflection and swap updates below.
     fermion_greens_calculator_alt = dqmcf.FermionGreensCalculator(fermion_greens_calculator)
 
-    # Allcoate equal-time electron Green's function matrix.
+    ## Allcoate equal-time electron Green's function matrix.
     G = zeros(eltype(B[1]), size(B[1]))
 
-    # Initialize electron Green's function matrx, also calculating the matrix determinant as the same time.
+    ## Initialize electron Green's function matrx, also calculating the matrix determinant as the same time.
     logdetG, sgndetG = dqmcf.calculate_equaltime_greens!(G, fermion_greens_calculator)
 
-    # Allocate matrices for various time-displaced Green's function matrices.
+    ## Allocate matrices for various time-displaced Green's function matrices.
     G_ττ = similar(G) # G(τ,τ)
     G_τ0 = similar(G) # G(τ,0)
     G_0τ = similar(G) # G(0,τ)
 
-    # Initialize diagonostic parameters to asses numerical stability.
+    ## Initialize diagonostic parameters to asses numerical stability.
     δG = zero(logdetG)
     δθ = zero(logdetG)
 
-    # Number of fermionic time-steps in HMC update.
+    ## Number of fermionic time-steps in HMC update.
     Nt = 10
 
-    # Fermionic time-step used in HMC update.
+    ## Fermionic time-step used in HMC update.
     Δt = π/(2*Ω*Nt)
 
-    # Initialize Hamitlonian/Hybrid monte carlo (HMC) updater.
+    ## Initialize Hamitlonian/Hybrid monte carlo (HMC) updater.
     hmc_updater = EFAHMCUpdater(
         electron_phonon_parameters = electron_phonon_parameters,
         G = G, Nt = Nt, Δt = Δt
     )
 
-    # Iterate over number of thermalization updates to perform.
+    ## Iterate over number of thermalization updates to perform.
     for update in n_therm:N_therm
 
-        # Perform a reflection update.
+        ## Perform a reflection update.
         (accepted, logdetG, sgndetG) = reflection_update!(
             G, logdetG, sgndetG, electron_phonon_parameters,
             fermion_path_integral = fermion_path_integral,
@@ -373,10 +391,10 @@ function run_simulation(
             B = B, rng = rng
         )
 
-        # Record whether the reflection update was accepted or rejected.
+        ## Record whether the reflection update was accepted or rejected.
         metadata["reflection_acceptance_rate"] += accepted
 
-        # Perform a swap update.
+        ## Perform a swap update.
         (accepted, logdetG, sgndetG) = swap_update!(
             G, logdetG, sgndetG, electron_phonon_parameters,
             fermion_path_integral = fermion_path_integral,
@@ -385,10 +403,10 @@ function run_simulation(
             B = B, rng = rng
         )
 
-        # Record whether the reflection update was accepted or rejected.
+        ## Record whether the reflection update was accepted or rejected.
         metadata["swap_acceptance_rate"] += accepted
 
-        # Perform an HMC update.
+        ## Perform an HMC update.
         (accepted, logdetG, sgndetG, δG, δθ) = hmc_update!(
             G, logdetG, sgndetG, electron_phonon_parameters, hmc_updater,
             fermion_path_integral = fermion_path_integral,
@@ -397,10 +415,10 @@ function run_simulation(
             B = B, δG_max = δG_max, δG = δG, δθ = δθ, rng = rng
         )
 
-        # Record whether the HMC update was accepted or rejected.
+        ## Record whether the HMC update was accepted or rejected.
         metadata["hmc_acceptance_rate"] += accepted
 
-        # Write checkpoint file.
+        ## Write checkpoint file.
         checkpoint_timestamp = write_jld2_checkpoint(
             comm,
             simulation_info;
@@ -408,7 +426,7 @@ function run_simulation(
             checkpoint_freq = checkpoint_freq,
             start_timestamp = start_timestamp,
             runtime_limit = runtime_limit,
-            # Contents of checkpoint file below.
+            ## Contents of checkpoint file below.
             n_therm  = update + 1,
             n_updates = 1,
             tight_binding_parameters, electron_phonon_parameters,
@@ -416,17 +434,17 @@ function run_simulation(
         )
     end
 
-    # Reset diagonostic parameters used to monitor numerical stability to zero.
+    ## Reset diagonostic parameters used to monitor numerical stability to zero.
     δG = zero(logdetG)
     δθ = zero(logdetG)
 
-    # Calculate the bin size.
+    ## Calculate the bin size.
     bin_size = N_updates ÷ N_bins
 
-    # Iterate over updates and measurements.
+    ## Iterate over updates and measurements.
     for update in n_updates:N_updates
 
-        # Perform a reflection update.
+        ## Perform a reflection update.
         (accepted, logdetG, sgndetG) = reflection_update!(
             G, logdetG, sgndetG, electron_phonon_parameters,
             fermion_path_integral = fermion_path_integral,
@@ -435,10 +453,10 @@ function run_simulation(
             B = B, rng = rng
         )
 
-        # Record whether the reflection update was accepted or rejected.
+        ## Record whether the reflection update was accepted or rejected.
         metadata["reflection_acceptance_rate"] += accepted
 
-        # Perform a swap update.
+        ## Perform a swap update.
         (accepted, logdetG, sgndetG) = swap_update!(
             G, logdetG, sgndetG, electron_phonon_parameters,
             fermion_path_integral = fermion_path_integral,
@@ -447,10 +465,10 @@ function run_simulation(
             B = B, rng = rng
         )
 
-        # Record whether the reflection update was accepted or rejected.
+        ## Record whether the reflection update was accepted or rejected.
         metadata["swap_acceptance_rate"] += accepted
 
-        # Perform an HMC update.
+        ## Perform an HMC update.
         (accepted, logdetG, sgndetG, δG, δθ) = hmc_update!(
             G, logdetG, sgndetG, electron_phonon_parameters, hmc_updater,
             fermion_path_integral = fermion_path_integral,
@@ -459,10 +477,10 @@ function run_simulation(
             B = B, δG_max = δG_max, δG = δG, δθ = δθ, rng = rng
         )
 
-        # Record whether the HMC update was accepted or rejected.
+        ## Record whether the HMC update was accepted or rejected.
         metadata["hmc_acceptance_rate"] += accepted
 
-        # Make measurements.
+        ## Make measurements.
         (logdetG, sgndetG, δG, δθ) = make_measurements!(
             measurement_container,
             logdetG, sgndetG, G, G_ττ, G_τ0, G_0τ,
@@ -473,7 +491,7 @@ function run_simulation(
             coupling_parameters = (electron_phonon_parameters,)
         )
 
-        # Write the bin-averaged measurements to file if update ÷ bin_size == 0.
+        ## Write the bin-averaged measurements to file if update ÷ bin_size == 0.
         write_measurements!(
             measurement_container = measurement_container,
             simulation_info = simulation_info,
@@ -483,7 +501,7 @@ function run_simulation(
             Δτ = Δτ
         )
 
-        # Write checkpoint file.
+        ## Write checkpoint file.
         checkpoint_timestamp = write_jld2_checkpoint(
             comm,
             simulation_info;
@@ -491,7 +509,7 @@ function run_simulation(
             checkpoint_freq = checkpoint_freq,
             start_timestamp = start_timestamp,
             runtime_limit = runtime_limit,
-            # Contents of checkpoint file below.
+            ## Contents of checkpoint file below.
             n_therm  = N_therm + 1,
             n_updates = update + 1,
             tight_binding_parameters, electron_phonon_parameters,
@@ -499,22 +517,22 @@ function run_simulation(
         )
     end
 
-    # Merge binned data into a single HDF5 file.
+    ## Merge binned data into a single HDF5 file.
     merge_bins(simulation_info)
 
-    # Calculate acceptance rates.
+    ## Calculate acceptance rates.
     metadata["hmc_acceptance_rate"] /= (N_updates + N_therm)
     metadata["reflection_acceptance_rate"] /= (N_updates + N_therm)
     metadata["swap_acceptance_rate"] /= (N_updates + N_therm)
 
-    # Record largest numerical error encountered during simulation.
+    ## Record largest numerical error encountered during simulation.
     metadata["dG"] = δG
 
-    # Write simulation metadata to simulation_info.toml file.
+    ## Write simulation metadata to simulation_info.toml file.
     save_simulation_info(simulation_info, metadata)
 
-    # Process the simulation results, calculating final error bars for all measurements.
-    # writing final statisitics to CSV files.
+    ## Process the simulation results, calculating final error bars for all measurements.
+    ## writing final statisitics to CSV files.
     process_measurements(
         comm,
         datafolder = simulation_info.datafolder,
@@ -525,10 +543,10 @@ function run_simulation(
         delimiter = " "
     )
 
-    # Write simulation summary TOML file.
+    ## Write simulation summary TOML file.
     save_simulation_info(simulation_info, metadata)
 
-    # Rename the data folder to indicate the simulation is complete.
+    ## Rename the data folder to indicate the simulation is complete.
     simulation_info = rename_complete_simulation(
         comm, simulation_info,
         delete_jld2_checkpoints = true
@@ -537,16 +555,16 @@ function run_simulation(
     return nothing
 end # end of run_simulation function
 
-# Only excute if the script is run directly from the command line.
+## Only excute if the script is run directly from the command line.
 if abspath(PROGRAM_FILE) == @__FILE__
 
-    # Initialize MPI
+    ## Initialize MPI
     MPI.Init()
 
-    # Initialize the MPI communicator.
+    ## Initialize the MPI communicator.
     comm = MPI.COMM_WORLD
 
-    # Run the simulation.
+    ## Run the simulation.
     run_simulation(
         comm;
         sID             = parse(Int,     ARGS[1]),  # Simulation ID.
@@ -561,8 +579,6 @@ if abspath(PROGRAM_FILE) == @__FILE__
         checkpoint_freq = parse(Float64, ARGS[10]), # Frequency with which checkpoint files are written in hours.
     )
 
-    # Finalize MPI.
+    ## Finalize MPI.
     MPI.Finalize()
 end
-````
-

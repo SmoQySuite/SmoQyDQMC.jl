@@ -48,7 +48,7 @@ function update_chemical_potential!(
 
     # calculate sign
     @assert fermion_path_integral_up.Sb == fermion_path_integral_dn.Sb "$(fermion_path_integral_up.Sb) ≠ $(fermion_path_integral_dn.Sb)"
-    Sb = fermion_path_integral_up
+    Sb = fermion_path_integral_up.Sb
     sgn = isreal(Sb) ? sign(inv(sgndetGup) * inv(sgndetGdn)) : sign(exp(-1im*imag(Sb)) * inv(sgndetGup) * inv(sgndetGdn))
 
     # calculate average density
