@@ -57,6 +57,9 @@ function initialize_measurement_container(
     # initialize integrated correlation measurement dictionary
     integrated_composite_correlations = Dict{String, CompositeCorrelationContainer{D,D,T}}()
 
+    # initialize fft plan
+    pfft! = plan_fft!(zeros(Complex{T}, L...); flags=FFTW.PATIENT)
+
     # initialize measurement container
     measurement_container = (
         global_measurements                   = global_measurements,
@@ -74,6 +77,7 @@ function initialize_measurement_container(
         a                           = zeros(Complex{T}, L..., Lτ),
         a′                          = zeros(Complex{T}, L..., Lτ),
         a″                          = zeros(Complex{T}, L..., Lτ),
+        pfft!                       = pfft!
     )
 
     return measurement_container

@@ -115,9 +115,9 @@ function initialize!(
                 # get the pair of sites connected by extended hubbard interaction
                 i = neighbor_table[1,n]
                 j = neighbor_table[2,n]
-                # shift on-site energies by +3V/2
-                V[i,l] = V[i,l] + 1.5*V′[n]
-                V[j,l] = V[j,l] + 1.5*V′[n]
+                # shift on-site energies by +V
+                V[i,l] = V[i,l] + 1.0*V′[n]
+                V[j,l] = V[j,l] + 1.0*V′[n]
             end
         end
     end

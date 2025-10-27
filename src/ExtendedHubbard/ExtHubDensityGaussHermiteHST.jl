@@ -34,7 +34,7 @@ struct ExtHubDensityGaussHermiteHST{T<:Number, E<:AbstractFloat}
     # number of bonds with finite Hubbard U
     N::Int
 
-    # each finite hubbard interaction
+    # each finite extended hubbard interaction
     V::Vector{E}
     
     # HST coupling coefficient
@@ -212,7 +212,8 @@ function initialize!(
 
     @assert !( (H<:Real) &&  (T<:Complex)) "Green's function matrices are real while Hubbard-Stratonovich transformation is complex."
 
-    (; neighbor_table, α, s, Δτ) = hst_parameters
+    (; neighbor_table, α, s, Δτ, ph_sym_form) = hst_parameters
+    V′ = hst_parameters.V
     V = fermion_path_integral.V
 
     # iterate over sites with Hubbard U interactions
@@ -233,6 +234,24 @@ function initialize!(
         fermion_path_integral.u = zeros(H, (Nsites, 2))
         fermion_path_integral.v = zeros(H, (Nsites, 2))
     end
+
+    # modify on-site energy if asymmetric form for coupling is being used
+    # shift on-site energies if necessary
+    if !ph_sym_form
+        # iterate over imaginary-time slices
+        for l in axes(V,2)
+            # iterate of extended Hubbard interaction coupling
+            for n in eachindex(V′)
+                # get the pair of sites connected by extended hubbard interaction
+                i = neighbor_table[1,n]
+                j = neighbor_table[2,n]
+                # shift on-site energies by +V/2
+                V[i,l] = V[i,l] + 0.5*V′[n]
+                V[j,l] = V[j,l] + 0.5*V′[n]
+            end
+        end
+    end
+
 
     return nothing
 end

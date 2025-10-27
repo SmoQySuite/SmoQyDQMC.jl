@@ -43,7 +43,8 @@ function write_measurements!(;
         (; global_measurements, local_measurements,
            equaltime_correlations, equaltime_composite_correlations,
            time_displaced_correlations, time_displaced_composite_correlations,
-           integrated_correlations, integrated_composite_correlations) = measurement_container
+           integrated_correlations, integrated_composite_correlations, pfft!
+        ) = measurement_container
 
         # construct filename
         filename = joinpath(datafolder, "bins", @sprintf("pID-%d", pID), @sprintf("bin-%d.h5", bin))
@@ -135,7 +136,7 @@ function write_measurements!(;
                     a = bonds[bond_a_id].orbitals[1]
                     b = bonds[bond_b_id].orbitals[1]
                     # perform fourier transform
-                    fourier_transform!(correlations[i], a, b, unit_cell, lattice)
+                    fourier_transform!(correlations[i], a, b, unit_cell, lattice, pfft!)
                 elseif id_type == "HOPPING_ID"
                     hopping_b_id, hopping_a_id = id_pairs[i]
                     bond_a_id = hopping_to_bond_id[hopping_a_id]
@@ -143,14 +144,14 @@ function write_measurements!(;
                     a = bonds[bond_a_id].orbitals[1]
                     b = bonds[bond_b_id].orbitals[1]
                     # perform fourier transform
-                    fourier_transform!(correlations[i], a, b, unit_cell, lattice)
+                    fourier_transform!(correlations[i], a, b, unit_cell, lattice, pfft!)
                 elseif id_type == "PHONON_ID"
                     phonon_b_id, phonon_a_id = id_pairs[i]
                     ra = phonon_basis_vecs[phonon_a_id]
                     rb = phonon_basis_vecs[phonon_b_id]
                     @. r = ra - rb
                     # perform fourier transform
-                    fourier_transform!(correlations[i], r, unit_cell, lattice)
+                    fourier_transform!(correlations[i], r, unit_cell, lattice, pfft!)
                 end
             end
 
@@ -228,7 +229,7 @@ function write_measurements!(;
                     a = bonds[bond_a_id].orbitals[1]
                     b = bonds[bond_b_id].orbitals[1]
                     # perform fourier transform
-                    fourier_transform!(correlations[i], a, b, D+1, unit_cell, lattice)
+                    fourier_transform!(correlations[i], a, b, D+1, unit_cell, lattice, pfft!)
                 elseif id_type == "HOPPING_ID"
                     hopping_b_id, hopping_a_id = id_pairs[i]
                     bond_a_id = hopping_to_bond_id[hopping_a_id]
@@ -236,14 +237,14 @@ function write_measurements!(;
                     a = bonds[bond_a_id].orbitals[1]
                     b = bonds[bond_b_id].orbitals[1]
                     # perform fourier transform
-                    fourier_transform!(correlations[i], a, b, D+1, unit_cell, lattice)
+                    fourier_transform!(correlations[i], a, b, D+1, unit_cell, lattice, pfft!)
                 elseif id_type == "PHONON_ID"
                     phonon_b_id, phonon_a_id = id_pairs[i]
                     ra = phonon_basis_vecs[phonon_a_id]
                     rb = phonon_basis_vecs[phonon_b_id]
                     @. r = ra - rb
                     # perform fourier transform
-                    fourier_transform!(correlations[i], r, D+1, unit_cell, lattice)
+                    fourier_transform!(correlations[i], r, D+1, unit_cell, lattice, pfft!)
                 end
             end
 

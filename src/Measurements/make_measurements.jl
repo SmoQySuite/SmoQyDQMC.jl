@@ -58,7 +58,7 @@ function make_measurements!(
         equaltime_correlations,
         equaltime_composite_correlations,
         time_displaced_composite_correlations,
-        a, a′, a″
+        a, a′, a″, pfft!
     ) = measurement_container
     tmp = selectdim(a, ndims(a), 1)
 
@@ -115,7 +115,7 @@ function make_measurements!(
         Gdn, Gdn_ττ, Gdn_τ0, Gdn_0τ,
         model_geometry, tight_binding_parameters_up, tight_binding_parameters_dn,
         fermion_path_integral_up, fermion_path_integral_dn,
-        tmp
+        tmp, pfft!
     )
 
     # if there are time-displaced measurements to make
@@ -135,7 +135,7 @@ function make_measurements!(
             Gup, Gup_ττ, Gup_τ0, Gup_0τ, Gdn, Gdn_ττ, Gdn_τ0, Gdn_0τ,
             model_geometry, tight_binding_parameters_up, tight_binding_parameters_dn,
             fermion_path_integral_up, fermion_path_integral_dn,
-            tmp
+            tmp, pfft!
         )
 
         # iterate over imaginary time slice
@@ -159,7 +159,7 @@ function make_measurements!(
                 Gup, Gup_ττ, Gup_τ0, Gup_0τ, Gdn, Gdn_ττ, Gdn_τ0, Gdn_0τ,
                 model_geometry, tight_binding_parameters_up, tight_binding_parameters_dn,
                 fermion_path_integral_up, fermion_path_integral_dn,
-                tmp
+                tmp, pfft!
             )
 
             # Periodically re-calculate the Green's function matrix for numerical stability.
@@ -181,24 +181,52 @@ function make_measurements!(
         end
     end
 
-    # measure equal-time phonon greens function
-    if haskey(equaltime_correlations, "phonon_greens")
+    # determine if electron-phonon parameters were passed
+    indx = findfirst(i -> typeof(i) <: ElectronPhononParameters, coupling_parameters)
 
-        # get the electron-phonon parameters
-        indx = findfirst(i -> typeof(i) <: ElectronPhononParameters, coupling_parameters)
+    # if electron-phonon parameters were passed
+    if !isnothing(indx)
 
-        # measure phonon green's function
-        measure_equaltime_phonon_greens!(equaltime_correlations["phonon_greens"], coupling_parameters[indx], model_geometry, sgn, a, a′, a″)
-    end
+        # get electron-phonon coupling parameters
+        elph_params = coupling_parameters[indx]
 
-    # measure time-displaced phonon greens function
-    if haskey(time_displaced_correlations, "phonon_greens")
+        # measure equal-time phonon greens function
+        if haskey(equaltime_correlations, "phonon_greens")
+            # measure phonon green's function
+            measure_equaltime_phonon_greens!(
+                equaltime_correlations["phonon_greens"], elph_params, model_geometry, sgn, a, a′, a″
+            )
+        end
 
-        # get the electron-phonon parameters
-        indx = findfirst(i -> typeof(i) <: ElectronPhononParameters, coupling_parameters)
+        # measure time-displaced phonon greens function
+        if haskey(time_displaced_correlations, "phonon_greens")
+            # measure phonon green's function
+            measure_time_displaced_phonon_greens!(
+                time_displaced_correlations["phonon_greens"], elph_params, model_geometry, sgn, a, a′, a″
+            )
+        end
 
-        # measure phonon green's function
-        measure_time_displaced_phonon_greens!(time_displaced_correlations["phonon_greens"], coupling_parameters[indx], model_geometry, sgn, a, a′, a″)
+        # iterate over composite equal-time correlations
+        for name in keys(equaltime_composite_correlations)
+            # check if composite phonon green's function measurement
+            if equaltime_composite_correlations[name].correlation == "phonon_greens"
+                # measure equal-time composite phonon green's function
+                measure_equaltime_composite_phonon_greens!(
+                    equaltime_composite_correlations[name], elph_params, model_geometry, sgn, a, a′, a″, pfft!
+                )
+            end
+        end
+
+        # iterate over composite equal-time correlations
+        for name in keys(time_displaced_composite_correlations)
+            # check if composite phonon green's function measurement
+            if time_displaced_composite_correlations[name].correlation == "phonon_greens"
+                # measure equal-time composite phonon green's function
+                measure_time_displaced_composite_phonon_greens!(
+                    time_displaced_composite_correlations[name], elph_params, model_geometry, sgn, a, a′, a″, pfft!
+                )
+            end
+        end
     end
 
     return (logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ)
@@ -244,7 +272,7 @@ function make_measurements!(
         equaltime_correlations,
         time_displaced_composite_correlations,
         equaltime_composite_correlations,
-        a, a′, a″
+        a, a′, a″, pfft!
     ) = measurement_container
     tmp = selectdim(a, ndims(a), 1)
 
@@ -291,7 +319,7 @@ function make_measurements!(
         G, G_ττ, G_τ0, G_0τ, G, G_ττ, G_τ0, G_0τ,
         model_geometry, tight_binding_parameters, tight_binding_parameters,
         fermion_path_integral, fermion_path_integral,
-        tmp
+        tmp, pfft!
     )
 
     # if there are time-displaced measurements to make
@@ -311,7 +339,7 @@ function make_measurements!(
             G, G_ττ, G_τ0, G_0τ, G, G_ττ, G_τ0, G_0τ,
             model_geometry, tight_binding_parameters, tight_binding_parameters,
             fermion_path_integral, fermion_path_integral,
-            tmp
+            tmp, pfft!
         )
 
         # iterate over imaginary time slice
@@ -334,7 +362,7 @@ function make_measurements!(
                 G, G_ττ, G_τ0, G_0τ, G, G_ττ, G_τ0, G_0τ,
                 model_geometry, tight_binding_parameters, tight_binding_parameters,
                 fermion_path_integral, fermion_path_integral,
-                tmp
+                tmp, pfft!
             )
 
             # Periodically re-calculate the Green's function matrix for numerical stability.
@@ -376,7 +404,7 @@ function make_measurements!(
             if equaltime_composite_correlations[name].correlation == "phonon_greens"
                 # measure equal-time composite phonon green's function
                 measure_equaltime_composite_phonon_greens!(
-                    equaltime_composite_correlations[name], elph_params, model_geometry, sgn, a, a′, a″
+                    equaltime_composite_correlations[name], elph_params, model_geometry, sgn, a, a′, a″, pfft!
                 )
             end
         end
@@ -387,7 +415,7 @@ function make_measurements!(
             if time_displaced_composite_correlations[name].correlation == "phonon_greens"
                 # measure equal-time composite phonon green's function
                 measure_time_displaced_composite_phonon_greens!(
-                    time_displaced_composite_correlations[name], elph_params, model_geometry, sgn, a, a′, a″
+                    time_displaced_composite_correlations[name], elph_params, model_geometry, sgn, a, a′, a″, pfft!
                 )
             end
         end
@@ -1042,8 +1070,9 @@ function make_equaltime_composite_measurements!(
     tight_binding_parameters_dn::TightBindingParameters,
     fermion_path_integral_up::FermionPathIntegral{T},
     fermion_path_integral_dn::FermionPathIntegral{T},
-    tmp::AbstractArray{Complex{E}, D}
-) where {T<:Number, E<:AbstractFloat, D, N}
+    tmp::AbstractArray{Complex{E}, D},
+    pfft!::F
+) where {T<:Number, E<:AbstractFloat, F<:AbstractFFTs.Plan, D, N}
 
     Lτ = fermion_path_integral_up.Lτ::Int
     unit_cell = model_geometry.unit_cell::UnitCell{D,E,N}
@@ -1075,7 +1104,7 @@ function make_equaltime_composite_measurements!(
                 greens!(tmp, id_pair[2], id_pair[1], unit_cell, lattice, Gup_τ0, coef*sgn/2)
                 greens!(tmp, id_pair[2], id_pair[1], unit_cell, lattice, Gdn_τ0, coef*sgn/2)
                 @. correlations += tmp
-                fourier_transform!(tmp, displacement_vecs[i], unit_cell, lattice)
+                fourier_transform!(tmp, displacement_vecs[i], unit_cell, lattice, pfft!)
                 @. structure_factors += tmp
             end
 
@@ -1087,7 +1116,7 @@ function make_equaltime_composite_measurements!(
                 id_pair = id_pairs[i]
                 greens!(tmp, id_pair[2], id_pair[1], unit_cell, lattice, Gup_τ0, coef*sgn)
                 @. correlations += tmp
-                fourier_transform!(tmp, displacement_vecs[i], unit_cell, lattice)
+                fourier_transform!(tmp, displacement_vecs[i], unit_cell, lattice, pfft!)
                 @. structure_factors += tmp
             end
 
@@ -1099,7 +1128,7 @@ function make_equaltime_composite_measurements!(
                 id_pair = id_pairs[i]
                 greens!(tmp, id_pair[2], id_pair[1], unit_cell, lattice, Gdn_τ0, coef*sgn)
                 @. correlations += tmp
-                fourier_transform!(tmp, displacement_vecs[i], unit_cell, lattice)
+                fourier_transform!(tmp, displacement_vecs[i], unit_cell, lattice, pfft!)
                 @. structure_factors += tmp
             end
 
@@ -1112,7 +1141,7 @@ function make_equaltime_composite_measurements!(
                 greens!(tmp, id_pair[2], id_pair[1], unit_cell, lattice, Gup_τ0, coef*sgn/2)
                 greens!(tmp, id_pair[2], id_pair[1], unit_cell, lattice, Gdn_τ0, coef*sgn/2)
                 @. correlations += tmp
-                fourier_transform!(tmp, displacement_vecs[i], unit_cell, lattice)
+                fourier_transform!(tmp, displacement_vecs[i], unit_cell, lattice, pfft!)
                 @. structure_factors += tmp
             end
 
@@ -1124,7 +1153,7 @@ function make_equaltime_composite_measurements!(
                 id_pair = id_pairs[i]
                 greens!(tmp, id_pair[2], id_pair[1], unit_cell, lattice, Gup_τ0, coef*sgn)
                 @. correlations += tmp
-                fourier_transform!(tmp, displacement_vecs[i], unit_cell, lattice)
+                fourier_transform!(tmp, displacement_vecs[i], unit_cell, lattice, pfft!)
                 @. structure_factors += tmp
             end
 
@@ -1136,7 +1165,7 @@ function make_equaltime_composite_measurements!(
                 id_pair = id_pairs[i]
                 greens!(tmp, id_pair[2], id_pair[1], unit_cell, lattice, Gdn_τ0, coef*sgn)
                 @. correlations += tmp
-                fourier_transform!(tmp, displacement_vecs[i], unit_cell, lattice)
+                fourier_transform!(tmp, displacement_vecs[i], unit_cell, lattice, pfft!)
                 @. structure_factors += tmp
             end    
 
@@ -1151,7 +1180,7 @@ function make_equaltime_composite_measurements!(
                     Gup_τ0, Gup_0τ, Gup_ττ, Gup, +1, +1, coef*sgn
                 )
                 @. correlations += tmp
-                fourier_transform!(tmp, displacement_vecs[i], unit_cell, lattice)
+                fourier_transform!(tmp, displacement_vecs[i], unit_cell, lattice, pfft!)
                 @. structure_factors += tmp
             end
 
@@ -1166,7 +1195,7 @@ function make_equaltime_composite_measurements!(
                     Gdn_τ0, Gdn_0τ, Gdn_ττ, Gdn, -1, -1, coef*sgn
                 )
                 @. correlations += tmp
-                fourier_transform!(tmp, displacement_vecs[i], unit_cell, lattice)
+                fourier_transform!(tmp, displacement_vecs[i], unit_cell, lattice, pfft!)
                 @. structure_factors += tmp
             end
 
@@ -1181,7 +1210,7 @@ function make_equaltime_composite_measurements!(
                     Gup_τ0, Gup_0τ, Gup_ττ, Gdn, +1, -1, coef*sgn
                 )
                 @. correlations += tmp
-                fourier_transform!(tmp, displacement_vecs[i], unit_cell, lattice)
+                fourier_transform!(tmp, displacement_vecs[i], unit_cell, lattice, pfft!)
                 @. structure_factors += tmp
             end
 
@@ -1196,7 +1225,7 @@ function make_equaltime_composite_measurements!(
                     Gdn_τ0, Gdn_0τ, Gdn_ττ, Gup, -1, +1, coef*sgn
                 )
                 @. correlations += tmp
-                fourier_transform!(tmp, displacement_vecs[i], unit_cell, lattice)
+                fourier_transform!(tmp, displacement_vecs[i], unit_cell, lattice, pfft!)
                 @. structure_factors += tmp
             end
 
@@ -1211,7 +1240,7 @@ function make_equaltime_composite_measurements!(
                     Gup_τ0, Gup_0τ, Gup_ττ, Gup, Gdn_τ0, Gdn_0τ, Gdn_ττ, Gdn, coef*sgn
                 )
                 @. correlations += tmp
-                fourier_transform!(tmp, displacement_vecs[i], unit_cell, lattice)
+                fourier_transform!(tmp, displacement_vecs[i], unit_cell, lattice, pfft!)
                 @. structure_factors += tmp
             end
 
@@ -1226,7 +1255,7 @@ function make_equaltime_composite_measurements!(
                     Gup_τ0, Gdn_τ0, coef*sgn
                 )
                 @. correlations += tmp
-                fourier_transform!(tmp, displacement_vecs[i], unit_cell, lattice)
+                fourier_transform!(tmp, displacement_vecs[i], unit_cell, lattice, pfft!)
                 @. structure_factors += tmp
             end
 
@@ -1241,7 +1270,7 @@ function make_equaltime_composite_measurements!(
                     Gup_τ0, Gup_0τ, Gdn_τ0, Gdn_0τ, coef*sgn
                 )
                 @. correlations += tmp
-                fourier_transform!(tmp, displacement_vecs[i], unit_cell, lattice)
+                fourier_transform!(tmp, displacement_vecs[i], unit_cell, lattice, pfft!)
                 @. structure_factors += tmp
             end
 
@@ -1256,7 +1285,7 @@ function make_equaltime_composite_measurements!(
                     Gup_τ0, Gup_0τ, Gup_ττ, Gup, Gdn_τ0, Gdn_0τ, Gdn_ττ, Gdn, coef*sgn
                 )
                 @. correlations += tmp
-                fourier_transform!(tmp, displacement_vecs[i], unit_cell, lattice)
+                fourier_transform!(tmp, displacement_vecs[i], unit_cell, lattice, pfft!)
                 @. structure_factors += tmp
             end
 
@@ -1271,7 +1300,7 @@ function make_equaltime_composite_measurements!(
                     Gup_τ0, Gup_0τ, Gup_ττ, Gup, +1, +1, coef*sgn
                 )
                 @. correlations += tmp
-                fourier_transform!(tmp, displacement_vecs[i], unit_cell, lattice)
+                fourier_transform!(tmp, displacement_vecs[i], unit_cell, lattice, pfft!)
                 @. structure_factors += tmp
             end
 
@@ -1286,7 +1315,7 @@ function make_equaltime_composite_measurements!(
                     Gdn_τ0, Gdn_0τ, Gdn_ττ, Gdn, -1, -1, coef*sgn
                 )
                 @. correlations += tmp
-                fourier_transform!(tmp, displacement_vecs[i], unit_cell, lattice)
+                fourier_transform!(tmp, displacement_vecs[i], unit_cell, lattice, pfft!)
                 @. structure_factors += tmp
             end
 
@@ -1301,7 +1330,7 @@ function make_equaltime_composite_measurements!(
                     Gup_τ0, Gup_0τ, Gup_ττ, Gdn, +1, -1, coef*sgn
                 )
                 @. correlations += tmp
-                fourier_transform!(tmp, displacement_vecs[i], unit_cell, lattice)
+                fourier_transform!(tmp, displacement_vecs[i], unit_cell, lattice, pfft!)
                 @. structure_factors += tmp
             end
 
@@ -1316,7 +1345,7 @@ function make_equaltime_composite_measurements!(
                     Gdn_τ0, Gdn_0τ, Gdn_ττ, Gup, -1, +1, coef*sgn
                 )
                 @. correlations += tmp
-                fourier_transform!(tmp, displacement_vecs[i], unit_cell, lattice)
+                fourier_transform!(tmp, displacement_vecs[i], unit_cell, lattice, pfft!)
                 @. structure_factors += tmp
             end
 
@@ -1331,7 +1360,7 @@ function make_equaltime_composite_measurements!(
                     Gup_τ0, Gup_0τ, Gup_ττ, Gup, Gdn_τ0, Gdn_0τ, Gdn_ττ, Gdn, coef*sgn
                 )
                 @. correlations += tmp
-                fourier_transform!(tmp, displacement_vecs[i], unit_cell, lattice)
+                fourier_transform!(tmp, displacement_vecs[i], unit_cell, lattice, pfft!)
                 @. structure_factors += tmp
             end
 
@@ -1364,7 +1393,7 @@ function make_equaltime_composite_measurements!(
                     Gup_τ0, Gup_0τ, Gup_ττ, Gup, +1, +1, coef*sgn
                 )
                 @. correlations += tmp
-                fourier_transform!(tmp, displacement_vecs[i], unit_cell, lattice)
+                fourier_transform!(tmp, displacement_vecs[i], unit_cell, lattice, pfft!)
                 @. structure_factors += tmp
             end
 
@@ -1397,7 +1426,7 @@ function make_equaltime_composite_measurements!(
                     Gdn_τ0, Gdn_0τ, Gdn_ττ, Gdn, -1, -1, coef*sgn
                 )
                 @. correlations += tmp
-                fourier_transform!(tmp, displacement_vecs[i], unit_cell, lattice)
+                fourier_transform!(tmp, displacement_vecs[i], unit_cell, lattice, pfft!)
                 @. structure_factors += tmp
             end
 
@@ -1431,7 +1460,7 @@ function make_equaltime_composite_measurements!(
                     Gup_τ0, Gup_0τ, Gup_ττ, Gdn, +1, -1, coef*sgn
                 )
                 @. correlations += tmp
-                fourier_transform!(tmp, displacement_vecs[i], unit_cell, lattice)
+                fourier_transform!(tmp, displacement_vecs[i], unit_cell, lattice, pfft!)
                 @. structure_factors += tmp
             end
 
@@ -1465,7 +1494,7 @@ function make_equaltime_composite_measurements!(
                     Gdn_τ0, Gdn_0τ, Gdn_ττ, Gup, -1, +1, coef*sgn
                 )
                 @. correlations += tmp
-                fourier_transform!(tmp, displacement_vecs[i], unit_cell, lattice)
+                fourier_transform!(tmp, displacement_vecs[i], unit_cell, lattice, pfft!)
                 @. structure_factors += tmp
             end
 
@@ -1503,7 +1532,7 @@ function make_equaltime_composite_measurements!(
                     Gup_τ0, Gup_0τ, Gup_ττ, Gup, Gdn_τ0, Gdn_0τ, Gdn_ττ, Gdn, coef*sgn
                 )
                 @. correlations += tmp
-                fourier_transform!(tmp, displacement_vecs[i], unit_cell, lattice)
+                fourier_transform!(tmp, displacement_vecs[i], unit_cell, lattice, pfft!)
                 @. structure_factors += tmp
             end
         end
@@ -1870,8 +1899,9 @@ function make_time_displaced_composite_measurements!(
     tight_binding_parameters_dn::TightBindingParameters,
     fermion_path_integral_up::FermionPathIntegral{T},
     fermion_path_integral_dn::FermionPathIntegral{T},
-    tmp::AbstractArray{Complex{E}, D}
-) where {T<:Number, E<:AbstractFloat, P, D, N}
+    tmp::AbstractArray{Complex{E}, D},
+    pfft!::F
+) where {T<:Number, E<:AbstractFloat, F<:AbstractFFTs.Plan, P, D, N}
 
     Lτ = fermion_path_integral_up.Lτ::Int
     unit_cell = model_geometry.unit_cell::UnitCell{D,E,N}
@@ -1900,7 +1930,7 @@ function make_time_displaced_composite_measurements!(
                 greens!(tmp, id_pair[2], id_pair[1], unit_cell, lattice, Gup_τ0, coef*sgn/2)
                 greens!(tmp, id_pair[2], id_pair[1], unit_cell, lattice, Gdn_τ0, coef*sgn/2)
                 @. correlation_array += tmp
-                fourier_transform!(tmp, displacement_vecs[i], unit_cell, lattice)
+                fourier_transform!(tmp, displacement_vecs[i], unit_cell, lattice, pfft!)
                 @. structure_factor_array += tmp
             end
 
@@ -1912,7 +1942,7 @@ function make_time_displaced_composite_measurements!(
                 id_pair = id_pairs[i]
                 greens!(tmp, id_pair[2], id_pair[1], unit_cell, lattice, Gup_τ0, coef*sgn)
                 @. correlation_array += tmp
-                fourier_transform!(tmp, displacement_vecs[i], unit_cell, lattice)
+                fourier_transform!(tmp, displacement_vecs[i], unit_cell, lattice, pfft!)
                 @. structure_factor_array += tmp
             end
 
@@ -1924,7 +1954,7 @@ function make_time_displaced_composite_measurements!(
                 id_pair = id_pairs[i]
                 greens!(tmp, id_pair[2], id_pair[1], unit_cell, lattice, Gdn_τ0, coef*sgn)
                 @. correlation_array += tmp
-                fourier_transform!(tmp, displacement_vecs[i], unit_cell, lattice)
+                fourier_transform!(tmp, displacement_vecs[i], unit_cell, lattice, pfft!)
                 @. structure_factor_array += tmp
             end
 
@@ -1936,7 +1966,7 @@ function make_time_displaced_composite_measurements!(
                 greens!(tmp, id_pair[2], id_pair[1], unit_cell, lattice, Gup_ττ, coef*sgn/2)
                 greens!(tmp, id_pair[2], id_pair[1], unit_cell, lattice, Gdn_ττ, coef*sgn/2)
                 @. correlation_array += tmp
-                fourier_transform!(tmp, displacement_vecs[i], unit_cell, lattice)
+                fourier_transform!(tmp, displacement_vecs[i], unit_cell, lattice, pfft!)
                 @. structure_factor_array += tmp
             end
 
@@ -1948,7 +1978,7 @@ function make_time_displaced_composite_measurements!(
                 id_pair = id_pairs[i]
                 greens!(tmp, id_pair[2], id_pair[1], unit_cell, lattice, Gup_ττ, coef*sgn)
                 @. correlation_array += tmp
-                fourier_transform!(tmp, displacement_vecs[i], unit_cell, lattice)
+                fourier_transform!(tmp, displacement_vecs[i], unit_cell, lattice, pfft!)
                 @. structure_factor_array += tmp
             end
 
@@ -1959,7 +1989,7 @@ function make_time_displaced_composite_measurements!(
                 coef = coefficients[i]
                 greens!(tmp, id_pair[2], id_pair[1], unit_cell, lattice, Gdn_ττ, coef*sgn)
                 @. correlation_array += tmp
-                fourier_transform!(tmp, displacement_vecs[i], unit_cell, lattice)
+                fourier_transform!(tmp, displacement_vecs[i], unit_cell, lattice, pfft!)
                 @. structure_factor_array += tmp
             end
 
@@ -1974,7 +2004,7 @@ function make_time_displaced_composite_measurements!(
                     Gup_τ0, Gup_0τ, Gup_ττ, Gup, +1, +1, coef*sgn
                 )
                 @. correlation_array += tmp
-                fourier_transform!(tmp, displacement_vecs[i], unit_cell, lattice)
+                fourier_transform!(tmp, displacement_vecs[i], unit_cell, lattice, pfft!)
                 @. structure_factor_array += tmp
             end
 
@@ -1989,7 +2019,7 @@ function make_time_displaced_composite_measurements!(
                     Gdn_τ0, Gdn_0τ, Gdn_ττ, Gdn, +1, +1, coef*sgn
                 )
                 @. correlation_array += tmp
-                fourier_transform!(tmp, displacement_vecs[i], unit_cell, lattice)
+                fourier_transform!(tmp, displacement_vecs[i], unit_cell, lattice, pfft!)
                 @. structure_factor_array += tmp
             end
 
@@ -2004,7 +2034,7 @@ function make_time_displaced_composite_measurements!(
                     Gup_τ0, Gup_0τ, Gup_ττ, Gdn, +1, -1, coef*sgn
                 )
                 @. correlation_array += tmp
-                fourier_transform!(tmp, displacement_vecs[i], unit_cell, lattice)
+                fourier_transform!(tmp, displacement_vecs[i], unit_cell, lattice, pfft!)
                 @. structure_factor_array += tmp
             end
 
@@ -2019,7 +2049,7 @@ function make_time_displaced_composite_measurements!(
                     Gdn_τ0, Gdn_0τ, Gdn_ττ, Gup, -1, +1, coef*sgn
                 )
                 @. correlation_array += tmp
-                fourier_transform!(tmp, displacement_vecs[i], unit_cell, lattice)
+                fourier_transform!(tmp, displacement_vecs[i], unit_cell, lattice, pfft!)
                 @. structure_factor_array += tmp
             end
 
@@ -2034,7 +2064,7 @@ function make_time_displaced_composite_measurements!(
                     Gup_τ0, Gup_0τ, Gup_ττ, Gup, Gdn_τ0, Gdn_0τ, Gdn_ττ, Gdn, coef*sgn
                 )
                 @. correlation_array += tmp
-                fourier_transform!(tmp, displacement_vecs[i], unit_cell, lattice)
+                fourier_transform!(tmp, displacement_vecs[i], unit_cell, lattice, pfft!)
                 @. structure_factor_array += tmp
             end
 
@@ -2049,7 +2079,7 @@ function make_time_displaced_composite_measurements!(
                     Gup_τ0, Gdn_τ0, coef*sgn
                 )
                 @. correlation_array += tmp
-                fourier_transform!(tmp, displacement_vecs[i], unit_cell, lattice)
+                fourier_transform!(tmp, displacement_vecs[i], unit_cell, lattice, pfft!)
                 @. structure_factor_array += tmp
             end
 
@@ -2064,7 +2094,7 @@ function make_time_displaced_composite_measurements!(
                     Gup_τ0, Gup_0τ, Gdn_τ0, Gdn_0τ, coef*sgn
                 )
                 @. correlation_array += tmp
-                fourier_transform!(tmp, displacement_vecs[i], unit_cell, lattice)
+                fourier_transform!(tmp, displacement_vecs[i], unit_cell, lattice, pfft!)
                 @. structure_factor_array += tmp
             end
 
@@ -2079,7 +2109,7 @@ function make_time_displaced_composite_measurements!(
                     Gup_τ0, Gup_0τ, Gup_ττ, Gup, Gdn_τ0, Gdn_0τ, Gdn_ττ, Gdn, coef*sgn
                 )
                 @. correlation_array += tmp
-                fourier_transform!(tmp, displacement_vecs[i], unit_cell, lattice)
+                fourier_transform!(tmp, displacement_vecs[i], unit_cell, lattice, pfft!)
                 @. structure_factor_array += tmp
             end
 
@@ -2094,7 +2124,7 @@ function make_time_displaced_composite_measurements!(
                     Gup_τ0, Gup_0τ, Gup_ττ, Gup, +1, +1, coef*sgn
                 )
                 @. correlation_array += tmp
-                fourier_transform!(tmp, displacement_vecs[i], unit_cell, lattice)
+                fourier_transform!(tmp, displacement_vecs[i], unit_cell, lattice, pfft!)
                 @. structure_factor_array += tmp
             end
 
@@ -2109,7 +2139,7 @@ function make_time_displaced_composite_measurements!(
                     Gdn_τ0, Gdn_0τ, Gdn_ττ, Gdn, -1, -1, coef*sgn
                 )
                 @. correlation_array += tmp
-                fourier_transform!(tmp, displacement_vecs[i], unit_cell, lattice)
+                fourier_transform!(tmp, displacement_vecs[i], unit_cell, lattice, pfft!)
                 @. structure_factor_array += tmp
             end
 
@@ -2124,7 +2154,7 @@ function make_time_displaced_composite_measurements!(
                     Gup_τ0, Gup_0τ, Gup_ττ, Gdn, +1, -1, coef*sgn
                 )
                 @. correlation_array += tmp
-                fourier_transform!(tmp, displacement_vecs[i], unit_cell, lattice)
+                fourier_transform!(tmp, displacement_vecs[i], unit_cell, lattice, pfft!)
                 @. structure_factor_array += tmp
             end
 
@@ -2139,7 +2169,7 @@ function make_time_displaced_composite_measurements!(
                     Gdn_τ0, Gdn_0τ, Gdn_ττ, Gup, -1, +1, coef*sgn
                 )
                 @. correlation_array += tmp
-                fourier_transform!(tmp, displacement_vecs[i], unit_cell, lattice)
+                fourier_transform!(tmp, displacement_vecs[i], unit_cell, lattice, pfft!)
                 @. structure_factor_array += tmp
             end
 
@@ -2154,7 +2184,7 @@ function make_time_displaced_composite_measurements!(
                     Gup_τ0, Gup_0τ, Gup_ττ, Gup, Gdn_τ0, Gdn_0τ, Gdn_ττ, Gdn, coef*sgn
                 )
                 @. correlation_array += tmp
-                fourier_transform!(tmp, displacement_vecs[i], unit_cell, lattice)
+                fourier_transform!(tmp, displacement_vecs[i], unit_cell, lattice, pfft!)
                 @. structure_factor_array += tmp
             end
         
@@ -2187,7 +2217,7 @@ function make_time_displaced_composite_measurements!(
                     Gup_τ0, Gup_0τ, Gup_ττ, Gup, +1, +1, coef*sgn
                 )
                 @. correlation_array += tmp
-                fourier_transform!(tmp, displacement_vecs[i], unit_cell, lattice)
+                fourier_transform!(tmp, displacement_vecs[i], unit_cell, lattice, pfft!)
                 @. structure_factor_array += tmp
             end
 
@@ -2220,7 +2250,7 @@ function make_time_displaced_composite_measurements!(
                     Gdn_τ0, Gdn_0τ, Gdn_ττ, Gdn, -1, -1, coef*sgn
                 )
                 @. correlation_array += tmp
-                fourier_transform!(tmp, displacement_vecs[i], unit_cell, lattice)
+                fourier_transform!(tmp, displacement_vecs[i], unit_cell, lattice, pfft!)
                 @. structure_factor_array += tmp
             end
 
@@ -2254,7 +2284,7 @@ function make_time_displaced_composite_measurements!(
                     Gup_τ0, Gup_0τ, Gup_ττ, Gdn, +1, -1, coef*sgn
                 )
                 @. correlation_array += tmp
-                fourier_transform!(tmp, displacement_vecs[i], unit_cell, lattice)
+                fourier_transform!(tmp, displacement_vecs[i], unit_cell, lattice, pfft!)
                 @. structure_factor_array += tmp
             end
 
@@ -2288,7 +2318,7 @@ function make_time_displaced_composite_measurements!(
                     Gdn_τ0, Gdn_0τ, Gdn_ττ, Gup, -1, +1, coef*sgn
                 )
                 @. correlation_array += tmp
-                fourier_transform!(tmp, displacement_vecs[i], unit_cell, lattice)
+                fourier_transform!(tmp, displacement_vecs[i], unit_cell, lattice, pfft!)
                 @. structure_factor_array += tmp
             end
 
@@ -2326,7 +2356,7 @@ function make_time_displaced_composite_measurements!(
                     Gup_τ0, Gup_0τ, Gup_ττ, Gup, Gdn_τ0, Gdn_0τ, Gdn_ττ, Gdn, coef*sgn
                 )
                 @. correlation_array += tmp
-                fourier_transform!(tmp, displacement_vecs[i], unit_cell, lattice)
+                fourier_transform!(tmp, displacement_vecs[i], unit_cell, lattice, pfft!)
                 @. structure_factor_array += tmp
             end
         end
@@ -2399,8 +2429,9 @@ function measure_equaltime_composite_phonon_greens!(
     sgn::T,
     XrX0::AbstractArray{Complex{E},P},
     Xr::AbstractArray{Complex{E},P},
-    X0::AbstractArray{Complex{E},P}
-) where {T<:Number, E<:AbstractFloat, D, P, N}
+    X0::AbstractArray{Complex{E},P},
+    pfft!::F
+) where {T<:Number, E<:AbstractFloat, F<:AbstractFFTs.Plan, D, P, N}
 
     @assert phonon_greens.correlation == "phonon_greens"
     id_pairs = phonon_greens.id_pairs::Vector{NTuple{2,Int}}
@@ -2451,7 +2482,7 @@ function measure_equaltime_composite_phonon_greens!(
         coef = coefficients[i]
         @. correlations += sgn * coef * XrX0_0
         # record the equal-time phonon green's function in momentum space
-        fourier_transform!(XrX0_0, displacement_vecs[i], unit_cell, lattice)
+        fourier_transform!(XrX0_0, displacement_vecs[i], unit_cell, lattice, pfft!)
         @. structure_factors += sgn * coef * XrX0_0
     end
 
@@ -2519,8 +2550,9 @@ function measure_time_displaced_composite_phonon_greens!(
     sgn::T,
     XrX0::AbstractArray{Complex{E},P},
     Xr::AbstractArray{Complex{E},P},
-    X0::AbstractArray{Complex{E},P}
-) where {T<:Number, E<:AbstractFloat, D, P, N}
+    X0::AbstractArray{Complex{E},P},
+    pfft!::F
+) where {T<:Number, E<:AbstractFloat, F<:AbstractFFTs.Plan, D, P, N}
 
     @assert phonon_greens.correlation == "phonon_greens"
     id_pairs = phonon_greens.id_pairs::Vector{NTuple{2,Int}}
@@ -2573,7 +2605,7 @@ function measure_time_displaced_composite_phonon_greens!(
         correlation_Lτ = selectdim(correlations, D+1, Lτ+1)
         copyto!(correlation_Lτ, correlation_0)
         # calculate phonon greens function in position space in momentum space
-        fourier_transform!(XrX0, displacement_vecs[i], D+1, unit_cell, lattice)
+        fourier_transform!(XrX0, displacement_vecs[i], D+1, unit_cell, lattice, pfft!)
         structure_factors′ = selectdim(structure_factors, D+1, 1:Lτ)
         @. structure_factors′ += coef * sgn * XrX0
         structure_factors_0  = selectdim(structure_factors, D+1, 1)
