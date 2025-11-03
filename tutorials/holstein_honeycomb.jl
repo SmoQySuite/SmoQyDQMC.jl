@@ -224,7 +224,7 @@ function run_simulation(;
         model_geometry = model_geometry
     )
 
-    ## Define first local Holstein coupling for first phonon mode.
+    ## Define second local Holstein coupling for second phonon mode.
     holstein_coupling_2 = HolsteinCoupling(
         model_geometry = model_geometry,
         phonon_id = phonon_2_id,
@@ -234,7 +234,7 @@ function run_simulation(;
         ph_sym_form = true,
     )
 
-    ## Add the first local Holstein coupling definition to the model.
+    ## Add the second local Holstein coupling definition to the model.
     holstein_coupling_2_id = add_holstein_coupling!(
         electron_phonon_model = electron_phonon_model,
         holstein_coupling = holstein_coupling_2,

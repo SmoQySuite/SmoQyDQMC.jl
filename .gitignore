@@ -12,3 +12,5 @@ example_scripts/*/
 .DS_Store
 *.csv
 *.h5
+/examples/*/
+/tutorials/*/
