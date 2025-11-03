@@ -278,7 +278,7 @@ function to calculate the total number of orbitals in our system.
 
         # Apply Ising Hubbard-Stranonvich (HS) transformation to decouple the Hubbard interaction,
         # and initialize the corresponding HS fields that will be sampled in the DQMC simulation.
-        hubbard_stratonovich_params = HubbardIsingHSParameters(
+        hst_parameters = HubbardIsingHSParameters(
             β = β, Δτ = Δτ,
             hubbard_parameters = hubbard_params,
             rng = rng
@@ -376,7 +376,7 @@ instance `chemical_potential_tuner` to the checkpoint file.
             runtime_limit = runtime_limit,
             # Contents of checkpoint file below.
             n_therm, n_updates,
-            tight_binding_parameters, hubbard_params, hubbard_stratonovich_params,
+            tight_binding_parameters, hubbard_params, hst_parameters,
             chemical_potential_tuner, measurement_container, model_geometry, metadata, rng
         )
 ````
@@ -395,7 +395,7 @@ instance `chemical_potential_tuner` from the checkpoint file.
         # Unpack contents of checkpoint dictionary.
         tight_binding_parameters    = checkpoint["tight_binding_parameters"]
         hubbard_params              = checkpoint["hubbard_params"]
-        hubbard_stratonovich_params = checkpoint["hubbard_stratonovich_params"]
+        hst_parameters              = checkpoint["hst_parameters"]
         chemical_potential_tuner    = checkpoint["chemical_potential_tuner"]
         measurement_container       = checkpoint["measurement_container"]
         model_geometry              = checkpoint["model_geometry"]
@@ -420,7 +420,7 @@ No changes need to made to this section of the code from the previous
 
     # Initialize FermionPathIntegral type for both the spin-up and spin-down electrons to account for the current
     # Hubbard-Stratonovich field configuration.
-    initialize!(fermion_path_integral_up, fermion_path_integral_dn, hubbard_stratonovich_params)
+    initialize!(fermion_path_integral_up, fermion_path_integral_dn, hst_parameters)
 
     # Initialize imaginary-time propagators for all imaginary-time slices for spin-up and spin-down electrons.
     Bup = initialize_propagators(fermion_path_integral_up, symmetric=symmetric, checkerboard=checkerboard)
@@ -468,7 +468,7 @@ And again, we need to make sure the include the `chemical_potential_tuner` in th
         # Perform reflection update for HS fields with randomly chosen site.
         (accepted, logdetGup, sgndetGup, logdetGdn, sgndetGdn) = reflection_update!(
             Gup, logdetGup, sgndetGup, Gdn, logdetGdn, sgndetGdn,
-            hubbard_stratonovich_params,
+            hst_parameters,
             fermion_path_integral_up = fermion_path_integral_up,
             fermion_path_integral_dn = fermion_path_integral_dn,
             fermion_greens_calculator_up = fermion_greens_calculator_up,
@@ -484,7 +484,7 @@ And again, we need to make sure the include the `chemical_potential_tuner` in th
         # Perform sweep all imaginary-time slice and orbitals, attempting an update to every HS field.
         (acceptance_rate, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = local_updates!(
             Gup, logdetGup, sgndetGup, Gdn, logdetGdn, sgndetGdn,
-            hubbard_stratonovich_params,
+            hst_parameters,
             fermion_path_integral_up = fermion_path_integral_up,
             fermion_path_integral_dn = fermion_path_integral_dn,
             fermion_greens_calculator_up = fermion_greens_calculator_up,
@@ -520,7 +520,7 @@ And again, we need to make sure the include the `chemical_potential_tuner` in th
             # Contents of checkpoint file below.
             n_therm = update + 1,
             n_updates = 1,
-            tight_binding_parameters, hubbard_params, hubbard_stratonovich_params,
+            tight_binding_parameters, hubbard_params, hst_parameters,
             chemical_potential_tuner, measurement_container, model_geometry, metadata, rng
         )
     end
@@ -545,7 +545,7 @@ And again, we need to make sure the include the `chemical_potential_tuner` in th
         # Perform reflection update for HS fields with randomly chosen site.
         (accepted, logdetGup, sgndetGup, logdetGdn, sgndetGdn) = reflection_update!(
             Gup, logdetGup, sgndetGup, Gdn, logdetGdn, sgndetGdn,
-            hubbard_stratonovich_params,
+            hst_parameters,
             fermion_path_integral_up = fermion_path_integral_up,
             fermion_path_integral_dn = fermion_path_integral_dn,
             fermion_greens_calculator_up = fermion_greens_calculator_up,
@@ -561,7 +561,7 @@ And again, we need to make sure the include the `chemical_potential_tuner` in th
         # Perform sweep all imaginary-time slice and orbitals, attempting an update to every HS field.
         (acceptance_rate, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = local_updates!(
             Gup, logdetGup, sgndetGup, Gdn, logdetGdn, sgndetGdn,
-            hubbard_stratonovich_params,
+            hst_parameters,
             fermion_path_integral_up = fermion_path_integral_up,
             fermion_path_integral_dn = fermion_path_integral_dn,
             fermion_greens_calculator_up = fermion_greens_calculator_up,
@@ -584,7 +584,7 @@ And again, we need to make sure the include the `chemical_potential_tuner` in th
             fermion_greens_calculator_dn = fermion_greens_calculator_dn,
             Bup = Bup, Bdn = Bdn, δG_max = δG_max, δG = δG, δθ = δθ,
             model_geometry = model_geometry, tight_binding_parameters = tight_binding_parameters,
-            coupling_parameters = (hubbard_params, hubbard_stratonovich_params)
+            coupling_parameters = (hubbard_params, hst_parameters)
         )
 
         # Write the bin-averaged measurements to file if update ÷ bin_size == 0.
@@ -621,7 +621,7 @@ And again, we need to make sure the include the `chemical_potential_tuner` in th
             # Contents of checkpoint file below.
             n_therm  = N_therm + 1,
             n_updates = update + 1,
-            tight_binding_parameters, hubbard_params, hubbard_stratonovich_params,
+            tight_binding_parameters, hubbard_params, hst_parameters,
             chemical_potential_tuner, measurement_container, model_geometry, metadata, rng
         )
     end

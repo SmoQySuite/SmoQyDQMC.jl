@@ -62,22 +62,22 @@ function initialize_measurement_container(
 
     # initialize measurement container
     measurement_container = (
-        global_measurements                   = global_measurements,
-        local_measurements                    = local_measurements,
-        equaltime_correlations                = equaltime_correlations,
-        time_displaced_correlations           = time_displaced_correlations,
-        integrated_correlations               = integrated_correlations,
-        equaltime_composite_correlations      = equaltime_composite_correlations,
+        global_measurements = global_measurements,
+        local_measurements = local_measurements,
+        equaltime_correlations = equaltime_correlations,
+        time_displaced_correlations = time_displaced_correlations,
+        integrated_correlations = integrated_correlations,
+        equaltime_composite_correlations = equaltime_composite_correlations,
         time_displaced_composite_correlations = time_displaced_composite_correlations,
-        integrated_composite_correlations     = integrated_composite_correlations,
-        hopping_to_bond_id          = Int[],
-        phonon_basis_vecs           = Vector{T}[],
-        L                           = L,
-        Lτ                          = Lτ,
-        a                           = zeros(Complex{T}, L..., Lτ),
-        a′                          = zeros(Complex{T}, L..., Lτ),
-        a″                          = zeros(Complex{T}, L..., Lτ),
-        pfft!                       = pfft!
+        integrated_composite_correlations = integrated_composite_correlations,
+        hopping_to_bond_id = Int[],
+        phonon_basis_vecs = Vector{T}[],
+        L = L,
+        Lτ = Lτ,
+        a = zeros(Complex{T}, L..., Lτ),
+        a′ = zeros(Complex{T}, L..., Lτ),
+        a″ = zeros(Complex{T}, L..., Lτ),
+        pfft! = pfft!
     )
 
     return measurement_container

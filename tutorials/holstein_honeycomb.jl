@@ -436,38 +436,36 @@ function run_simulation(;
     δθ = zero(logdetG)
 
 # ## [Setup EFA-HMC Updates](@id holstein_square_efa-hmc_updates)
-# Before we begin the simulation, we also want to initialize an instance of the
-# [`EFAHMCUpdater`](@ref) type, which will be used to perform hybrid Monte Carlo (HMC)
-# udpates to the phonon fields that use exact fourier acceleration (EFA)
-# to further reduce autocorrelation times.
+# Before we begin the simulation, we also want to initialize an instance of the [`EFAHMCUpdater`](@ref) type,
+# which will be used to perform hybrid Monte Carlo (HMC) updates to the phonon fields that use
+# exact fourier acceleration (EFA) to further reduce autocorrelation times.
 
 # The two main parameters that need to be specified are the time-step size ``\Delta t`` and number of time-steps ``N_t``
 # performed in the HMC update, with the corresponding integrated trajectory time then equalling ``T_t = N_t \cdot \Delta t.``
-# Note that the computational cost of an HMC update is linearly proportional to ``N_t,`` while the acceptance rate is inversely
-# proportional to ``\Delta t.``
+# Note that the computational cost of an HMC update is linearly proportional to ``N_t,`` while the acceptance rate is
+# approximately proportional to ``1/(\Delta t)^2.``
 
 # [Previous studies](https://arxiv.org/abs/2404.09723) have shown that a good place to start
-# with the integrated trajectory time ``T_t`` is a quarter the period of the bare phonon mode,
-# ``T_t \approx \frac{1}{4} \left( \frac{2\pi}{\Omega} \right) = \pi/(2\Omega).``
-# It is also important to keep the acceptance rate for the HMC updates above ``\sim 90\%`` to help prevent numerical instabilities from occuring.
+# with the integrated trajectory time ``T_t`` is a quarter the period associated with the bare phonon frequency,
+# ``T_t \approx \frac{1}{4} \left( \frac{2\pi}{\Omega} \right) = \pi/(2\Omega).`` However, in our implementation we effectively normalize all of the
+# bare phonon frequencies to unity in the dynamics. Therefore, a good choice for the trajectory time in our implementation is simply ``T_t = \pi/2``.
+# Therefore, in most cases you simply need to select a value for ``N_t`` and then use the default assigned time-step ``\Delta t = \pi / (2 N_t)``,
+# such that the trajectory length is held fixed at ``T_t = \pi/2``.
+# With this convention the computational cost of performing updates still increases linearly with ``N_t``, but the acceptance rate also increases with ``N_t``.
+# Note that it can be important to keep the acceptance rate for the HMC updates above ``\sim 90\%`` to avoid numerical instabilities from occuring.
 
-# Based on user experience, a good (conservative) starting place is to set the number of time-step to ``N_t \approx 10,``
-# and then set the time-step size to ``\Delta t \approx \pi/(2\Omega N_t),``
-# effectively setting the integrated trajectory time to ``T_t = \pi/(2\Omega).``
-# Then, if the acceptance rate is too low you increase ``N_t,`` which results in a reduction of ``\Delta t.``
-# Conversely, if the acceptance rate is very high ``(\gtrsim 99 \% )`` it can be useful to decrease ``N_t``,
+# Based on user experience, a good (conservative) starting place is to set the number of time-steps to ``N_t \approx 10.``
+# Then, if the acceptance rate is too low you increase ``N_t,`` which implicitly results in a reduction of ``\Delta t.``
+# Conversely, if the acceptance rate is very high ``(\gtrsim 99 \% )`` it may be useful to decrease ``N_t``,
 # thereby increasing ``\Delta t,`` as this will reduce the computational cost of performing an EFA-HMC update.
 
     ## Number of fermionic time-steps in HMC update.
     Nt = 10
 
-    ## Fermionic time-step used in HMC update.
-    Δt = π/(2*Ω*Nt)
-
     ## Initialize Hamitlonian/Hybrid monte carlo (HMC) updater.
     hmc_updater = EFAHMCUpdater(
         electron_phonon_parameters = electron_phonon_parameters,
-        G = G, Nt = Nt, Δt = Δt
+        G = G, Nt = Nt, Δt = π/(2*Nt)
     )
 
 # ## Thermalize system

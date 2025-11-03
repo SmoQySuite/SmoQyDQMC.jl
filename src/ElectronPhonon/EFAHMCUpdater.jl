@@ -52,7 +52,7 @@ end
         electron_phonon_parameters::ElectronPhononParameters{T,E},
         G::Matrix{T},
         Nt::Int,
-        Δt::E,
+        Δt::E = π/(2*Nt),
         reg::E = 0.0,
         δ::E = 0.05
     ) where {T<:Number, E<:AbstractFloat}
@@ -62,8 +62,8 @@ end
 - `electron_phonon_parameters::ElectronPhononParameters{T,E}`: Defines electron-phonon model.
 - `G::Matrix{T}`: Sample Green's function matrix.
 - `Nt::Int`: Number of time-steps used in EFA-HMC update.
-- `Δt::E`: Average step size used for HMC update.
-- `reg::E = Inf`: Regularization used for mass in equations of motion.
+- `Δt::E = π/(2*Nt)`: Average step size used for HMC update.
+- `reg::E = 0.0`: Regularization used for mass in equations of motion.
 - `δ::E = 0.05`: Amount of jitter added to time-step used in EFA-HMC update.
 """
 function EFAHMCUpdater(;
@@ -71,7 +71,7 @@ function EFAHMCUpdater(;
     electron_phonon_parameters::ElectronPhononParameters{T,E},
     G::Matrix{T},
     Nt::Int,
-    Δt::E,
+    Δt::E = π/(2*Nt),
     reg::E = 0.0,
     δ::E = 0.05
 ) where {T<:Number, E<:AbstractFloat}

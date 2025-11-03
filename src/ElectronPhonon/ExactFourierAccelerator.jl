@@ -44,10 +44,12 @@ function ExactFourierAccelerator(
             # if finite phonon mass
             else
                 # calculate the spring constant
-                k = Δτ*M[i]*Ω[i]^2 + 4*M[i]*sin(π*(n-1)/Lτ)^2/Δτ
+                k = Δτ*M[i]*Ω[i]^2 * ( 1 + (2*sin(π*(n-1)/Lτ)/(Δτ*Ω[i]))^2 )
                 # calculate fourier mode mass
-                Ω′ = iszero(Ω[i]) ? η : sqrt((1+η^2) * Ω[i]^2)
-                m[i,n] = isinf(η) ? Δτ*M[i] : Δτ*M[i] * (Ω′^2 + 4/Δτ^2*sin(π*(n-1)/Lτ)^2) / Ω′^2
+                η  = (iszero(Ω[i]) && iszero(η)) ? 1.0 : η
+                Ω′ = iszero(Ω[i]) ? η : sqrt(1+η^2)*Ω[i]
+                Ω″ = (iszero(Ω[i]) && isinf(η)) ? 1.0 : Ω′
+                m[i,n] = isinf(η) ? Δτ*M[i]*Ω″^2 : Δτ*M[i]*Ω″^2 * ( 1 + (2*sin(π*(n-1)/Lτ)/(Δτ*Ω′))^2 )
                 # calculate fourier mode frequency
                 ω[i,n] = sqrt(k/m[i,n])
             end

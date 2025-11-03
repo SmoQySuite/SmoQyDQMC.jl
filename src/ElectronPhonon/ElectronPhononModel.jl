@@ -385,6 +385,7 @@ end
 
 @doc raw"""
     PhononDispersion(;
+        # KEYWORD ARGUMENTS
         model_geometry::ModelGeometry{D,E},
         phonon_ids::NTuple{2,Int},
         displacement::AbstractVector{Int},
@@ -397,6 +398,7 @@ end
 Initialize and return a instance of [`PhononDispersion`](@ref).
 """
 function PhononDispersion(;
+    # KEYWORD ARGUMENTS
     model_geometry::ModelGeometry{D,E},
     phonon_ids::NTuple{2,Int},
     displacement::AbstractVector{Int},
@@ -448,6 +450,7 @@ end
 
 @doc raw"""
     ElectronPhononModel(;
+        # KEYWORD ARGUMENTS
         model_geometry::ModelGeometry{D,E},
         tight_binding_model::Union{TightBindingModel{T,E,D}, Nothing} = nothing,
         tight_binding_model_up::Union{TightBindingModel{T,E,D}, Nothing} = nothing,
@@ -459,6 +462,7 @@ Note that either `tight_binding_model` or `tight_binding_model_up` and `tight_bi
 needs to be specified.
 """
 function ElectronPhononModel(;
+    # KEYWORD ARGUMENTS
     model_geometry::ModelGeometry{D,E},
     tight_binding_model::Union{TightBindingModel{T,E,D}, Nothing} = nothing,
     tight_binding_model_up::Union{TightBindingModel{T,E,D}, Nothing} = nothing,
@@ -696,6 +700,7 @@ end
 
 @doc raw"""
     add_phonon_mode!(;
+        # KEYWORD ARGUMENTS
         electron_phonon_model::ElectronPhononModel{T,E,D},
         phonon_mode::PhononMode{E,D}
     ) where {T<:Number, E<:AbstractFloat, D}
@@ -703,6 +708,7 @@ end
 Add a [`PhononMode`](@ref) to an [`ElectronPhononModel`](@ref).
 """
 function add_phonon_mode!(;
+    # KEYWORD ARGUMENTS
     electron_phonon_model::ElectronPhononModel{T,E,D},
     phonon_mode::PhononMode{E,D}
 ) where {T<:Number, E<:AbstractFloat, D}
@@ -716,6 +722,7 @@ end
 
 @doc raw"""
     add_phonon_dispersion!(;
+        # KEYWORD ARGUMENTS
         electron_phonon_model::ElectronPhononModel{T,E,D},
         phonon_dispersion::PhononDispersion{E,D},
         model_geometry::ModelGeometry{D,E}
@@ -724,6 +731,7 @@ end
 Add a [`PhononDispersion`](@ref) to an [`ElectronPhononModel`](@ref).
 """
 function add_phonon_dispersion!(;
+    # KEYWORD ARGUMENTS
     electron_phonon_model::ElectronPhononModel{T,E,D},
     phonon_dispersion::PhononDispersion{E,D},
     model_geometry::ModelGeometry{D,E}
@@ -745,6 +753,7 @@ end
 
 @doc raw"""
     add_holstein_coupling!(;
+        # KEYWORD ARGUMENTS
         model_geometry::ModelGeometry{D,E},
         electron_phonon_model::ElectronPhononModel{T,E,D},
         holstein_coupling::Union{HolsteinCoupling{E,D}, Nothing} = nothing,
@@ -756,6 +765,7 @@ Add the [`HolsteinCoupling`](@ref) to an [`ElectronPhononModel`](@ref). Note tha
 or `holstein_coupling_up` and `holstein_coupling_dn` must be specified.
 """
 function add_holstein_coupling!(;
+    # KEYWORD ARGUMENTS
     model_geometry::ModelGeometry{D,E},
     electron_phonon_model::ElectronPhononModel{T,E,D},
     holstein_coupling::Union{HolsteinCoupling{E,D}, Nothing} = nothing,
@@ -798,6 +808,7 @@ end
 
 @doc raw"""
     add_ssh_coupling!(;
+        # KEYWORD ARGUMENTS
         electron_phonon_model::ElectronPhononModel{T,E,D},
         tight_binding_model::Union{TightBindingModel{T,E,D}, Nothing} = nothing,
         ssh_coupling::Union{SSHCoupling{T,E,D}, Nothing} = nothing,
@@ -813,6 +824,7 @@ Note that either `ssh_coupling` and `tight_binding_model` or
 `tight_binding_model_dn` need to be specified.
 """
 function add_ssh_coupling!(;
+    # KEYWORD ARGUMENTS
     electron_phonon_model::ElectronPhononModel{T,E,D},
     tight_binding_model::Union{TightBindingModel{T,E,D}, Nothing} = nothing,
     ssh_coupling::Union{SSHCoupling{T,E,D}, Nothing} = nothing,

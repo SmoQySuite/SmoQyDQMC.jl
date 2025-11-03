@@ -482,13 +482,10 @@ No changes need to made to this section of the code from the previous
     # Number of fermionic time-steps in HMC update.
     Nt = 10
 
-    # Fermionic time-step used in HMC update.
-    Δt = π/(2*Ω*Nt)
-
     # Initialize Hamitlonian/Hybrid monte carlo (HMC) updater.
     hmc_updater = EFAHMCUpdater(
         electron_phonon_parameters = electron_phonon_parameters,
-        G = G, Nt = Nt, Δt = Δt
+        G = G, Nt = Nt, Δt = π/(2*Nt)
     )
 ````
 

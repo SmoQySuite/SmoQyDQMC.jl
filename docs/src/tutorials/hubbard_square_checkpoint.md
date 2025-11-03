@@ -382,8 +382,8 @@ We then extract the cotents of the checkpoint file from the `checkpoint` diction
 
         # Unpack contents of checkpoint dictionary.
         tight_binding_parameters    = checkpoint["tight_binding_parameters"]
-        hubbard_parameters              = checkpoint["hubbard_parameters"]
-        hst_parameters = checkpoint["hst_parameters"]
+        hubbard_parameters          = checkpoint["hubbard_parameters"]
+        hst_parameters              = checkpoint["hst_parameters"]
         measurement_container       = checkpoint["measurement_container"]
         model_geometry              = checkpoint["model_geometry"]
         metadata                    = checkpoint["metadata"]

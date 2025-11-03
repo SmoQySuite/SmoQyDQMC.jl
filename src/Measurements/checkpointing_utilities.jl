@@ -77,6 +77,14 @@ function read_jld2_checkpoint(
     # record the checkpoint timestamp as the current time
     checkpoint_timestamp = time()
 
+    # get the bin files and copy the information over to the simulation info struct
+    simulation_info.bin_files = checkpoint["bin_files"]
+
+    # re-calculate the forward FFT plan and record and add it to the measurement container.
+    (; a, L) = checkpoint["measurement_container"]
+    pfft! = plan_fft!(zeros(eltype(a), L...); flags=FFTW.PATIENT)
+    checkpoint["measurement_container"] = (; pfft! = pfft!, checkpoint["measurement_container"]...)
+
     return checkpoint, checkpoint_timestamp
 end
 
@@ -86,7 +94,10 @@ end
         # Arguments
         comm::MPI.Comm,
         simulation_info::SimulationInfo;
-        # Keyword Arguments
+        # Required Keyword Arguments
+        model_geometry::ModelGeometry,
+        measurement_container::NamedTuple,
+        # Optional Keyword Arguments
         checkpoint_timestamp::T = 0.0,
         checkpoint_freq::T = 0.0,
         start_timestamp::T = 0.0,
@@ -99,7 +110,10 @@ end
     write_jld2_checkpoint(
         # Arguments
         simulation_info::SimulationInfo;
-        # Keyword Arguments
+        # Required Keyword Arguments
+        model_geometry::ModelGeometry,
+        measurement_container::NamedTuple,
+        # Optional Keyword Arguments
         checkpoint_timestamp::T = 0.0,
         checkpoint_freq::T = 0.0,
         start_timestamp::T = 0.0,
@@ -135,7 +149,10 @@ function write_jld2_checkpoint(
     # Arguments
     comm::MPI.Comm,
     simulation_info::SimulationInfo;
-    # Keyword Arguments
+    # Required Keyword Arguments
+    model_geometry::ModelGeometry,
+    measurement_container::NamedTuple,
+    # Optional Keyword Arguments
     checkpoint_timestamp::T = 0.0,
     checkpoint_freq::T = 0.0,
     start_timestamp::T = 0.0,
@@ -148,6 +165,8 @@ function write_jld2_checkpoint(
     # write JLD2 checkpoint file
     checkpoint_timestamp = _write_jld2_checkpoint(
         simulation_info, checkpoint_timestamp, checkpoint_freq;
+        model_geometry = model_geometry,
+        measurement_container = measurement_container,
         kwargs...
     )
 
@@ -167,7 +186,10 @@ end
 function write_jld2_checkpoint(
     # Arguments
     simulation_info::SimulationInfo;
-    # Keyword Arguments
+    # Required Keyword Arguments
+    model_geometry::ModelGeometry,
+    measurement_container::NamedTuple,
+    # Optional Keyword Arguments
     checkpoint_timestamp::T = 0.0,
     checkpoint_freq::T = 0.0,
     start_timestamp::T = 0.0,
@@ -180,6 +202,8 @@ function write_jld2_checkpoint(
     # write JLD2 checkpoint file
     checkpoint_timestamp = _write_jld2_checkpoint(
         simulation_info, checkpoint_timestamp, checkpoint_freq;
+        model_geometry = model_geometry,
+        measurement_container = measurement_container,
         kwargs...
     )
 
@@ -199,6 +223,9 @@ function _write_jld2_checkpoint(
     simulation_info::SimulationInfo,
     previous_checkpoint_timestamp::T,
     checkpoint_freq::T;
+    # Required Keyword Arguments
+    model_geometry::ModelGeometry,
+    measurement_container::NamedTuple,
     # Arbitrary Keyword Arguments
     kwargs...
 ) where {T<:AbstractFloat}
@@ -218,13 +245,26 @@ function _write_jld2_checkpoint(
         # construct checkpoint filenames
         checkpoint_fn = joinpath(datafolder, "checkpoint_pID-$(pID).jld2")
 
+        # get the bin files stored in the simulation_info struct
+        bin_files = simulation_info.bin_files
+
         # if current checkpoint file exists, make it the old one
         if isfile(checkpoint_fn)
             # define old and new checkpoint filenames
             checkpoint_fn_old = joinpath(datafolder, "checkpoint_old_pID-$(pID).jld2")
             checkpoint_fn_new = joinpath(datafolder, "checkpoint_new_pID-$(pID).jld2")
             # save new checkpoint file
-            jldsave(checkpoint_fn_new; kwargs...)
+            jldsave(
+                checkpoint_fn_new;
+                bin_files, model_geometry,
+                # Note that the FFT plan stored inside the measurement_container cannot
+                # be written to file as it is essentially just C-pointers that are invalid
+                # when read back in and will result in seg faults. Therefore, I am filtering
+                # out the FFT plan `pfft!` field here.
+                measurement_container = (;
+                    (k => v for (k,v) in pairs(measurement_container) if k != :pfft!)...
+                ), kwargs...
+            )
             # move current checkpoint to old checkpoint
             mv(checkpoint_fn, checkpoint_fn_old, force = true)
             # make new checkpoint file the current one
@@ -234,7 +274,17 @@ function _write_jld2_checkpoint(
         # if no checkpoint file exists then create new one
         else
             # save new checkpoint file
-            jldsave(checkpoint_fn; kwargs...)
+            jldsave(
+                checkpoint_fn;
+                bin_files, model_geometry,
+                # Note that the FFT plan stored inside the measurement_container cannot
+                # be written to file as it is essentially just C-pointers that are invalid
+                # when read back in and will result in seg faults. Therefore, I am filtering
+                # out the FFT plan `pfft!` field here.
+                measurement_container = (;
+                    (k => v for (k,v) in pairs(measurement_container) if k != :pfft!)...
+                ), kwargs...
+            )
         end
 
         # create new checkpoint timestamp
