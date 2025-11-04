@@ -47,6 +47,7 @@ function run_simulation(;
     N_therm, # Number of thermalization updates.
     N_updates, # Total number of measurements and measurement updates.
     N_bins, # Number of times bin-averaged measurements are written to file.
+    Nt = 10, # Number of time-steps in HMC update.
     Δτ = 0.05, # Discretization in imaginary time.
     n_stab = 10, # Numerical stabilization period in imaginary-time slices.
     δG_max = 1e-6, # Threshold for numerical error corrected by stabilization.
@@ -88,6 +89,7 @@ function run_simulation(;
     metadata = Dict()
 
     ## Record simulation parameters.
+    metadata["Nt"] = Nt
     metadata["N_therm"] = N_therm
     metadata["N_updates"] = N_updates
     metadata["N_bins"] = N_bins
@@ -459,13 +461,10 @@ function run_simulation(;
 # Conversely, if the acceptance rate is very high ``(\gtrsim 99 \% )`` it may be useful to decrease ``N_t``,
 # thereby increasing ``\Delta t,`` as this will reduce the computational cost of performing an EFA-HMC update.
 
-    ## Number of fermionic time-steps in HMC update.
-    Nt = 10
-
     ## Initialize Hamitlonian/Hybrid monte carlo (HMC) updater.
     hmc_updater = EFAHMCUpdater(
         electron_phonon_parameters = electron_phonon_parameters,
-        G = G, Nt = Nt, Δt = π/(2*Nt)
+        G = G, Nt = Nt, Δt = π/(2*Nt) # Δt argument is optional
     )
 
 # ## Thermalize system

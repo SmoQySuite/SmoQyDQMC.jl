@@ -42,6 +42,7 @@ function run_simulation(
     N_bins, # Number of times bin-averaged measurements are written to file.
     checkpoint_freq, # Frequency with which checkpoint files are written in hours.
     runtime_limit = Inf, # Simulation runtime limit in hours.
+    Nt = 10, # Number of time-steps in HMC update.
     Δτ = 0.05, # Discretization in imaginary time.
     n_stab = 10, # Numerical stabilization period in imaginary-time slices.
     δG_max = 1e-6, # Threshold for numerical error corrected by stabilization.
@@ -104,6 +105,7 @@ function run_simulation(
 
         ## Record simulation parameters.
         metadata["mu"] = μ
+        metadata["Nt"] = Nt
         metadata["N_therm"] = N_therm
         metadata["N_updates"] = N_updates
         metadata["N_bins"] = N_bins
@@ -459,9 +461,6 @@ function run_simulation(
 # No changes need to made to this section of the code from the previous
 # [2c) Honeycomb Holstein Model with Checkpointing](@ref) tutorial.
 
-    ## Number of fermionic time-steps in HMC update.
-    Nt = 10
-
     ## Initialize Hamitlonian/Hybrid monte carlo (HMC) updater.
     hmc_updater = EFAHMCUpdater(
         electron_phonon_parameters = electron_phonon_parameters,
@@ -678,6 +677,7 @@ function run_simulation(
 
     ## Calculate CDW correlation ratio.
     Rcdw, ΔRcdw = compute_composite_correlation_ratio(
+        comm;
         datafolder = simulation_info.datafolder,
         name = "cdw",
         type = "equal-time",
