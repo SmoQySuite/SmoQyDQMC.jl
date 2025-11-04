@@ -606,7 +606,7 @@ function run_simulation(
         ]
     )
 
-    # Record the correlation ratio.
+    ## Record the correlation ratio.
     metadata["Rbow_mean_real"] = real(Rbow)
     metadata["Rbow_mean_imag"] = imag(Rbow)
     metadata["Rbow_std"] = ΔRbow
