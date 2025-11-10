@@ -47,6 +47,7 @@ function run_simulation(
     N_bins, # Number of times bin-averaged measurements are written to file.
     checkpoint_freq, # Frequency with which checkpoint files are written in hours.
     runtime_limit = Inf, # Simulation runtime limit in hours.
+    Nt = 10, # Number of time-steps in HMC update.
     Δτ = 0.05, # Discretization in imaginary time.
     n_stab = 10, # Numerical stabilization period in imaginary-time slices.
     δG_max = 1e-6, # Threshold for numerical error corrected by stabilization.
@@ -100,6 +101,7 @@ function run_simulation(
         metadata = Dict()
 
         # Record simulation parameters.
+        metadata["Nt"] = Nt
         metadata["N_therm"] = N_therm
         metadata["N_updates"] = N_updates
         metadata["N_bins"] = N_bins
@@ -276,6 +278,18 @@ function run_simulation(
             ]
         )
 
+        # Initialize the bond correlation measurement
+        initialize_correlation_measurements!(
+            measurement_container = measurement_container,
+            model_geometry = model_geometry,
+            correlation = "bond",
+            time_displaced = false,
+            integrated = true,
+            pairs = [
+                (bond_id, bond_id),
+            ]
+        )
+
         # Write initial checkpoint file.
         checkpoint_timestamp = write_jld2_checkpoint(
             comm,
@@ -335,12 +349,6 @@ function run_simulation(
     # Initialize diagonostic parameters to asses numerical stability.
     δG = zero(logdetG)
     δθ = zero(logdetG)
-
-    # Number of fermionic time-steps in HMC update.
-    Nt = 10
-
-    # Number of fermionic time-steps in HMC update.
-    Nt = 10
 
     # Initialize Hamitlonian/Hybrid monte carlo (HMC) updater.
     hmc_updater = EFAHMCUpdater(

@@ -37,6 +37,7 @@ function run_simulation(
     N_therm, # Number of thermalization updates.
     N_updates, # Total number of measurements and measurement updates.
     N_bins, # Number of times bin-averaged measurements are written to file.
+    Nt = 10, # Number of time-steps in HMC update.
     Δτ = 0.05, # Discretization in imaginary time.
     n_stab = 10, # Numerical stabilization period in imaginary-time slices.
     δG_max = 1e-6, # Threshold for numerical error corrected by stabilization.
@@ -89,6 +90,7 @@ No changes need to made to this section of the code from the previous [2a) Honey
     metadata = Dict()
 
     # Record simulation parameters.
+    metadata["Nt"] = Nt
     metadata["N_therm"] = N_therm
     metadata["N_updates"] = N_updates
     metadata["N_bins"] = N_bins
@@ -207,7 +209,7 @@ No changes need to made to this section of the code from the previous [2a) Honey
         model_geometry = model_geometry
     )
 
-    # Define first local Holstein coupling for first phonon mode.
+    # Define second local Holstein coupling for second phonon mode.
     holstein_coupling_2 = HolsteinCoupling(
         model_geometry = model_geometry,
         phonon_id = phonon_2_id,
@@ -217,7 +219,7 @@ No changes need to made to this section of the code from the previous [2a) Honey
         ph_sym_form = true,
     )
 
-    # Add the first local Holstein coupling definition to the model.
+    # Add the second local Holstein coupling definition to the model.
     holstein_coupling_2_id = add_holstein_coupling!(
         electron_phonon_model = electron_phonon_model,
         holstein_coupling = holstein_coupling_2,
@@ -394,9 +396,6 @@ No changes need to made to this section of the code from the previous [2a) Honey
 No changes need to made to this section of the code from the previous [2a) Honeycomb Holstein Model](@ref) tutorial.
 
 ````julia
-    # Number of fermionic time-steps in HMC update.
-    Nt = 10
-
     # Initialize Hamitlonian/Hybrid monte carlo (HMC) updater.
     hmc_updater = EFAHMCUpdater(
         electron_phonon_parameters = electron_phonon_parameters,
@@ -555,7 +554,7 @@ such that the first argument is the `comm` object, thereby ensuring a paralleliz
     # Process the simulation results, calculating final error bars for all measurements.
     # writing final statisitics to CSV files.
     process_measurements(
-        comm,
+        comm;
         datafolder = simulation_info.datafolder,
         n_bins = N_bins,
         export_to_csv = true,
@@ -566,6 +565,7 @@ such that the first argument is the `comm` object, thereby ensuring a paralleliz
 
     # Calculate CDW correlation ratio.
     Rcdw, ΔRcdw = compute_composite_correlation_ratio(
+        comm;
         datafolder = simulation_info.datafolder,
         name = "cdw",
         type = "equal-time",

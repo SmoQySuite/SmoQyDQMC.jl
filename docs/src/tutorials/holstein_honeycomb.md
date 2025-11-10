@@ -55,6 +55,7 @@ function run_simulation(;
     N_therm, # Number of thermalization updates.
     N_updates, # Total number of measurements and measurement updates.
     N_bins, # Number of times bin-averaged measurements are written to file.
+    Nt = 10, # Number of time-steps in HMC update.
     Δτ = 0.05, # Discretization in imaginary time.
     n_stab = 10, # Numerical stabilization period in imaginary-time slices.
     δG_max = 1e-6, # Threshold for numerical error corrected by stabilization.
@@ -100,6 +101,7 @@ The important metadata within the simulation will be recorded in the `metadata` 
     metadata = Dict()
 
     # Record simulation parameters.
+    metadata["Nt"] = Nt
     metadata["N_therm"] = N_therm
     metadata["N_updates"] = N_updates
     metadata["N_bins"] = N_bins
@@ -249,7 +251,7 @@ indicates whether the particle-hole symmetric form (`ph_sym_form = true`) the Ho
         model_geometry = model_geometry
     )
 
-    # Define first local Holstein coupling for first phonon mode.
+    # Define second local Holstein coupling for second phonon mode.
     holstein_coupling_2 = HolsteinCoupling(
         model_geometry = model_geometry,
         phonon_id = phonon_2_id,
@@ -259,7 +261,7 @@ indicates whether the particle-hole symmetric form (`ph_sym_form = true`) the Ho
         ph_sym_form = true,
     )
 
-    # Add the first local Holstein coupling definition to the model.
+    # Add the second local Holstein coupling definition to the model.
     holstein_coupling_2_id = add_holstein_coupling!(
         electron_phonon_model = electron_phonon_model,
         holstein_coupling = holstein_coupling_2,
@@ -498,13 +500,10 @@ Conversely, if the acceptance rate is very high ``(\gtrsim 99 \% )`` it may be u
 thereby increasing ``\Delta t,`` as this will reduce the computational cost of performing an EFA-HMC update.
 
 ````julia
-    # Number of fermionic time-steps in HMC update.
-    Nt = 10
-
     # Initialize Hamitlonian/Hybrid monte carlo (HMC) updater.
     hmc_updater = EFAHMCUpdater(
         electron_phonon_parameters = electron_phonon_parameters,
-        G = G, Nt = Nt, Δt = π/(2*Nt)
+        G = G, Nt = Nt, Δt = π/(2*Nt) # Δt argument is optional
     )
 ````
 

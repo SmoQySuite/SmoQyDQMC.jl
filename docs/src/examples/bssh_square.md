@@ -46,6 +46,7 @@ function run_simulation(
     N_bins, # Number of times bin-averaged measurements are written to file.
     checkpoint_freq, # Frequency with which checkpoint files are written in hours.
     runtime_limit = Inf, # Simulation runtime limit in hours.
+    Nt = 10, # Number of time-steps in HMC update.
     Δτ = 0.05, # Discretization in imaginary time.
     n_stab = 10, # Numerical stabilization period in imaginary-time slices.
     δG_max = 1e-6, # Threshold for numerical error corrected by stabilization.
@@ -66,7 +67,7 @@ function run_simulation(
     checkpoint_freq = checkpoint_freq * 60.0^2
 
     # Construct the foldername the data will be written to.
-    datafolder_prefix = @sprintf "ossh_square_w%.2f_a%.2f_mu%.2f_L%d_b%.2f" Ω α μ L β
+    datafolder_prefix = @sprintf "bssh_square_w%.2f_a%.2f_mu%.2f_L%d_b%.2f" Ω α μ L β
 
     # Get MPI process ID.
     pID = MPI.Comm_rank(comm)
@@ -99,6 +100,7 @@ function run_simulation(
         metadata = Dict()
 
         # Record simulation parameters.
+        metadata["Nt"] = Nt
         metadata["N_therm"] = N_therm
         metadata["N_updates"] = N_updates
         metadata["N_bins"] = N_bins
@@ -131,16 +133,28 @@ function run_simulation(
         model_geometry = ModelGeometry(unit_cell, lattice)
 
         # Define the nearest-neighbor bond in the x-direction.
-        bond_x = lu.Bond(orbitals = (1,1), displacement = [1,0])
+        bond_px = lu.Bond(orbitals = (1,1), displacement = [1,0])
 
         # Add this bond in x-direction to the model geometry.
-        bond_x_id = add_bond!(model_geometry, bond_x)
+        bond_px_id = add_bond!(model_geometry, bond_px)
 
         # Define the nearest-neighbor bond in the y-direction.
-        bond_y = lu.Bond(orbitals = (1,1), displacement = [0,1])
+        bond_py = lu.Bond(orbitals = (1,1), displacement = [0,1])
 
         # Add this bond in y-direction to the model geometry.
-        bond_y_id = add_bond!(model_geometry, bond_y)
+        bond_py_id = add_bond!(model_geometry, bond_py)
+
+        # Define the nearest-neighbor bond in the -x-direction.
+        bond_nx = lu.Bond(orbitals = (1,1), displacement = [-1,0])
+
+        # Add this bond in +x-direction to the model geometry.
+        bond_nx_id = add_bond!(model_geometry, bond_nx)
+
+        # Define the nearest-neighbor bond in the -y-direction.
+        bond_ny = lu.Bond(orbitals = (1,1), displacement = [0,-1])
+
+        # Add this bond in +y-direction to the model geometry.
+        bond_ny_id = add_bond!(model_geometry, bond_ny)
 
         # Define nearest-neighbor hopping amplitude, setting the energy scale for the system.
         t = 1.0
@@ -148,7 +162,7 @@ function run_simulation(
         # Define the tight-binding model
         tight_binding_model = TightBindingModel(
             model_geometry = model_geometry,
-            t_bonds = [bond_x, bond_y], # defines hopping
+            t_bonds = [bond_px, bond_py], # defines hopping
             t_mean = [t, t], # defines corresponding hopping amplitude
             μ = μ, # set chemical potential
             ϵ_mean = [0.] # set the (mean) on-site energy
@@ -202,7 +216,7 @@ function run_simulation(
             model_geometry = model_geometry,
             tight_binding_model = tight_binding_model,
             phonon_ids = (fphonon_id, phonon_x_id),
-            bond = bond_x,
+            bond = bond_px,
             α_mean = α
         )
 
@@ -218,7 +232,7 @@ function run_simulation(
             model_geometry = model_geometry,
             tight_binding_model = tight_binding_model,
             phonon_ids = (fphonon_id, phonon_y_id),
-            bond = bond_y,
+            bond = bond_py,
             α_mean = α
         )
 
@@ -282,8 +296,8 @@ function run_simulation(
             correlation = "phonon_greens",
             time_displaced = true,
             pairs = [
-                # Measure green's functions for all pairs of modes.
-                (1, 1),
+                (phonon_x_id, phonon_x_id),
+                (phonon_y_id, phonon_y_id),
             ]
         )
 
@@ -323,6 +337,48 @@ function run_simulation(
             pairs = [
                 (1, 1),
             ]
+        )
+
+        # Initialize the bond correlation measurement
+        initialize_correlation_measurements!(
+            measurement_container = measurement_container,
+            model_geometry = model_geometry,
+            correlation = "bond",
+            time_displaced = false,
+            integrated = true,
+            pairs = [
+                (bond_px_id, bond_px_id),
+                (bond_py_id, bond_py_id),
+                (bond_px_id, bond_py_id),
+            ]
+        )
+
+        # Measure composite bond correlation for detecting a bond ordered wave (BOW)
+        # that breaks a C4 rotation symmetry.
+        initialize_composite_correlation_measurement!(
+            measurement_container = measurement_container,
+            model_geometry = model_geometry,
+            name = "BOW_C4",
+            correlation = "bond",
+            ids = [bond_px_id, bond_py_id, bond_nx_id, bond_ny_id],
+            coefficients = [+1.0, +1.0im, -1.0, -1.0im],
+            displacement_vecs = [[0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [0.0, 0.0]],
+            time_displaced = false,
+            integrated = true
+        )
+
+        # Measure composite bond correlation for detecting a bond ordered wave (BOW)
+        # that breaks a C2 rotation symmetry.
+        initialize_composite_correlation_measurement!(
+            measurement_container = measurement_container,
+            model_geometry = model_geometry,
+            name = "BOW_C2",
+            correlation = "bond",
+            ids = [bond_px_id, bond_py_id, bond_nx_id, bond_ny_id],
+            coefficients = [+1.0, -1.0, +1.0, -1.0],
+            displacement_vecs = [[0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [0.0, 0.0]],
+            time_displaced = false,
+            integrated = true
         )
 
         # Write initial checkpoint file.
@@ -384,9 +440,6 @@ function run_simulation(
     # Initialize diagonostic parameters to asses numerical stability.
     δG = zero(logdetG)
     δθ = zero(logdetG)
-
-    # Number of fermionic time-steps in HMC update.
-    Nt = 10
 
     # Initialize Hamitlonian/Hybrid monte carlo (HMC) updater.
     hmc_updater = EFAHMCUpdater(
@@ -557,6 +610,24 @@ function run_simulation(
         decimals = 7,
         delimiter = " "
     )
+
+    # Calculate C4 BOW q=(π,π) correlation ratio.
+    Rbow, ΔRbow = compute_composite_correlation_ratio(
+        comm;
+        datafolder = simulation_info.datafolder,
+        name = "BOW_C4",
+        type = "equal-time",
+        q_point = (L÷2, L÷2),
+        q_neighbors = [
+            (L÷2+1, L÷2), (L÷2, L÷2+1),
+            (L÷2-1, L÷2), (L÷2, L÷2-1)
+        ]
+    )
+
+    # Record the correlation ratio.
+    metadata["Rbow_mean_real"] = real(Rbow)
+    metadata["Rbow_mean_imag"] = imag(Rbow)
+    metadata["Rbow_std"] = ΔRbow
 
     # Write simulation summary TOML file.
     save_simulation_info(simulation_info, metadata)
