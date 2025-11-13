@@ -31,7 +31,7 @@ Below I group them together into related categories and define their meanings.
 
 - `n_bins::Union{Int, Nothing} = nothing`: Number of bins used to calculate statistics. If `nothing` then set equal to the number of data bins written to file during the simulation. Must be a factor of the number of bins written to file during the DQMC simulation.
 - `pIDs::Union{Int,Vector{Int}} = Int[]`: Specifies for which process IDs to calculate average statistics. If `pIDs = Int[]`, the calculate for all process IDs. If `comm::MPI.Comm` is passed as first function argument then `pIDs` must be of type `Vector{Int}` and not `Int`.
-- `filename_prefix::String = "stats"`: Start of filename for HDF5 containing final statistics. HDF5 files containing statistcis for a single process ID will end with `pID-$(pID).h5`.
+- `filename_prefix::String = "stats"`: Start of filename for HDF5 containing final statistics. HDF5 files containing statistics for a single process ID will end with `pID-$(pID).h5`.
 - `rm_binned_data::Bool = false`: Whether to delete the binned data after final statistics are computed.
 
 ## Keywords for Exporting Statistics to CSV
@@ -231,7 +231,9 @@ function process_measurements(;
     # determine relevant process IDs
     pIDs = isa(pIDs, Int) ? [pIDs,] : pIDs
     if isempty(pIDs)
-        pIDs = collect( 0 : length(readdir(joinpath(datafolder,"bins")))-1 )
+        bin_dir = joinpath(datafolder,"bins")
+        pID_bin_dirs = filter(f -> isdir(f) && startswith(f, "pID-"), readdir(bin_dir))
+        pIDs = collect( 0 : length(pID_bin_dirs) )
     end
 
     # construct filename for stats HDF5 file

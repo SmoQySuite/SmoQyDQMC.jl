@@ -78,6 +78,11 @@ export update_chemical_potential!, save_density_tuning_profile
 # utility functions for implementing a Gauss-Hermite Hubbard-Stratonovich Transformation
 include("GaussHermiteHSTUtilities.jl")
 
+# define abstract Hubbard-Stratonovich type
+include("AbstractHST.jl")
+export AbstractHST, AbstractSymHST, AbstractAsymHST
+export local_updates!, reflection_updates!, swap_updates!
+
 ###################
 ## HUBBARD MODEL ##
 ###################
@@ -88,7 +93,7 @@ export HubbardModel, HubbardParameters, initialize!
 
 # Spin-Channel Hirsch Hubbard-Stratonovich Transformation
 include("Hubbard/HubbardSpinHirschHST.jl")
-export HubbardSpinHirschHST, local_updates!
+export HubbardSpinHirschHST
 
 # Charge-Channel Hirsch Hubbard-Stratonovich Transformation
 include("Hubbard/HubbardDensityHirschHST.jl")
@@ -101,10 +106,6 @@ export HubbardSpinGaussHermiteHST
 # Density-Channel Gauss-Hermite Hubbard-Stratonovich Transformation
 include("Hubbard/HubbardDensityGaussHermiteHST.jl")
 export HubbardDensityGaussHermiteHST
-
-# Implement Ising Hubbard-Statonovich (HS) decoupling of Hubbard interaction, and various methods for update the IS HS fields
-include("Hubbard/HubbardIsingHS.jl")
-export HubbardIsingHSParameters
 
 ############################
 ## EXTENDED HUBBARD MODEL ##
@@ -122,9 +123,13 @@ export ExtendedHubbardParameters
 include("ExtendedHubbard/ext_hub_model_measurements.jl")
 export measure_ext_hub_energy
 
-# Define Extended Hubbard Gauss-Hermite Hubbard-Stratonovich Transformation
+# Define Extended Hubbard Density Channel Gauss-Hermite Hubbard-Stratonovich Transformation
 include("ExtendedHubbard/ExtHubDensityGaussHermiteHST.jl")
 export ExtHubDensityGaussHermiteHST, init_renormalized_hubbard_parameters
+
+# Define Extended Hubbard Spin Channel Hirsch Hubbard-Stratonovich Transformation
+include("ExtendedHubbard/ExtHubSpinHirschHST.jl")
+export ExtHubSpinHirschHST
 
 ###########################
 ## ELECTRON-PHONON MODEL ##

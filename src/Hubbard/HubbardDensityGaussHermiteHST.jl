@@ -1,6 +1,6 @@
 
 @doc raw"""
-    HubbardDensityHirschHST{T<:Number, E<:AbstractFloat}
+    HubbardDensityGaussHermiteHST{T,R} <: AbstractSymHST{T,R}
 
 This type represents a Hubbard-Stratonovich (HS) transformation for decoupling the local Hubbard interaction in the density channel,
 where the introduced HS fields take on the four discrete values ``s \in \{ -2, -1, +1, +2 \}.``
@@ -25,13 +25,13 @@ and
 ```
 Note that ``\alpha`` is strictly real when ``U \le 0`` and strictly imaginary when ``U > 0``.
 """
-struct HubbardDensityGaussHermiteHST{T<:Number, E<:AbstractFloat}
+struct HubbardDensityGaussHermiteHST{T,R} <: AbstractSymHST{T,R}
 
     # inverse temperature
-    β::E
+    β::R
 
     # discretization in imaginary time
-    Δτ::E
+    Δτ::R
 
     # length of imaginary time axis
     Lτ::Int
@@ -40,7 +40,7 @@ struct HubbardDensityGaussHermiteHST{T<:Number, E<:AbstractFloat}
     N::Int
 
     # each finite hubbard interaction
-    U::Vector{E}
+    U::Vector{R}
     
     # HST coupling coefficient
     α::Vector{T}
@@ -95,22 +95,8 @@ function HubbardDensityGaussHermiteHST(;
 end
 
 
-@doc raw"""
-    initialize!(
-        fermion_path_integral_up::FermionPathIntegral{H},
-        fermion_path_integral_dn::FermionPathIntegral{H},
-        hst_parameters::HubbardDensityGaussHermiteHST{T}
-    ) where {H<:Number, T<:Number}
-
-    initialize!(
-        fermion_path_integral::FermionPathIntegral{H},
-        hst_parameters::HubbardDensityGaussHermiteHST{T},
-    ) where {H<:Number, U<:Number}
-
-Initialize [`FermionPathIntegral`](@ref) instances to reflect the initial
-HS field configuration represented by the [`HubbardDensityGaussHermiteHST`](@ref) type.
-"""
-function initialize!(
+# initialize fermion path integral to reflect Hubbard-Stratonovich field configuration for both spin species
+function _initialize!(
     fermion_path_integral_up::FermionPathIntegral{H},
     fermion_path_integral_dn::FermionPathIntegral{H},
     hst_parameters::HubbardDensityGaussHermiteHST{T}
@@ -125,7 +111,8 @@ function initialize!(
     return nothing
 end
 
-function initialize!(
+# initialize fermion path integral to reflect Hubbard-Stratonovich field configuration
+function _initialize!(
     fermion_path_integral::FermionPathIntegral{H},
     hst_parameters::HubbardDensityGaussHermiteHST{T},
 ) where {H<:Number, T<:Number}
@@ -147,249 +134,99 @@ function initialize!(
     return nothing
 end
 
-
-@doc raw"""
-    local_updates!(
-        # ARGUMENTS
-        Gup::Matrix{H}, logdetGup::R, sgndetGup::H,
-        Gdn::Matrix{H}, logdetGdn::R, sgndetGdn::H,
-        hst_parameters::HubbardDensityGaussHermiteHST{T,R};
-        # KEYWORD ARGUMENTS
-        fermion_path_integral_up::FermionPathIntegral{H},
-        fermion_path_integral_dn::FermionPathIntegral{H},
-        fermion_greens_calculator_up::FermionGreensCalculator{H},
-        fermion_greens_calculator_dn::FermionGreensCalculator{H},
-        Bup::Vector{P}, Bdn::Vector{P},
-        δG::R, δθ::R,  rng::AbstractRNG,
-        δG_max::R = 1e-6,
-        update_stabilization_frequency::Bool = true
-    ) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator}
-
-Perform local updates to density-channel Hirsch Hubbard-Stratonovich fields.
-This method returns a tuple containing `(acceptance_rate, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ)`.
-
-# Arguments
-
-- `Gup::Matrix{H}`: Spin-up equal-time Green's function matrix.
-- `logdetGup::R`: The log of the absolute value of the determinant of the spin-up equal-time Green's function matrix, ``\log \vert \det G_\uparrow(\tau,\tau) \vert.``
-- `sgndetGup::H`: The sign/phase of the determinant of the spin-up equal-time Green's function matrix, ``\det G_\uparrow(\tau,\tau) / \vert \det G_\uparrow(\tau,\tau) \vert.``
-- `Gdn::Matrix{H}`: Spin-down equal-time Green's function matrix.
-- `logdetGdn::R`: The log of the absolute value of the determinant of the spin-down equal-time Green's function matrix, ``\log \vert \det G_\downarrow(\tau,\tau) \vert.``
-- `sgndetGdn::H`: The sign/phase of the determinant of the spin-down equal-time Green's function matrix, ``\det G_\downarrow(\tau,\tau) / \vert \det G_\downarrow(\tau,\tau) \vert.``
-- `hst_parameters::HubbardDensityGaussHermiteHST{T,R}`: Type representing Hubbard-Stratonovich transformation.
-
-## Keyword Arguments
-
-- `fermion_path_integral_up::FermionPathIntegral{H}`: An instance of the [`FermionPathIntegral`](@ref) type for spin-up electrons.
-- `fermion_path_integral_dn::FermionPathIntegral{H}`: An instance of the [`FermionPathIntegral`](@ref) type for spin-down electrons.
-- `fermion_greens_calculator_up::FermionGreensCalculator{H}`: An instance of the [`FermionGreensCalculator`](https://smoqysuite.github.io/JDQMCFramework.jl/stable/api/#JDQMCFramework.FermionGreensCalculator) type for the spin-up electrons.
-- `fermion_greens_calculator_dn::FermionGreensCalculator{H}`: An instance of the [`FermionGreensCalculator`](https://smoqysuite.github.io/JDQMCFramework.jl/stable/api/#JDQMCFramework.FermionGreensCalculator) type for the spin-down electrons.
-- `Bup::Vector{P}`: Spin-up propagators for each imaginary time slice.
-- `Bdn::Vector{P}`: Spin-dn propagators for each imaginary time slice.
-- `δG_max::R`: Maximum allowed error corrected by numerical stabilization.
-- `δG::R`: Previously recorded maximum error in the Green's function corrected by numerical stabilization.
-- `δθ::R`: Previously recorded maximum error in the sign/phase of the determinant of the equal-time Green's function matrix corrected by numerical stabilization.
-- `rng::AbstractRNG`: Random number generator used in method instead of global random number generator, important for reproducibility.
-- `update_stabilization_frequency::Bool = true`: If true, allows the stabilization frequency `n_stab` to be dynamically adjusted.
-"""
-function local_updates!(
-    # ARGUMENTS
+# perform the local updates for a single imaginary-time slice
+function _local_updates!(
     Gup::Matrix{H}, logdetGup::R, sgndetGup::H,
     Gdn::Matrix{H}, logdetGdn::R, sgndetGdn::H,
-    hst_parameters::HubbardDensityGaussHermiteHST{T,R};
-    # KEYWORD ARGUMENTS
+    hst_parameters::HubbardDensityGaussHermiteHST{T,R},
     fermion_path_integral_up::FermionPathIntegral{H},
     fermion_path_integral_dn::FermionPathIntegral{H},
-    fermion_greens_calculator_up::FermionGreensCalculator{H},
-    fermion_greens_calculator_dn::FermionGreensCalculator{H},
-    Bup::Vector{P}, Bdn::Vector{P},
-    δG::R, δθ::R,  rng::AbstractRNG,
-    δG_max::R = 1e-6,
-    update_stabilization_frequency::Bool = true
+    Bup::P, Bdn::P, l::Int, rng::AbstractRNG
 ) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator}
 
-    @assert !( (H<:Real) &&  (T<:Complex)) "Green's function matrices are real while Hubbard-Stratonovich transformation is complex."
-    @assert fermion_path_integral_up.Sb == fermion_path_integral_dn.Sb "$(fermion_path_integral_up.Sb) ≠ $(fermion_path_integral_dn.Sb)"
-
-    (; Δτ, U, α, sites, s, update_perm, N) = hst_parameters
+    (; Δτ, U, α, sites, update_perm, N) = hst_parameters
     u = @view fermion_path_integral_up.u[:,1]
     v = @view fermion_path_integral_up.v[:,1]
 
-    # get temporary storage matrix
-    G′ = fermion_greens_calculator_up.G′
+    # get relevant spins
+    s = @view hst_parameters.s[:,l]
+
+    # initialize accepted spin flips to zero
+    accepted_spin_flips = 0
 
     # get on-site energy matrices for spin up and down electrons for all time slices
     Vup = fermion_path_integral_up.V
     Vdn = fermion_path_integral_dn.V
 
-    # counter for the number of accepted spin flips
-    accepted_spin_flips = 0
+    # iterate over orbitals in the lattice
+    for i in update_perm
 
-    # Iterate over imaginary time τ=Δτ⋅l.
-    for l in fermion_greens_calculator_up
+        # get the site
+        site = sites[i]
 
-        # Propagate equal-time Green's function matrix to current imaginary time G(τ±Δτ,τ±Δτ) ==> G(τ,τ)
-        # depending on whether iterating over imaginary time in the forward or reverse direction
-        propagate_equaltime_greens!(Gup, fermion_greens_calculator_up, Bup)
-        propagate_equaltime_greens!(Gdn, fermion_greens_calculator_dn, Bdn)
+        # propose a HS field update and calculate the change in the potential
+        # energy matrix and bosonic action
+        s_il     = s[i]
+        η_il     = eval_η(s_il)
+        Vup_il   = Vup[site, l]
+        Vdn_il   = Vdn[site, l]
+        Sb_il    = eval_Sgh(s_il) - Δτ*α[i]*η_il
+        s_il′    = sample_new_ghhsf(rng, s_il)
+        η_il′    = eval_η(s_il′)
+        Sb_il′   = eval_Sgh(s_il′) - Δτ*α[i]*η_il′
+        ΔV_il    = (+α[i] * η_il′) - (+α[i] * η_il)
 
-        # get propagators for current time slice
-        Bup_l = Bup[l]::P
-        Bdn_l = Bdn[l]::P
+        # calculate spin-up determinant ratio associated with Ising HS spin flip
+        Rup_il, Δup_il = local_update_det_ratio(Gup, ΔV_il, site, Δτ)
+        Rdn_il, Δdn_il = local_update_det_ratio(Gdn, ΔV_il, site, Δτ)
 
-        # apply the transformation G̃(τ,τ) = exp(+Δτ⋅K[l]/2)⋅G(τ,τ)⋅exp(-Δτ⋅K[l]/2)
-        # if B[l] = exp(-Δτ⋅K[l]/2)⋅exp(-Δτ⋅V[l])⋅exp(-Δτ⋅K[l]/2),
-        # otherwise nothing when B[l] = exp(-Δτ⋅V[l])⋅exp(-Δτ⋅K[l])
-        partially_wrap_greens_reverse!(Gup, Bup_l, G′)
-        partially_wrap_greens_reverse!(Gdn, Bdn_l, G′)
+        # calculate the change in bosonic action
+        ΔSb = Sb_il′ - Sb_il
 
-        # shuffle the order in which orbitals/sites will be iterated over
-        shuffle!(rng, update_perm)
+        # calculate acceptance probability
+        P_il = abs(exp(-ΔSb) * Rup_il * Rdn_il)
 
-        # iterate over orbitals in the lattice
-        for i in update_perm
+        # accept or reject proposed update
+        if rand(rng) < P_il
 
-            # get the site
-            site = sites[i]
+            # increment the count of accepted spin flips
+            accepted_spin_flips += 1
 
-            # propose a HS field update and calculate the change in the potential
-            # energy matrix and bosonic action
-            s_il     = s[i,l]
-            η_il     = eval_η(s_il)
-            Vup_il   = Vup[site, l]
-            Vdn_il   = Vdn[site, l]
-            Sb_il    = eval_Sgh(s_il) - Δτ*α[i]*η_il
-            s_il′    = sample_new_ghhsf(rng, s_il)
-            η_il′    = eval_η(s_il′)
-            Sb_il′   = eval_Sgh(s_il′) - Δτ*α[i]*η_il′
-            ΔV_il    = (+α[i] * η_il′) - (+α[i] * η_il)
-            Vup_il′  = ΔV_il + Vup_il
-            Vdn_il′  = ΔV_il + Vdn_il
+            # update HS field
+            s[i] = s_il′
 
-            # calculate spin-up determinant ratio associated with Ising HS spin flip
-            Rup_il, Δup_il = local_update_det_ratio(Gup, Bup_l, Vup_il′, site, Δτ)
-            Rdn_il, Δdn_il = local_update_det_ratio(Gdn, Bdn_l, Vdn_il′, site, Δτ)
+            # update diagonal on-site energy matrix
+            Vup[site,l] += ΔV_il
+            Vdn[site,l] += ΔV_il
 
-            # calculate the change in bosonic action
-            ΔSb = Sb_il′ - Sb_il
+            # udpate bosonic action
+            fermion_path_integral_up.Sb += ΔSb
+            fermion_path_integral_dn.Sb += ΔSb
 
-            # calculate acceptance probability
-            P_il = abs(exp(-ΔSb) * Rup_il * Rdn_il)
-
-            # accept or reject proposed update
-            if rand(rng) < P_il
-
-                # increment the cound of accepted spin flips
-                accepted_spin_flips += 1
-
-                # update HS field
-                s[i,l] = s_il′
-
-                # update diagonal on-site energy matrix
-                Vup[site,l] = Vup_il′
-                Vdn[site,l] = Vdn_il′
-
-                # udpate bosonic action
-                fermion_path_integral_up.Sb += ΔSb
-                fermion_path_integral_dn.Sb += ΔSb
-
-                # update the spin-up and down Green's function
-                logdetGup, sgndetGup = local_update_greens!(Gup, logdetGup, sgndetGup, Bup_l, Rup_il, Δup_il, site, u, v)
-                logdetGdn, sgndetGdn = local_update_greens!(Gdn, logdetGdn, sgndetGdn, Bdn_l, Rdn_il, Δdn_il, site, u, v)
-            end
+            # update the spin-up and down Green's function
+            logdetGup, sgndetGup = local_update_greens!(Gup, logdetGup, sgndetGup, Bup, Rup_il, Δup_il, site, u, v)
+            logdetGdn, sgndetGdn = local_update_greens!(Gdn, logdetGdn, sgndetGdn, Bdn, Rdn_il, Δdn_il, site, u, v)
         end
-
-        # apply the transformation G(τ,τ) = exp(-Δτ⋅K[l]/2)⋅G̃(τ,τ)⋅exp(+Δτ⋅K[l]/2)
-        # if B[l] = exp(-Δτ⋅K[l]/2)⋅exp(-Δτ⋅V[l])⋅exp(-Δτ⋅K[l]/2),
-        # otherwise nothing when B[l] = exp(-Δτ⋅V[l])⋅exp(-Δτ⋅K[l])
-        partially_wrap_greens_forward!(Gup, Bup_l, G′)
-        partially_wrap_greens_forward!(Gdn, Bdn_l, G′)
-
-        # Periodically re-calculate the Green's function matrix for numerical stability.
-        logdetGup, sgndetGup, δGup, δθup = stabilize_equaltime_greens!(Gup, logdetGup, sgndetGup, fermion_greens_calculator_up, Bup, update_B̄=true)
-        logdetGdn, sgndetGdn, δGdn, δθdn = stabilize_equaltime_greens!(Gdn, logdetGdn, sgndetGdn, fermion_greens_calculator_dn, Bdn, update_B̄=true)
-
-        # record the max errors
-        δG = maximum((δG, δGup, δGdn))
-        δθ = maximum(abs, (δθ, δθup, δθdn))
-
-        # keep spin-up and spin-down sectors synchronized
-        iterate(fermion_greens_calculator_dn, fermion_greens_calculator_up.forward)
-    end
-
-    # update stabilization frequency if required
-    if update_stabilization_frequency
-        (updated, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = update_stabilization_frequency!(
-            Gup, logdetGup, sgndetGup,
-            Gdn, logdetGdn, sgndetGdn,
-            fermion_greens_calculator_up = fermion_greens_calculator_up,
-            fermion_greens_calculator_dn = fermion_greens_calculator_dn,
-            Bup = Bup, Bdn = Bdn, δG = δG, δθ = δθ, δG_max = δG_max
-        )
     end
 
     # calculate the acceptance rate
-    acceptance_rate = accepted_spin_flips / length(s)
+    acceptance_rate = accepted_spin_flips/size(s,1)
 
-    return (acceptance_rate, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ)
+    return acceptance_rate
 end
 
-@doc raw"""
-    local_updates!(
-        # ARGUMENTS
-        G::Matrix{H}, logdetG::R, sgndetG::H,
-        hst_parameters::HubbardDensityGaussHermiteHST{T,R};
-        # KEYWORD ARGUMENTS
-        fermion_path_integral::FermionPathIntegral{H},
-        fermion_greens_calculator::FermionGreensCalculator{H},
-        B::Vector{P},
-        δG::R, δθ::R,  rng::AbstractRNG,
-        δG_max::R = 1e-6,
-        update_stabilization_frequency::Bool = true
-    ) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator}
 
-Perform local updates to density-channel Hirsch Hubbard-Stratonovich fields.
-This method returns a tuple containing `(acceptance_rate, logdetG, sgndetG, δG, δθ)`.
-
-# Arguments
-
-- `G::Matrix{H}`: Equal-time Green's function matrix.
-- `logdetG::R`: The log of the absolute value of the determinant of the equal-time Green's function matrix, ``\log \vert \det G(\tau,\tau) \vert.``
-- `sgndetG::H`: The sign/phase of the determinant of the equal-time Green's function matrix, ``\det G(\tau,\tau) / \vert \det G(\tau,\tau) \vert.``
-- `hst_parameters::HubbardDensityGaussHermiteHST{T,R}`: Type representing Hubbard-Stratonovich transformation.
-
-## Keyword Arguments
-
-- `fermion_path_integral::FermionPathIntegral{H}`: An instance of the [`FermionPathIntegral`](@ref).
-- `fermion_greens_calculator::FermionGreensCalculator{H}`: An instance of the [`FermionGreensCalculator`](https://smoqysuite.github.io/JDQMCFramework.jl/stable/api/#JDQMCFramework.FermionGreensCalculator) type.
-- `B::Vector{P}`: Propagators for each imaginary time slice.
-- `δG_max::R`: Maximum allowed error corrected by numerical stabilization.
-- `δG::R`: Previously recorded maximum error in the Green's function corrected by numerical stabilization.
-- `δθ::R`: Previously recorded maximum error in the sign/phase of the determinant of the equal-time Green's function matrix corrected by numerical stabilization.
-- `rng::AbstractRNG`: Random number generator used in method instead of global random number generator, important for reproducibility.
-- `update_stabilization_frequency::Bool = true`: If true, allows the stabilization frequency `n_stab` to be dynamically adjusted.
-"""
-function local_updates!(
-    # ARGUMENTS
+# perform the local updates for a single imaginary-time slice
+function _local_updates!(
     G::Matrix{H}, logdetG::R, sgndetG::H,
-    hst_parameters::HubbardDensityGaussHermiteHST{T,R};
-    # KEYWORD ARGUMENTS
+    hst_parameters::HubbardDensityGaussHermiteHST{T,R},
     fermion_path_integral::FermionPathIntegral{H},
-    fermion_greens_calculator::FermionGreensCalculator{H},
-    B::Vector{P},
-    δG::R, δθ::R,  rng::AbstractRNG,
-    δG_max::R = 1e-6,
-    update_stabilization_frequency::Bool = true
+    B::P, l::Int, rng::AbstractRNG
 ) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator}
 
-    @assert !( (H<:Real) &&  (T<:Complex)) "Green's function matrices are real while Hubbard-Stratonovich transformation is complex."
-
-    (; Δτ, U, α, sites, s, update_perm, N) = hst_parameters
+    (; Δτ, U, α, sites, update_perm, N) = hst_parameters
     u = @view fermion_path_integral.u[:,1]
     v = @view fermion_path_integral.v[:,1]
-
-    # get temporary storage matrix
-    G′ = fermion_greens_calculator.G′
 
     # get on-site energy matrices for spin up and down electrons for all time slices
     V = fermion_path_integral.V
@@ -397,139 +234,67 @@ function local_updates!(
     # counter for the number of accepted spin flips
     accepted_spin_flips = 0
 
-    # Iterate over imaginary time τ=Δτ⋅l.
-    for l in fermion_greens_calculator
+    # get spins
+    s = @view hst_parameters.s[:,l]
 
-        # Propagate equal-time Green's function matrix to current imaginary time G(τ±Δτ,τ±Δτ) ==> G(τ,τ)
-        # depending on whether iterating over imaginary time in the forward or reverse direction
-        propagate_equaltime_greens!(G, fermion_greens_calculator, B)
+    # shuffle the order in which orbitals/sites will be iterated over
+    shuffle!(rng, update_perm)
 
-        # get propagators for current time slice
-        B_l = B[l]
+    # iterate over orbitals in the lattice
+    for i in update_perm
 
-        # apply the transformation G̃(τ,τ) = exp(+Δτ⋅K[l]/2)⋅G(τ,τ)⋅exp(-Δτ⋅K[l]/2)
-        # if B[l] = exp(-Δτ⋅K[l]/2)⋅exp(-Δτ⋅V[l])⋅exp(-Δτ⋅K[l]/2),
-        # otherwise nothing when B[l] = exp(-Δτ⋅V[l])⋅exp(-Δτ⋅K[l])
-        partially_wrap_greens_reverse!(G, B_l, G′)
+        # get the site
+        site = sites[i]
 
-        # shuffle the order in which orbitals/sites will be iterated over
-        shuffle!(rng, update_perm)
+        # propose a HS field update and calculate the change in the potential
+        # energy matrix and bosonic action
+        s_il   = s[i]
+        η_il   = eval_η(s_il)
+        V_il   = V[site,l]
+        Sb_il  = eval_Sgh(s_il) - Δτ*α[i]*η_il
+        s_il′  = sample_new_ghhsf(rng, s_il)
+        η_il′  = eval_η(s_il′)
+        Sb_il′ = eval_Sgh(s_il′) - Δτ*α[i]*η_il′
+        ΔV_il  = (+α[i] * η_il′) - (+α[i] * η_il)
 
-        # iterate over orbitals in the lattice
-        for i in update_perm
+        # calculate spin-up determinant ratio associated with Ising HS spin flip
+        R_il, Δ_il = local_update_det_ratio(G, ΔV_il, site, Δτ)
 
-            # get the site
-            site = sites[i]
+        # calculate the change in bosonic action
+        ΔSb = Sb_il′ - Sb_il
 
-            # propose a HS field update and calculate the change in the potential
-            # energy matrix and bosonic action
-            s_il   = s[i,l]
-            η_il   = eval_η(s_il)
-            V_il   = V[site,l]
-            Sb_il  = eval_Sgh(s_il) - Δτ*α[i]*η_il
-            s_il′  = sample_new_ghhsf(rng, s_il)
-            η_il′  = eval_η(s_il′)
-            Sb_il′ = eval_Sgh(s_il′) - Δτ*α[i]*η_il′
-            ΔV_il  = (+α[i] * η_il′) - (+α[i] * η_il)
-            V_il′  = V_il + ΔV_il
+        # calculate acceptance probability
+        P_il = abs(exp(-ΔSb) * R_il^2)
 
-            # calculate spin-up determinant ratio associated with Ising HS spin flip
-            R_il, Δ_il = local_update_det_ratio(G, B_l, V_il′, site, Δτ)
+        # accept or reject proposed update
+        if rand(rng) < P_il
 
-            # calculate the change in bosonic action
-            ΔSb = Sb_il′ - Sb_il
+            # increment the cound of accepted spin flips
+            accepted_spin_flips += 1
 
-            # calculate acceptance probability
-            P_il = abs(exp(-ΔSb) * R_il^2)
+            # flip the spin
+            s[i] = s_il′
 
-            # accept or reject proposed update
-            if rand(rng) < P_il
+            # update diagonal on-site energy matrix
+            V[site,l] += ΔV_il
 
-                # increment the cound of accepted spin flips
-                accepted_spin_flips += 1
+            # udpate bosonic action
+            fermion_path_integral.Sb += ΔSb
 
-                # flip the spin
-                s[i,l] = s_il′
-
-                # update diagonal on-site energy matrix
-                V[site,l] = V_il′
-
-                # udpate bosonic action
-                fermion_path_integral.Sb += ΔSb
-
-                # update the spin-up and down Green's function
-                logdetG, sgndetG = local_update_greens!(G, logdetG, sgndetG, B_l, R_il, Δ_il, site, u, v)
-            end
+            # update the spin-up and down Green's function
+            logdetG, sgndetG = local_update_greens!(G, logdetG, sgndetG, B, R_il, Δ_il, site, u, v)
         end
-
-        # apply the transformation G(τ,τ) = exp(-Δτ⋅K[l]/2)⋅G̃(τ,τ)⋅exp(+Δτ⋅K[l]/2)
-        # if B[l] = exp(-Δτ⋅K[l]/2)⋅exp(-Δτ⋅V[l])⋅exp(-Δτ⋅K[l]/2),
-        # otherwise nothing when B[l] = exp(-Δτ⋅V[l])⋅exp(-Δτ⋅K[l])
-        partially_wrap_greens_forward!(G, B_l, G′)
-
-        # Periodically re-calculate the Green's function matrix for numerical stability.
-        logdetG, sgndetG, δG, δθ = stabilize_equaltime_greens!(G, logdetG, sgndetG, fermion_greens_calculator, B, update_B̄=true)
-    end
-
-    # update stabilization frequency if required
-    if update_stabilization_frequency
-        (updated, logdetG, sgndetG, δG, δθ) = update_stabilization_frequency!(
-            G, logdetG, sgndetG,
-            fermion_greens_calculator = fermion_greens_calculator,
-            B = B, δG = δG, δθ = δθ, δG_max = δG_max
-        )
     end
 
     # calculate the acceptance rate
-    acceptance_rate = accepted_spin_flips / length(s)
+    acceptance_rate = accepted_spin_flips/size(s,1)
 
-    return (acceptance_rate, logdetG, sgndetG, δG, δθ)
+    return acceptance_rate
 end
 
 
-@doc raw"""
-    reflection_update!(
-        # ARGUMENTS
-        Gup::Matrix{H}, logdetGup::R, sgndetGup::H,
-        Gdn::Matrix{H}, logdetGdn::R, sgndetGdn::H,
-        hst_parameters::HubbardDensityGaussHermiteHST{T,R};
-        # KEYWORD ARGUMENTS
-        fermion_path_integral_up::FermionPathIntegral{H},
-        fermion_path_integral_dn::FermionPathIntegral{H},
-        fermion_greens_calculator_up::FermionGreensCalculator{H,R},
-        fermion_greens_calculator_dn::FermionGreensCalculator{H,R},
-        fermion_greens_calculator_up_alt::FermionGreensCalculator{H,R},
-        fermion_greens_calculator_dn_alt::FermionGreensCalculator{H,R},
-        Bup::Vector{P}, Bdn::Vector{P},
-        rng::AbstractRNG
-    ) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator}
-
-Perform a reflection update in which the sign of every density-channel Gauss-Hermite Hubbard-Stratonovich field on a randomly chosen orbital in the lattice is changed.
-This function returns `(accepted, logdetGup, sgndetGup, logdetGdn, sgndetGdn)`.
-
-# Arguments
-
-- `Gup::Matrix{H}`: Spin-up eqaul-time Greens function matrix.
-- `logdetGup::R`: Log of the determinant of the spin-up eqaul-time Greens function matrix.
-- `sgndetGup::H`: Sign/phase of the determinant of the spin-up eqaul-time Greens function matrix.
-- `Gdn::Matrix{H}`: Spin-down eqaul-time Greens function matrix.
-- `logdetGdn::R`: Log of the determinant of the spin-down eqaul-time Greens function matrix.
-- `sgndetGdn::H`: Sign/phase of the determinant of the spin-down eqaul-time Greens function matrix.
-- `hst_parameters::HubbardDensityGaussHermiteHST{T,R}`: Hubbard-Stratonovich fields and associated parameters to update.
-
-# Keyword Arguments
-
-- `fermion_path_integral_up::FermionPathIntegral{H}`: An instance of [`FermionPathIntegral`](@ref) type for spin-up electrons.
-- `fermion_path_integral_dn::FermionPathIntegral{H}`: An instance of [`FermionPathIntegral`](@ref) type for spin-down electrons.
-- `fermion_greens_calculator_up::FermionGreensCalculator{H,R}`: Contains matrix factorization information for current spin-up sector state.
-- `fermion_greens_calculator_dn::FermionGreensCalculator{H,R}`: Contains matrix factorization information for current spin-down sector state.
-- `fermion_greens_calculator_up_alt::FermionGreensCalculator{H,R}`: Used to calculate matrix factorizations for proposed spin-up sector state.
-- `fermion_greens_calculator_dn_alt::FermionGreensCalculator{H,R}`: Used to calculate matrix factorizations for proposed spin-down sector state.
-- `Bup::Vector{P}`: Spin-up propagators for each imaginary time slice.
-- `Bdn::Vector{P}`: Spin-down propagators for each imaginary time slice.
-- `rng::AbstractRNG`: Random number generator used in method instead of global random number generator, important for reproducibility.
-"""
-function reflection_update!(
+# perform reflection update
+function _reflection_update!(
     # ARGUMENTS
     Gup::Matrix{H}, logdetGup::R, sgndetGup::H,
     Gdn::Matrix{H}, logdetGdn::R, sgndetGdn::H,
@@ -639,38 +404,8 @@ function reflection_update!(
 end
 
 
-@doc raw"""
-    reflection_update!(
-        # ARGUMENTS
-        G::Matrix{H}, logdetG::R, sgndetG::H,
-        hst_parameters::HubbardDensityGaussHermiteHST{T,R};
-        # KEYWORD ARGUMENTS
-        fermion_path_integral::FermionPathIntegral{H},
-        fermion_greens_calculator::FermionGreensCalculator{H,R},
-        fermion_greens_calculator_alt::FermionGreensCalculator{H,R},
-        B::Vector{P},
-        rng::AbstractRNG
-    ) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator}
-
-Perform a reflection update in which the sign of every density-channel Gauss-Hermite Hubbard-Stratonovich field on a randomly chosen orbital in the lattice is changed.
-This function returns `(accepted, logdetG, sgndetG)`.
-
-# Arguments
-
-- `G::Matrix{H}`: Equal-time Greens function matrix.
-- `logdetG::R`: Log of the determinant of the spin-up equal-time Greens function matrix.
-- `sgndetG::H`: Sign/phase of the determinant of the spin-up equal-time Greens function matrix.
-- `hst_parameters::HubbardDensityGaussHermiteHST{T,R}`: Hubbard-Stratonovich fields and associated parameters to update.
-
-# Keyword Arguments
-
-- `fermion_path_integral::FermionPathIntegral{H}`: An instance of [`FermionPathIntegral`](@ref) type.
-- `fermion_greens_calculator::FermionGreensCalculator{H,R}`: Contains matrix factorization information for current state.
-- `fermion_greens_calculator_alt::FermionGreensCalculator{H,R}`: Used to calculate matrix factorizations for proposed state.
-- `B::Vector{P}`: Propagators for each imaginary time slice.
-- `rng::AbstractRNG`: Random number generator used in method instead of global random number generator, important for reproducibility.
-"""
-function reflection_update!(
+# perform reflection update
+function _reflection_update!(
     # ARGUMENTS
     G::Matrix{H}, logdetG::R, sgndetG::H,
     hst_parameters::HubbardDensityGaussHermiteHST{T,R};
@@ -755,50 +490,8 @@ function reflection_update!(
 end
 
 
-@doc raw"""
-    swap_update!(
-        # ARGUMENTS
-        Gup::Matrix{H}, logdetGup::R, sgndetGup::H,
-        Gdn::Matrix{H}, logdetGdn::R, sgndetGdn::H,
-        hst_parameters::HubbardDensityGaussHermiteHST{T,R};
-        # KEYWORD ARGUMENTS
-        fermion_path_integral_up::FermionPathIntegral{H},
-        fermion_path_integral_dn::FermionPathIntegral{H},
-        fermion_greens_calculator_up::FermionGreensCalculator{H,R},
-        fermion_greens_calculator_dn::FermionGreensCalculator{H,R},
-        fermion_greens_calculator_up_alt::FermionGreensCalculator{H,R},
-        fermion_greens_calculator_dn_alt::FermionGreensCalculator{H,R},
-        Bup::Vector{P}, Bdn::Vector{P},
-        rng::AbstractRNG
-    ) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator}
-
-Perform a swap update in which the density-channel Gauss-Hermite Hubbard-Stratonovich fields used to decouple the Hubbard interaction
-on a randomly sampled pair of orbitals in the lattice are swapped.
-This function returns `(accepted, logdetGup, sgndetGup, logdetGdn, sgndetGdn)`.
-
-# Arguments
-
-- `Gup::Matrix{H}`: Spin-up eqaul-time Greens function matrix.
-- `logdetGup::R`: Log of the determinant of the spin-up eqaul-time Greens function matrix.
-- `sgndetGup::H`: Sign/phase of the determinant of the spin-up eqaul-time Greens function matrix.
-- `Gdn::Matrix{H}`: Spin-down eqaul-time Greens function matrix.
-- `logdetGdn::R`: Log of the determinant of the spin-down eqaul-time Greens function matrix.
-- `sgndetGdn::H`: Sign/phase of the determinant of the spin-down eqaul-time Greens function matrix.
-- `hst_parameters::HubbardDensityGaussHermiteHST{T,R}`: Hubbard-Stratonovich fields and associated parameters to update.
-
-# Keyword Arguments
-
-- `fermion_path_integral_up::FermionPathIntegral{H}`: An instance of [`FermionPathIntegral`](@ref) type for spin-up electrons.
-- `fermion_path_integral_dn::FermionPathIntegral{H}`: An instance of [`FermionPathIntegral`](@ref) type for spin-down electrons.
-- `fermion_greens_calculator_up::FermionGreensCalculator{H,R}`: Contains matrix factorization information for current spin-up sector state.
-- `fermion_greens_calculator_dn::FermionGreensCalculator{H,R}`: Contains matrix factorization information for current spin-down sector state.
-- `fermion_greens_calculator_up_alt::FermionGreensCalculator{H,R}`: Used to calculate matrix factorizations for proposed spin-up sector state.
-- `fermion_greens_calculator_dn_alt::FermionGreensCalculator{H,R}`: Used to calculate matrix factorizations for proposed spin-down sector state.
-- `Bup::Vector{P}`: Spin-up propagators for each imaginary time slice.
-- `Bdn::Vector{P}`: Spin-down propagators for each imaginary time slice.
-- `rng::AbstractRNG`: Random number generator used in method instead of global random number generator, important for reproducibility.
-"""
-function swap_update!(
+# perform swap update
+function _swap_update!(
     # ARGUMENTS
     Gup::Matrix{H}, logdetGup::R, sgndetGup::H,
     Gdn::Matrix{H}, logdetGdn::R, sgndetGdn::H,
@@ -921,39 +614,8 @@ function swap_update!(
 end
 
 
-@doc raw"""
-    swap_update!(
-    # ARGUMENTS
-    G::Matrix{H}, logdetG::R, sgndetG::H,
-    hst_parameters::HubbardDensityGaussHermiteHST{T,R};
-    # KEYWORD ARGUMENTS
-    fermion_path_integral::FermionPathIntegral{H},
-    fermion_greens_calculator::FermionGreensCalculator{H,R},
-    fermion_greens_calculator_alt::FermionGreensCalculator{H,R},
-    Bup::Vector{P},
-    rng::AbstractRNG
-) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator}
-
-Perform a swap update in which the density-channel Gauss-Hermite Hubbard-Stratonovich fields used to decouple the Hubbard interaction
-on a randomly sampled pair of orbitals in the lattice are swapped.
-This function returns `(accepted, logdetG, sgndetG)`.
-
-# Arguments
-
-- `G::Matrix{H}`: Eqaul-time Greens function matrix.
-- `logdetG::R`: Log of the determinant of the eqaul-time Greens function matrix.
-- `sgndetG::H`: Sign/phase of the determinant of the eqaul-time Greens function matrix.
-- `hst_parameters::HubbardDensityGaussHermiteHST{T,R}`: Hubbard-Stratonovich fields and associated parameters to update.
-
-# Keyword Arguments
-
-- `fermion_path_integral::FermionPathIntegral{H}`: An instance of [`FermionPathIntegral`](@ref) type.
-- `fermion_greens_calculator::FermionGreensCalculator{H,R}`: Contains matrix factorization information.
-- `fermion_greens_calculator_alt::FermionGreensCalculator{H,R}`: Used to calculate matrix factorizations for proposed state.
-- `B::Vector{P}`: Propagators for each imaginary time slice.
-- `rng::AbstractRNG`: Random number generator used in method instead of global random number generator, important for reproducibility.
-"""
-function swap_update!(
+# perform swap update
+function _swap_update!(
     # ARGUMENTS
     G::Matrix{H}, logdetG::R, sgndetG::H,
     hst_parameters::HubbardDensityGaussHermiteHST{T,R};

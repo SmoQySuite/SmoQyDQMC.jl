@@ -8,7 +8,7 @@ slice ``l \in [1, L_\tau],`` where ``\tau = \Delta\tau \cdot l`` and ``\beta = \
 # Types
 
 - `H<:Number`: ``H_l = (K_l + V_l)`` Hamiltonian matrix element type.
-- `T<:Number`: ``K_l`` kintetic energy matrix element type.
+- `T<:Number`: ``K_l`` kinetic energy matrix element type.
 - `U<:Number`: ``V_l`` potential energy matrix element type.
 - `R<:AbstractFloat`: Real number type.
 
@@ -21,7 +21,7 @@ slice ``l \in [1, L_\tau],`` where ``\tau = \Delta\tau \cdot l`` and ``\beta = \
 - `neighbor_table::Matrix{Int}`: Neighbor table for each pair of orbitals in the lattice connected by a hopping.
 - `t::Matrix{T}`: Hopping amplitudes for imaginary-time slice ``l`` are stored in `t[:,l]`.
 - `V::Matrix{U}`: The diagonal on-site energy matrices ``V_l`` for imaginary-time slice ``l`` are stored in `V[:,l]`.
-- `K::Matrix{T}`: Used to construct hopping matrix to cacluate exponentiated hopping matrix if checkerboard approximation is not being used.
+- `K::Matrix{T}`: Used to construct hopping matrix to calculate exponentiated hopping matrix if checkerboard approximation is not being used.
 - `Sb::H`: Keeps track of total bosonic action associated with fermionic path integral.
 - `eigen_ws::HermitianEigenWs{T,Matrix{T},R}`: For calculating eigenvalues and eigenvectors of `K` while avoiding dynamic memory allocations.
 - `u::Matrix{H}`: Temporary matrix to avoid dynamic allocation when performing local updates.
@@ -131,8 +131,8 @@ function FermionPathIntegral(;
     eigen_ws = HermitianEigenWs(K, vecs=true)
 
     # allocate temporary vectors
-    u = zeros(H, Nsites, 1)
-    v = zeros(H, Nsites, 1)
+    u = zeros(H, Nsites, 2)
+    v = zeros(H, Nsites, 2)
 
     return FermionPathIntegral{H,Tk,Tv,R}(β, Δτ, Lτ, Nsites, neighbor_table, t, V, K, Sb, eigen_ws, u, v)
 end
