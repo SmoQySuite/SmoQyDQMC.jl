@@ -57,7 +57,7 @@ include("SimulationInfo.jl")
 export SimulationInfo, save_simulation_info, initialize_datafolder
 
 # defines all aspects of model geometry appearing in model, including the UnitCell,
-# Lattice, and a list of Bond defintions as defined in the LatticeUtilities package
+# Lattice, and a list of Bond definitions as defined in the LatticeUtilities package
 include("ModelGeometry.jl")
 export ModelGeometry, add_bond!, get_bond_id
 
@@ -176,7 +176,7 @@ export reflection_update!, swap_update!, radial_update!
 include("model_summary.jl")
 export model_summary
 
-# implement tight-bding Hamiltonian measurements
+# implement tight-binding Hamiltonian measurements
 include("tight_binding_measurements.jl")
 export measure_onsite_energy, measure_hopping_energy, measure_bare_hopping_energy
 export measure_hopping_amplitude, measure_hopping_inversion, measure_hopping_inversion_avg
@@ -230,7 +230,7 @@ export make_measurements!
 # write measurements to file.
 # additionally, the two following things are done here:
 # 1. fourier transform position space correlation to momentum space
-# 2. perform integration over imaginary time of correlation function to calculate susceptibilies
+# 2. perform integration over imaginary time of correlation function to calculate susceptibilities
 include("Measurements/write_measurements.jl")
 export write_measurements!
 
@@ -239,7 +239,7 @@ export write_measurements!
 include("Measurements/merge_bins.jl")
 export merge_bins, rm_bins
 
-# implementes utility function for converting numbers to string
+# implements utility function for converting numbers to string
 include("Measurements/num_to_string_formatter.jl")
 
 # functions for exporting binned global measurements to file
@@ -290,7 +290,7 @@ export compute_correlation_ratio, compute_composite_correlation_ratio
 include("Measurements/compute_function_of_correlations.jl")
 export compute_function_of_correlations
 
-# utilties for checkpoint simulations
+# utilities for checkpoint simulations
 include("Measurements/checkpointing_utilities.jl")
 export write_jld2_checkpoint, read_jld2_checkpoint
 export rm_jld2_checkpoints, rename_complete_simulation

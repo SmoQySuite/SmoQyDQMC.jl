@@ -246,7 +246,7 @@ function eval_R(
 end
 
 # PERFORMANCE CRITICAL FUNCTION!!!
-# udpate green's function matrix.
+# update green's function matrix.
 function update_G!(
     G::AbstractMatrix{H}, logdetG::E, sgndetG::T,
     B::AbstractPropagator,
@@ -376,7 +376,7 @@ function _local_updates!(
     # calculate the acceptance rate
     acceptance_rate = accepted_spin_flips / length(s)
 
-    return acceptance_rate
+    return acceptance_rate, logdetGup, sgndetGup, logdetGdn, sgndetGdn
 end
 
 # perform local updates for specified imaginary-time slice
@@ -464,7 +464,7 @@ function _local_updates!(
     # calculate the acceptance rate
     acceptance_rate = accepted_spin_flips / length(s)
 
-    return acceptance_rate
+    return acceptance_rate, logdetG, sgndetG
 end
 
 

@@ -168,7 +168,7 @@ function run_simulation(
         ## Add the third nearest-neighbor bond in a honeycomb lattice to the model.
         bond_3_id = add_bond!(model_geometry, bond_3)
 
-        ## Set neartest-neighbor hopping amplitude to unity,
+        ## Set nearest-neighbor hopping amplitude to unity,
         ## setting the energy scale in the model.
         t = 1.0
 
@@ -274,7 +274,7 @@ function run_simulation(
             rng = rng
         )
 
-# ## Initialize meuasurements
+# ## Initialize measurements
 # No changes need to made to this section of the code from the previous
 # [2b) Honeycomb Holstein Model with MPI Parallelization](@ref) tutorial.
 
@@ -395,8 +395,8 @@ function run_simulation(
 # ## Load checkpoint
 # If we are resuming a simulation that was previously terminated prior to completion, then
 # we need to load the most recent checkpoint file using the [`read_jld2_checkpoint`](@ref) function.
-# The cotents of the checkpoint file are returned as a dictionary `checkpoint` by the [`read_jld2_checkpoint`](@ref) function.
-# We then extract the cotents of the checkpoint file from the `checkpoint` dictionary.
+# The contents of the checkpoint file are returned as a dictionary `checkpoint` by the [`read_jld2_checkpoint`](@ref) function.
+# We then extract the contents of the checkpoint file from the `checkpoint` dictionary.
 
     ## If resuming a previous simulation.
     else
@@ -434,7 +434,7 @@ function run_simulation(
     ## Initialize alternate fermion greens calculator required for performing EFA-HMC, reflection and swap updates below. 
     fermion_greens_calculator_alt = dqmcf.FermionGreensCalculator(fermion_greens_calculator)
 
-    ## Allcoate equal-time electron Green's function matrix.
+    ## Allocate equal-time electron Green's function matrix.
     G = zeros(eltype(B[1]), size(B[1]))
 
     ## Initialize electron Green's function matrx, also calculating the matrix determinant as the same time.
@@ -445,7 +445,7 @@ function run_simulation(
     G_τ0 = similar(G) # G(τ,0)
     G_0τ = similar(G) # G(0,τ)
 
-    ## Initialize diagonostic parameters to asses numerical stability.
+    ## Initialize diagnostic parameters to asses numerical stability.
     δG = zero(logdetG)
     δθ = zero(logdetG)
 
@@ -453,7 +453,7 @@ function run_simulation(
 # No changes need to made to this section of the code from the previous
 # [2b) Honeycomb Holstein Model with MPI Parallelization](@ref) tutorial.
 
-    ## Initialize Hamitlonian/Hybrid monte carlo (HMC) updater.
+    ## Initialize Hamiltonian/Hybrid monte carlo (HMC) updater.
     hmc_updater = EFAHMCUpdater(
         electron_phonon_parameters = electron_phonon_parameters,
         G = G, Nt = Nt, Δt = π/(2*Nt)
@@ -533,7 +533,7 @@ function run_simulation(
 # Note that we set `n_therm = N_therm + 1` when writing the checkpoint file to ensure that when the simulation
 # is resumed the thermalization updates are not repeated.
 
-    ## Reset diagonostic parameters used to monitor numerical stability to zero.
+    ## Reset diagnostic parameters used to monitor numerical stability to zero.
     δG = zero(logdetG)
     δθ = zero(logdetG)
 
@@ -645,7 +645,7 @@ function run_simulation(
 # This function also deletes the checkpoint files that were written during the simulation.
 
     ## Process the simulation results, calculating final error bars for all measurements.
-    ## writing final statisitics to CSV files.
+    ## writing final statistics to CSV files.
     process_measurements(
         comm,
         datafolder = simulation_info.datafolder,
@@ -705,7 +705,7 @@ end # end of run_simulation function
 # This is a useful feature when submitting jobs on a cluster, as it allows the same job file to be used for
 # both starting new simulations and resuming ones that still need to finish.
 
-## Only excute if the script is run directly from the command line.
+## Only execute if the script is run directly from the command line.
 if abspath(PROGRAM_FILE) == @__FILE__
 
     ## Initialize MPI

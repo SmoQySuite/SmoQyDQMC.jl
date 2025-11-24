@@ -74,7 +74,7 @@ function run_simulation(
     ## Initialize random number generator
     rng = Xoshiro(seed)
 
-    ## Initialize additiona_info dictionary
+    ## Initialize metadata dictionary
     metadata = Dict()
 
     ## Record simulation parameters.
@@ -135,7 +135,7 @@ function run_simulation(
     ## Add the third nearest-neighbor bond in a honeycomb lattice to the model.
     bond_3_id = add_bond!(model_geometry, bond_3)
 
-    ## Set neartest-neighbor hopping amplitude to unity,
+    ## Set nearest-neighbor hopping amplitude to unity,
     ## setting the energy scale in the model.
     t = 1.0
 
@@ -240,7 +240,7 @@ function run_simulation(
         rng = rng
     )
 
-# ## Initialize meuasurements
+# ## Initialize measurements
 # No changes need to made to this section of the code from the previous [2a) Honeycomb Holstein Model](@ref) tutorial.
 
     ## Initialize the container that measurements will be accumulated into.
@@ -356,7 +356,7 @@ function run_simulation(
     ## Initialize alternate fermion greens calculator required for performing EFA-HMC, reflection and swap updates below. 
     fermion_greens_calculator_alt = dqmcf.FermionGreensCalculator(fermion_greens_calculator)
 
-    ## Allcoate equal-time electron Green's function matrix.
+    ## Allocate equal-time electron Green's function matrix.
     G = zeros(eltype(B[1]), size(B[1]))
 
     ## Initialize electron Green's function matrx, also calculating the matrix determinant as the same time.
@@ -367,14 +367,14 @@ function run_simulation(
     G_τ0 = similar(G) # G(τ,0)
     G_0τ = similar(G) # G(0,τ)
 
-    ## Initialize diagonostic parameters to asses numerical stability.
+    ## Initialize diagnostic parameters to asses numerical stability.
     δG = zero(logdetG)
     δθ = zero(logdetG)
 
 # ## Setup EFA-HMC Updates
 # No changes need to made to this section of the code from the previous [2a) Honeycomb Holstein Model](@ref) tutorial.
 
-    ## Initialize Hamitlonian/Hybrid monte carlo (HMC) updater.
+    ## Initialize Hamiltonian/Hybrid monte carlo (HMC) updater.
     hmc_updater = EFAHMCUpdater(
         electron_phonon_parameters = electron_phonon_parameters,
         G = G, Nt = Nt, Δt = π/(2*Nt)
@@ -426,7 +426,7 @@ function run_simulation(
 # ## Make measurements
 # No changes need to made to this section of the code from the previous [2a) Honeycomb Holstein Model](@ref) tutorial.
 
-    ## Reset diagonostic parameters used to monitor numerical stability to zero.
+    ## Reset diagnostic parameters used to monitor numerical stability to zero.
     δG = zero(logdetG)
     δθ = zero(logdetG)
 
@@ -515,12 +515,12 @@ function run_simulation(
     save_simulation_info(simulation_info, metadata)
 
 # ## Post-process results
-# The main change we need to make from the previos [2a) Honeycomb Holstein Model](@ref) tutorial is to call
+# The main change we need to make from the previous [2a) Honeycomb Holstein Model](@ref) tutorial is to call
 # the [`process_measurements`](@ref) and [`compute_composite_correlation_ratio`](@ref) functions
 # such that the first argument is the `comm` object, thereby ensuring a parallelized version of each method is called.
 
     ## Process the simulation results, calculating final error bars for all measurements.
-    ## writing final statisitics to CSV files.
+    ## writing final statistics to CSV files.
     process_measurements(
         comm;
         datafolder = simulation_info.datafolder,
@@ -562,7 +562,7 @@ end # end of run_simulation function
 # At the very end of simulation it is good practice to run the `MPI.Finalize()` function even though
 # it is typically not strictly required.
 
-## Only excute if the script is run directly from the command line.
+## Only execute if the script is run directly from the command line.
 if abspath(PROGRAM_FILE) == @__FILE__
 
     ## Initialize MPI
@@ -595,13 +595,13 @@ end
 # ```
 # This will 16 MPI processes, each running and independent simulation using a different random seed
 # the the final results arrived at by averaging over all 16 walkers.
-# Here `mpiexecjl` is the MPI exectuable that can be easily install using the directions
+# Here `mpiexecjl` is the MPI executable that can be easily install using the directions
 # found [here](https://juliaparallel.org/MPI.jl/stable/usage/#Julia-wrapper-for-mpiexec) in the
 # [MPI.jl](https://github.com/JuliaParallel/MPI.jl) documentation. However, you can substitute a
 # different MPI executable here if one is already configured on your system.
 
 # Also, when submitting jobs via [SLURM](https://slurm.schedmd.com/documentation.html)
-# on a High-Performance Computing (HPC) cluster, if a default MPI exectuable
+# on a High-Performance Computing (HPC) cluster, if a default MPI executable
 # is already configured on the system, as is frequently the case, then the script can likely be run inside the
 # `*.sh` job file using the [`srun`](https://slurm.schedmd.com/srun.html) command:
 # ```bash

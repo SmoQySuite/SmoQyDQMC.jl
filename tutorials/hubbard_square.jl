@@ -25,7 +25,7 @@ using SmoQyDQMC
 import SmoQyDQMC.LatticeUtilities as lu
 import SmoQyDQMC.JDQMCFramework as dqmcf
 
-# The [SmoQyDQMC](https://github.com/SmoQySuite/SmoQyDQMC.jl.git) package rexports several other packages that we will make use of in this tutorial.
+# The [SmoQyDQMC](https://github.com/SmoQySuite/SmoQyDQMC.jl.git) package re-exports several other packages that we will make use of in this tutorial.
 # The first one is [LatticeUtilities](https://github.com/SmoQySuite/LatticeUtilities.jl.git), which we will use to define the lattice geometry for our model.
 # The second submodule is the [JDQMCFramework](https://github.com/SmoQySuite/JDQMCFramework.jl.git) package, which exports useful types and methods for writing
 # a determinant quantum Monte Carlo (DQMC) code, taking care of things like numerical stabilization.
@@ -253,7 +253,7 @@ function run_simulation(;
 
 # Note that most terms in our model can support random disorder.
 # However, we have suppressed this behavior by setting all relevant standard deviations in model values to zero.
-# If these standard devaitions were not specified they would have also defaulted to zero
+# If these standard deviations were not specified they would have also defaulted to zero
 # We explicitly set them to zero here to simply highlight the presence of this functionality even though we are not using it.
 
 # Lastly, the [`model_summary`](@ref) function is used to write a `model_summary.toml` file,
@@ -272,8 +272,8 @@ function run_simulation(;
 # The next step is to initialize our model parameters given the size of our finite lattice.
 # To clarify, both the [`TightBindingModel`](@ref) and [`HubbardModel`](@ref) types are agnostic to the size of the lattice being simulated,
 # defining the model in a translationally invariant way. As [SmoQyDQMC.jl](https://github.com/SmoQySuite/SmoQyDQMC.jl.git) supports
-# random disorder in the terms appearing in the Hamiltonian, it is necessary to initialize seperate parameter values for each unit cell in the lattice.
-# For instance, we need to initialize a seperate number to represent the on-site energy for each orbital in our finite lattice.
+# random disorder in the terms appearing in the Hamiltonian, it is necessary to initialize separate parameter values for each unit cell in the lattice.
+# For instance, we need to initialize a separate number to represent the on-site energy for each orbital in our finite lattice.
 # To do so we need to initialize an instance of the [`TightBindingParameters`](@ref) and [`HubbardParameters`](@ref) types.
 
     ## Initialize tight-binding parameters.
@@ -292,12 +292,12 @@ function run_simulation(;
 
 # Having initialized the Hubbard Hamiltonian parameters above, we now need to decouple the interaction by applying a Hubbard-Stratonovich (HS) transformation
 # to decouple the local Hubbard interaction, thereby introducing the HS fields that will be sampled during the simulation.
-# The [SmoQyDQMC.jl](https://github.com/SmoQySuite/SmoQyDQMC.jl.git) package implements four types of Hubbard-Statonovich transformations
+# The [SmoQyDQMC.jl](https://github.com/SmoQySuite/SmoQyDQMC.jl.git) package implements four types of Hubbard-Stratonovich transformations
 # for decoupling the local Hubbard interaction, represented by the four types [`HubbardDensityHirschHST`](@ref), [`HubbardDensityGaussHermiteHST`](@ref),
 # [`HubbardSpinHirschHST`](@ref) and [`HubbardSpinGaussHermiteHST`]. In this example we will use the [`HubbardSpinHirschHST`](@ref) type
 # to decouple the local Hubabrd interactions.
 
-    ## Apply Spin Hirsch Hubbard-Stranonvich (HS) transformation to decouple the Hubbard interaction,
+    ## Apply Spin Hirsch Hubbard-Stratonovich (HS) transformation to decouple the Hubbard interaction,
     ## and initialize the corresponding HS fields that will be sampled in the DQMC simulation.
     hst_parameters = HubbardSpinHirschHST(
         β = β, Δτ = Δτ,
@@ -305,7 +305,7 @@ function run_simulation(;
         rng = rng
     )
 
-# ## [Initialize meuasurements](@id hubbard_square_initialize_measurements)
+# ## [Initialize measurement](@id hubbard_square_initialize_measurements)
 
 # Having initialized both our model and the corresponding model parameters,
 # the next step is to initialize the various measurements we want to make during our DQMC simulation.
@@ -423,7 +423,7 @@ function run_simulation(;
 # This is important, as the Hubbard-Stratonovich transform represented by the
 # [`HubbardSpinHirschHST`](@ref) type used in this example is real if ``U \ge 0`` and complex if ``U < 0``. Therefore, we need to set
 # `forced_complex_potential = (U < 0)` to account for this fact if we want this example to work for both repulsive and attractive Hubbard interactions.
-# The oppposite would be true if we had instead used [`HubbardDensityHirschHST`](@ref) decoupling scheme instead.
+# The opposite would be true if we had instead used [`HubbardDensityHirschHST`](@ref) decoupling scheme instead.
 
     ## Allocate FermionPathIntegral type for spin-up electrons.
     fermion_path_integral_up = FermionPathIntegral(
@@ -476,7 +476,7 @@ function run_simulation(;
     fermion_greens_calculator_dn_alt = dqmcf.FermionGreensCalculator(fermion_greens_calculator_dn)
 
 # Now we allocate and initialize the equal-time Green's function matrix ``G_\sigma(0,0)`` for both spin species (`Gup` and `Gdn`).
-# The initiliazation process also returns ``\log | \det G_\sigma(0,0) |`` (`logdetGup` and `logdetGdn`) and ``{\rm sgn} \det G_\sigma(0,0)`` (`sgndetGup` and `sgndetGdn`).
+# The initialization process also returns ``\log | \det G_\sigma(0,0) |`` (`logdetGup` and `logdetGdn`) and ``{\rm sgn} \det G_\sigma(0,0)`` (`sgndetGup` and `sgndetGdn`).
 
     ## Allcoate matrices for spin-up and spin-down electron Green's function matrices.
     Gup = zeros(eltype(Bup[1]), size(Bup[1]))
@@ -499,27 +499,27 @@ function run_simulation(;
     Gdn_τ0 = similar(Gdn) # Gdn(τ,0)
     Gdn_0τ = similar(Gdn) # Gdn(0,τ)
 
-# Lastly, we initialize two diagonostic parameters `δG` and `δθ` to asses numerical stability during the simulation.
+# Lastly, we initialize two diagnostic parameters `δG` and `δθ` to asses numerical stability during the simulation.
 # The `δG`  parameter is particularly important to keep track of during the simulation, and is defined as
 # ```math
 # \delta G = \max \left( | G^{\rm stab.}_\sigma(0,0) - G^{\rm naive}_\sigma(0,0) | \right),
 # ```
 # i.e. the maximum magnitude numerical error corrected by numerical stabilization for any Green's function matrix element.
-# The ``\delta \theta`` diagnostic parameter reports the error in the phase of the fermion determnant as it can in general be complex,
+# The ``\delta \theta`` diagnostic parameter reports the error in the phase of the fermion determinant as it can in general be complex,
 # but this is less important to keep track of in most situations.
 
-    ## Initialize diagonostic parameters to asses numerical stability.
+    ## Initialize diagnostic parameters to asses numerical stability.
     δG = zero(logdetGup)
     δθ = zero(logdetGup)
 
 # ## Thermalize system
 # The next section of code performs updates to thermalize the system prior to beginning measurements.
-# The structure of this function should be fairly inuitive, mainly consisting of a loop inside of which we perform updates to the Hubbard-Statonvich fields.
+# The structure of this function should be fairly intuitive, mainly consisting of a loop inside of which we perform updates to the Hubbard-Stratonovich fields.
 # In this example we perform two types of updates.
 
 # We use the [`local_updates!`](@ref) function to attempt a local update to every HS field.
 # Additionally, if the [`local_updates!`](@ref) argument `update_stabilization_frequency = true`, then the `δG_max` parameter acts a maximum threshold for `δG`.
-# If `δG` exceeds `δG_max`, then `n_stab` is decrimented by one (the frequency of numerical stabilization is increased) and `δG` is reset to zero.
+# If `δG` exceeds `δG_max`, then `n_stab` is decrement by one (the frequency of numerical stabilization is increased) and `δG` is reset to zero.
 # In the case `update_stabilization_frequency = false`,
 # then `δG_max` doesn't do anything and `n_stab` remains unchanged during the simulation,
 # with `δG` is simply reporting the maximum observed numerical error during the simulation.

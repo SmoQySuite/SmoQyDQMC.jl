@@ -85,7 +85,7 @@ function run_simulation(;
     ## Initialize random number generator
     rng = Xoshiro(seed)
 
-    ## Initialize additiona_info dictionary
+    ## Initialize metadata dictionary
     metadata = Dict()
 
     ## Record simulation parameters.
@@ -108,7 +108,7 @@ function run_simulation(;
 # The next step is define the model we wish to simulate.
 # In this example the relevant model parameters the phonon energy ``\Omega`` (`Ω`), electron-phonon coupling ``\alpha`` (`α`),
 # chemical potential ``\mu`` (`μ`), and lattice size ``L`` (`L`).
-# The neasrest-neighbor hopping amplitude and phonon mass are normalized to unity, ``t = M = 1``.
+# The nearest-neighbor hopping amplitude and phonon mass are normalized to unity, ``t = M = 1``.
 
     ## Define lattice vectors.
     a1 = [+3/2, +√3/2]
@@ -153,7 +153,7 @@ function run_simulation(;
 
 # Next we specify the Honeycomb tight-binding term in our Hamiltonian with the [`TightBindingModel`](@ref) type.
 
-    ## Set neartest-neighbor hopping amplitude to unity,
+    ## Set nearest-neighbor hopping amplitude to unity,
     ## setting the energy scale in the model.
     t = 1.0
 
@@ -259,8 +259,8 @@ function run_simulation(;
 # The next step is to initialize our model parameters given the size of our finite lattice.
 # To clarify, both the [`TightBindingModel`](@ref) and [`ElectronPhononModel`](@ref) types are agnostic to the size of the lattice being simulated,
 # defining the model in a translationally invariant way. As [SmoQyDQMC.jl](https://github.com/SmoQySuite/SmoQyDQMC.jl.git) supports
-# random disorder in the terms appearing in the Hamiltonian, it is necessary to initialize seperate parameter values for each unit cell in the lattice.
-# For instance, we need to initialize a seperate number to represent the on-site energy for each orbital in our finite lattice.
+# random disorder in the terms appearing in the Hamiltonian, it is necessary to initialize separate parameter values for each unit cell in the lattice.
+# For instance, we need to initialize a separate number to represent the on-site energy for each orbital in our finite lattice.
 
     ## Initialize tight-binding parameters.
     tight_binding_parameters = TightBindingParameters(
@@ -278,7 +278,7 @@ function run_simulation(;
         rng = rng
     )
 
-# ## Initialize meuasurements
+# ## Initialize measurements
 # Having initialized both our model and the corresponding model parameters,
 # the next step is to initialize the various measurements we want to make during our DQMC simulation.
 # For more information refer to [here.](@ref hubbard_square_initialize_measurements)
@@ -422,7 +422,7 @@ function run_simulation(;
     ## Initialize alternate fermion greens calculator required for performing EFA-HMC, reflection and swap updates below. 
     fermion_greens_calculator_alt = dqmcf.FermionGreensCalculator(fermion_greens_calculator)
 
-    ## Allcoate equal-time electron Green's function matrix.
+    ## Allocate equal-time electron Green's function matrix.
     G = zeros(eltype(B[1]), size(B[1]))
 
     ## Initialize electron Green's function matrx, also calculating the matrix determinant as the same time.
@@ -433,7 +433,7 @@ function run_simulation(;
     G_τ0 = similar(G) # G(τ,0)
     G_0τ = similar(G) # G(0,τ)
 
-    ## Initialize diagonostic parameters to asses numerical stability.
+    ## Initialize diagnostic parameters to asses numerical stability.
     δG = zero(logdetG)
     δθ = zero(logdetG)
 
@@ -454,7 +454,7 @@ function run_simulation(;
 # Therefore, in most cases you simply need to select a value for ``N_t`` and then use the default assigned time-step ``\Delta t = \pi / (2 N_t)``,
 # such that the trajectory length is held fixed at ``T_t = \pi/2``.
 # With this convention the computational cost of performing updates still increases linearly with ``N_t``, but the acceptance rate also increases with ``N_t``.
-# Note that it can be important to keep the acceptance rate for the HMC updates above ``\sim 90\%`` to avoid numerical instabilities from occuring.
+# Note that it can be important to keep the acceptance rate for the HMC updates above ``\sim 90\%`` to avoid numerical instabilities from occurring.
 
 # Based on user experience, a good (conservative) starting place is to set the number of time-steps to ``N_t \approx 10.``
 # Then, if the acceptance rate is too low you increase ``N_t,`` which implicitly results in a reduction of ``\Delta t.``
@@ -518,7 +518,7 @@ function run_simulation(;
 # but will also begin making measurements as well. For more discussion on the overall
 # structure of this part of the code, refer to [here](@ref hubbard_square_make_measurements).
 
-    ## Reset diagonostic parameters used to monitor numerical stability to zero.
+    ## Reset diagnostic parameters used to monitor numerical stability to zero.
     δG = zero(logdetG)
     δθ = zero(logdetG)
 
@@ -588,8 +588,8 @@ function run_simulation(;
 
 # ## Merge binned data
 # At this point the simulation is essentially complete, with all updates and measurements having been performed.
-# However, the binned measurement data resides in many seperate HDF5 files currently.
-# Here we will merge these seperate HDF5 files into a single file containing all the binned data
+# However, the binned measurement data resides in many separate HDF5 files currently.
+# Here we will merge these separate HDF5 files into a single file containing all the binned data
 # using the [`merge_bins`](@ref) function.
 
     ## Merge binned data into a single HDF5 file.
@@ -598,7 +598,7 @@ function run_simulation(;
 # ## Record simulation metadata
 # At this point we are done sampling and taking measurements.
 # Next, we want to calculate the final acceptance rate for the various types of
-# udpates we performed, as well as write the simulation metadata to file,
+# update we performed, as well as write the simulation metadata to file,
 # including the contents of the `metadata` dictionary.
 
     ## Calculate acceptance rates.
@@ -616,7 +616,7 @@ function run_simulation(;
 # In this final section of code we post-process the binned data.
 # This includes calculating the final estimates for the mean and error of all measured observables,
 # which will be written to an HDF5 file using the [`process_measurements`](@ref) function.
-# Inside this function the binned data gets further rebinned into `n_bins`,
+# Inside this function the binned data gets further re-binned into `n_bins`,
 # where `n_bins` is any positive integer satisfying the constraints `(N_bins ≥ n_bin)` and `(N_bins % n_bins == 0)`.
 # Note that the [`process_measurements`](@ref) function has many additional keyword arguments that can be used to control the output.
 # For instance, in this example in addition to writing the statistics to an HDF5 file, we also export the statistics to CSV files
@@ -624,7 +624,7 @@ function run_simulation(;
 # Again, for more information on how to interpret the output refer the [Simulation Output Overview](@ref) page.
 
     ## Process the simulation results, calculating final error bars for all measurements.
-    ## writing final statisitics to CSV files.
+    ## writing final statistics to CSV files.
     process_measurements(
         datafolder = simulation_info.datafolder,
         n_bins = N_bins,
@@ -636,7 +636,7 @@ function run_simulation(;
 
 # A common measurement that needs to be computed at the end of a DQMC simulation is something called the correlation
 # ratio with respect to the ordering wave-vector for a specified type of structure factor measured during the simulation.
-# In the case of the honeycomb Holstein model, we are interested in measureing the correlation ratio
+# In the case of the honeycomb Holstein model, we are interested in measuring the correlation ratio
 # ```math
 # R_\text{cdw}(0) = 1 - \frac{1}{4} \sum_{\delta\mathbf{q}} \frac{S_\text{cdw}(0 + \delta\mathbf{q})}{S_\text{cdw}(0)}
 # ```
@@ -644,7 +644,7 @@ function run_simulation(;
 # equal-time structure factor corresponding to the composite correlation function ``C_\text{cdw}(\mathbf{r},\tau)`` defined earlier in this tutorial.
 # Note that the CDW ordering wave-vector is ``\mathbf{Q}_\text{cdw} = 0`` in this case, which describes the electrons preferentially
 # localizing on one of the two sub-lattices of the honeycomb lattice.
-# The sum over ``\delta\mathbf{q}`` runs over the four wave-vectors that neigbor ``\mathbf{Q}_\text{cdw} = 0.``
+# The sum over ``\delta\mathbf{q}`` runs over the four wave-vectors that neighbor ``\mathbf{Q}_\text{cdw} = 0.``
 
 # Here we use the [`compute_composite_correlation_ratio`](@ref) function to compute to compute this correlation ratio.
 # Note that the ``\mathbf{Q}_\text{cdw} = 0`` is specified using the `q_point` keyword argument, and the four neighboring wave-vectors
@@ -652,7 +652,7 @@ function run_simulation(;
 # These wave-vectors are specified using the convention described [here](@ref vector_reporting_conventions) in the [Simulation Output Overview](@ref) page.
 # Note that because the honeycomb lattice has a ``C_6`` rotation symmetry, each wave-vector in momentum-space has six nearest-neighbor wave-vectors.
 # Below we specify all six wave-vectors that neighbor the ``\mathbf{Q}_\text{cdw} = 0`` wave-vector ordering wave-vector, accounting for the fact
-# that the Brilliouin zone is periodic in the reciprocal lattice vectors.
+# that the Brillouin zone is periodic in the reciprocal lattice vectors.
 
     ## Calculate CDW correlation ratio.
     Rcdw, ΔRcdw = compute_composite_correlation_ratio(
@@ -689,7 +689,7 @@ end # end of run_simulation function
 # With this in mind, the following block of code only executes if the Julia script is run from the command line,
 # also reading in additional command line arguments.
 
-## Only excute if the script is run directly from the command line.
+## Only execute if the script is run directly from the command line.
 if abspath(PROGRAM_FILE) == @__FILE__
 
     ## Run the simulation.
@@ -714,6 +714,6 @@ end
 # at half-filling ``(\mu = 0)`` and inverse temperature ``\beta = 4.0``.
 # The phonon energy is set to ``\Omega = 1.0`` and the electron-phonon coupling is set to ``\alpha = 1.5.``
 # In the DQMC simulation, 5,000 EFA-HMC, reflection and swap updates are performed to thermalize the system.
-# Then an additional 10,000 such udpates are performed, after each of set of which measurements are made.
+# Then an additional 10,000 such updates are performed, after each of set of which measurements are made.
 # During the simulation, bin-averaged measurements are written to file 100 times,
 # with each bin of data containing the average of 10,000/100 = 100 sequential measurements.

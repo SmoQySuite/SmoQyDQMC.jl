@@ -7,7 +7,7 @@
 # electron density or filling fraction.
 
 # ## Import Packages
-# Compared to the previouse [1c) Square Hubbard Model with Checkpointing](@ref) tutorial,
+# Compared to the previous [1c) Square Hubbard Model with Checkpointing](@ref) tutorial,
 # we now need to import the [MuTuner.jl](https://github.com/cohensbw/MuTuner.jl.git)
 # package, which is reexported by [SmoQyDQMC.jl](https://github.com/SmoQySuite/SmoQyDQMC.jl.git)
 
@@ -100,7 +100,7 @@ function run_simulation(
         ## Initialize random number generator
         rng = Xoshiro(seed)
 
-        ## Initialize additiona_info dictionary
+        ## Initialize metadata dictionary
         metadata = Dict()
 
         ## Record simulation parameters.
@@ -163,7 +163,7 @@ function run_simulation(
         ## Add the third nearest-neighbor bond in a honeycomb lattice to the model.
         bond_3_id = add_bond!(model_geometry, bond_3)
 
-        ## Set neartest-neighbor hopping amplitude to unity,
+        ## Set nearest-neighbor hopping amplitude to unity,
         ## setting the energy scale in the model.
         t = 1.0
 
@@ -275,7 +275,7 @@ function run_simulation(
         )
 
         ## Initialize MuTunerLogger type that will be used to dynamically adjust the
-        ## chemicaml potential during the simulation.
+        ## chemical potential during the simulation.
         chemical_potential_tuner = mt.init_mutunerlogger(
             target_density = n,
             inverse_temperature = β,
@@ -284,7 +284,7 @@ function run_simulation(
             complex_sign_problem = false
         )
 
-# ## Initialize meuasurements
+# ## Initialize measurements
 # No changes need to made to this section of the code from the previous
 # [2c) Honeycomb Holstein Model with Checkpointing](@ref) tutorial.
 
@@ -442,10 +442,10 @@ function run_simulation(
     ## Initialize alternate fermion greens calculator required for performing EFA-HMC, reflection and swap updates below. 
     fermion_greens_calculator_alt = dqmcf.FermionGreensCalculator(fermion_greens_calculator)
 
-    ## Allcoate equal-time electron Green's function matrix.
+    ## Allocate equal-time electron Green's function matrix.
     G = zeros(eltype(B[1]), size(B[1]))
 
-    ## Initialize electron Green's function matrx, also calculating the matrix determinant as the same time.
+    ## Initialize electron Green's function matrix, also calculating the matrix determinant as the same time.
     logdetG, sgndetG = dqmcf.calculate_equaltime_greens!(G, fermion_greens_calculator)
 
     ## Allocate matrices for various time-displaced Green's function matrices.
@@ -453,7 +453,7 @@ function run_simulation(
     G_τ0 = similar(G) # G(τ,0)
     G_0τ = similar(G) # G(0,τ)
 
-    ## Initialize diagonostic parameters to asses numerical stability.
+    ## Initialize diagnostic parameters to asses numerical stability.
     δG = zero(logdetG)
     δθ = zero(logdetG)
 
@@ -461,7 +461,7 @@ function run_simulation(
 # No changes need to made to this section of the code from the previous
 # [2c) Honeycomb Holstein Model with Checkpointing](@ref) tutorial.
 
-    ## Initialize Hamitlonian/Hybrid monte carlo (HMC) updater.
+    ## Initialize Hamiltonian/Hybrid monte carlo (HMC) updater.
     hmc_updater = EFAHMCUpdater(
         electron_phonon_parameters = electron_phonon_parameters,
         G = G, Nt = Nt, Δt = π/(2*Nt)
@@ -469,7 +469,7 @@ function run_simulation(
 
 # ## Thermalize system
 # Here we need to add a call to the [`update_chemical_potential!`](@ref) function
-# after completeing the updates but before writing the checkpoint file is written.
+# after completing the updates but before writing the checkpoint file is written.
 # And again, we need to make sure the include the `chemical_potential_tuner` in the checkpoint file.
 
     ## Iterate over number of thermalization updates to perform.
@@ -542,7 +542,7 @@ function run_simulation(
 # after making and writing measurements but before writing the checkpoint file is written.
 # And again, we need to make sure the include the `chemical_potential_tuner` in the checkpoint file.
 
-    ## Reset diagonostic parameters used to monitor numerical stability to zero.
+    ## Reset diagnostic parameters used to monitor numerical stability to zero.
     δG = zero(logdetG)
     δθ = zero(logdetG)
 
@@ -664,7 +664,7 @@ function run_simulation(
 # [2c) Honeycomb Holstein Model with Checkpointing](@ref) tutorial.
 
     ## Process the simulation results, calculating final error bars for all measurements.
-    ## writing final statisitics to CSV files.
+    ## writing final statistics to CSV files.
     process_measurements(
         comm,
         datafolder = simulation_info.datafolder,
@@ -718,7 +718,7 @@ end # end of run_simulation function
 # ```
 # where the target density is ``\langle n \rangle = 0.8`` and the initial chemical potential is ``\mu = 0.0``.
 
-## Only excute if the script is run directly from the command line.
+## Only execute if the script is run directly from the command line.
 if abspath(PROGRAM_FILE) == @__FILE__
 
     ## Initialize MPI

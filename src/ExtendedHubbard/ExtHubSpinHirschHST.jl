@@ -1,3 +1,28 @@
+@doc raw"""
+    ExtHubSpinHirschHST{T,R} <: AbstractAsymHST{T,R}
+
+This type represent a Hirsch style Hubbard-Stratonovich (HS) transformation used to decouple
+an extended Hubbard interaction, where the introduced HS fields can take on the values
+``s = \pm 1``. The decomposition is done using the spin-channel. Here the extended Hubbard
+interaction is expressed as
+```math
+V(\hat{n}_i-1)(\hat{n}_j) = V\sum_{\sigma,\sigma'} (\hat{n}_{\sigma,i}-\frac{1}{2})\hat{n}_{\sigma',j}-\frac{1}{2}).
+```
+Then each of the four terms on the right is decouple using a HS transformation of the form
+```math
+e^{-\Delta\tau V\left(n_{\sigma}-\tfrac{1}{2}\right)\left(n_{\sigma'}-\tfrac{1}{2}\right)}
+ = \gamma\sum_{s=\pm1}e^{-\Delta\tau\alpha(n_{\sigma}-n_{\sigma'})s},
+```
+where
+```math
+\gamma=\frac{1}{2}e^{-\Delta\tau V/4}
+```
+and
+```math
+\alpha = \frac{1}{\Delta\tau}\cosh^{-1}\left(e^{\Delta\tau V/2}\right).
+```
+Note that when ``V \ge 0`` then ``\alpha`` is real, whereas if ``V<0`` then ``\alpha`` is purely imaginary.
+"""
 struct ExtHubSpinHirschHST{T,R} <: AbstractAsymHST{T,R}
 
     # inverse temperature
@@ -34,6 +59,15 @@ struct ExtHubSpinHirschHST{T,R} <: AbstractAsymHST{T,R}
     bond_ids::Vector{Int}
 end
 
+@doc raw"""
+    ExtHubSpinHirschHST(;
+        # KEYWORD ARGUMENTS
+        extended_hubbard_parameters::ExtendedHubbardParameters{R},
+        β::R, Δτ::R, rng::AbstractRNG
+    ) where {R<:AbstractFloat}
+
+Initialize an instance of the [`ExtHubSpinHirschHST`](@ref) type.
+"""
 function ExtHubSpinHirschHST(;
     # KEYWORD ARGUMENTS
     extended_hubbard_parameters::ExtendedHubbardParameters{R},
@@ -43,7 +77,7 @@ function ExtHubSpinHirschHST(;
     (; V, neighbor_table, bond_ids, ph_sym_form) = extended_hubbard_parameters
 
     # if any attractive Hubbard interactions, then complex field coefficients
-    T = any(v -> v < 0, V) ? Complex{E} : E
+    T = any(v -> v < 0, V) ? Complex{R} : R
 
     # calculate length of imaginary-time axis
     Lτ = round(Int, β / Δτ)
@@ -82,17 +116,23 @@ function _initialize!(
     Vup = fermion_path_integral_up.V
     Vdn = fermion_path_integral_dn.V
 
-    # iterate over sites with Hubbard U interactions
+    # iterate bonds with extended Hubbard interaction
     for b in axes(neighbor_table, 2)
+
+        # coupling of the form exp(-Δτ⋅α⋅sⱼᵢ⋅(nⱼ-nᵢ))
         i, j = neighbor_table[1,b], neighbor_table[2, b]
-        @views @. Vup[i,:] += -α[i] * s_upup[j,:]
-        @views @. Vdn[i,:] += -α[i] * s_dndn[j,:]
-        @views @. Vup[i,:] += -α[i] * s_updn[j,:]
-        @views @. Vdn[i,:] += -α[i] * s_dnup[j,:]
-        @views @. Vup[j,:] += +α[j] * s_upup[i,:]
-        @views @. Vdn[j,:] += +α[j] * s_dndn[i,:]
-        @views @. Vup[j,:] += +α[j] * s_updn[i,:]
-        @views @. Vdn[j,:] += +α[j] * s_dnup[i,:]
+
+        @views @. Vup[i,:] += -α[b] * s_upup[b,:]
+        @views @. Vup[j,:] += +α[b] * s_upup[b,:]
+
+        @views @. Vdn[i,:] += -α[b] * s_dndn[b,:]
+        @views @. Vdn[j,:] += +α[b] * s_dndn[b,:]
+
+        @views @. Vdn[i,:] += -α[b] * s_updn[b,:]
+        @views @. Vup[j,:] += +α[b] * s_updn[b,:]
+
+        @views @. Vup[i,:] += -α[b] * s_dnup[b,:]
+        @views @. Vdn[j,:] += +α[b] * s_dnup[b,:]
     end
 
     return nothing
@@ -109,24 +149,27 @@ function _local_updates!(
     Bup::P, Bdn::P, l::Int, rng::AbstractRNG
 ) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator}
 
-    (; Δτ, α, neighbor_table, update_perm, N) = hst_parameters
+    (; Δτ, α, neighbor_table, update_perm) = hst_parameters
     u′ = @view fermion_path_integral_up.u[:,1]
     v′ = @view fermion_path_integral_up.v[:,1]
     u″ = @view fermion_path_integral_dn.u[:,1:2]
     v″ = @view fermion_path_integral_dn.v[:,1:2]
 
     # get on-site energy matrices for spin up and down electrons for all time slices
-    Vup = fermion_path_integral_up.V
-    Vdn = fermion_path_integral_dn.V
+    Vup = @view fermion_path_integral_up.V[:,l]
+    Vdn = @view fermion_path_integral_dn.V[:,l]
 
     # get the relevant HS fields
     s_upup = @view hst_parameters.s_upup[:,l]
-    s_dndn = @view hst_parameters.s_upup[:,l]
-    s_updn = @view hst_parameters.s_upup[:,l]
-    s_dnup = @view hst_parameters.s_upup[:,l]
+    s_dndn = @view hst_parameters.s_dndn[:,l]
+    s_updn = @view hst_parameters.s_updn[:,l]
+    s_dnup = @view hst_parameters.s_dnup[:,l]
 
     # shuffle the order in which orbitals/sites will be iterated over
     shuffle!(rng, update_perm)
+
+    # initialize number of accepted updates to zero
+    accepted_spin_flips = zero(Int)
 
     # iterate over orbitals in the lattice
     for n in update_perm
@@ -134,38 +177,48 @@ function _local_updates!(
         # get the pair of sites coupled associated with extended hubbard interaction
         i, j = neighbor_table[1,n], neighbor_table[2,n]
 
-        # perform local updates for each of the four types of HS fields
-        _local_update!(
-            Gup, logdetGup, sgndetGup, Bup[l], Vup[l], s_upup,
-            n, i, j, Δτ, α, rng, u″, v″
+        # Update HS field that couples up electrons together
+        accepted, logdetGup, sgndetGup = _local_update!(
+            Gup, logdetGup, sgndetGup, Bup, Vup, s_upup,
+            n, j, i, Δτ, α, rng, u″, v″
         )
-        _local_update!(
-            Gdn, logdetGdn, sgndetGdn, Bdn[l], Vdn[l], s_dndn,
-            n, i, j, Δτ, α, rng, u″, v″
+        accepted_spin_flips += accepted
+
+        # update HS field that couple down electrons together
+        accepted, logdetGdn, sgndetGdn = _local_update!(
+            Gdn, logdetGdn, sgndetGdn, Bdn, Vdn, s_dndn,
+            n, j, i, Δτ, α, rng, u″, v″
         )
-        _local_update!(
-            Gup, logdetGup, sgndetGup, Bup[l], Vup[l],
-            Gdn, logdetGdn, sgndetGdn, Bdn[l], Vdn[l],
-            s_updn, n, i, j, Δτ, α, rng, u′, v′
+        accepted_spin_flips += accepted
+
+        # update HS field that couple (i,up) electron to (j,down) electron
+        accepted, logdetGup, sgndetGup, logdetGdn, sgndetGdn = _local_update!(
+            Gup, logdetGup, sgndetGup, Bup, Vup,
+            Gdn, logdetGdn, sgndetGdn, Bdn, Vdn,
+            s_updn, n, j, i, Δτ, α, rng, u′, v′
         )
-        _local_update!(
-            Gdn, logdetGdn, sgndetGdn, Bdn[l], Vdn[l],
-            Gup, logdetGup, sgndetGup, Bup[l], Vup[l],
-            s_dnup, n, i, j, Δτ, α, rng, u′, v′
+        accepted_spin_flips += accepted
+
+        # update HS filed that couple (i,down) electron to (i,up) electron
+        accepted, logdetGdn, sgndetGdn, logdetGup, sgndetGup = _local_update!(
+            Gdn, logdetGdn, sgndetGdn, Bdn, Vdn,
+            Gup, logdetGup, sgndetGup, Bup, Vup,
+            s_dnup, n, j, i, Δτ, α, rng, u′, v′
         )
+        accepted_spin_flips += accepted
     end
 
     # calculate the acceptance rate
-    acceptance_rate = accepted_spin_flips / length(s)
+    acceptance_rate = accepted_spin_flips / (4 * length(s_upup))
 
-    return acceptance_rate
+    return acceptance_rate, logdetGup, sgndetGup, logdetGdn, sgndetGdn
 end
 
 # perform a local update for a HS field that couples the densities of different spin species
 function _local_update!(
-    Gi, logdetGi, sgndetGi, Bi, Vi,
     Gj, logdetGj, sgndetGj, Bj, Vj,
-    s, n, i, j, Δτ, α, rng, u, v
+    Gi, logdetGi, sgndetGi, Bi, Vi,
+    s, n, j, i, Δτ, α, rng, u, v
 )
 
     # calculate the change in the i & j matrix elements of the diagonal on-site energy matrices
@@ -202,21 +255,21 @@ function _local_update!(
         accepted = false
     end
 
-    return (accepted, Gi, logdetGi, sgndetGi, Gj, logdetGj, sgndetGj)
+    return (accepted, logdetGi, sgndetGi, logdetGj, sgndetGj)
 end
 
 # perform a local update for a HS field that couples the densities of the same spin species
 function _local_update!(
     G, logdetG, sgndetG, B, V,
-    s, n, i, j, Δτ, α, rng, u, v
+    s, n, j, i, Δτ, α, rng, u, v
 )
 
     # calculate the change in the potential energy matrix
     ΔV = -2 * α[n] * s[n]
 
     # calculate changes in matrix elements
-    Δii = exp(+Δτ*ΔV)
-    Δjj = exp(-Δτ*ΔV)
+    Δii = expm1(+Δτ*ΔV)
+    Δjj = expm1(-Δτ*ΔV)
 
     # calculate determinant ratio
     Rij = eval_R(G, Δii, Δjj, i, j)
@@ -238,7 +291,7 @@ function _local_update!(
         V[j] += +ΔV
 
         # update green's function matrix
-        logdetG, sgndetG = update_G!(G, logdetG, sgndetG, B, Rij, Δii, Δjj, i, j, u, v)
+        logdetG, sgndetG = update_G!(G, logdetG, sgndetG, B, Rij, Δjj, Δii, j, i, u, v)
 
     # reject update
     else
@@ -247,5 +300,5 @@ function _local_update!(
         accepted = false
     end
 
-    return (accepted, G, logdetG, sgndetG)
+    return (accepted, logdetG, sgndetG)
 end

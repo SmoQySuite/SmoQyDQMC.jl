@@ -212,7 +212,7 @@ function _local_updates!(
     # calculate the acceptance rate
     acceptance_rate = accepted_spin_flips/size(s,1)
 
-    return acceptance_rate
+    return acceptance_rate, logdetGup, sgndetGup, logdetGdn, sgndetGdn
 end
 
 
@@ -289,7 +289,7 @@ function _local_updates!(
     # calculate the acceptance rate
     acceptance_rate = accepted_spin_flips/size(s,1)
 
-    return acceptance_rate
+    return acceptance_rate, logdetG, sgndetG
 end
 
 

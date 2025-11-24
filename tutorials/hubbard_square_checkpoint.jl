@@ -204,7 +204,7 @@ function run_simulation(
         ## Add this bond definition to the model, by adding it the model_geometry.
         bond_pxny_id = add_bond!(model_geometry, bond_pxny)
 
-        ## Set neartest-neighbor hopping amplitude to unity,
+        ## Set nearest-neighbor hopping amplitude to unity,
         ## setting the energy scale in the model.
         t = 1.0
 
@@ -254,7 +254,7 @@ function run_simulation(
             rng = rng
         )
 
-        ## Apply Ising Hubbard-Stratonovich (HS) transformation to decouple the Hubbard interaction,
+        ## Apply Hubbard-Stratonovich (HS) transformation to decouple the Hubbard interaction,
         ## and initialize the corresponding HS fields that will be sampled in the DQMC simulation.
         hst_parameters = HubbardSpinHirschHST(
             β = β, Δτ = Δτ,
@@ -348,8 +348,8 @@ function run_simulation(
 # ## Load checkpoint
 # If we are resuming a simulation that was previously terminated prior to completion, then
 # we need to load the most recent checkpoint file using the [`read_jld2_checkpoint`](@ref) function.
-# The cotents of the checkpoint file are returned as a dictionary `checkpoint` by the [`read_jld2_checkpoint`](@ref) function.
-# We then extract the cotents of the checkpoint file from the `checkpoint` dictionary.
+# The contents of the checkpoint file are returned as a dictionary `checkpoint` by the [`read_jld2_checkpoint`](@ref) function.
+# We then extract the contents of the checkpoint file from the `checkpoint` dictionary.
 
     ## If resuming a previous simulation.
     else
@@ -412,7 +412,7 @@ function run_simulation(
     Gdn_τ0 = similar(Gdn) # Gdn(τ,0)
     Gdn_0τ = similar(Gdn) # Gdn(0,τ)
 
-    ## Initialize diagonostic parameters to asses numerical stability.
+    ## Initialize diagnostic parameters to asses numerical stability.
     δG = zero(logdetGup)
     δθ = zero(logdetGup)
 
@@ -485,7 +485,7 @@ function run_simulation(
 # Note that we set `n_therm = N_therm + 1` when writing the checkpoint file to ensure that when the simulation
 # is resumed the thermalization updates are not repeated.
 
-    ## Reset diagonostic parameters used to monitor numerical stability to zero.
+    ## Reset diagnostic parameters used to monitor numerical stability to zero.
     δG = zero(logdetGup)
     δθ = zero(logdetGup)
 
@@ -596,7 +596,7 @@ function run_simulation(
 # This function also deletes the checkpoint files that were written during the simulation.
 
     ## Process the simulation results, calculating final error bars for all measurements.
-    ## writing final statisitics to CSV files.
+    ## writing final statistics to CSV files.
     process_measurements(
         comm;
         datafolder = simulation_info.datafolder,

@@ -147,14 +147,13 @@ function _local_updates!(
         # get the site
         site = sites[i]
 
-        # calculate the new value of Vup[i,l] and Vdn[i,l] resulting from the
-        # HS field have it's sign flipped from s[i,l] ==> -s[i,l]
-        ΔVup_il = -2 * α[i] * s[i]
-        ΔVdn_il = +2 * α[i] * s[i]
+        # Calculate the change ΔV = α⋅(-s) - α⋅(s) = -2⋅α⋅s
+        # associated with flipping a spin
+        ΔV_il = -2 * α[i] * s[i]
 
         # calculate spin-up determinant ratio associated with Ising HS spin flip
-        Rup_il, Δup_il = local_update_det_ratio(Gup, ΔVup_il, site, Δτ)
-        Rdn_il, Δdn_il = local_update_det_ratio(Gdn, ΔVdn_il, site, Δτ)
+        Rup_il, Δup_il = local_update_det_ratio(Gup, +ΔV_il, site, Δτ)
+        Rdn_il, Δdn_il = local_update_det_ratio(Gdn, -ΔV_il, site, Δτ)
 
         # calculate acceptance probability
         P_il = abs(Rup_il * Rdn_il)
@@ -169,8 +168,8 @@ function _local_updates!(
             s[i] = -s[i]
 
             # update diagonal on-site energy matrix
-            Vup[site,l] += ΔVup_il
-            Vdn[site,l] += ΔVdn_il
+            Vup[site,l] += +ΔV_il
+            Vdn[site,l] += -ΔV_il
 
             # update the spin-up and down Green's function
             logdetGup, sgndetGup = local_update_greens!(Gup, logdetGup, sgndetGup, Bup, Rup_il, Δup_il, site, u, v)
@@ -181,7 +180,7 @@ function _local_updates!(
     # calculate the acceptance rate
     acceptance_rate = accepted_spin_flips / length(s)
 
-    return acceptance_rate
+    return acceptance_rate, logdetGup, sgndetGup, logdetGdn, sgndetGdn
 end
 
 

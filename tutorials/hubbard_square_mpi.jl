@@ -82,7 +82,7 @@ function run_simulation(
     ## Initialize random number generator
     rng = Xoshiro(seed)
 
-    ## Initialize additiona_info dictionary
+    ## Initialize metadata dictionary
     metadata = Dict()
 
     ## Record simulation parameters.
@@ -180,7 +180,7 @@ function run_simulation(
     ## Add this bond definition to the model, by adding it the model_geometry.
     bond_pxny_id = add_bond!(model_geometry, bond_pxny)
 
-    ## Set neartest-neighbor hopping amplitude to unity,
+    ## Set nearest-neighbor hopping amplitude to unity,
     ## setting the energy scale in the model.
     t = 1.0
 
@@ -229,7 +229,7 @@ function run_simulation(
         rng = rng
     )
 
-    ## Apply Ising Hubbard-Stranonvich (HS) transformation to decouple the Hubbard interaction,
+    ## Apply Hubbard-Stratonovich (HS) transformation to decouple the Hubbard interaction,
     ## and initialize the corresponding HS fields that will be sampled in the DQMC simulation.
     hst_parameters = HubbardSpinHirschHST(
         β = β, Δτ = Δτ,
@@ -237,7 +237,7 @@ function run_simulation(
         rng = rng
     )
 
-# ## Initialize meuasurements
+# ## Initialize measurements
 # No changes need to made to this section of the code from the previous [1a) Square Hubbard Model](@ref) tutorial.
 
     ## Initialize the container that measurements will be accumulated into.
@@ -336,7 +336,7 @@ function run_simulation(
     fermion_greens_calculator_up_alt = dqmcf.FermionGreensCalculator(fermion_greens_calculator_up)
     fermion_greens_calculator_dn_alt = dqmcf.FermionGreensCalculator(fermion_greens_calculator_dn)
 
-    ## Allcoate matrices for spin-up and spin-down electron Green's function matrices.
+    ## Allocate matrices for spin-up and spin-down electron Green's function matrices.
     Gup = zeros(eltype(Bup[1]), size(Bup[1]))
     Gdn = zeros(eltype(Bdn[1]), size(Bdn[1]))
 
@@ -353,7 +353,7 @@ function run_simulation(
     Gdn_τ0 = similar(Gdn) # Gdn(τ,0)
     Gdn_0τ = similar(Gdn) # Gdn(0,τ)
 
-    ## Initialize diagonostic parameters to asses numerical stability.
+    ## Initialize diagnostic parameters to asses numerical stability.
     δG = zero(logdetGup)
     δθ = zero(logdetGup)
 
@@ -398,7 +398,7 @@ function run_simulation(
 # ## Make measurements
 # No changes need to made to this section of the code from the previous [1a) Square Hubbard Model](@ref) tutorial.
 
-    ## Reset diagonostic parameters used to monitor numerical stability to zero.
+    ## Reset diagnostic parameters used to monitor numerical stability to zero.
     δG = zero(logdetGup)
     δθ = zero(logdetGup)
 
@@ -486,13 +486,13 @@ function run_simulation(
     ## Write simulation summary TOML file.
     save_simulation_info(simulation_info, metadata)
 
-# ## Post-rocess results
-# The main change we need to make from the previos [1a) Square Hubbard Model](@ref) tutorial is to call
+# ## Post-process results
+# The main change we need to make from the previous [1a) Square Hubbard Model](@ref) tutorial is to call
 # the [`process_measurements`](@ref) and [`compute_correlation_ratio`](@ref) functions
 # such that the first argument is the `comm` object, thereby ensuring a parallelized version of each method is called.
 
     ## Process the simulation results, calculating final error bars for all measurements.
-    ## writing final statisitics to CSV files.
+    ## writing final statistics to CSV files.
     process_measurements(
         comm;
         datafolder = simulation_info.datafolder,
@@ -536,7 +536,7 @@ end # end of run_simulation function
 # At the very end of simulation it is good practice to run the `MPI.Finalize()` function even though
 # it is typically not strictly required.
 
-# Only excute if the script is run directly from the command line.
+# Only execute if the script is run directly from the command line.
 if abspath(PROGRAM_FILE) == @__FILE__
 
     ## Initialize MPI
@@ -569,13 +569,13 @@ end
 # ```
 # This will 16 MPI processes, each running and independent simulation using a different random seed
 # the final results arrived at by averaging over all 16 walkers.
-# Here `mpiexecjl` is the MPI exectuable that can be easily install using the directions
+# Here `mpiexecjl` is the MPI executable that can be easily install using the directions
 # found [here](https://juliaparallel.org/MPI.jl/stable/usage/#Julia-wrapper-for-mpiexec) in the
 # [MPI.jl](https://github.com/JuliaParallel/MPI.jl) documentation. However, you can substitute a
 # different MPI executable here if one is already configured on your system.
 
 # Also, when submitting jobs via [SLURM](https://slurm.schedmd.com/documentation.html)
-# on a High-Performance Computing (HPC) cluster, if a default MPI exectuable
+# on a High-Performance Computing (HPC) cluster, if a default MPI executable
 # is already configured on the system, as is frequently the case, then the script can likely be run inside the
 # `*.sh` job file using the [`srun`](https://slurm.schedmd.com/srun.html) command:
 # ```bash

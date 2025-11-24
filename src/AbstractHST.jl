@@ -189,7 +189,7 @@ function local_updates!(
         partially_wrap_greens_reverse!(Gdn, Bdn_l, G′)
 
         # perform local updates for the current imaginary-time slice
-        acceptance_rate_l = _local_updates!(
+        acceptance_rate_l, logdetGup, sgndetGup, logdetGdn, sgndetGdn = _local_updates!(
             Gup, logdetGup, sgndetGup, Gdn, logdetGdn, sgndetGdn,
             hst_parameters, fermion_path_integral_up, fermion_path_integral_dn,
             Bup_l, Bdn_l, l, rng
@@ -298,7 +298,7 @@ function local_updates!(
     G′ = fermion_greens_calculator_up.G′
 
     # initialize vector to record acceptance rates
-    acceptance_rates = @MVector zeros(N, R)
+    acceptance_rates = @MVector zeros(R, N)
 
     # Iterate over imaginary time τ=Δτ⋅l.
     for l in fermion_greens_calculator_up
@@ -322,7 +322,7 @@ function local_updates!(
         for n in 1:N
 
             # perform local updates for the current imaginary-time slice
-            acceptance_rate_l = _local_updates!(
+            acceptance_rate_l, logdetGup, sgndetGup, logdetGdn, sgndetGdn, = _local_updates!(
                 Gup, logdetGup, sgndetGup, Gdn, logdetGdn, sgndetGdn,
                 hst_parameters[n], fermion_path_integral_up, fermion_path_integral_dn,
                 Bup_l, Bdn_l, l, rng
@@ -440,7 +440,7 @@ function local_updates!(
         partially_wrap_greens_reverse!(G, B_l, G′)
 
         # perform local update for current imaginary-time slice
-        acceptance_rate_l = _local_updates!(
+        acceptance_rate_l, logdetG, sgndetG = _local_updates!(
             G, logdetG, sgndetG,
             hst_parameters, fermion_path_integral,
             B_l, l, rng
@@ -546,7 +546,7 @@ function local_updates!(
         for n in 1:N
 
             # perform local updates for the current imaginary-time slice
-            acceptance_rate_l = _local_updates!(
+            acceptance_rate_l, logdetG, sgndetG = _local_updates!(
                 G, logdetG, sgndetG,
                 hst_parameters[n], fermion_path_integral,
                 B_l, l, rng
