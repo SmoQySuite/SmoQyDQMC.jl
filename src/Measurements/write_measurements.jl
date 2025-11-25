@@ -30,10 +30,10 @@ function write_measurements!(;
     bin_size::Int,
     measurement::Int = 0,
     bin::Int = measurement ÷ bin_size,
-    update::Int = 0 # OLD KEYWORD ARGUMENT, WILL BE DEPRECATED
+    update::Int = 0 # OLD KEYWORD ARGUMENT, WILL BE DEPRECATED EVENTUALLY
 ) where {D, E<:AbstractFloat, N}
 
-    # use old keyword if necessary
+    # USE OLD KEYWORD ARGUMENTS, WILL BE DEPRECATED EVENTUALLY
     if !iszero(update) && iszero(measurement)
         measurement = update
         bin = !iszero(bin) ? bin : measurement ÷ bin_size
