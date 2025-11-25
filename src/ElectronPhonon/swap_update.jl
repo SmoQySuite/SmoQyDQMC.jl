@@ -20,12 +20,12 @@ This function returns `(accepted, logdetGup, sgndetGup, logdetGdn, sgndetGdn)`.
 
 # Arguments
 
-- `Gup::Matrix{H}`: Spin-up eqaul-time Greens function matrix.
-- `logdetGup::R`: Log of the determinant of the spin-up eqaul-time Greens function matrix.
-- `sgndetGup::H`: Sign/phase of the determinant of the spin-up eqaul-time Greens function matrix.
-- `Gdn::Matrix{H}`: Spin-down eqaul-time Greens function matrix.
-- `logdetGdn::R`: Log of the determinant of the spin-down eqaul-time Greens function matrix.
-- `sgndetGdn::H`: Sign/phase of the determinant of the spin-down eqaul-time Greens function matrix.
+- `Gup::Matrix{H}`: Spin-up equal-time Greens function matrix.
+- `logdetGup::R`: Log of the determinant of the spin-up equal-time Greens function matrix.
+- `sgndetGup::H`: Sign/phase of the determinant of the spin-up equal-time Greens function matrix.
+- `Gdn::Matrix{H}`: Spin-down equal-time Greens function matrix.
+- `logdetGdn::R`: Log of the determinant of the spin-down equal-time Greens function matrix.
+- `sgndetGdn::H`: Sign/phase of the determinant of the spin-down equal-time Greens function matrix.
 - `electron_phonon_parameters::ElectronPhononParameters{T,R}`: Electron-phonon parameters, including the current phonon configuration.
 
 # Keyword Arguments
@@ -198,7 +198,7 @@ function swap_update!(
         fermion_path_integral_up.Sb += ΔSb
         fermion_path_integral_dn.Sb += ΔSb
     else
-        # substract off the effect of the current phonon configuration on the fermion path integrals
+        # subtract off the effect of the current phonon configuration on the fermion path integrals
         if calculate_exp_V
             update!(fermion_path_integral_up, holstein_parameters_up, x, -1)
             update!(fermion_path_integral_dn, holstein_parameters_dn, x, -1)
@@ -244,9 +244,9 @@ This function returns `(accepted, logdetG, sgndetG)`.
 
 # Arguments
 
-- `G::Matrix{H}`: Eqaul-time Greens function matrix.
-- `logdetG::R`: Log of the determinant of the eqaul-time Greens function matrix.
-- `sgndetG::H`: Sign/phase of the determinant of the eqaul-time Greens function matrix.
+- `G::Matrix{H}`: equal-time Greens function matrix.
+- `logdetG::R`: Log of the determinant of the equal-time Greens function matrix.
+- `sgndetG::H`: Sign/phase of the determinant of the equal-time Greens function matrix.
 - `electron_phonon_parameters::ElectronPhononParameters{T,R}`: Electron-phonon parameters, including the current phonon configuration.
 
 # Keyword Arguments

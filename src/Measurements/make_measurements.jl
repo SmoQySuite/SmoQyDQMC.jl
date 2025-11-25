@@ -26,7 +26,7 @@
 
 Make measurements, including time-displaced correlation and zero Matsubara frequency measurements.
 This method also returns `(logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ)`.
-Note that either the keywork `tight_binding_parameters` needs to be specified, or
+Note that either the keyword `tight_binding_parameters` needs to be specified, or
 `tight_binding_parameters_up` and `tight_binding_parameters_dn` both need to be specified.
 """
 function make_measurements!(

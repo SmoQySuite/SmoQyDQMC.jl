@@ -224,7 +224,7 @@ In that above expression ``t_{\mathbf{i},(\mathbf{r},\kappa,\nu)}`` is the bare 
 # Fields
 
 - `phonon_ids::NTuple{2,Int}`: Pair of phonon modes getting coupled together.
-- `bond::Bond{D}`: Bond seperating the two orbitals getting coupled to, which are seperated by ``\mathbf{r} + (\mathbf{r}_\kappa - \mathbf{r}_\nu)``.
+- `bond::Bond{D}`: Bond separating the two orbitals getting coupled to, which are separated by ``\mathbf{r} + (\mathbf{r}_\kappa - \mathbf{r}_\nu)``.
 - `bond_id::Int`: Bond ID associated with the `bond` field.
 - `α_mean::T`: Mean of the linear SSH coupling constant ``\alpha_{1,\mathbf{i},(\mathbf{r},\kappa,\nu)}.``
 - `α_std::T`: Standard deviation of the linear SSH coupling constant ``\alpha_{1,\mathbf{i},(\mathbf{r},\kappa,\nu)}.``
@@ -421,11 +421,11 @@ Defines an electron-phonon model.
 # Fields
 
 - `phonon_modes::Vector{PhononModes{E,D}}`: A vector of [`PhononMode`](@ref) definitions.
-- `phonon_dispersions::Vector{PhononDispersion{E,D}}`: A vector of [`PhononDispersion`](@ref) defintions.
+- `phonon_dispersions::Vector{PhononDispersion{E,D}}`: A vector of [`PhononDispersion`](@ref) definitions.
 - `holstein_couplings_up::Vector{HolsteinCoupling{E,D}}`: A vector of [`HolsteinCoupling`](@ref) definitions for spin-up.
 - `holstein_couplings_dn::Vector{HolsteinCoupling{E,D}}`: A vector of [`HolsteinCoupling`](@ref) definitions for spin-down.
-- `ssh_couplings_up::Vector{SSHCoupling{T,E,D}}`: A vector of [`SSHCoupling`](@ref) defintions for spin-up.
-- `ssh_couplings_dn::Vector{SSHCoupling{T,E,D}}`: A vector of [`SSHCoupling`](@ref) defintions for spin-down.
+- `ssh_couplings_up::Vector{SSHCoupling{T,E,D}}`: A vector of [`SSHCoupling`](@ref) definitions for spin-up.
+- `ssh_couplings_dn::Vector{SSHCoupling{T,E,D}}`: A vector of [`SSHCoupling`](@ref) definitions for spin-down.
 """
 struct ElectronPhononModel{T<:Number, E<:AbstractFloat, D}
     

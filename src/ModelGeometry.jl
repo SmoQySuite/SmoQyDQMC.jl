@@ -23,7 +23,7 @@ end
 @doc raw"""
     ModelGeometry(unit_cell::UnitCell, lattice::Lattice)
 
-Initialize and return a [`ModelGeometry`](@ref) instance. Defines a "trivial" bond defintion for each
+Initialize and return a [`ModelGeometry`](@ref) instance. Defines a "trivial" bond definition for each
 orbital in the unit cell that connects an orbital to itself.
 """
 function ModelGeometry(unit_cell::UnitCell{D}, lattice::Lattice{D}) where {D}

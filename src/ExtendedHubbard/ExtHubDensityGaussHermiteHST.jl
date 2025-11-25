@@ -111,7 +111,7 @@ based on the [`ExtHubDensityGaussHermiteHST`](@ref) definition. Refer to the def
 
 Note that either both the local and extended Hubbard interactions need to be initialized using the particle-hole
 symmetric or asymmetric form for the interaction (as specified by `ph_sym_form` keyword argument), and cannot use opposite conventions.
-Additionally, the [`HubbardModel`](@ref) defintion used to create the `hubbard_parameters` instance of the [`HubbardParameters`](@ref)
+Additionally, the [`HubbardModel`](@ref) definition used to create the `hubbard_parameters` instance of the [`HubbardParameters`](@ref)
 passed to this function must initialize a Hubbard interaction on each type of orbital species/ID appearing
 in an extended Hubbard interaction, even if this means initializing the local Hubbard interaction to ``U = 0``.
 """

@@ -17,7 +17,7 @@
 
 Update the chemical potential ``\mu`` in the simulation to approach the target density/filling.
 This method returns the new values for `(logdetGup, sgndetGup, logdetGup, sgndetGup)`.
-Note that either the keywork `tight_binding_parameters` needs to be specified, or
+Note that either the keyword `tight_binding_parameters` needs to be specified, or
 `tight_binding_parameters_up` and `tight_binding_parameters_dn` both need to be specified.
 """
 function update_chemical_potential!(
@@ -155,7 +155,7 @@ end
         delimiter::String = " ",
     ) where {R<:AbstractFloat, H<:Number}
 
-Record the history of chemical potential and density tuning that occured during the simulation,
+Record the history of chemical potential and density tuning that occurred during the simulation,
 writing the information to an HDF5 and/or CSV file.
 """
 function save_density_tuning_profile(

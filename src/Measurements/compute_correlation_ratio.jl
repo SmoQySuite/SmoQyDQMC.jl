@@ -341,7 +341,7 @@ function _compute_composite_correlation_ratio(
     # construct filename for HDF5 file containing binned data
     filename = joinpath(datafolder, "bins", @sprintf("bins_pID-%d.h5", pID))
 
-    # uppercase type defintion
+    # uppercase type definition
     Type = uppercase(type)
 
     # open HDF5 bin file

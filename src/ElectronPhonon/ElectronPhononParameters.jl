@@ -319,10 +319,10 @@ function update!(
         ssh_parameters = electron_phonon_parameters.ssh_parameters_dn
     end
 
-    # update fermion path integral based on holstein interaction and new phonon configration
+    # update fermion path integral based on holstein interaction and new phonon configuration
     update!(fermion_path_integral, holstein_parameters, x, sgn)
 
-    # update fermion path integral based on ssh interaction and new phonon configration
+    # update fermion path integral based on ssh interaction and new phonon configuration
     update!(fermion_path_integral, ssh_parameters, x, sgn)
 
     return nothing

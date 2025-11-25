@@ -4,7 +4,7 @@
         simulation_info::SimulationInfo
     )
 
-Merge the seperate HDF5 files containing the binned measurements into a single HDF5 file.
+Merge the separate HDF5 files containing the binned measurements into a single HDF5 file.
 This is true even if the HDF5 "files" containing the binned data were [held in memory](https://juliaio.github.io/HDF5.jl/stable/#In-memory-HDF5-files)
 during the simulation (`simulation_info.write_bins_concurrent = false`) instead of being actively written to file
 during the simulation (`simulation_info.write_bins_concurrent = true`).

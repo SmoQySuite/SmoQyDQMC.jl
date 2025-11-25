@@ -4,7 +4,7 @@ struct CompositeCorrelationContainer{D, W, T<:AbstractFloat}
     # type of correlation function the composite corelation function is based on
     correlation::String
 
-    # IDs of operatators appearing appearing in composite correlation measurement
+    # IDs of operators appearing appearing in composite correlation measurement
     id_pairs::Vector{NTuple{2,Int}}
 
     # coefficients of operators appearing in correlation measurement
@@ -68,7 +68,7 @@ function CompositeCorrelationContainer(
     )
 end
 
-# Reset the correlation data stored in correlaiton_container to zero.
+# Reset the correlation data stored in correlation container to zero.
 function reset!(composite_correlation_container::CompositeCorrelationContainer{D,W,T}) where {D,W,T<:AbstractFloat}
 
     fill!(composite_correlation_container.correlations, zero(Complex{T}))

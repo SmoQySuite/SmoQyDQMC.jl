@@ -20,12 +20,12 @@ This function returns `(accepted, logdetGup, sgndetGup, logdetGdn, sgndetGdn)`.
 
 # Arguments
 
-- `Gup::Matrix{H}`: Spin-up eqaul-time Greens function matrix.
-- `logdetGup::R`: Log of the determinant of the spin-up eqaul-time Greens function matrix.
-- `sgndetGup::H`: Sign/phase of the determinant of the spin-up eqaul-time Greens function matrix.
-- `Gdn::Matrix{H}`: Spin-down eqaul-time Greens function matrix.
-- `logdetGdn::R`: Log of the determinant of the spin-down eqaul-time Greens function matrix.
-- `sgndetGdn::H`: Sign/phase of the determinant of the spin-down eqaul-time Greens function matrix.
+- `Gup::Matrix{H}`: Spin-up equal-time Greens function matrix.
+- `logdetGup::R`: Log of the determinant of the spin-up equal-time Greens function matrix.
+- `sgndetGup::H`: Sign/phase of the determinant of the spin-up equal-time Greens function matrix.
+- `Gdn::Matrix{H}`: Spin-down equal-time Greens function matrix.
+- `logdetGdn::R`: Log of the determinant of the spin-down equal-time Greens function matrix.
+- `sgndetGdn::H`: Sign/phase of the determinant of the spin-down equal-time Greens function matrix.
 - `electron_phonon_parameters::ElectronPhononParameters{T,R}`: Electron-phonon parameters, including the current phonon configuration.
 
 # Keyword Arguments
@@ -237,9 +237,9 @@ This function returns `(accepted, logdetG, sgndetG)`.
 
 # Arguments
 
-- `G::Matrix{H}`: Eqaul-time Greens function matrix.
-- `logdetG::R`: Log of the determinant of the eqaul-time Greens function matrix.
-- `sgndetG::H`: Sign/phase of the determinant of the eqaul-time Greens function matrix.
+- `G::Matrix{H}`: equal-time Greens function matrix.
+- `logdetG::R`: Log of the determinant of the equal-time Greens function matrix.
+- `sgndetG::H`: Sign/phase of the determinant of the equal-time Greens function matrix.
 - `electron_phonon_parameters::ElectronPhonParameters{T,R}`: Electron-phonon parameters, including the current phonon configuration.
 
 # Keyword Arguments

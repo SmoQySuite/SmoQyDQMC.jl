@@ -89,7 +89,7 @@ function compute_function_of_correlations(;
     # number of process IDs
     N_pID = length(pIDs)
 
-    # caclulate mean and standard deviation for fist HDF5 file
+    # calculate mean and standard deviation for fist HDF5 file
     C, ΔC = _compute_function_of_correlations(f, datafolder, pIDs[1], correlations, num_bins)
 
     # if number of process IDs exceeds one
@@ -109,7 +109,7 @@ function compute_function_of_correlations(;
             varC += abs2(ΔC′)
         end
 
-        # normalize mean and calculate final standard devaition
+        # normalize mean and calculate final standard deviation
         C = C / N_pID
         ΔC = sqrt(varC) / N_pID
     end

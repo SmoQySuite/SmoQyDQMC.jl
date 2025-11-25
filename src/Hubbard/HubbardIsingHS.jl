@@ -533,12 +533,12 @@ This function returns `(accepted, logdetGup, sgndetGup, logdetGdn, sgndetGdn)`.
 
 # Arguments
 
-- `Gup::Matrix{H}`: Spin-up eqaul-time Greens function matrix.
-- `logdetGup::R`: Log of the determinant of the spin-up eqaul-time Greens function matrix.
-- `sgndetGup::H`: Sign/phase of the determinant of the spin-up eqaul-time Greens function matrix.
-- `Gdn::Matrix{H}`: Spin-down eqaul-time Greens function matrix.
-- `logdetGdn::R`: Log of the determinant of the spin-down eqaul-time Greens function matrix.
-- `sgndetGdn::H`: Sign/phase of the determinant of the spin-down eqaul-time Greens function matrix.
+- `Gup::Matrix{H}`: Spin-up equal-time Greens function matrix.
+- `logdetGup::R`: Log of the determinant of the spin-up equal-time Greens function matrix.
+- `sgndetGup::H`: Sign/phase of the determinant of the spin-up equal-time Greens function matrix.
+- `Gdn::Matrix{H}`: Spin-down equal-time Greens function matrix.
+- `logdetGdn::R`: Log of the determinant of the spin-down equal-time Greens function matrix.
+- `sgndetGdn::H`: Sign/phase of the determinant of the spin-down equal-time Greens function matrix.
 - `hubbard_ising_parameters::HubbardIsingHSParameters{R}`: Ising Hubbard-Stratonovich fields and associated parameters to update.
 
 # Keyword Arguments
@@ -672,9 +672,9 @@ This function returns `(accepted, logdetG, sgndetG)`. This method assumes strict
 
 # Arguments
 
-- `G::Matrix{H}`: Eqaul-time Greens function matrix.
-- `logdetG::R`: Log of the determinant of the eqaul-time Greens function matrix.
-- `sgndetG::H`: Sign/phase of the determinant of the eqaul-time Greens function matrix.
+- `G::Matrix{H}`: equal-time Greens function matrix.
+- `logdetG::R`: Log of the determinant of the equal-time Greens function matrix.
+- `sgndetG::H`: Sign/phase of the determinant of the equal-time Greens function matrix.
 - `hubbard_ising_parameters::HubbardIsingHSParameters{R}`: Ising Hubbard-Stratonovich fields and associated parameters to update.
 
 # Keyword Arguments
@@ -784,12 +784,12 @@ This function returns `(accepted, logdetGup, sgndetGup, logdetGdn, sgndetGdn)`.
 
 # Arguments
 
-- `Gup::Matrix{H}`: Spin-up eqaul-time Greens function matrix.
-- `logdetGup::R`: Log of the determinant of the spin-up eqaul-time Greens function matrix.
-- `sgndetGup::H`: Sign/phase of the determinant of the spin-up eqaul-time Greens function matrix.
-- `Gdn::Matrix{H}`: Spin-down eqaul-time Greens function matrix.
-- `logdetGdn::R`: Log of the determinant of the spin-down eqaul-time Greens function matrix.
-- `sgndetGdn::H`: Sign/phase of the determinant of the spin-down eqaul-time Greens function matrix.
+- `Gup::Matrix{H}`: Spin-up equal-time Greens function matrix.
+- `logdetGup::R`: Log of the determinant of the spin-up equal-time Greens function matrix.
+- `sgndetGup::H`: Sign/phase of the determinant of the spin-up equal-time Greens function matrix.
+- `Gdn::Matrix{H}`: Spin-down equal-time Greens function matrix.
+- `logdetGdn::R`: Log of the determinant of the spin-down equal-time Greens function matrix.
+- `sgndetGdn::H`: Sign/phase of the determinant of the spin-down equal-time Greens function matrix.
 - `hubbard_ising_parameters::HubbardIsingHSParameters{R}`: Ising Hubbard-Stratonovich fields and associated parameters to update.
 
 # Keyword Arguments
@@ -951,9 +951,9 @@ sites in the lattice are exchanged. This function returns `(accepted, logdetG, s
 
 # Arguments
 
-- `G::Matrix{H}`: Eqaul-time Greens function matrix.
-- `logdetG::R`: Log of the determinant of the eqaul-time Greens function matrix.
-- `sgndetG::H`: Sign/phase of the determinant of the eqaul-time Greens function matrix.
+- `G::Matrix{H}`: equal-time Greens function matrix.
+- `logdetG::R`: Log of the determinant of the equal-time Greens function matrix.
+- `sgndetG::H`: Sign/phase of the determinant of the equal-time Greens function matrix.
 - `hubbard_ising_parameters::HubbardIsingHSParameters{R}`: Ising Hubbard-Stratonovich fields and associated parameters to update.
 
 # Keyword Arguments

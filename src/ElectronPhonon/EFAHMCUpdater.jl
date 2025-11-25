@@ -242,7 +242,7 @@ function hmc_update!(
     # iterate over HMC time-steps
     for t in 1:Nt
 
-        # intialize derivative of action to zero
+        # initialize derivative of action to zero
         fill!(dSdx, 0)
 
         # update the spin up and spin down propagators to reflect current phonon configuration
@@ -544,7 +544,7 @@ function hmc_update!(
     x_init = hmc_updater.x
     copyto!(x_init, x)
 
-    # intialize the alternate fermion greens calculators
+    # initialize the alternate fermion greens calculators
     copyto!(fermion_greens_calculator_alt, fermion_greens_calculator)
 
     # initialize fermion green's function matrices and their determinants determinants
@@ -581,7 +581,7 @@ function hmc_update!(
     # iterate over HMC time-steps
     for t in 1:Nt
 
-        # intialize derivative of action to zero
+        # initialize derivative of action to zero
         fill!(dSdx, 0)
 
         # update the propagators to reflect current phonon configuration

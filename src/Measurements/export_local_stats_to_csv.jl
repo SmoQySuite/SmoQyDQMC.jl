@@ -24,7 +24,7 @@
     )
 
 This function writes the local measurement statistics stored in the `h5filename` HDF5 file
-found in the diretory `datafolder` to CSV file, returning the name of the CSV file that was written.
+found in the directory `datafolder` to CSV file, returning the name of the CSV file that was written.
 The `measurements` keyword argument specifies the measurements to be exported.
 If `measurements = String[]`, then all measurements are exported.
 """

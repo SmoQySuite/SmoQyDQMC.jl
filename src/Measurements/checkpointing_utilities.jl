@@ -103,7 +103,7 @@ end
         start_timestamp::T = 0.0,
         runtime_limit::T = Inf,
         error_code::Int = 13,
-        # Abitrary Keyword Arguments Written to Checkpoint
+        # Arbitrary Keyword Arguments Written to Checkpoint
         kwargs...
     ) where {T<:AbstractFloat}
 
@@ -119,7 +119,7 @@ end
         start_timestamp::T = 0.0,
         runtime_limit::T = Inf,
         error_code::Int = 13,
-        # Abitrary Keyword Arguments Written to Checkpoint
+        # Arbitrary Keyword Arguments Written to Checkpoint
         kwargs...
     ) where {T<:AbstractFloat}
 
@@ -128,12 +128,12 @@ The checkpoint file is a [JLD2](https://github.com/JuliaIO/JLD2.jl) binary file.
 
 # Arguments
 
-- `comm::MPI.Comm`: (optional) MPI communicator object used to synchronize processes. Ensures all MPI processes remain syncrhonized.
+- `comm::MPI.Comm`: (optional) MPI communicator object used to synchronize processes. Ensures all MPI processes remain synchronized.
 - `simulation_info::SimulationInfo`: Contains datafolder and MPI process ID information.
 
 # Keyword Arguments
 
-- `checkpoint_timestamp::T = 0.0`: (optional) Epoch timestap of previously written checkpoint file.
+- `checkpoint_timestamp::T = 0.0`: (optional) Epoch timestamp of previously written checkpoint file.
 - `checkpoint_freq::T = 0.0`: (optional) Frequency with with checkpoint files are written; new checkpoint is written only if this many seconds has elapsed since previous checkpoint.
 - `start_timestamp::T = 0.0`: (optional) Epoch timestamp of the start time of the simulation.
 - `runtime_limit::T = Inf`: (optional) Maximum runtime for simulation in seconds; if after writing a new checkpoint file the next checkpoint file that would be written in the future exceeds the runtime limit then exit the simulation.
@@ -158,7 +158,7 @@ function write_jld2_checkpoint(
     start_timestamp::T = 0.0,
     runtime_limit::T = Inf,
     error_code::Int = 13,
-    # Abitrary Keyword Arguments Written to Checkpoint
+    # Arbitrary Keyword Arguments Written to Checkpoint
     kwargs...
 ) where {T<:AbstractFloat}
 
@@ -195,7 +195,7 @@ function write_jld2_checkpoint(
     start_timestamp::T = 0.0,
     runtime_limit::T = Inf,
     error_code::Int = 13,
-    # Abitrary Keyword Arguments Written to Checkpoint
+    # Arbitrary Keyword Arguments Written to Checkpoint
     kwargs...
 ) where {T<:AbstractFloat}
 
@@ -362,7 +362,7 @@ When a simulation is complete, this function renames the data folder the results
 were written to such that the directory name now begins with `"complete_"`, making it
 simpler to identify which simulations no longer need to be resumed if checkpointing
 is being used. This function also deletes the any checkpoint files written using
-the [`write_jld2_checkpoint`](@ref) function if `delect_checkpoints = true`.
+the [`write_jld2_checkpoint`](@ref) function if `delete_jld2_checkpoints = true`.
 """
 function rename_complete_simulation(
     # Arguments
@@ -396,7 +396,7 @@ function rename_complete_simulation(
     # synchronize MPI processes
     MPI.Barrier(comm)
 
-    # if deleting checkpoing files
+    # if deleting checkpointing files
     if delete_jld2_checkpoints
 
         # delete checkpoint files
@@ -429,7 +429,7 @@ function rename_complete_simulation(
     # rename data folder
     mv(datafolder, simulation_info_complete.datafolder, force = true)
 
-    # if deleting checkpoing files
+    # if deleting checkpointing files
     if delete_jld2_checkpoints
 
         # delete checkpoint files

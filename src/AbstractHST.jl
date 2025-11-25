@@ -1,8 +1,8 @@
 @doc raw"""
     abstract type AbstractHST{T<:Number, R<:AbstractFloat} end
 
-Abstract type to represent a Hubbard-Stratonvich transformation.
-Here `T` is the effective Hubbard-Stranonvich field type, specifying whether the Hubbard-Stranonvich
+Abstract type to represent a Hubbard-Stratonovich transformation.
+Here `T` is the effective Hubbard-Stratonovich field type, specifying whether the Hubbard-Stratonovich
 transformation is real or complex.
 """
 abstract type AbstractHST{T<:Number, R<:AbstractFloat} end
@@ -10,8 +10,8 @@ abstract type AbstractHST{T<:Number, R<:AbstractFloat} end
 @doc raw"""
     abstract type AbstractSymHST{T, R} <: AbstractHST{T, R} end
 
-Abstract type to represent a Hubbard-Stratonvich transformation that couples to each spin species symmetrically.
-Here `T` is the effective Hubbard-Stranonvich field type, specifying whether the Hubbard-Stranonvich
+Abstract type to represent a Hubbard-Stratonovich transformation that couples to each spin species symmetrically.
+Here `T` is the effective Hubbard-Stratonovich field type, specifying whether the Hubbard-Stratonovich
 transformation is real or complex.
 """
 abstract type AbstractSymHST{T, R} <: AbstractHST{T, R} end
@@ -19,8 +19,8 @@ abstract type AbstractSymHST{T, R} <: AbstractHST{T, R} end
 @doc raw"""
     abstract type AbstractAsymHST{T, R} <: AbstractHST{T, R} end
 
-Abstract type to represent a Hubbard-Stratonvich transformation that couples to each spin species asymmetrically.
-Here `T` is the effective Hubbard-Stranonvich field type, specifying whether the Hubbard-Stranonvich
+Abstract type to represent a Hubbard-Stratonovich transformation that couples to each spin species asymmetrically.
+Here `T` is the effective Hubbard-Stratonovich field type, specifying whether the Hubbard-Stratonovich
 transformation is real or complex.
 """
 abstract type AbstractAsymHST{T, R} <: AbstractHST{T, R} end
@@ -248,9 +248,9 @@ end
         update_stabilization_frequency::Bool = true
     ) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator, N}
 
-Perform local updates to Hubbard-Stratonovich fields for `N` different types of Hubbard-Stratonvich transformations.
+Perform local updates to Hubbard-Stratonovich fields for `N` different types of Hubbard-Stratonovich transformations.
 This method returns a tuple containing `(acceptance_rates, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ)`.
-Note that `acceptance_rates` is a tuple returning the acceptance rate for local updates of each type of Hubbard-Stratonvich field that was sampled.
+Note that `acceptance_rates` is a tuple returning the acceptance rate for local updates of each type of Hubbard-Stratonovich field that was sampled.
 
 # Arguments
 
@@ -603,12 +603,12 @@ This function returns `(accepted, logdetGup, sgndetGup, logdetGdn, sgndetGdn)`.
 
 # Arguments
 
-- `Gup::Matrix{H}`: Spin-up eqaul-time Greens function matrix.
-- `logdetGup::R`: Log of the determinant of the spin-up eqaul-time Greens function matrix.
-- `sgndetGup::H`: Sign/phase of the determinant of the spin-up eqaul-time Greens function matrix.
-- `Gdn::Matrix{H}`: Spin-down eqaul-time Greens function matrix.
-- `logdetGdn::R`: Log of the determinant of the spin-down eqaul-time Greens function matrix.
-- `sgndetGdn::H`: Sign/phase of the determinant of the spin-down eqaul-time Greens function matrix.
+- `Gup::Matrix{H}`: Spin-up equal-time Greens function matrix.
+- `logdetGup::R`: Log of the determinant of the spin-up equal-time Greens function matrix.
+- `sgndetGup::H`: Sign/phase of the determinant of the spin-up equal-time Greens function matrix.
+- `Gdn::Matrix{H}`: Spin-down equal-time Greens function matrix.
+- `logdetGdn::R`: Log of the determinant of the spin-down equal-time Greens function matrix.
+- `sgndetGdn::H`: Sign/phase of the determinant of the spin-down equal-time Greens function matrix.
 - `hst_parameters::AbstractHST{T,R}`: Hubbard-Stratonovich fields and associated parameters to update.
 
 # Keyword Arguments
@@ -768,12 +768,12 @@ This function returns `(accepted, logdetGup, sgndetGup, logdetGdn, sgndetGdn)`.
 
 # Arguments
 
-- `Gup::Matrix{H}`: Spin-up eqaul-time Greens function matrix.
-- `logdetGup::R`: Log of the determinant of the spin-up eqaul-time Greens function matrix.
-- `sgndetGup::H`: Sign/phase of the determinant of the spin-up eqaul-time Greens function matrix.
-- `Gdn::Matrix{H}`: Spin-down eqaul-time Greens function matrix.
-- `logdetGdn::R`: Log of the determinant of the spin-down eqaul-time Greens function matrix.
-- `sgndetGdn::H`: Sign/phase of the determinant of the spin-down eqaul-time Greens function matrix.
+- `Gup::Matrix{H}`: Spin-up equal-time Greens function matrix.
+- `logdetGup::R`: Log of the determinant of the spin-up equal-time Greens function matrix.
+- `sgndetGup::H`: Sign/phase of the determinant of the spin-up equal-time Greens function matrix.
+- `Gdn::Matrix{H}`: Spin-down equal-time Greens function matrix.
+- `logdetGdn::R`: Log of the determinant of the spin-down equal-time Greens function matrix.
+- `sgndetGdn::H`: Sign/phase of the determinant of the spin-down equal-time Greens function matrix.
 - `hst_parameters::AbstractHST{T,R}`: Hubbard-Stratonovich fields and associated parameters to update.
 
 # Keyword Arguments

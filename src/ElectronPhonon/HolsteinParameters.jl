@@ -117,7 +117,7 @@ function HolsteinParameters(;
         # allocate arrays mapping holstein coupling to phonon in lattice
         coupling_to_phonon = zeros(Int, Nholstein)
 
-        # iterate over holstein coupling defintitions
+        # iterate over holstein coupling definitions
         holstein_counter = 0 # holstein coupling counter
         for hc in 1:nholstein
 

@@ -145,7 +145,7 @@ end
 
     initialize_datafolder(sim_info::SimulationInfo)
 
-Initalize `sim_info.datafolder` directory if it does not already exist.
+Initialize `sim_info.datafolder` directory if it does not already exist.
 If `comm::MPI.Comm` is passed as the first argument, this this function will synchronize
 all the MPI processes, ensuring that none proceed beyond this function call until
 the data folder that results will be written to is successfully initialized.

@@ -17,9 +17,9 @@ Write the measurements contained in `measurement_container` to file if `update %
 Measurements are written to file in a binary format using the [`JLD2.jl`](https://github.com/JuliaIO/JLD2.jl.git) package.
 
 This function also does a few other things:
-1. Normalizes all the measurements by the `bin_size` i.e. the number of measurements that were accumlated into the measurement container.
+1. Normalizes all the measurements by the `bin_size` i.e. the number of measurements that were accumulated into the measurement container.
 2. Take position space correlation function measurements and fourier transform them to momentum space.
-3. Integrate relevant time-displaced correlation function measurements over imaginary time to get the corresponding zero matsubara frequency correlation function.
+3. Integrate relevant time-displaced correlation function measurements over imaginary time to get the corresponding zero Matsubara frequency correlation function.
 4. Reset all the measurements in `measurement_container` to zero after the measurements are written to file.
 """
 function write_measurements!(;
