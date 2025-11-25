@@ -9,8 +9,8 @@
         model_geometry::ModelGeometry{D, E, N},
         Δτ::E,
         bin_size::Int,
-        update::Int = 0,
-        bin::Int = update ÷ bin_size,
+        measurement::Int = 0,
+        bin::Int = measurement ÷ bin_size
     ) where {D, E<:AbstractFloat, N}
 
 Write the measurements contained in `measurement_container` to file if `update % bin_size == 0`.
@@ -28,12 +28,19 @@ function write_measurements!(;
     model_geometry::ModelGeometry{D, E, N},
     Δτ::E,
     bin_size::Int,
-    update::Int = 0,
-    bin::Int = update ÷ bin_size,
+    measurement::Int = 0,
+    bin::Int = measurement ÷ bin_size,
+    update::Int = 0 # OLD KEYWORD ARGUMENT, WILL BE DEPRECATED
 ) where {D, E<:AbstractFloat, N}
 
+    # use old keyword if necessary
+    if !iszero(update) && iszero(measurement)
+        measurement = update
+        bin = !iszero(bin) ? bin : measurement ÷ bin_size
+    end
+
     # check if bin file needs to be written
-    if update % bin_size == 0
+    if measurement % bin_size == 0
 
         (; datafolder, pID, write_bins_concurrent, bin_files) = simulation_info
         lattice   = model_geometry.lattice::Lattice{D}
