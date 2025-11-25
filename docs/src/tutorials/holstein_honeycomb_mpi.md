@@ -514,7 +514,7 @@ No changes need to made to this section of the code from the previous [2a) Honey
             measurement_container = measurement_container,
             simulation_info = simulation_info,
             model_geometry = model_geometry,
-            update = update,
+            measurement = update,
             bin_size = bin_size,
             Δτ = Δτ
         )

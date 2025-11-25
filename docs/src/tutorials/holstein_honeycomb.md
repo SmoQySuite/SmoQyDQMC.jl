@@ -623,7 +623,7 @@ structure of this part of the code, refer to [here](@ref hubbard_square_make_mea
             measurement_container = measurement_container,
             simulation_info = simulation_info,
             model_geometry = model_geometry,
-            update = update,
+            measurement = update,
             bin_size = bin_size,
             Δτ = Δτ
         )

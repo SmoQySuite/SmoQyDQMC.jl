@@ -682,7 +682,7 @@ The bin-averaged measurements are written to file once `bin_size` measurements a
             measurement_container = measurement_container,
             simulation_info = simulation_info,
             model_geometry = model_geometry,
-            update = update,
+            measurement = update,
             bin_size = bin_size,
             Δτ = Δτ
         )

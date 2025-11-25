@@ -592,7 +592,7 @@ And again, we need to make sure the include the `chemical_potential_tuner` in th
             measurement_container = measurement_container,
             simulation_info = simulation_info,
             model_geometry = model_geometry,
-            update = update,
+            measurement = update,
             bin_size = bin_size,
             Δτ = Δτ
         )
