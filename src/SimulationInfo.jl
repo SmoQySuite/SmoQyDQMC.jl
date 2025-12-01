@@ -85,13 +85,17 @@ function SimulationInfo(;
     # initialize data folder names
     datafolder_name = @sprintf "%s-%d" datafolder_prefix sID
     datafolder = joinpath(filepath, datafolder_name)
+    complete_datafolder_name = @sprintf "complete_%s-%d" datafolder_prefix sID
+    complete_datafolder = joinpath(filepath, complete_datafolder_name)
 
     # if null data folder id given, determine data name and id
     if sID==0
-        while isdir(datafolder) || sID==0
+        while isdir(datafolder) || isdir(complete_datafolder) || sID==0
             sID += 1
             datafolder_name = @sprintf "%s-%d" datafolder_prefix sID
             datafolder = joinpath(filepath, datafolder_name)
+            complete_datafolder_name = @sprintf "complete_%s-%d" datafolder_prefix sID
+            complete_datafolder = joinpath(filepath, complete_datafolder_name)
         end
     end
 
