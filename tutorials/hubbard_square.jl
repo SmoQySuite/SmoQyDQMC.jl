@@ -99,7 +99,7 @@ function run_simulation(;
     ## Initialize random number generator
     rng = Xoshiro(seed)
 
-    ## Initialize additiona_info dictionary
+    ## Initialize metadata dictionary
     metadata = Dict()
 
     ## Record simulation parameters.
@@ -478,7 +478,7 @@ function run_simulation(;
 # Now we allocate and initialize the equal-time Green's function matrix ``G_\sigma(0,0)`` for both spin species (`Gup` and `Gdn`).
 # The initialization process also returns ``\log | \det G_\sigma(0,0) |`` (`logdetGup` and `logdetGdn`) and ``{\rm sgn} \det G_\sigma(0,0)`` (`sgndetGup` and `sgndetGdn`).
 
-    ## Allcoate matrices for spin-up and spin-down electron Green's function matrices.
+    ## Allocate matrices for spin-up and spin-down electron Green's function matrices.
     Gup = zeros(eltype(Bup[1]), size(Bup[1]))
     Gdn = zeros(eltype(Bdn[1]), size(Bdn[1]))
 
@@ -576,7 +576,7 @@ function run_simulation(;
 # Therefore, the number of measurements that are averaged over per bin is given by `bin_size = N_updates ÷ N_bins`.
 # The bin-averaged measurements are written to file once `bin_size` measurements are accumulated using the [`write_measurements!`](@ref) function.
 
-    ## Reset diagonostic parameters used to monitor numerical stability to zero.
+    ## Reset diagnostic parameters used to monitor numerical stability to zero.
     δG = zero(logdetGup)
     δθ = zero(logdetGup)
 
@@ -682,7 +682,7 @@ function run_simulation(;
 # Again, for more information on how to interpret the output refer the [Simulation Output Overview](@ref) page.
 
     ## Process the simulation results, calculating final error bars for all measurements.
-    ## writing final statisitics to CSV files.
+    ## writing final statistics to CSV files.
     process_measurements(
         datafolder = simulation_info.datafolder,
         n_bins = N_bins,
@@ -744,7 +744,7 @@ end # end of run_simulation function
 # With this in mind, the following block of code only executes if the Julia script is run from the command line,
 # also reading in additional command line arguments.
 
-## Only excute if the script is run directly from the command line.
+## Only execute if the script is run directly from the command line.
 if abspath(PROGRAM_FILE) == @__FILE__
 
     ## Run the simulation, reading in command line arguments.

@@ -425,7 +425,7 @@ function run_simulation(;
     ## Allocate equal-time electron Green's function matrix.
     G = zeros(eltype(B[1]), size(B[1]))
 
-    ## Initialize electron Green's function matrx, also calculating the matrix determinant as the same time.
+    ## Initialize electron Green's function matrix, also calculating the matrix determinant as the same time.
     logdetG, sgndetG = dqmcf.calculate_equaltime_greens!(G, fermion_greens_calculator)
 
     ## Allocate matrices for various time-displaced Green's function matrices.
@@ -461,7 +461,7 @@ function run_simulation(;
 # Conversely, if the acceptance rate is very high ``(\gtrsim 99 \% )`` it may be useful to decrease ``N_t``,
 # thereby increasing ``\Delta t,`` as this will reduce the computational cost of performing an EFA-HMC update.
 
-    ## Initialize Hamitlonian/Hybrid monte carlo (HMC) updater.
+    ## Initialize Hamiltonian/Hybrid monte carlo (HMC) updater.
     hmc_updater = EFAHMCUpdater(
         electron_phonon_parameters = electron_phonon_parameters,
         G = G, Nt = Nt, Δt = π/(2*Nt) # Δt argument is optional

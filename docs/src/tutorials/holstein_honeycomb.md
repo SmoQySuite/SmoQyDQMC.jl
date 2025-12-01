@@ -97,7 +97,7 @@ The important metadata within the simulation will be recorded in the `metadata` 
     # Initialize random number generator
     rng = Xoshiro(seed)
 
-    # Initialize additiona_info dictionary
+    # Initialize metadata dictionary
     metadata = Dict()
 
     # Record simulation parameters.
@@ -459,10 +459,10 @@ For more information refer to [here](@ref hubbard_square_setup_dqmc).
     # Initialize alternate fermion greens calculator required for performing EFA-HMC, reflection and swap updates below.
     fermion_greens_calculator_alt = dqmcf.FermionGreensCalculator(fermion_greens_calculator)
 
-    # Allcoate equal-time electron Green's function matrix.
+    # Allocate equal-time electron Green's function matrix.
     G = zeros(eltype(B[1]), size(B[1]))
 
-    # Initialize electron Green's function matrx, also calculating the matrix determinant as the same time.
+    # Initialize electron Green's function matrix, also calculating the matrix determinant as the same time.
     logdetG, sgndetG = dqmcf.calculate_equaltime_greens!(G, fermion_greens_calculator)
 
     # Allocate matrices for various time-displaced Green's function matrices.
@@ -470,7 +470,7 @@ For more information refer to [here](@ref hubbard_square_setup_dqmc).
     G_τ0 = similar(G) # G(τ,0)
     G_0τ = similar(G) # G(0,τ)
 
-    # Initialize diagonostic parameters to asses numerical stability.
+    # Initialize diagnostic parameters to asses numerical stability.
     δG = zero(logdetG)
     δθ = zero(logdetG)
 ````
@@ -500,7 +500,7 @@ Conversely, if the acceptance rate is very high ``(\gtrsim 99 \% )`` it may be u
 thereby increasing ``\Delta t,`` as this will reduce the computational cost of performing an EFA-HMC update.
 
 ````julia
-    # Initialize Hamitlonian/Hybrid monte carlo (HMC) updater.
+    # Initialize Hamiltonian/Hybrid monte carlo (HMC) updater.
     hmc_updater = EFAHMCUpdater(
         electron_phonon_parameters = electron_phonon_parameters,
         G = G, Nt = Nt, Δt = π/(2*Nt) # Δt argument is optional
@@ -561,7 +561,7 @@ but will also begin making measurements as well. For more discussion on the over
 structure of this part of the code, refer to [here](@ref hubbard_square_make_measurements).
 
 ````julia
-    # Reset diagonostic parameters used to monitor numerical stability to zero.
+    # Reset diagnostic parameters used to monitor numerical stability to zero.
     δG = zero(logdetG)
     δθ = zero(logdetG)
 
@@ -673,7 +673,7 @@ Again, for more information on how to interpret the output refer the [Simulation
 
 ````julia
     # Process the simulation results, calculating final error bars for all measurements.
-    # writing final statisitics to CSV files.
+    # writing final statistics to CSV files.
     process_measurements(
         datafolder = simulation_info.datafolder,
         n_bins = N_bins,
@@ -746,7 +746,7 @@ With this in mind, the following block of code only executes if the Julia script
 also reading in additional command line arguments.
 
 ````julia
-# Only excute if the script is run directly from the command line.
+# Only execute if the script is run directly from the command line.
 if abspath(PROGRAM_FILE) == @__FILE__
 
     # Run the simulation.

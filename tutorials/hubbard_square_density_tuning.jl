@@ -104,7 +104,7 @@ function run_simulation(
         ## Initialize random number generator
         rng = Xoshiro(seed)
 
-        ## Initialize additiona_info dictionary
+        ## Initialize metadata dictionary
         metadata = Dict()
 
         ## Record simulation parameters.
@@ -426,7 +426,7 @@ function run_simulation(
     Gdn_τ0 = similar(Gdn) # Gdn(τ,0)
     Gdn_0τ = similar(Gdn) # Gdn(0,τ)
 
-    ## Initialize diagonostic parameters to asses numerical stability.
+    ## Initialize diagnostic parameters to asses numerical stability.
     δG = zero(logdetGup)
     δθ = zero(logdetGup)
 
@@ -630,7 +630,7 @@ function run_simulation(
 # [1c) Square Hubbard Model with Checkpointing](@ref) tutorial.
 
     ## Process the simulation results, calculating final error bars for all measurements.
-    ## writing final statisitics to CSV files.
+    ## writing final statistics to CSV files.
     process_measurements(
         comm;
         datafolder = simulation_info.datafolder,

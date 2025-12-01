@@ -359,7 +359,7 @@ function run_simulation(
     ## Allocate equal-time electron Green's function matrix.
     G = zeros(eltype(B[1]), size(B[1]))
 
-    ## Initialize electron Green's function matrx, also calculating the matrix determinant as the same time.
+    ## Initialize electron Green's function matrix, also calculating the matrix determinant as the same time.
     logdetG, sgndetG = dqmcf.calculate_equaltime_greens!(G, fermion_greens_calculator)
 
     ## Allocate matrices for various time-displaced Green's function matrices.

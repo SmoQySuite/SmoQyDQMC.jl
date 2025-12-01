@@ -76,7 +76,7 @@ function measure_bare_hopping_energy(
         h += -t′[n] * hij + conj(-t′[n]) * hji
     end
 
-    # noramalize the measurement
+    # normalize the measurement
     h /= length(t′)
 
     return h
@@ -124,7 +124,7 @@ function measure_hopping_energy(
         h += -t′[n] * hij + conj(-t′[n]) * hji
     end
 
-    # noramalize the measurement
+    # normalize the measurement
     h /= length(t′)
 
     return h
@@ -154,7 +154,7 @@ function measure_hopping_amplitude(
     # get the hopping associated with the bond/hopping in question
     t′ = @view t[bond_slices[hopping_id], :]
 
-    # noramalize the measurement
+    # normalize the measurement
     t_avg += mean(t′)
 
     return t_avg
@@ -167,7 +167,7 @@ end
         hopping_id::Int
     ) where {H<:Number, T<:Number, E<:AbstractFloat}
 
-Measure the fraction of time the sign of the instaneous modulated hopping ampltiude ``t_{l,(\mathbf{i},\nu),(\mathbf{j},\gamma)}``
+Measure the fraction of time the sign of the instantaneous modulated hopping amplitude ``t_{l,(\mathbf{i},\nu),(\mathbf{j},\gamma)}``
 is inverted relative to the bare hopping amplitude ``t_{(\mathbf{i},\nu),(\mathbf{j},\gamma)}``, where ``l`` is the
 imaginary time-slice index.
 """
@@ -186,7 +186,7 @@ function measure_hopping_inversion(
     # modulated hopping amplitudes
     tτ = fermion_path_integral.t
 
-    # instaneous hopping inversion fraction
+    # instantaneous hopping inversion fraction
     hopping_inversion = zero(E)
 
     # get the bare hopping amplitudes associated with bond
@@ -217,7 +217,7 @@ end
         hopping_id::Int
     ) where {H<:Number, T<:Number, E<:AbstractFloat}
 
-Measure the fraction of time the sign of the imaginary-time averaged modulated hopping ampltiude
+Measure the fraction of time the sign of the imaginary-time averaged modulated hopping amplitude
 ``\bar{t}_{(\mathbf{i},\nu),(\mathbf{j},\gamma)}`` is inverted relative to the bare hopping amplitude
 ``t_{(\mathbf{i},\nu),(\mathbf{j},\gamma)}``.
 """
@@ -236,7 +236,7 @@ function measure_hopping_inversion_avg(
     # modulated hopping amplitudes
     tτ = fermion_path_integral.t
 
-    # instaneous hopping inversion fraction
+    # instantaneous hopping inversion fraction
     hopping_inversion_avg = zero(E)
 
     # get the bare hopping amplitudes associated with bond

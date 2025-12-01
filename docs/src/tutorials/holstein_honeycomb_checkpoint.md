@@ -119,7 +119,7 @@ where to resume a previously terminated simulation.
         # Initialize random number generator
         rng = Xoshiro(seed)
 
-        # Initialize additiona_info dictionary
+        # Initialize metadata dictionary
         metadata = Dict()
 
         # Record simulation parameters.
@@ -459,10 +459,10 @@ No changes need to made to this section of the code from the previous
     # Initialize alternate fermion greens calculator required for performing EFA-HMC, reflection and swap updates below.
     fermion_greens_calculator_alt = dqmcf.FermionGreensCalculator(fermion_greens_calculator)
 
-    # Allcoate equal-time electron Green's function matrix.
+    # Allocate equal-time electron Green's function matrix.
     G = zeros(eltype(B[1]), size(B[1]))
 
-    # Initialize electron Green's function matrx, also calculating the matrix determinant as the same time.
+    # Initialize electron Green's function matrix, also calculating the matrix determinant as the same time.
     logdetG, sgndetG = dqmcf.calculate_equaltime_greens!(G, fermion_greens_calculator)
 
     # Allocate matrices for various time-displaced Green's function matrices.
@@ -470,7 +470,7 @@ No changes need to made to this section of the code from the previous
     G_τ0 = similar(G) # G(τ,0)
     G_0τ = similar(G) # G(0,τ)
 
-    # Initialize diagonostic parameters to asses numerical stability.
+    # Initialize diagnostic parameters to asses numerical stability.
     δG = zero(logdetG)
     δθ = zero(logdetG)
 ````
@@ -480,7 +480,7 @@ No changes need to made to this section of the code from the previous
 [2b) Honeycomb Holstein Model with MPI Parallelization](@ref) tutorial.
 
 ````julia
-    # Initialize Hamitlonian/Hybrid monte carlo (HMC) updater.
+    # Initialize Hamiltonian/Hybrid monte carlo (HMC) updater.
     hmc_updater = EFAHMCUpdater(
         electron_phonon_parameters = electron_phonon_parameters,
         G = G, Nt = Nt, Δt = π/(2*Nt)
@@ -564,7 +564,7 @@ Note that we set `n_therm = N_therm + 1` when writing the checkpoint file to ens
 is resumed the thermalization updates are not repeated.
 
 ````julia
-    # Reset diagonostic parameters used to monitor numerical stability to zero.
+    # Reset diagnostic parameters used to monitor numerical stability to zero.
     δG = zero(logdetG)
     δθ = zero(logdetG)
 
@@ -682,7 +682,7 @@ This function also deletes the checkpoint files that were written during the sim
 
 ````julia
     # Process the simulation results, calculating final error bars for all measurements.
-    # writing final statisitics to CSV files.
+    # writing final statistics to CSV files.
     process_measurements(
         comm,
         datafolder = simulation_info.datafolder,
@@ -744,7 +744,7 @@ This is a useful feature when submitting jobs on a cluster, as it allows the sam
 both starting new simulations and resuming ones that still need to finish.
 
 ````julia
-# Only excute if the script is run directly from the command line.
+# Only execute if the script is run directly from the command line.
 if abspath(PROGRAM_FILE) == @__FILE__
 
     # Initialize MPI

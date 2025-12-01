@@ -118,7 +118,7 @@ where to resume a previously terminated simulation.
         # Initialize random number generator
         rng = Xoshiro(seed)
 
-        # Initialize additiona_info dictionary
+        # Initialize metadata dictionary
         metadata = Dict()
 
         # Record simulation parameters.
@@ -420,7 +420,7 @@ No changes need to made to this section of the code from the previous [1a) Squar
     fermion_greens_calculator_up_alt = dqmcf.FermionGreensCalculator(fermion_greens_calculator_up)
     fermion_greens_calculator_dn_alt = dqmcf.FermionGreensCalculator(fermion_greens_calculator_dn)
 
-    # Allcoate matrices for spin-up and spin-down electron Green's function matrices.
+    # Allocate matrices for spin-up and spin-down electron Green's function matrices.
     Gup = zeros(eltype(Bup[1]), size(Bup[1]))
     Gdn = zeros(eltype(Bdn[1]), size(Bdn[1]))
 
@@ -437,7 +437,7 @@ No changes need to made to this section of the code from the previous [1a) Squar
     Gdn_τ0 = similar(Gdn) # Gdn(τ,0)
     Gdn_0τ = similar(Gdn) # Gdn(0,τ)
 
-    # Initialize diagonostic parameters to asses numerical stability.
+    # Initialize diagnostic parameters to asses numerical stability.
     δG = zero(logdetGup)
     δθ = zero(logdetGup)
 ````
@@ -514,7 +514,7 @@ Note that we set `n_therm = N_therm + 1` when writing the checkpoint file to ens
 is resumed the thermalization updates are not repeated.
 
 ````julia
-    # Reset diagonostic parameters used to monitor numerical stability to zero.
+    # Reset diagnostic parameters used to monitor numerical stability to zero.
     δG = zero(logdetGup)
     δθ = zero(logdetGup)
 
@@ -631,7 +631,7 @@ This function also deletes the checkpoint files that were written during the sim
 
 ````julia
     # Process the simulation results, calculating final error bars for all measurements.
-    # writing final statisitics to CSV files.
+    # writing final statistics to CSV files.
     process_measurements(
         comm;
         datafolder = simulation_info.datafolder,

@@ -113,7 +113,7 @@ The important metadata within the simulation will be recorded in the `metadata` 
     # Initialize random number generator
     rng = Xoshiro(seed)
 
-    # Initialize additiona_info dictionary
+    # Initialize metadata dictionary
     metadata = Dict()
 
     # Record simulation parameters.
@@ -516,7 +516,7 @@ Now we allocate and initialize the equal-time Green's function matrix ``G_\sigma
 The initiliazation process also returns ``\log | \det G_\sigma(0,0) |`` (`logdetGup` and `logdetGdn`) and ``{\rm sgn} \det G_\sigma(0,0)`` (`sgndetGup` and `sgndetGdn`).
 
 ````julia
-    # Allcoate matrices for spin-up and spin-down electron Green's function matrices.
+    # Allocate matrices for spin-up and spin-down electron Green's function matrices.
     Gup = zeros(eltype(Bup[1]), size(Bup[1]))
     Gdn = zeros(eltype(Bdn[1]), size(Bdn[1]))
 
@@ -540,7 +540,7 @@ All of these various Green's function matrices are required if we want to make t
     Gdn_0τ = similar(Gdn) # Gdn(0,τ)
 ````
 
-Lastly, we initialize two diagonostic parameters `δG` and `δθ` to asses numerical stability during the simulation.
+Lastly, we initialize two diagnostic parameters `δG` and `δθ` to asses numerical stability during the simulation.
 The `δG`  parameter is particularly important to keep track of during the simulation, and is defined as
 ```math
 \delta G = \max \left( | G^{\rm stab.}_\sigma(0,0) - G^{\rm naive}_\sigma(0,0) | \right),
@@ -550,7 +550,7 @@ The ``\delta \theta`` diagnostic parameter reports the error in the phase of the
 but this is less important to keep track of in most situations.
 
 ````julia
-    # Initialize diagonostic parameters to asses numerical stability.
+    # Initialize diagnostic parameters to asses numerical stability.
     δG = zero(logdetGup)
     δθ = zero(logdetGup)
 ````
@@ -622,7 +622,7 @@ Therefore, the number of measurements that are averaged over per bin is given by
 The bin-averaged measurements are written to file once `bin_size` measurements are accumulated using the [`write_measurements!`](@ref) function.
 
 ````julia
-    # Reset diagonostic parameters used to monitor numerical stability to zero.
+    # Reset diagnostic parameters used to monitor numerical stability to zero.
     δG = zero(logdetGup)
     δθ = zero(logdetGup)
 
@@ -734,7 +734,7 @@ Again, for more information on how to interpret the output refer the [Simulation
 
 ````julia
     # Process the simulation results, calculating final error bars for all measurements.
-    # writing final statisitics to CSV files.
+    # writing final statistics to CSV files.
     process_measurements(
         datafolder = simulation_info.datafolder,
         n_bins = N_bins,
@@ -804,7 +804,7 @@ With this in mind, the following block of code only executes if the Julia script
 also reading in additional command line arguments.
 
 ````julia
-# Only excute if the script is run directly from the command line.
+# Only execute if the script is run directly from the command line.
 if abspath(PROGRAM_FILE) == @__FILE__
 
     # Run the simulation, reading in command line arguments.

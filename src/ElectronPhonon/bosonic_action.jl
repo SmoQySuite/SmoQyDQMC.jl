@@ -176,7 +176,7 @@ end
 
 
 # evaluate the derivative of the total bosonic action.
-# if (holstein_correction = 1) then the correction arrising from
+# if (holstein_correction = 1) then the correction arising from
 # X⋅(n-1) parameterization of the coupling is included.
 function bosonic_action_derivative!(
     dSdx::Matrix{E},
@@ -210,7 +210,7 @@ function eval_derivative_local_phonon_action!(
     # evaluate derivative of QHO action
     eval_derivative_qho_action!(dSdx, x, Δτ, phonon_parameters)
 
-    # evaluate derivative of anharmonic contribuation to action
+    # evaluate derivative of anharmonic contribution to action
     eval_derivative_anharmonic_action!(dSdx, x, Δτ, phonon_parameters)
 
     return nothing
@@ -244,7 +244,7 @@ function eval_derivative_qho_action!(
     return nothing
 end
 
-# evaluate derivative of anharmonic potetential contribution to action
+# evaluate derivative of anharmonic potential contribution to action
 function eval_derivative_anharmonic_action!(
     dSdx::Matrix{E}, x::Matrix{E}, Δτ::E,
     phonon_parameters::PhononParameters{E}

@@ -367,7 +367,7 @@ struct PhononDispersion{E<:AbstractFloat, D}
     # pair of phonon modes getting coupled
     phonon_ids::NTuple{2,Int}
 
-    # static displacment in unit cells
+    # static displacement in unit cells
     displacement::SVector{D,Int}
 
     # mean harmonic frequency

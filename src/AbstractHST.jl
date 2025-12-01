@@ -709,7 +709,7 @@ function reflection_update!(
     return (accepted, logdetG, sgndetG)
 end
 
-# defualt reflection update method
+# default reflection update method
 function _reflection_update!(
     # ARGUMENTS
     Gup::Matrix{H}, logdetGup::R, sgndetGup::H,
@@ -886,7 +886,7 @@ function swap_update!(
     return (accepted, logdetG, sgndetG)
 end
 
-# defualt swap update method
+# default swap update method
 function _swap_update!(
     # ARGUMENTS
     Gup::Matrix{H}, logdetGup::R, sgndetGup::H,

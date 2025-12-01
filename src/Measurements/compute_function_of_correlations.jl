@@ -101,7 +101,7 @@ function compute_function_of_correlations(;
         # iterate over remaining HDF5 files containing binned data
         for n in 2:N_pID
 
-            # caclulate mean and standard deviation for fist HDF5 file
+            # calculate mean and standard deviation for fist HDF5 file
             C′, ΔC′ = _compute_function_of_correlations(f, datafolder, pIDs[n], correlations, num_bins)
 
             # update mean and variance
@@ -154,7 +154,7 @@ function _compute_function_of_correlations(
     end
 
     # initialize version of function that take the sign as the first argument
-    # and ensure reweighting is performed when evaluating the function
+    # and ensure re-weighting is performed when evaluating the function
     F(z...) = f(map(x->x/z[1], z[2:end])...)
 
     # calculate the composite correlation

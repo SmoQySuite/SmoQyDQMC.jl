@@ -89,7 +89,7 @@ function export_local_bins_to_h5(;
         # record the pIDs
         attributes(H5LocalFile)["PIDS"] = pIDs
 
-        # allocate datset to contain binned sign data
+        # allocate dataset to contain binned sign data
         dims = (size(H5BinFiles[1]["GLOBAL"]["sgn"])..., length(pIDs))
         Sign = create_dataset(H5LocalFile, "SIGN", eltype(H5BinFiles[1]["GLOBAL"]["sgn"]), dims)
         Tdata = eltype(Sign)

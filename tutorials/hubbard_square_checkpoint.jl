@@ -105,7 +105,7 @@ function run_simulation(
         ## Initialize random number generator
         rng = Xoshiro(seed)
 
-        ## Initialize additiona_info dictionary
+        ## Initialize metadata dictionary
         metadata = Dict()
 
         ## Record simulation parameters.
@@ -395,7 +395,7 @@ function run_simulation(
     fermion_greens_calculator_up_alt = dqmcf.FermionGreensCalculator(fermion_greens_calculator_up)
     fermion_greens_calculator_dn_alt = dqmcf.FermionGreensCalculator(fermion_greens_calculator_dn)
 
-    ## Allcoate matrices for spin-up and spin-down electron Green's function matrices.
+    ## Allocate matrices for spin-up and spin-down electron Green's function matrices.
     Gup = zeros(eltype(Bup[1]), size(Bup[1]))
     Gdn = zeros(eltype(Bdn[1]), size(Bdn[1]))
 

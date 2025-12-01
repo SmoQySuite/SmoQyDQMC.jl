@@ -255,7 +255,7 @@ function _export_standard_correlation_stats_to_csv(
     # open csv file
     open(filename, "w") do file
 
-        # get ID headder labels
+        # get ID header labels
         id_type_2 = @sprintf("%s_2", id_type)
         id_type_1 = @sprintf("%s_1", id_type)
 

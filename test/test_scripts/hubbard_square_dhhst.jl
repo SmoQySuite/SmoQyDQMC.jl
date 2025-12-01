@@ -165,19 +165,14 @@ function run_simulation(;
     # Initialize alternate FermionGreensCalculator type for performing reflection updates.
     fermion_greens_calculator_alt = dqmcf.FermionGreensCalculator(fermion_greens_calculator)
 
-    # Allcoate matrices for spin-up and spin-down electron Green's function matrices.
+    # Allocate matrices for spin-up and spin-down electron Green's function matrices.
     G = zeros(eltype(B[1]), size(B[1]))
 
     # Initialize the spin-up and spin-down electron Green's function matrices, also
     # calculating their respective determinants as the same time.
     logdetG, sgndetG = dqmcf.calculate_equaltime_greens!(G, fermion_greens_calculator)
 
-    # Allocate matrices for various time-displaced Green's function matrices.
-    G_ττ = similar(G) # G(τ,τ)
-    G_τ0 = similar(G) # G(τ,0)
-    G_0τ = similar(G) # G(0,τ)
-
-    # Initialize diagonostic parameters to asses numerical stability.
+    # Initialize diagnostic parameters to asses numerical stability.
     δG = zero(logdetG)
     δθ = zero(logdetG)
 

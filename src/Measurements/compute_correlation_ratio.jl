@@ -185,7 +185,7 @@ function _compute_correlation_ratio(
             # iterate over neighboring wave-vectors
             for n in 1:Ndq
 
-                # get the nieghboring wave-vector
+                # get the neighboring wave-vector
                 q_neighbor = q_neighbors[n]
 
                 # record structure factor corresponding to ordering wave-vector
@@ -201,7 +201,7 @@ function _compute_correlation_ratio(
             # iterate over neighboring wave-vectors
             for n in 1:Ndq
 
-                # get the nieghboring wave-vector
+                # get the neighboring wave-vector
                 q_neighbor = q_neighbors[n]
 
                 # record structure factor corresponding to ordering wave-vector
@@ -358,7 +358,7 @@ function _compute_composite_correlation_ratio(
     Sq_bins = zeros(eltype(sgn), num_bins)
     Sqpdq_bins = zeros(eltype(sgn), num_bins)
 
-    # number of neighboring wavevector to average over
+    # number of neighboring wave-vector to average over
     Ndq = length(q_neighbors)
 
     # open HDF5 
@@ -376,7 +376,7 @@ function _compute_composite_correlation_ratio(
         # iterate over neighboring wave-vectors
         for n in 1:Ndq
 
-            # get the nieghboring wave-vector
+            # get the neighboring wave-vector
             q_neighbor = q_neighbors[n]
 
             # record structure factor corresponding to ordering wave-vector
@@ -392,7 +392,7 @@ function _compute_composite_correlation_ratio(
         # iterate over neighboring wave-vectors
         for n in 1:Ndq
 
-            # get the nieghboring wave-vector
+            # get the neighboring wave-vector
             q_neighbor = q_neighbors[n]
 
             # record structure factor corresponding to ordering wave-vector

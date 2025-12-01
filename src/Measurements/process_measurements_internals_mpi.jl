@@ -119,11 +119,11 @@ function _process_measurements(
     for key in keys(Global_In)
         # get the binned values
         binned_vals = bin_means(read(Global_In[key]), N_bins)
-        # if a global measurement does not require reweighting
+        # if a global measurement does not require re-weighting
         if startswith(key,"sgn") || startswith(key,"log") || startswith(key,"action") || startswith(key,"chemical_potential")
             avg = mean(binned_vals)
             err = varm(binned_vals, avg)
-        # if a global measurement requires reweighting
+        # if a global measurement requires re-weighting
         else
             avg, err = jackknife(
                 /, binned_vals, binned_sign,

@@ -21,7 +21,7 @@ is corresponding electron number operator. The phonon position (momentum) operat
 is given by ``\hat{X}_{\mathbf{i}} \ (\hat{P}_{\mathbf{i}})``, where ``\Omega`` and ``M`` are the phonon frequency and associated ion mass respectively.
 Therefore, the strength of the electron-phonon coupling is controlled by the parameter ``\alpha``. Lastly, the parameter ``U`` controls the strength of the on-site Hubbard interaction.
 
-Note that this example scipt comes with all the bells and whistles so to speak, including support for MPI parallelizaiton as well as checkpointing.
+Note that this example script comes with all the bells and whistles so to speak, including support for MPI parallelization as well as checkpointing.
 
 ````julia
 using SmoQyDQMC
@@ -98,7 +98,7 @@ function run_simulation(
         # Initialize random number generator
         rng = Xoshiro(seed)
 
-        # Initialize additiona_info dictionary
+        # Initialize metadata dictionary
         metadata = Dict()
 
         # Record simulation parameters.
@@ -474,11 +474,11 @@ function run_simulation(
     Gdn_τ0 = similar(Gdn) # Gdn(τ,0)
     Gdn_0τ = similar(Gdn) # Gdn(0,τ)
 
-    # Initialize diagonostic parameters to asses numerical stability.
+    # Initialize diagnostic parameters to asses numerical stability.
     δG = zero(logdetGup)
     δθ = zero(logdetGup)
 
-    # Initialize Hamitlonian/Hybrid monte carlo (HMC) updater.
+    # Initialize Hamiltonian/Hybrid monte carlo (HMC) updater.
     hmc_updater = EFAHMCUpdater(
         electron_phonon_parameters = electron_phonon_parameters,
         G = Gup, Nt = Nt, Δt = π/(2*Nt)
@@ -588,7 +588,7 @@ function run_simulation(
         )
     end
 
-    # Reset diagonostic parameters used to monitor numerical stability to zero.
+    # Reset diagnostic parameters used to monitor numerical stability to zero.
     δG = zero(logdetGup)
     δθ = zero(logdetGup)
 
@@ -741,7 +741,7 @@ function run_simulation(
     save_simulation_info(simulation_info, metadata)
 
     # Process the simulation results, calculating final error bars for all measurements.
-    # writing final statisitics to CSV files.
+    # writing final statistics to CSV files.
     process_measurements(
         comm;
         datafolder = simulation_info.datafolder,
@@ -782,7 +782,7 @@ function run_simulation(
     return nothing
 end # end of run_simulation function
 
-# Only excute if the script is run directly from the command line.
+# Only execute if the script is run directly from the command line.
 if abspath(PROGRAM_FILE) == @__FILE__
 
     # Initialize MPI

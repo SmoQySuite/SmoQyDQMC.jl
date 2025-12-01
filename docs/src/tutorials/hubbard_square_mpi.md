@@ -94,7 +94,7 @@ No changes need to made to this section of the code from the previous [1a) Squar
     # Initialize random number generator
     rng = Xoshiro(seed)
 
-    # Initialize additiona_info dictionary
+    # Initialize metadata dictionary
     metadata = Dict()
 
     # Record simulation parameters.
@@ -356,7 +356,7 @@ No changes need to made to this section of the code from the previous [1a) Squar
     fermion_greens_calculator_up_alt = dqmcf.FermionGreensCalculator(fermion_greens_calculator_up)
     fermion_greens_calculator_dn_alt = dqmcf.FermionGreensCalculator(fermion_greens_calculator_dn)
 
-    # Allcoate matrices for spin-up and spin-down electron Green's function matrices.
+    # Allocate matrices for spin-up and spin-down electron Green's function matrices.
     Gup = zeros(eltype(Bup[1]), size(Bup[1]))
     Gdn = zeros(eltype(Bdn[1]), size(Bdn[1]))
 
@@ -373,7 +373,7 @@ No changes need to made to this section of the code from the previous [1a) Squar
     Gdn_τ0 = similar(Gdn) # Gdn(τ,0)
     Gdn_0τ = similar(Gdn) # Gdn(0,τ)
 
-    # Initialize diagonostic parameters to asses numerical stability.
+    # Initialize diagnostic parameters to asses numerical stability.
     δG = zero(logdetGup)
     δθ = zero(logdetGup)
 ````
@@ -422,7 +422,7 @@ No changes need to made to this section of the code from the previous [1a) Squar
 No changes need to made to this section of the code from the previous [1a) Square Hubbard Model](@ref) tutorial.
 
 ````julia
-    # Reset diagonostic parameters used to monitor numerical stability to zero.
+    # Reset diagnostic parameters used to monitor numerical stability to zero.
     δG = zero(logdetGup)
     δθ = zero(logdetGup)
 
@@ -522,7 +522,7 @@ such that the first argument is the `comm` object, thereby ensuring a paralleliz
 
 ````julia
     # Process the simulation results, calculating final error bars for all measurements.
-    # writing final statisitics to CSV files.
+    # writing final statistics to CSV files.
     process_measurements(
         comm;
         datafolder = simulation_info.datafolder,
@@ -567,7 +567,7 @@ Then, we need to make sure to pass the `comm = MPI.COMM_WORLD` to the `run_simul
 At the very end of simulation it is good practice to run the `MPI.Finalize()` function even though
 it is typically not strictly required.
 
-Only excute if the script is run directly from the command line.
+Only execute if the script is run directly from the command line.
 
 ````julia
 if abspath(PROGRAM_FILE) == @__FILE__

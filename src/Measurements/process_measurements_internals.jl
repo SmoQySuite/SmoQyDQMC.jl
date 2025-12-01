@@ -136,9 +136,9 @@ function _process_measurements(
         n = bin_means(read(H5BinFiles[i]["GLOBAL/density"]), N_bins)
         N² = bin_means(read(H5BinFiles[i]["GLOBAL/Nsqrd"]), N_bins)
         S = binned_sgns[i]
-        # calculate the compressibility using flucuation dissipation theorem
+        # calculate the compressibility using fluctuation-dissipation theorem
         # such that κ = (β/N)⋅(⟨N²⟩-⟨N⟩²), using the jackknife method
-        # with reweighting to account for the sign problem
+        # with re-weighting to account for the sign problem
         κ, Δκ = jackknife(
             (n̄, N̄², S̄) -> (β/N_orbitals)*(N̄²/S̄ - (N_orbitals*n̄/S̄)^2),
             n, N², S
@@ -262,7 +262,7 @@ function process_correlations!(
             Correlation_Dataset_In = H5BinFiles[n][correlation_type][key]["POSITION"]
             # iterate over output dataset elements
             for c in CartesianIndices(dims)
-                # calculate statistics using jackknife reweighting for position-space correlation
+                # calculate statistics using jackknife re-weighting for position-space correlation
                 avg, err = binning_analysis(Correlation_Dataset_In[:,c.I...], binned_sgns[n], jackknife_sample_means, jackknife_g)
                 Mean_Out[c] += avg
                 Var_Out[c] += abs2(err)
@@ -284,7 +284,7 @@ function process_correlations!(
             Correlation_Dataset_In = H5BinFiles[n][correlation_type][key]["MOMENTUM"]
             # iterate over output dataset elements
             for c in CartesianIndices(dims)
-                # calculate statistics using jackknife reweighting for position-space correlation
+                # calculate statistics using jackknife re-weighting for position-space correlation
                 avg, err = binning_analysis(Correlation_Dataset_In[:,c.I...], binned_sgns[n], jackknife_sample_means, jackknife_g)
                 Mean_Out[c] += avg
                 Var_Out[c] += abs2(err)

@@ -121,7 +121,7 @@ function make_measurements!(
     # if there are time-displaced measurements to make
     if length(time_displaced_correlations) > 0 || length(time_displaced_composite_correlations) > 0
 
-        # make time-displaced correlation measuresurements for τ = l⋅Δτ = 0
+        # make time-displaced correlation measurements for τ = l⋅Δτ = 0
         make_time_displaced_measurements!(
             time_displaced_correlations, 0, sgn,
             Gup, Gup_ττ, Gup_τ0, Gup_0τ, Gdn, Gdn_ττ, Gdn_τ0, Gdn_0τ,
@@ -129,7 +129,7 @@ function make_measurements!(
             fermion_path_integral_up, fermion_path_integral_dn
         )
 
-        # make time-displaced composite correlation measuresurements for τ = l⋅Δτ = 0
+        # make time-displaced composite correlation measurements for τ = l⋅Δτ = 0
         make_time_displaced_composite_measurements!(
             time_displaced_composite_correlations, 0, sgn,
             Gup, Gup_ττ, Gup_τ0, Gup_0τ, Gdn, Gdn_ττ, Gdn_τ0, Gdn_0τ,
@@ -145,7 +145,7 @@ function make_measurements!(
             propagate_unequaltime_greens!(Gup_τ0, Gup_0τ, Gup_ττ, fermion_greens_calculator_up, Bup)
             propagate_unequaltime_greens!(Gdn_τ0, Gdn_0τ, Gdn_ττ, fermion_greens_calculator_dn, Bdn)
 
-            # make time-displaced correlation measuresurements for τ = l⋅Δτ
+            # make time-displaced correlation measurements for τ = l⋅Δτ
             make_time_displaced_measurements!(
                 time_displaced_correlations, l, sgn,
                 Gup, Gup_ττ, Gup_τ0, Gup_0τ, Gdn, Gdn_ττ, Gdn_τ0, Gdn_0τ,
@@ -153,7 +153,7 @@ function make_measurements!(
                 fermion_path_integral_up, fermion_path_integral_dn
             )
 
-            # make time-displaced correlation measuresurements for τ = l⋅Δτ
+            # make time-displaced correlation measurements for τ = l⋅Δτ
             make_time_displaced_composite_measurements!(
                 time_displaced_composite_correlations, l, sgn,
                 Gup, Gup_ττ, Gup_τ0, Gup_0τ, Gdn, Gdn_ττ, Gdn_τ0, Gdn_0τ,
@@ -325,7 +325,7 @@ function make_measurements!(
     # if there are time-displaced measurements to make
     if length(time_displaced_correlations) > 0 || length(time_displaced_composite_correlations) > 0
 
-        # make time-displaced correlation measuresurements of τ = 0
+        # make time-displaced correlation measurements of τ = 0
         make_time_displaced_measurements!(
             time_displaced_correlations, 0, sgn,
             G, G_ττ, G_τ0, G_0τ, G, G_ττ, G_τ0, G_0τ,
@@ -333,7 +333,7 @@ function make_measurements!(
             fermion_path_integral, fermion_path_integral,
         )
 
-        # make time-displaced composite correlation measuresurements of τ = 0
+        # make time-displaced composite correlation measurements of τ = 0
         make_time_displaced_composite_measurements!(
             time_displaced_composite_correlations, 0, sgn,
             G, G_ττ, G_τ0, G_0τ, G, G_ττ, G_τ0, G_0τ,
@@ -348,7 +348,7 @@ function make_measurements!(
             # Propagate Green's function matrices to current imaginary time slice
             propagate_unequaltime_greens!(G_τ0, G_0τ, G_ττ, fermion_greens_calculator, B)
 
-            # make time-displaced correlation measuresurements of τ = l⋅Δτ
+            # make time-displaced correlation measurements of τ = l⋅Δτ
             make_time_displaced_measurements!(
                 time_displaced_correlations, l, sgn,
                 G, G_ττ, G_τ0, G_0τ, G, G_ττ, G_τ0, G_0τ,
@@ -356,7 +356,7 @@ function make_measurements!(
                 fermion_path_integral, fermion_path_integral
             )
 
-            # make time-displaced composite correlation measuresurements of τ = l⋅Δτ
+            # make time-displaced composite correlation measurements of τ = l⋅Δτ
             make_time_displaced_composite_measurements!(
                 time_displaced_composite_correlations, l, sgn,
                 G, G_ττ, G_τ0, G_0τ, G, G_ττ, G_τ0, G_0τ,
@@ -368,7 +368,7 @@ function make_measurements!(
             # Periodically re-calculate the Green's function matrix for numerical stability.
             logdetG, sgndetG, δG′, δθ = stabilize_unequaltime_greens!(G_τ0, G_0τ, G_ττ, logdetG, sgndetG, fermion_greens_calculator, B, update_B̄=false)
 
-            # record maximum stablization error
+            # record maximum stabilization error
             δG = max(δG′, δG)
         end
     end

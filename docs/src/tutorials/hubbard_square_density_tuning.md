@@ -117,7 +117,7 @@ in the metadata dictionary.
         # Initialize random number generator
         rng = Xoshiro(seed)
 
-        # Initialize additiona_info dictionary
+        # Initialize metadata dictionary
         metadata = Dict()
 
         # Record simulation parameters.
@@ -434,7 +434,7 @@ No changes need to made to this section of the code from the previous
     fermion_greens_calculator_up_alt = dqmcf.FermionGreensCalculator(fermion_greens_calculator_up)
     fermion_greens_calculator_dn_alt = dqmcf.FermionGreensCalculator(fermion_greens_calculator_dn)
 
-    # Allcoate matrices for spin-up and spin-down electron Green's function matrices.
+    # Allocate matrices for spin-up and spin-down electron Green's function matrices.
     Gup = zeros(eltype(Bup[1]), size(Bup[1]))
     Gdn = zeros(eltype(Bdn[1]), size(Bdn[1]))
 
@@ -451,7 +451,7 @@ No changes need to made to this section of the code from the previous
     Gdn_τ0 = similar(Gdn) # Gdn(τ,0)
     Gdn_0τ = similar(Gdn) # Gdn(0,τ)
 
-    # Initialize diagonostic parameters to asses numerical stability.
+    # Initialize diagnostic parameters to asses numerical stability.
     δG = zero(logdetGup)
     δθ = zero(logdetGup)
 ````
@@ -532,7 +532,7 @@ after making and writing measurements but before writing the checkpoint file is 
 And again, we need to make sure the include the `chemical_potential_tuner` in the checkpoint file.
 
 ````julia
-    # Reset diagonostic parameters used to monitor numerical stability to zero.
+    # Reset diagnostic parameters used to monitor numerical stability to zero.
     δG = zero(logdetGup)
     δθ = zero(logdetGup)
 
@@ -665,7 +665,7 @@ No changes need to made to this section of the code from the previous
 
 ````julia
     # Process the simulation results, calculating final error bars for all measurements.
-    # writing final statisitics to CSV files.
+    # writing final statistics to CSV files.
     process_measurements(
         comm;
         datafolder = simulation_info.datafolder,

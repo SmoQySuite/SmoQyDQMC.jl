@@ -351,7 +351,7 @@ function reflection_update!(
         # calculate total final action
         S′ = Sb′ + Sf′
 
-        # caclulate the change in action
+        # calculate the change in action
         ΔS = S′ - S
 
         # calculate acceptance probability

@@ -20,10 +20,10 @@ function CorrelationContainer(D::Int, T::DataType, time_displaced::Bool)
     return correlation_container
 end
 
-# Reset the correlation data stored in correlaiton_container to zero.
-function reset!(correlaiton_container::CorrelationContainer{D,T}) where {D,T<:AbstractFloat}
+# Reset the correlation data stored in correlation_container to zero.
+function reset!(correlation_container::CorrelationContainer{D,T}) where {D,T<:AbstractFloat}
 
-    correlations = correlaiton_container.correlations
+    correlations = correlation_container.correlations
     for i in eachindex(correlations)
         fill!(correlations[i], zero(Complex{T}))
     end

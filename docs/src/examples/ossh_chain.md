@@ -21,7 +21,7 @@ is corresponding electron number operator. The phonon position (momentum) operat
 is given by ``\hat{X}_i \ (\hat{P}_i)``, where ``\Omega`` and ``M`` are the phonon frequency and associated ion mass respectively.
 Lastly, the strength of the electron-phonon coupling is controlled by the parameter ``\alpha``.
 
-Note that this example scipt comes with all the bells and whistles so to speak, including support for MPI parallelizaiton as well as checkpointing.
+Note that this example script comes with all the bells and whistles so to speak, including support for MPI parallelization as well as checkpointing.
 
 ````julia
 using SmoQyDQMC
@@ -97,7 +97,7 @@ function run_simulation(
         # Initialize random number generator
         rng = Xoshiro(seed)
 
-        # Initialize additiona_info dictionary
+        # Initialize metadata dictionary
         metadata = Dict()
 
         # Record simulation parameters.
@@ -335,10 +335,10 @@ function run_simulation(
     # Initialize alternate fermion greens calculator required for performing EFA-HMC, reflection and swap updates below.
     fermion_greens_calculator_alt = dqmcf.FermionGreensCalculator(fermion_greens_calculator)
 
-    # Allcoate equal-time electron Green's function matrix.
+    # Allocate equal-time electron Green's function matrix.
     G = zeros(eltype(B[1]), size(B[1]))
 
-    # Initialize electron Green's function matrx, also calculating the matrix determinant as the same time.
+    # Initialize electron Green's function matrix, also calculating the matrix determinant as the same time.
     logdetG, sgndetG = dqmcf.calculate_equaltime_greens!(G, fermion_greens_calculator)
 
     # Allocate matrices for various time-displaced Green's function matrices.
@@ -346,11 +346,11 @@ function run_simulation(
     G_τ0 = similar(G) # G(τ,0)
     G_0τ = similar(G) # G(0,τ)
 
-    # Initialize diagonostic parameters to asses numerical stability.
+    # Initialize diagnostic parameters to asses numerical stability.
     δG = zero(logdetG)
     δθ = zero(logdetG)
 
-    # Initialize Hamitlonian/Hybrid monte carlo (HMC) updater.
+    # Initialize Hamiltonian/Hybrid monte carlo (HMC) updater.
     hmc_updater = EFAHMCUpdater(
         electron_phonon_parameters = electron_phonon_parameters,
         G = G, Nt = Nt, Δt = π/(2*Nt)
@@ -411,7 +411,7 @@ function run_simulation(
         )
     end
 
-    # Reset diagonostic parameters used to monitor numerical stability to zero.
+    # Reset diagnostic parameters used to monitor numerical stability to zero.
     δG = zero(logdetG)
     δθ = zero(logdetG)
 
@@ -509,7 +509,7 @@ function run_simulation(
     save_simulation_info(simulation_info, metadata)
 
     # Process the simulation results, calculating final error bars for all measurements.
-    # writing final statisitics to CSV files.
+    # writing final statistics to CSV files.
     process_measurements(
         comm,
         datafolder = simulation_info.datafolder,
@@ -532,7 +532,7 @@ function run_simulation(
     return nothing
 end # end of run_simulation function
 
-# Only excute if the script is run directly from the command line.
+# Only execute if the script is run directly from the command line.
 if abspath(PROGRAM_FILE) == @__FILE__
 
     # Initialize MPI
