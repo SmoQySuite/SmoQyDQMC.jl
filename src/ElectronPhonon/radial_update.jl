@@ -134,7 +134,7 @@ function radial_update!(
     # calculate initial total action
     S = Sb + Sf
 
-    # substract off the effect of the current phonon configuration on the fermion path integrals
+    # subtract off the effect of the current phonon configuration on the fermion path integrals
     if calculate_exp_V
         update!(fermion_path_integral_up, holstein_parameters_up, x, -1)
         update!(fermion_path_integral_dn, holstein_parameters_dn, x, -1)
@@ -172,7 +172,7 @@ function radial_update!(
         logdetGdn′, sgndetGdn′ = NaN, NaN
     end
 
-    # if finite fermionic determiantn
+    # if finite fermionic determinant
     if isfinite(logdetGup′) && isfinite(logdetGdn′)
 
         # calculate the final bosonic action
@@ -208,7 +208,7 @@ function radial_update!(
         fermion_path_integral_dn.Sb += ΔSb
         accepted = true
     else
-        # substract off the effect of the current phonon configuration on the fermion path integrals
+        # subtract off the effect of the current phonon configuration on the fermion path integrals
         if calculate_exp_V
             update!(fermion_path_integral_up, holstein_parameters_up, x, -1)
             update!(fermion_path_integral_dn, holstein_parameters_dn, x, -1)
@@ -347,7 +347,7 @@ function radial_update!(
     # calculate initial total action
     S = Sb + Sf
 
-    # substract off the effect of the current phonon configuration on the fermion path integrals
+    # subtract off the effect of the current phonon configuration on the fermion path integrals
     if calculate_exp_V
         update!(fermion_path_integral, holstein_parameters, x, -1)
     end
@@ -377,7 +377,7 @@ function radial_update!(
         logdetG′, sgndetG′ = NaN, NaN
     end
 
-    # if finite fermionic determiantn
+    # if finite fermionic determinant
     if isfinite(logdetG′)
 
         # calculate the final bosonic action
@@ -407,7 +407,7 @@ function radial_update!(
         fermion_path_integral.Sb += (Sb′ - Sb)
         accepted = true
     else
-        # substract off the effect of the current phonon configuration on the fermion path integrals
+        # subtract off the effect of the current phonon configuration on the fermion path integrals
         if calculate_exp_V
             update!(fermion_path_integral, holstein_parameters, x, -1)
         end
