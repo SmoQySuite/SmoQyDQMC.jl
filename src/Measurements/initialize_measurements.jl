@@ -161,10 +161,6 @@ function initialize_measurements!(
         local_measurements["hopping_inversion"]        = zeros(Complex{E}, nhopping)
         local_measurements["hopping_inversion_up"]     = zeros(Complex{E}, nhopping)
         local_measurements["hopping_inversion_dn"]     = zeros(Complex{E}, nhopping)
-
-        local_measurements["hopping_inversion_avg"]    = zeros(Complex{E}, nhopping)
-        local_measurements["hopping_inversion_avg_up"] = zeros(Complex{E}, nhopping)
-        local_measurements["hopping_inversion_avg_dn"] = zeros(Complex{E}, nhopping)
     end
 
     # record bond ID associated with each hopping ID

@@ -14,7 +14,7 @@ HDF5 files:
 
 - `[datafolder]`: 
   - `model_summary.toml`: A TOML file that describes the Hamiltonian that was simulated, and defines the various types of IDs that measurements are reported in terms of.
-  - `simulation_info_pID*_sID*.toml`: A TOML file reporting basic information about the simulation, including the version of Julia and [SmoQyDQMC.jl](https://github.com/SmoQySuite/SmoQyDQMC.jl) that was used to run the simulation. An `[additional_info]` table contains the contents of a user defined dictionary as well. One such file is generated for each `pID` MPI rank if multiple simulations are being performed in parallel using MPI.
+  - `simulation_info_pID*_sID*.toml`: A TOML file reporting basic information about the simulation, including the version of Julia and [SmoQyDQMC.jl](https://github.com/SmoQySuite/SmoQyDQMC.jl) that was used to run the simulation. An `[metadata]` table contains the contents of a user defined dictionary as well. One such file is generated for each `pID` MPI rank if multiple simulations are being performed in parallel using MPI.
   - `stats.h5`: HDF5 file containing computed measurement statistics.
   - `[bins]`: Directory containing binned measurent data stored in HDF5 files.
     - `bins_pID-0.h5`: HDF5 file containing the binned measurement data associated with `pID = 0`.
@@ -103,9 +103,6 @@ including the type of ID it is reported in terms of, is defined below.
 - `hopping_inversion`: (`HOPPING_ID`) Fraction of the time the overall sign of the total hopping amplitude is inverted as a result of interactions, without first averaging the hopping amplitude over imaginary time.
 - `hopping_inversion_up`: (`HOPPING_ID`) Fraction of the time the overall sign of the spin-up hopping amplitude is inverted as a result of interactions, without first averaging the hopping amplitude over imaginary time.
 - `hopping_inversion_dn`: (`HOPPING_ID`) Fraction of the time the overall sign of the spin-down hopping amplitude is inverted as a result of interactions, without first averaging the hopping amplitude over imaginary time.
-- `hopping_inversion_avg`: (`HOPPING_ID`) Fraction of the time the overall sign of the total hopping amplitude is inverted as a result of interactions, as calculated after first averaging the hopping amplitude over imaginary time.
-- `hopping_inversion_avg_up`: (`HOPPING_ID`) Fraction of the time the overall sign of the spin-up hopping amplitude is inverted as a result of interactions, as calculated after first averaging the hopping amplitude over imaginary time.
-- `hopping_inversion_avg_dn`: (`HOPPING_ID`) Fraction of the time the overall sign of the spin-down hopping amplitude is inverted as a result of interactions,as calculated after first averaging the hopping amplitude over imaginary time.
 
 ### Local Hubbard Measurements
 

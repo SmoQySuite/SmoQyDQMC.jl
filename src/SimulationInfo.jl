@@ -123,20 +123,20 @@ end
 
 
 @doc raw"""
-    save_simulation_info(sim_info::SimulationInfo, additional_info = nothing)
+    save_simulation_info(sim_info::SimulationInfo, metadata = nothing)
 
 Save the contents `sim_info` to a TOML file, and add an optional additional table to the
-output file based on the contents of a dictionary `additional_info`.
+output file based on the contents of a dictionary `metadata`.
 """
-function save_simulation_info(sim_info::SimulationInfo, additional_info = nothing)
+function save_simulation_info(sim_info::SimulationInfo, metadata = nothing)
 
     (; datafolder, pID, sID) = sim_info
     fn = @sprintf "simulation_info_pID%d_sID%d.toml" pID sID
     open(joinpath(datafolder, fn), "w") do fout
         show(fout, "text/plain", sim_info)
-        if !isnothing(additional_info)
+        if !isnothing(metadata)
             @printf fout "\n\n"
-            TOML.print(fout, Dict("additional_info" => additional_info), sorted = true)
+            TOML.print(fout, Dict("metadata" => metadata), sorted = true)
         end
     end
 

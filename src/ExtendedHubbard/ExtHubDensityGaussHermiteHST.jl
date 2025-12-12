@@ -9,7 +9,7 @@ Specifically, we perform the Gauss-Hermite Hubbard-Stratonovich transformation
 e^{-\Delta\tau\left[\tfrac{V}{2}\right](\hat{n}_{\mathbf{i}}+\hat{n}_{\mathbf{j}}-2)^{2}} =
 = \frac{1}{4}\sum_{s=\pm1,\pm2}e^{-S_{\text{GH}}(s)-\Delta\tau\hat{V}(s)}+\mathcal{O}\left(\left[\tfrac{\Delta\tau V}{2}\right]^{4}\right)
 ```
-where ``hat{V}(s) = \alpha\eta(s)(\hat{n}_{\mathbf{i}}+\hat{n}_{\mathbf{j}}-2)`` and ``\alpha=\sqrt{\frac{-V}{2\Delta\tau}}``.
+where ``\hat{V}(s) = \alpha\eta(s)(\hat{n}_{\mathbf{i}}+\hat{n}_{\mathbf{j}}-2)`` and ``\alpha=\sqrt{\frac{-V}{2\Delta\tau}}``.
 In the above expression,
 ```math
 S_{\text{GH}}(s)=-\log\left(1+\sqrt{6}\left(1-\tfrac{2}{3}|s|\right)\right)

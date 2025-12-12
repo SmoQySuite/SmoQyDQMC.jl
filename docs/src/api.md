@@ -50,7 +50,6 @@ measure_hopping_energy
 measure_bare_hopping_energy
 measure_hopping_amplitude
 measure_hopping_inversion
-measure_hopping_inversion_avg
 ```
 
 ## Hubbard Model

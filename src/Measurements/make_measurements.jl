@@ -598,14 +598,6 @@ function make_local_measurements!(
             local_measurements["hopping_inversion_up"][hopping_id] += tup
             local_measurements["hopping_inversion_dn"][hopping_id] += tdn
             local_measurements["hopping_inversion"][hopping_id] += tn
-
-            # measure hopping inversion
-            tup = sgn * measure_hopping_inversion_avg(tight_binding_parameters_up, fermion_path_integral_up, hopping_id)
-            tdn = sgn * measure_hopping_inversion_avg(tight_binding_parameters_dn, fermion_path_integral_up, hopping_id)
-            tn = (tup + tup)/2
-            local_measurements["hopping_inversion_avg_up"][hopping_id] += tup
-            local_measurements["hopping_inversion_avg_dn"][hopping_id] += tdn
-            local_measurements["hopping_inversion_avg"][hopping_id] += tn
         end
     end
 

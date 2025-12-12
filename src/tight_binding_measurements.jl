@@ -200,7 +200,7 @@ function measure_hopping_inversion(
         # iterate over each specific hopping/bond
         for h in eachindex(t0′)
             # detect whether the sign of the hopping was inverted
-            hopping_inversion += !(sign(real(t0′[h])) == sign(real(tτ′[h,l])))
+            hopping_inversion += !(sign(real(t0′[h])) ≈ sign(real(tτ′[h,l])))
         end
     end
 
@@ -208,54 +208,4 @@ function measure_hopping_inversion(
     hopping_inversion /= length(tτ′)
 
     return hopping_inversion
-end
-
-@doc raw"""
-    measure_hopping_inversion_avg(
-        tight_binding_parameters::TightBindingParameters{T,E},
-        fermion_path_integral::FermionPathIntegral{H},
-        hopping_id::Int
-    ) where {H<:Number, T<:Number, E<:AbstractFloat}
-
-Measure the fraction of time the sign of the imaginary-time averaged modulated hopping amplitude
-``\bar{t}_{(\mathbf{i},\nu),(\mathbf{j},\gamma)}`` is inverted relative to the bare hopping amplitude
-``t_{(\mathbf{i},\nu),(\mathbf{j},\gamma)}``.
-"""
-function measure_hopping_inversion_avg(
-    tight_binding_parameters::TightBindingParameters{T,E},
-    fermion_path_integral::FermionPathIntegral{H},
-    hopping_id::Int
-) where {H<:Number, T<:Number, E<:AbstractFloat}
-
-    (; neighbor_table, bond_slices, bond_ids) = tight_binding_parameters
-    (; Lτ) = fermion_path_integral
-
-    # bare hopping amplitudes
-    t0 = tight_binding_parameters.t
-
-    # modulated hopping amplitudes
-    tτ = fermion_path_integral.t
-
-    # instantaneous hopping inversion fraction
-    hopping_inversion_avg = zero(E)
-
-    # get the bare hopping amplitudes associated with bond
-    t0′ = @view t0[bond_slices[hopping_id]]
-
-    # get modulated hopping amplitudes associated with bond
-    tτ′ = @view tτ[bond_slices[hopping_id], :]
-
-    # iterate over each specific hopping/bond
-    for h in eachindex(t0′)
-
-        # calculate average modulated hopping amplitude
-        thτ′ = @view tτ′[h,:]
-        thτ′_avg = mean(thτ′)
-        hopping_inversion_avg += !(sign(real(t0′[h])) == sign(real(thτ′_avg)))
-    end
-
-    # normalize fraction
-    hopping_inversion_avg /= length(t0′)
-
-    return hopping_inversion_avg
 end
