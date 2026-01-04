@@ -173,11 +173,11 @@ function write_jld2_checkpoint(
     # if time limit for simulation is exceeded for next future checkpoint
     if (checkpoint_timestamp + checkpoint_freq - start_timestamp) ≥ runtime_limit
 
-        # syncrhonize MPI processes before exiting simulation
+        # synchronize MPI processes before exiting simulation
         MPI.Barrier(comm)
 
         # exit simulation
-        exit(error_code)
+        MPI.Abort(comm, error_code)
     end
 
     return checkpoint_timestamp
