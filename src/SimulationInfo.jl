@@ -127,8 +127,10 @@ end
 
 @doc raw"""
     save_simulation_info(
+        # ARGUMENTS
         sim_info::SimulationInfo,
-        metadata = nothing,
+        metadata = nothing;
+        # KEYWORD ARGUMENTS
         filename = @sprintf "simulation_info_sID-%d_pID-%d.toml" sim_info.sID sim_info.pID
     )
 
@@ -136,8 +138,10 @@ Save the contents `sim_info` to a TOML file, and add an optional additional tabl
 output file based on the contents of a dictionary `metadata`.
 """
 function save_simulation_info(
+    # ARGUMENTS
     sim_info::SimulationInfo,
-    metadata = nothing,
+    metadata = nothing;
+    # KEYWORD ARGUMENTS
     filename = @sprintf "simulation_info_sID-%d_pID-%d.toml" sim_info.sID sim_info.pID
 )
 
