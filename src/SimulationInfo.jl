@@ -112,27 +112,37 @@ end
 function Base.show(io::IO, ::MIME"text/plain", sim_info::SimulationInfo)
 
     @printf io "[simulation_info]\n\n"
-    @printf io "name  = \"%s\"\n" sim_info.datafolder_prefix
-    @printf io "sID   = %d\n" sim_info.sID
-    @printf io "pID   = %d\n" sim_info.pID
+    @printf io "name = \"%s\"\n" sim_info.datafolder_prefix
+    @printf io "sID = %d\n" sim_info.sID
+    @printf io "pID = %d\n" sim_info.pID
     @printf io "smoqydqmc_version = \"%s\"\n" sim_info.smoqy_version
-    @printf io "julia_version     = \"%s\"" VERSION
+    if isdefined(Main, :SmoQyElPhQMC)
+        @printf io "smoqyelphqmc_version = \"%s\"\n" Main.SmoQyElPhQMC.SMOQYELPHQMC_VERSION
+    end
+    @printf io "julia_version = \"%s\"" VERSION
 
     return nothing
 end
 
 
 @doc raw"""
-    save_simulation_info(sim_info::SimulationInfo, metadata = nothing)
+    save_simulation_info(
+        sim_info::SimulationInfo,
+        metadata = nothing,
+        filename = @sprintf "simulation_info_sID-%d_pID-%d.toml" sim_info.sID sim_info.pID
+    )
 
 Save the contents `sim_info` to a TOML file, and add an optional additional table to the
 output file based on the contents of a dictionary `metadata`.
 """
-function save_simulation_info(sim_info::SimulationInfo, metadata = nothing)
+function save_simulation_info(
+    sim_info::SimulationInfo,
+    metadata = nothing,
+    filename = @sprintf "simulation_info_sID-%d_pID-%d.toml" sim_info.sID sim_info.pID
+)
 
-    (; datafolder, pID, sID) = sim_info
-    fn = @sprintf "simulation_info_pID%d_sID%d.toml" pID sID
-    open(joinpath(datafolder, fn), "w") do fout
+    (; datafolder ) = sim_info
+    open(joinpath(datafolder, filename), "w") do fout
         show(fout, "text/plain", sim_info)
         if !isnothing(metadata)
             @printf fout "\n\n"
