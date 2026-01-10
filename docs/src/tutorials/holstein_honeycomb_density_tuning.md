@@ -13,7 +13,7 @@ for dynamically adjusting the chemical potential during the simulation in order 
 electron density or filling fraction.
 
 ## Import Packages
-Compared to the previouse [1c) Square Hubbard Model with Checkpointing](@ref) tutorial,
+Compared to the previous [1c) Square Hubbard Model with Checkpointing](@ref) tutorial,
 we now need to import the [MuTuner.jl](https://github.com/cohensbw/MuTuner.jl.git)
 package, which is reexported by [SmoQyDQMC.jl](https://github.com/SmoQySuite/SmoQyDQMC.jl.git)
 
@@ -178,7 +178,7 @@ No changes need to made to this section of the code from the previous
         # Add the third nearest-neighbor bond in a honeycomb lattice to the model.
         bond_3_id = add_bond!(model_geometry, bond_3)
 
-        # Set neartest-neighbor hopping amplitude to unity,
+        # Set nearest-neighbor hopping amplitude to unity,
         # setting the energy scale in the model.
         t = 1.0
 
@@ -292,7 +292,7 @@ function to calculate the total number of orbitals in our system.
         )
 
         # Initialize MuTunerLogger type that will be used to dynamically adjust the
-        # chemicaml potential during the simulation.
+        # chemical potential during the simulation.
         chemical_potential_tuner = mt.init_mutunerlogger(
             target_density = n,
             inverse_temperature = β,
@@ -302,7 +302,7 @@ function to calculate the total number of orbitals in our system.
         )
 ````
 
-## Initialize meuasurements
+## Initialize measurements
 No changes need to made to this section of the code from the previous
 [2c) Honeycomb Holstein Model with Checkpointing](@ref) tutorial.
 
@@ -497,7 +497,7 @@ No changes need to made to this section of the code from the previous
 
 ## Thermalize system
 Here we need to add a call to the [`update_chemical_potential!`](@ref) function
-after completeing the updates but before writing the checkpoint file is written.
+after completing the updates but before writing the checkpoint file is written.
 And again, we need to make sure the include the `chemical_potential_tuner` in the checkpoint file.
 
 ````julia

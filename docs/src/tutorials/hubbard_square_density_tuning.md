@@ -276,16 +276,16 @@ function to calculate the total number of orbitals in our system.
             rng = rng
         )
 
-        # Apply Ising Hubbard-Stranonvich (HS) transformation to decouple the Hubbard interaction,
+        # Apply Hubbard-Stratonovich (HS) transformation to decouple the Hubbard interaction,
         # and initialize the corresponding HS fields that will be sampled in the DQMC simulation.
-        hst_parameters = HubbardIsingHSParameters(
+        hst_parameters = HubbardSpinHirschHST(
             β = β, Δτ = Δτ,
             hubbard_parameters = hubbard_params,
             rng = rng
         )
 
         # Initialize MuTunerLogger type that will be used to dynamically adjust the
-        # chemicaml potential during the simulation.
+        # chemical potential during the simulation.
         chemical_potential_tuner = mt.init_mutunerlogger(
             target_density = n,
             inverse_temperature = β,
@@ -458,7 +458,7 @@ No changes need to made to this section of the code from the previous
 
 ## Thermalize system
 Here we need to add a call to the [`update_chemical_potential!`](@ref) function
-after completeing the updates but before writing the checkpoint file is written.
+after completing the updates but before writing the checkpoint file is written.
 And again, we need to make sure the include the `chemical_potential_tuner` in the checkpoint file.
 
 ````julia
