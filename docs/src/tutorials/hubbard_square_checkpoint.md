@@ -219,7 +219,7 @@ No changes need to made to this section of the code from the previous
         # Add this bond definition to the model, by adding it the model_geometry.
         bond_pxny_id = add_bond!(model_geometry, bond_pxny)
 
-        # Set neartest-neighbor hopping amplitude to unity,
+        # Set nearest-neighbor hopping amplitude to unity,
         # setting the energy scale in the model.
         t = 1.0
 
@@ -271,7 +271,7 @@ No changes need to made to this section of the code from the previous
             rng = rng
         )
 
-        # Apply Ising Hubbard-Stratonovich (HS) transformation to decouple the Hubbard interaction,
+        # Apply Hubbard-Stratonovich (HS) transformation to decouple the Hubbard interaction,
         # and initialize the corresponding HS fields that will be sampled in the DQMC simulation.
         hst_parameters = HubbardSpinHirschHST(
             β = β, Δτ = Δτ,
@@ -370,8 +370,8 @@ the checkpoint file was written.
 ## Load checkpoint
 If we are resuming a simulation that was previously terminated prior to completion, then
 we need to load the most recent checkpoint file using the [`read_jld2_checkpoint`](@ref) function.
-The cotents of the checkpoint file are returned as a dictionary `checkpoint` by the [`read_jld2_checkpoint`](@ref) function.
-We then extract the cotents of the checkpoint file from the `checkpoint` dictionary.
+The contents of the checkpoint file are returned as a dictionary `checkpoint` by the [`read_jld2_checkpoint`](@ref) function.
+We then extract the contents of the checkpoint file from the `checkpoint` dictionary.
 
 ````julia
     # If resuming a previous simulation.
