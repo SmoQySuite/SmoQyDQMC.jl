@@ -19,11 +19,13 @@ function run_simulation(
     N_therm, # Number of thermalization updates.
     N_updates, # Total number of measurements and measurement updates.
     N_bins, # Number of times bin-averaged measurements are written to file.
+    Nt = 10, # Number of time-steps in HMC update.
     Δτ = 0.05, # Discretization in imaginary time.
     n_stab = 10, # Numerical stabilization period in imaginary-time slices.
     δG_max = 1e-6, # Threshold for numerical error corrected by stabilization.
     symmetric = false, # Whether symmetric propagator definition is used.
     checkerboard = false, # Whether checkerboard approximation is used.
+    write_bins_concurrent = true, # Whether to write HDF5 bins during the simulation.
     seed = abs(rand(Int)), # Seed for random number generator.
     filepath = "." # Filepath to where data folder will be created.
 )
@@ -38,6 +40,7 @@ function run_simulation(
     simulation_info = SimulationInfo(
         filepath = filepath,
         datafolder_prefix = datafolder_prefix,
+        write_bins_concurrent = write_bins_concurrent,
         sID = sID,
         pID = pID
     )
@@ -48,10 +51,11 @@ function run_simulation(
     # Initialize random number generator
     rng = Xoshiro(seed)
 
-    # Initialize additiona_info dictionary
+    # Initialize metadata dictionary
     metadata = Dict()
 
     # Record simulation parameters.
+    metadata["Nt"] = Nt
     metadata["N_therm"] = N_therm
     metadata["N_updates"] = N_updates
     metadata["N_bins"] = N_bins
@@ -64,12 +68,18 @@ function run_simulation(
     metadata["reflection_acceptance_rate"] = 0.0
     metadata["swap_acceptance_rate"] = 0.0
 
+    # Define lattice vectors.
+    a1 = [+3/2, +√3/2]
+    a2 = [+3/2, -√3/2]
+
+    # Define basis vectors for two orbitals in the honeycomb unit cell.
+    r1 = [0.0, 0.0] # Location of first orbital in unit cell.
+    r2 = [1.0, 0.0] # Location of second orbital in unit cell.
+
     # Define the unit cell.
     unit_cell = lu.UnitCell(
-        lattice_vecs = [[3/2,√3/2],
-                        [3/2,-√3/2]],
-        basis_vecs   = [[0.,0.],
-                        [1.,0.]]
+        lattice_vecs = [a1, a2],
+        basis_vecs   = [r1, r2]
     )
 
     # Define finite lattice with periodic boundary conditions.
@@ -99,7 +109,7 @@ function run_simulation(
     # Add the third nearest-neighbor bond in a honeycomb lattice to the model.
     bond_3_id = add_bond!(model_geometry, bond_3)
 
-    # Set neartest-neighbor hopping amplitude to unity,
+    # Set nearest-neighbor hopping amplitude to unity,
     # setting the energy scale in the model.
     t = 1.0
 
@@ -119,7 +129,10 @@ function run_simulation(
     )
 
     # Define a dispersionless electron-phonon mode to live on each site in the lattice.
-    phonon_1 = PhononMode(orbital = 1, Ω_mean = Ω)
+    phonon_1 = PhononMode(
+        basis_vec = r1,
+        Ω_mean = Ω
+    )
 
     # Add the phonon mode definition to the electron-phonon model.
     phonon_1_id = add_phonon_mode!(
@@ -127,8 +140,11 @@ function run_simulation(
         phonon_mode = phonon_1
     )
 
-    # Define a dispersionless electron-phonon mode to live on each site in the lattice.
-    phonon_2 = PhononMode(orbital = 2, Ω_mean = Ω)
+    # Define a dispersionless electron-phonon mode to live on the second sublattice.
+    phonon_2 = PhononMode(
+        basis_vec = r2,
+        Ω_mean = Ω
+    )
 
     # Add the phonon mode definition to the electron-phonon model.
     phonon_2_id = add_phonon_mode!(
@@ -139,10 +155,11 @@ function run_simulation(
     # Define first local Holstein coupling for first phonon mode.
     holstein_coupling_1 = HolsteinCoupling(
         model_geometry = model_geometry,
-        phonon_mode = phonon_1_id,
-        # Couple the first phonon mode to first orbital in the unit cell.
-        bond = lu.Bond(orbitals = (1,1), displacement = [0, 0]),
-        α_mean = α
+        phonon_id = phonon_1_id,
+        orbital_id = 1,
+        displacement = [0, 0],
+        α_mean = α,
+        ph_sym_form = true,
     )
 
     # Add the first local Holstein coupling definition to the model.
@@ -152,16 +169,17 @@ function run_simulation(
         model_geometry = model_geometry
     )
 
-    # Define first local Holstein coupling for first phonon mode.
+    # Define second local Holstein coupling for second phonon mode.
     holstein_coupling_2 = HolsteinCoupling(
         model_geometry = model_geometry,
-        phonon_mode = phonon_2_id,
-        # Couple the second phonon mode to second orbital in the unit cell.
-        bond = lu.Bond(orbitals = (2,2), displacement = [0, 0]),
-        α_mean = α
+        phonon_id = phonon_2_id,
+        orbital_id = 2,
+        displacement = [0, 0],
+        α_mean = α,
+        ph_sym_form = true,
     )
 
-    # Add the first local Holstein coupling definition to the model.
+    # Add the second local Holstein coupling definition to the model.
     holstein_coupling_2_id = add_holstein_coupling!(
         electron_phonon_model = electron_phonon_model,
         holstein_coupling = holstein_coupling_2,
@@ -264,6 +282,18 @@ function run_simulation(
         ]
     )
 
+    # Initialize measurement of electron Green's function traced
+    # over both orbitals in the unit cell.
+    initialize_composite_correlation_measurement!(
+        measurement_container = measurement_container,
+        model_geometry = model_geometry,
+        name = "tr_greens",
+        correlation = "greens",
+        id_pairs = [(1,1), (2,2)],
+        coefficients = [1.0, 1.0],
+        time_displaced = true,
+    )
+
     # Initialize CDW correlation measurement.
     initialize_composite_correlation_measurement!(
         measurement_container = measurement_container,
@@ -275,9 +305,6 @@ function run_simulation(
         time_displaced = false,
         integrated = true
     )
-
-    # Initialize the sub-directories to which the various measurements will be written.
-    initialize_measurement_directories(comm, simulation_info, measurement_container)
 
     # Allocate a single FermionPathIntegral for both spin-up and down electrons.
     fermion_path_integral = FermionPathIntegral(tight_binding_parameters = tight_binding_parameters, β = β, Δτ = Δτ)
@@ -294,10 +321,10 @@ function run_simulation(
     # Initialize alternate fermion greens calculator required for performing EFA-HMC, reflection and swap updates below.
     fermion_greens_calculator_alt = dqmcf.FermionGreensCalculator(fermion_greens_calculator)
 
-    # Allcoate equal-time electron Green's function matrix.
+    # Allocate equal-time electron Green's function matrix.
     G = zeros(eltype(B[1]), size(B[1]))
 
-    # Initialize electron Green's function matrx, also calculating the matrix determinant as the same time.
+    # Initialize electron Green's function matrix, also calculating the matrix determinant as the same time.
     logdetG, sgndetG = dqmcf.calculate_equaltime_greens!(G, fermion_greens_calculator)
 
     # Allocate matrices for various time-displaced Green's function matrices.
@@ -305,20 +332,14 @@ function run_simulation(
     G_τ0 = similar(G) # G(τ,0)
     G_0τ = similar(G) # G(0,τ)
 
-    # Initialize diagonostic parameters to asses numerical stability.
+    # Initialize diagnostic parameters to asses numerical stability.
     δG = zero(logdetG)
-    δθ = zero(sgndetG)
+    δθ = zero(logdetG)
 
-    # Number of fermionic time-steps in HMC update.
-    Nt = 10
-
-    # Fermionic time-step used in HMC update.
-    Δt = π/(2*Ω*Nt)
-
-    # Initialize Hamitlonian/Hybrid monte carlo (HMC) updater.
+    # Initialize Hamiltonian/Hybrid monte carlo (HMC) updater.
     hmc_updater = EFAHMCUpdater(
         electron_phonon_parameters = electron_phonon_parameters,
-        G = G, Nt = Nt, Δt = Δt
+        G = G, Nt = Nt, Δt = π/(2*Nt)
     )
 
     # Iterate over number of thermalization updates to perform.
@@ -361,9 +382,9 @@ function run_simulation(
         metadata["hmc_acceptance_rate"] += accepted
     end
 
-    # Reset diagonostic parameters used to monitor numerical stability to zero.
+    # Reset diagnostic parameters used to monitor numerical stability to zero.
     δG = zero(logdetG)
-    δθ = zero(sgndetG)
+    δθ = zero(logdetG)
 
     # Calculate the bin size.
     bin_size = N_updates ÷ N_bins
@@ -423,11 +444,14 @@ function run_simulation(
             measurement_container = measurement_container,
             simulation_info = simulation_info,
             model_geometry = model_geometry,
-            update = update,
+            measurement = update,
             bin_size = bin_size,
             Δτ = Δτ
         )
     end
+
+    # Merge binned data into a single HDF5 file.
+    merge_bins(simulation_info)
 
     # Calculate acceptance rates.
     metadata["hmc_acceptance_rate"] /= (N_updates + N_therm)
@@ -440,17 +464,43 @@ function run_simulation(
     # Write simulation metadata to simulation_info.toml file.
     save_simulation_info(simulation_info, metadata)
 
-    # Process the simulation results, calculating final error bars for all measurements,
-    # writing final statisitics to CSV files.
-    process_measurements(comm, simulation_info.datafolder, N_bins, time_displaced = true)
+    # Process the simulation results, calculating final error bars for all measurements.
+    # writing final statistics to CSV files.
+    process_measurements(
+        comm;
+        datafolder = simulation_info.datafolder,
+        n_bins = N_bins,
+        export_to_csv = true,
+        scientific_notation = false,
+        decimals = 7,
+        delimiter = " "
+    )
 
-    # Merge binary files containing binned data into a single file.
-    compress_jld2_bins(comm, folder = simulation_info.datafolder)
+    # Calculate CDW correlation ratio.
+    Rcdw, ΔRcdw = compute_composite_correlation_ratio(
+        comm;
+        datafolder = simulation_info.datafolder,
+        name = "cdw",
+        type = "equal-time",
+        q_point = (0, 0),
+        q_neighbors = [
+            (1,0),   (0,1),   (1,1),
+            (L-1,0), (0,L-1), (L-1,L-1)
+        ]
+    )
+
+    # Record the AFM correlation ratio mean and standard deviation.
+    metadata["Rcdw_mean_real"] = real(Rcdw)
+    metadata["Rcdw_mean_imag"] = imag(Rcdw)
+    metadata["Rcdw_std"]       = ΔRcdw
+
+    # Write simulation summary TOML file.
+    save_simulation_info(simulation_info, metadata)
 
     return nothing
 end # end of run_simulation function
 
-# Only excute if the script is run directly from the command line.
+# Only execute if the script is run directly from the command line.
 if abspath(PROGRAM_FILE) == @__FILE__
 
     # Initialize MPI

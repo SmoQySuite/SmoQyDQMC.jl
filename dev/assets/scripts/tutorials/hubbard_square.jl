@@ -22,6 +22,7 @@ function run_simulation(;
     δG_max = 1e-6, # Threshold for numerical error corrected by stabilization.
     symmetric = false, # Whether symmetric propagator definition is used.
     checkerboard = false, # Whether checkerboard approximation is used.
+    write_bins_concurrent = true, # Whether to write binned data to file during simulation or hold it in memory.
     seed = abs(rand(Int)), # Seed for random number generator.
     filepath = "." # Filepath to where data folder will be created.
 )
@@ -33,6 +34,7 @@ function run_simulation(;
     simulation_info = SimulationInfo(
         filepath = filepath,
         datafolder_prefix = datafolder_prefix,
+        write_bins_concurrent = write_bins_concurrent,
         sID = sID
     )
 
@@ -42,7 +44,7 @@ function run_simulation(;
     # Initialize random number generator
     rng = Xoshiro(seed)
 
-    # Initialize additiona_info dictionary
+    # Initialize metadata dictionary
     metadata = Dict()
 
     # Record simulation parameters.
@@ -54,7 +56,8 @@ function run_simulation(;
     metadata["symmetric"] = symmetric
     metadata["checkerboard"] = checkerboard
     metadata["seed"] = seed
-    metadata["avg_acceptance_rate"] = 0.0
+    metadata["local_acceptance_rate"] = 0.0
+    metadata["reflection_acceptance_rate"] = 0.0
 
     # Define unit cell.
     unit_cell = lu.UnitCell(
@@ -153,10 +156,10 @@ function run_simulation(;
 
     # Define the Hubbard interaction in the model.
     hubbard_model = HubbardModel(
-        shifted   = false, # if true, then Hubbard interaction is instead parameterized as U⋅nup⋅ndn
-        U_orbital = [1], # orbitals in unit cell with Hubbard interaction.
-        U_mean    = [U], # mean Hubbard interaction strength for corresponding orbital species in unit cell.
-        U_std     = [0.], # standard deviation of Hubbard interaction strength for corresponding orbital species in unit cell.
+        ph_sym_form = true, # if particle-hole symmetric form for Hubbard interaction is used.
+        U_orbital   = [1], # orbitals in unit cell with Hubbard interaction.
+        U_mean      = [U], # mean Hubbard interaction strength for corresponding orbital species in unit cell.
+        U_std       = [0.], # standard deviation of Hubbard interaction strength for corresponding orbital species in unit cell.
     )
 
     # Write model summary TOML file specifying Hamiltonian that will be simulated.
@@ -176,17 +179,17 @@ function run_simulation(;
     )
 
     # Initialize Hubbard interaction parameters.
-    hubbard_params = HubbardParameters(
+    hubbard_parameters = HubbardParameters(
         model_geometry = model_geometry,
         hubbard_model = hubbard_model,
         rng = rng
     )
 
-    # Apply Ising Hubbard-Stranonvich (HS) transformation to decouple the Hubbard interaction,
+    # Apply Spin Hirsch Hubbard-Stratonovich (HS) transformation to decouple the Hubbard interaction,
     # and initialize the corresponding HS fields that will be sampled in the DQMC simulation.
-    hubbard_stratonovich_params = HubbardIsingHSParameters(
+    hst_parameters = HubbardSpinHirschHST(
         β = β, Δτ = Δτ,
-        hubbard_parameters = hubbard_params,
+        hubbard_parameters = hubbard_parameters,
         rng = rng
     )
 
@@ -250,19 +253,26 @@ function run_simulation(;
         integrated = true
     )
 
-    # Initialize the sub-directories to which the various measurements will be written.
-    initialize_measurement_directories(simulation_info, measurement_container)
+    # Allocate FermionPathIntegral type for spin-up electrons.
+    fermion_path_integral_up = FermionPathIntegral(
+        tight_binding_parameters = tight_binding_parameters, β = β, Δτ = Δτ,
+        forced_complex_potential = (U < 0),
+        forced_complex_kinetic = false
+    )
 
-    # Allocate FermionPathIntegral type for both the spin-up and spin-down electrons.
-    fermion_path_integral_up = FermionPathIntegral(tight_binding_parameters = tight_binding_parameters, β = β, Δτ = Δτ)
-    fermion_path_integral_dn = FermionPathIntegral(tight_binding_parameters = tight_binding_parameters, β = β, Δτ = Δτ)
+    # Allocate FermionPathIntegral type for spin-down electrons.
+    fermion_path_integral_dn = FermionPathIntegral(
+        tight_binding_parameters = tight_binding_parameters, β = β, Δτ = Δτ,
+        forced_complex_potential = (U < 0),
+        forced_complex_kinetic = false
+    )
 
     # Initialize FermionPathIntegral type for both the spin-up and spin-down electrons to account for Hubbard interaction.
-    initialize!(fermion_path_integral_up, fermion_path_integral_dn, hubbard_params)
+    initialize!(fermion_path_integral_up, fermion_path_integral_dn, hubbard_parameters)
 
     # Initialize FermionPathIntegral type for both the spin-up and spin-down electrons to account for the current
     # Hubbard-Stratonovich field configuration.
-    initialize!(fermion_path_integral_up, fermion_path_integral_dn, hubbard_stratonovich_params)
+    initialize!(fermion_path_integral_up, fermion_path_integral_dn, hst_parameters)
 
     # Initialize imaginary-time propagators for all imaginary-time slices for spin-up and spin-down electrons.
     Bup = initialize_propagators(fermion_path_integral_up, symmetric=symmetric, checkerboard=checkerboard)
@@ -272,7 +282,11 @@ function run_simulation(;
     fermion_greens_calculator_up = dqmcf.FermionGreensCalculator(Bup, β, Δτ, n_stab)
     fermion_greens_calculator_dn = dqmcf.FermionGreensCalculator(Bdn, β, Δτ, n_stab)
 
-    # Allcoate matrices for spin-up and spin-down electron Green's function matrices.
+    # Initialize alternate FermionGreensCalculator type for performing reflection updates.
+    fermion_greens_calculator_up_alt = dqmcf.FermionGreensCalculator(fermion_greens_calculator_up)
+    fermion_greens_calculator_dn_alt = dqmcf.FermionGreensCalculator(fermion_greens_calculator_dn)
+
+    # Allocate matrices for spin-up and spin-down electron Green's function matrices.
     Gup = zeros(eltype(Bup[1]), size(Bup[1]))
     Gdn = zeros(eltype(Bdn[1]), size(Bdn[1]))
 
@@ -289,32 +303,48 @@ function run_simulation(;
     Gdn_τ0 = similar(Gdn) # Gdn(τ,0)
     Gdn_0τ = similar(Gdn) # Gdn(0,τ)
 
-    # Initialize diagonostic parameters to asses numerical stability.
+    # Initialize diagnostic parameters to asses numerical stability.
     δG = zero(logdetGup)
-    δθ = zero(sgndetGup)
+    δθ = zero(logdetGup)
 
     # Iterate over number of thermalization updates to perform.
     for n in 1:N_therm
 
+        # Perform reflection update for HS fields with randomly chosen site.
+        (accepted, logdetGup, sgndetGup, logdetGdn, sgndetGdn) = reflection_update!(
+            Gup, logdetGup, sgndetGup, Gdn, logdetGdn, sgndetGdn,
+            hst_parameters,
+            fermion_path_integral_up = fermion_path_integral_up,
+            fermion_path_integral_dn = fermion_path_integral_dn,
+            fermion_greens_calculator_up = fermion_greens_calculator_up,
+            fermion_greens_calculator_dn = fermion_greens_calculator_dn,
+            fermion_greens_calculator_up_alt = fermion_greens_calculator_up_alt,
+            fermion_greens_calculator_dn_alt = fermion_greens_calculator_dn_alt,
+            Bup = Bup, Bdn = Bdn, rng = rng
+        )
+
+        # Record whether reflection update was accepted or not.
+        metadata["reflection_acceptance_rate"] += accepted
+
         # Perform sweep all imaginary-time slice and orbitals, attempting an update to every HS field.
         (acceptance_rate, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = local_updates!(
             Gup, logdetGup, sgndetGup, Gdn, logdetGdn, sgndetGdn,
-            hubbard_stratonovich_params,
+            hst_parameters,
             fermion_path_integral_up = fermion_path_integral_up,
             fermion_path_integral_dn = fermion_path_integral_dn,
             fermion_greens_calculator_up = fermion_greens_calculator_up,
             fermion_greens_calculator_dn = fermion_greens_calculator_dn,
             Bup = Bup, Bdn = Bdn, δG_max = δG_max, δG = δG, δθ = δθ, rng = rng,
-            update_stabilization_frequency = true
+            update_stabilization_frequency = false
         )
 
         # Record acceptance rate for sweep.
-        metadata["avg_acceptance_rate"] += acceptance_rate
+        metadata["local_acceptance_rate"] += acceptance_rate
     end
 
-    # Reset diagonostic parameters used to monitor numerical stability to zero.
+    # Reset diagnostic parameters used to monitor numerical stability to zero.
     δG = zero(logdetGup)
-    δθ = zero(sgndetGup)
+    δθ = zero(logdetGup)
 
     # Calculate the bin size.
     bin_size = N_updates ÷ N_bins
@@ -322,20 +352,36 @@ function run_simulation(;
     # Iterate over updates and measurements.
     for update in 1:N_updates
 
+        # Perform reflection update for HS fields with randomly chosen site.
+        (accepted, logdetGup, sgndetGup, logdetGdn, sgndetGdn) = reflection_update!(
+            Gup, logdetGup, sgndetGup, Gdn, logdetGdn, sgndetGdn,
+            hst_parameters,
+            fermion_path_integral_up = fermion_path_integral_up,
+            fermion_path_integral_dn = fermion_path_integral_dn,
+            fermion_greens_calculator_up = fermion_greens_calculator_up,
+            fermion_greens_calculator_dn = fermion_greens_calculator_dn,
+            fermion_greens_calculator_up_alt = fermion_greens_calculator_up_alt,
+            fermion_greens_calculator_dn_alt = fermion_greens_calculator_dn_alt,
+            Bup = Bup, Bdn = Bdn, rng = rng
+        )
+
+        # Record whether reflection update was accepted or not.
+        metadata["reflection_acceptance_rate"] += accepted
+
         # Perform sweep all imaginary-time slice and orbitals, attempting an update to every HS field.
         (acceptance_rate, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = local_updates!(
             Gup, logdetGup, sgndetGup, Gdn, logdetGdn, sgndetGdn,
-            hubbard_stratonovich_params,
+            hst_parameters,
             fermion_path_integral_up = fermion_path_integral_up,
             fermion_path_integral_dn = fermion_path_integral_dn,
             fermion_greens_calculator_up = fermion_greens_calculator_up,
             fermion_greens_calculator_dn = fermion_greens_calculator_dn,
             Bup = Bup, Bdn = Bdn, δG_max = δG_max, δG = δG, δθ = δθ, rng = rng,
-            update_stabilization_frequency = true
+            update_stabilization_frequency = false
         )
 
         # Record acceptance rate.
-        metadata["avg_acceptance_rate"] += acceptance_rate
+        metadata["local_acceptance_rate"] += acceptance_rate
 
         # Make measurements.
         (logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = make_measurements!(
@@ -348,7 +394,7 @@ function run_simulation(;
             fermion_greens_calculator_dn = fermion_greens_calculator_dn,
             Bup = Bup, Bdn = Bdn, δG_max = δG_max, δG = δG, δθ = δθ,
             model_geometry = model_geometry, tight_binding_parameters = tight_binding_parameters,
-            coupling_parameters = (hubbard_params, hubbard_stratonovich_params)
+            coupling_parameters = (hubbard_parameters, hst_parameters)
         )
 
         # Write the bin-averaged measurements to file if update ÷ bin_size == 0.
@@ -356,14 +402,18 @@ function run_simulation(;
             measurement_container = measurement_container,
             simulation_info = simulation_info,
             model_geometry = model_geometry,
-            update = update,
+            measurement = update,
             bin_size = bin_size,
             Δτ = Δτ
         )
     end
 
+    # Merge binned data into a single HDF5 file.
+    merge_bins(simulation_info)
+
     # Normalize acceptance rate.
-    metadata["avg_acceptance_rate"] /=  (N_therm + N_updates)
+    metadata["local_acceptance_rate"] /=  (N_therm + N_updates)
+    metadata["reflection_acceptance_rate"] /= (N_therm + N_updates)
 
     # Record final stabilization period used at the end of the simulation.
     metadata["n_stab_final"] = fermion_greens_calculator_up.n_stab
@@ -374,39 +424,43 @@ function run_simulation(;
     # Write simulation summary TOML file.
     save_simulation_info(simulation_info, metadata)
 
-    # Set the number of bins used to calculate the error in measured observables.
-    n_bins = N_bins
-
-    # Process the simulation results, calculating final error bars for all measurements,
-    # writing final statisitics to CSV files.
-    process_measurements(simulation_info.datafolder, n_bins, time_displaced = false)
+    # Process the simulation results, calculating final error bars for all measurements.
+    # writing final statistics to CSV files.
+    process_measurements(
+        datafolder = simulation_info.datafolder,
+        n_bins = N_bins,
+        export_to_csv = true,
+        scientific_notation = false,
+        decimals = 7,
+        delimiter = " "
+    )
 
     # Calculate AFM correlation ratio.
     Rafm, ΔRafm = compute_correlation_ratio(
-        folder = simulation_info.datafolder,
+        datafolder = simulation_info.datafolder,
         correlation = "spin_z",
         type = "equal-time",
         id_pairs = [(1, 1)],
-        coefs = [1.0],
-        k_point = (L÷2, L÷2), # Corresponds to Q_afm = (π/a, π/a).
-        num_bins = n_bins
+        id_pair_coefficients = [1.0],
+        q_point = (L÷2, L÷2),
+        q_neighbors = [
+            (L÷2+1, L÷2), (L÷2-1, L÷2),
+            (L÷2, L÷2+1), (L÷2, L÷2-1)
+        ]
     )
 
     # Record the AFM correlation ratio mean and standard deviation.
-    metadata["Rafm_real_mean"] = real(Rafm)
-    metadata["Rafm_imag_mean"] = imag(Rafm)
+    metadata["Rafm_mean_real"] = real(Rafm)
+    metadata["Rafm_mean_imag"] = imag(Rafm)
     metadata["Rafm_std"]       = ΔRafm
 
     # Write simulation summary TOML file.
     save_simulation_info(simulation_info, metadata)
 
-    # Merge binary files containing binned data into a single file.
-    compress_jld2_bins(folder = simulation_info.datafolder)
-
     return nothing
 end # end of run_simulation function
 
-# Only excute if the script is run directly from the command line.
+# Only execute if the script is run directly from the command line.
 if abspath(PROGRAM_FILE) == @__FILE__
 
     # Run the simulation, reading in command line arguments.
