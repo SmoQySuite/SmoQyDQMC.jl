@@ -49,31 +49,35 @@ function initialize_measurement_container(
     integrated_correlations = Dict{String, CorrelationContainer{D,T}}()
 
     # initialize time displaced correlation measurement dictionary
-    equaltime_composite_correlations = Dict{String, CompositeCorrelationContainer{D,T}}()
+    equaltime_composite_correlations = Dict{String, CompositeCorrelationContainer{D,D,T}}()
 
     # initialize time displaced correlation measurement dictionary
-    time_displaced_composite_correlations = Dict{String, CompositeCorrelationContainer{D+1,T}}()
+    time_displaced_composite_correlations = Dict{String, CompositeCorrelationContainer{D,D+1,T}}()
 
     # initialize integrated correlation measurement dictionary
-    integrated_composite_correlations = Dict{String, CompositeCorrelationContainer{D,T}}()
+    integrated_composite_correlations = Dict{String, CompositeCorrelationContainer{D,D,T}}()
+
+    # initialize fft plan
+    pfft! = plan_fft!(zeros(Complex{T}, L...); flags=FFTW.PATIENT)
 
     # initialize measurement container
     measurement_container = (
-        global_measurements                   = global_measurements,
-        local_measurements                    = local_measurements,
-        equaltime_correlations                = equaltime_correlations,
-        time_displaced_correlations           = time_displaced_correlations,
-        integrated_correlations               = integrated_correlations,
-        equaltime_composite_correlations      = equaltime_composite_correlations,
+        global_measurements = global_measurements,
+        local_measurements = local_measurements,
+        equaltime_correlations = equaltime_correlations,
+        time_displaced_correlations = time_displaced_correlations,
+        integrated_correlations = integrated_correlations,
+        equaltime_composite_correlations = equaltime_composite_correlations,
         time_displaced_composite_correlations = time_displaced_composite_correlations,
-        integrated_composite_correlations     = integrated_composite_correlations,
+        integrated_composite_correlations = integrated_composite_correlations,
         hopping_to_bond_id = Int[],
-        phonon_to_bond_id  = Int[],
-        L                           = L,
-        Lτ                          = Lτ,
-        a                           = zeros(Complex{T}, L..., Lτ),
-        a′                          = zeros(Complex{T}, L..., Lτ),
-        a″                          = zeros(Complex{T}, L..., Lτ),
+        phonon_basis_vecs = Vector{T}[],
+        L = L,
+        Lτ = Lτ,
+        a = zeros(Complex{T}, L..., Lτ),
+        a′ = zeros(Complex{T}, L..., Lτ),
+        a″ = zeros(Complex{T}, L..., Lτ),
+        pfft! = pfft!
     )
 
     return measurement_container
@@ -157,10 +161,6 @@ function initialize_measurements!(
         local_measurements["hopping_inversion"]        = zeros(Complex{E}, nhopping)
         local_measurements["hopping_inversion_up"]     = zeros(Complex{E}, nhopping)
         local_measurements["hopping_inversion_dn"]     = zeros(Complex{E}, nhopping)
-
-        local_measurements["hopping_inversion_avg"]    = zeros(Complex{E}, nhopping)
-        local_measurements["hopping_inversion_avg_up"] = zeros(Complex{E}, nhopping)
-        local_measurements["hopping_inversion_avg_dn"] = zeros(Complex{E}, nhopping)
     end
 
     # record bond ID associated with each hopping ID
@@ -190,15 +190,47 @@ function initialize_measurements!(
 ) where {T<:AbstractFloat}
 
     (; local_measurements) = measurement_container
+    (; U_orbital_ids) = hubbard_model
 
     # number of orbitals in unit cell
-    norbital = length(local_measurements["density"])
+    n_hubbard = length(U_orbital_ids)
 
     # initialize hubbard energy measurement U⋅nup⋅ndn
-    local_measurements["hubbard_energy"] = zeros(Complex{T}, norbital)
+    local_measurements["hubbard_energy"] = zeros(Complex{T}, n_hubbard)
 
     return nothing
 end
+
+
+@doc raw"""
+    initialize_measurements!(
+        measurement_container::NamedTuple,
+        extended_hubbard_model::ExtendedHubbardModel{T}
+    ) where {T<:AbstractFloat}
+
+Initialize Extended Hubbard model related measurements.
+
+# Initialized Measurements:
+
+- `ext_hubbard_energy`: Refer to [`measure_ext_hub_energy`](@ref).
+"""
+function initialize_measurements!(
+    measurement_container::NamedTuple,
+    extended_hubbard_model::ExtendedHubbardModel{T}
+) where {T<:AbstractFloat}
+
+    (; local_measurements) = measurement_container
+    (; V_bond_ids) = extended_hubbard_model
+
+    # number of extended hubbard interactions
+    n_ehi = length(V_bond_ids)
+
+    # initialize extended hubbard energy measurement
+    local_measurements["ext_hub_energy"] = zeros(Complex{T}, n_ehi)
+
+    return nothing
+end
+
 
 @doc raw"""
     initialize_measurements!(
@@ -229,7 +261,7 @@ function initialize_measurements!(
     electron_phonon_model::ElectronPhononModel{T, E, D}
 ) where {T<:Number, E<:AbstractFloat, D}
 
-    (; local_measurements, phonon_to_bond_id) = measurement_container
+    (; local_measurements, phonon_basis_vecs) = measurement_container
     (; phonon_modes, holstein_couplings_up, ssh_couplings_up, phonon_dispersions) = electron_phonon_model
 
     _initialize_measurements!(local_measurements, phonon_modes)
@@ -237,10 +269,9 @@ function initialize_measurements!(
     _initialize_measurements!(local_measurements, ssh_couplings_up)
     _initialize_measurements!(local_measurements, phonon_dispersions)
 
-    # Record the bond ID asspciated with each phonon ID.
-    # Note that ORBITAL_ID equals BOND_ID.
+    # Record the basis vector for each type of phonon mode
     for phonon_mode in phonon_modes
-        push!(phonon_to_bond_id, phonon_mode.orbital)
+        push!(phonon_basis_vecs, phonon_mode.basis_vec)
     end
 
     return nothing
@@ -249,8 +280,8 @@ end
 # phonon mode related measurements
 function _initialize_measurements!(
     local_measurements::Dict{String, Vector{Complex{T}}},
-    phonon_modes::Vector{PhononMode{T}}
-) where {T<:AbstractFloat}
+    phonon_modes::Vector{PhononMode{T,D}}
+) where {T<:AbstractFloat, D}
 
     # number of phonon modes
     n_modes = length(phonon_modes)
@@ -340,6 +371,14 @@ function initialize_correlation_measurements!(;
     integrated::Bool = false
 )  where {T<:AbstractFloat, D, N}
 
+    # set integrated to false for electron green's function
+    if (integrated == true) && (correlation ∈ ("greens", "greens_up", "greens_dn"))
+        integrated = false
+    # if time-displaced measurements are being made then also make integrated measurements
+    elseif time_displaced == true
+        integrated = true
+    end
+
     # iterate over all bond/orbial ID pairs
     for pair in pairs
         initialize_correlation_measurement!(
@@ -421,23 +460,69 @@ end
         model_geometry::ModelGeometry{D,T,N},
         name::String,
         correlation::String,
-        ids,
+        ids::Union{Nothing,Vector{Int}} = nothing,
+        id_pairs::Union{Nothing,Vector{NTuple{2,Int}}} = nothing,
         coefficients,
+        displacement_vecs = nothing,
         time_displaced::Bool,
         integrated::Bool = false
     )  where {T<:AbstractFloat, D, N}
 
 Initialize a composite correlation measurement called `name` based
-on a linear combination of local operators used in a standard `correlation` measurement,
-with `ids` and `coefficients` specifying the linear combination.
+on a linear combination of local operators used in a standard `correlation` measurement.
+
+If the keyword `ids` is passed and `id_pairs = nothing`, then the composite correlation function is given by
+```math
+\begin{align*}
+    C_{\mathbf{r}}(\tau) & = \frac{1}{N}\sum_{\mathbf{i}}\langle\hat{\Phi}_{\mathbf{i}+\mathbf{r}}^{\dagger}(\tau)\hat{\Phi}_{\mathbf{i}}^{\phantom{\dagger}}(0)\rangle \\
+                         & = \frac{1}{N}\sum_{\eta,\nu}\sum_{\mathbf{i}}c_{\eta}^{*}c_{\nu}\langle\hat{O}_{\mathbf{i}+\mathbf{r},\eta}^{\dagger}(\tau)\hat{O}_{\mathbf{i},\nu}^{\phantom{\dagger}}(0)\rangle \\
+                         & = \sum_{\eta,\nu}c_{\eta}^{*}c_{\nu}C_{\mathbf{r}}^{\eta,\nu}(\tau)
+\end{align*}
+```
+where the composite operator is
+```math
+\hat{\Phi}_{\mathbf{\mathbf{r}}}(\tau)=\sum_{\nu}c_{\nu}\hat{O}_{\mathbf{r},\nu}(\tau).
+```
+The sum over ``\mathbf{i}`` runs over all unit cells, ``\mathbf{r}`` denotes a displacement in unit cells and ``N`` is the number unit cells.
+The operator type ``\hat{O}^{\nu}`` and corresponding correlation function type ``C_{\mathbf{r}}^{\eta,\nu}(\tau)`` are specified by the `correlation` keyword,
+while ``\nu`` corresponds to labels/IDs specified by the `ids` keyword argument.
+Lastly, the ``c_\nu`` coefficients are specified using the `coefficients` keyword arguments.
+The corresponding fourier transform of this composite correlation function measurement is given by
+```math
+S_{\mathbf{q}}(\tau)=\sum_{\eta,\nu}\sum_{\mathbf{r}}e^{-{\rm i}\mathbf{q}\cdot(\mathbf{r}+\mathbf{r}_{\eta}-\mathbf{r}_{\nu})}C_{\mathbf{r}}^{\eta,\nu}(\tau),
+```
+where the static vectors ``\mathbf{r}_\nu`` are specified using the `displacement_vecs` keyword arguments.
+If `displacement_vecs = nothing` then ``\mathbf{r}_\nu = 0`` for all label/ID values ``\nu``.
+
+On the other hand, if `id_pairs` is passed and `ids = nothing`, then the composite correlation function is given by
+```math
+\begin{align*}
+    C_{\mathbf{r}}(\tau) & = \sum_{n}c_{n}C_{\mathbf{r}}^{\eta_{n},\nu_{n}}(\tau) \\
+                         & = \frac{1}{N}\sum_{n}\sum_{\mathbf{i}}c_{n}\langle\hat{O}_{\mathbf{i}+\mathbf{r},\eta_{n}}^{\dagger}(\tau)\hat{O}_{\mathbf{i},\nu_{n}}^{\phantom{\dagger}}(0)\rangle,
+\end{align*}
+```
+where the ``n`` index runs over pairs of labels/IDs ``(\nu_n, \eta_n)`` specified by the `id_pairs` keyword argument.
+Note that the order of the label/ID pair ``(\nu_n, \eta_n)`` reflects how each tuple in the `id_pairs` vector will be interpreted.
+Once again, operator type ``\hat{O}^{\nu_n}`` and corresponding correlation function type ``C_{\mathbf{r}}^{\eta_n,\nu_n}(\tau)`` are specified by the `correlation` keyword.
+The corresponding fourier transform of this composite correlation function measurement is given by
+```math
+S_{\mathbf{q}}(\tau)=\sum_{n}\sum_{\mathbf{r}}e^{-{\rm i}\mathbf{q}\cdot(\mathbf{r}+\mathbf{r}_{n})}C_{\mathbf{r}}^{\eta_{n},\nu_{n}}(\tau),
+```
+where the static displacement vectors ``\mathbf{r}_n`` are specified by the `displacement_vecs` keyword argument.
+As before, if `displacement_vecs = nothing`, then ``\mathbf{r}_n = 0`` for all ``n``.
+
+Note that the specified correlation type `correlation` needs to correspond to one of the keys in the global
+[`CORRELATION_FUNCTIONS`](@ref) dictionary, which lists all the predefined types of correlation functions that can be measured.
 """
 function initialize_composite_correlation_measurement!(;
     measurement_container::NamedTuple,
     model_geometry::ModelGeometry{D,T,N},
     name::String,
     correlation::String,
-    ids,
+    ids::Union{Nothing,Vector{Int}} = nothing,
+    id_pairs::Union{Nothing,Vector{NTuple{2,Int}}} = nothing,
     coefficients,
+    displacement_vecs = nothing,
     time_displaced::Bool,
     integrated::Bool = false
 )  where {T<:AbstractFloat, D, N}
@@ -449,211 +534,64 @@ function initialize_composite_correlation_measurement!(;
     ) = measurement_container
 
     @assert correlation in keys(CORRELATION_FUNCTIONS)
-    @assert length(ids) == length(coefficients)
+    @assert(
+        !(isnothing(ids) && isnothing(id_pairs)),
+        "One of the keywords `ids` or `id_pairs` needs to be assigned."
+    )
+    @assert(
+        !(!isnothing(ids) && !isnothing(id_pairs)),
+        "Only one of the keywords `ids` or `id_pairs` should be assigned."
+    )
+
+    # set integrated to false for electron green's function
+    if (integrated == true) && (correlation ∈ ("greens", "greens_up", "greens_dn"))
+        integrated = false
+    # if time-displaced measurements are being made then also make integrated measurements
+    elseif time_displaced == true
+        integrated = true
+    end
+
+    if isa(ids, Vector{Int}) && isa(id_pairs, Nothing)
+        @assert length(ids) == length(coefficients) "Length of `ids` and `coefficients` do not match."
+        displacement_vecs = isnothing(displacement_vecs) ? [zeros(T,D) for i in ids] : displacement_vecs
+        @assert length(ids) == length(displacement_vecs) "Length of `ids` and `displacement_vecs` do not match."
+        coefs = Complex{T}[]
+        id_pairs = NTuple{2,Int}[]
+        dvecs = SVector{D,T}[]
+        for j in eachindex(ids)
+            for i in eachindex(ids)
+                push!( coefs, conj(coefficients[i]) * coefficients[j] )
+                push!( id_pairs, (ids[j], ids[i]) )
+                push!( dvecs, SVector{D,T}(displacement_vecs[i]) - SVector{D,T}(displacement_vecs[j]))
+            end
+        end
+    else
+        @assert length(id_pairs) == length(coefficients)
+        coefs = Complex{T}[coefficients...]
+        dvecs = isnothing(displacement_vecs) ? [SVector{D,T}(zeros(T,D)) for c in coefs] : [SVector{D,T}(v) for v in displacement_vecs]
+        @assert length(dvecs) == length(coefs) "Length of `coefficients` and `displacement_vecs` do not match."
+    end
 
     # if time displaced or integrated measurement should be made
     if time_displaced || integrated
         time_displaced_composite_correlations[name] = CompositeCorrelationContainer(
-            T, Lτ, L, correlation, ids, coefficients, time_displaced
+            Lτ, L, correlation, id_pairs, coefs, time_displaced, dvecs
         )
+    end
+
+    # if integrated measurement is made
+    if integrated
         integrated_composite_correlations[name] = CompositeCorrelationContainer(
-            T, L, correlation, ids, coefficients
+            L, correlation, id_pairs, coefs, dvecs
         )
     end
 
     # if equal-time measurement should be made
     if !time_displaced
         equaltime_composite_correlations[name] = CompositeCorrelationContainer(
-            T, L, correlation, ids, coefficients
+            L, correlation, id_pairs, coefs, dvecs
         )
     end
 
     return nothing
 end
-
-################################################
-## INITIALIZE MEASUREMENT DIRECTORY STRUCTURE ##
-################################################
-
-@doc raw"""
-    initialize_measurement_directories(;
-        # KEYWORD ARGUMENTS
-        simulation_info::SimulationInfo,
-        measurement_container::NamedTuple
-    )
-
-    initialize_measurement_directories(
-            # ARGUMENTS
-            comm::MPI.Comm;
-            # KEYWORD ARGUMENTS
-            simulation_info::SimulationInfo,
-            measurement_container::NamedTuple
-    )
-
-    initialize_measurement_directories(
-        # ARGUMENTS
-        simulation_info::SimulationInfo,
-        measurement_container::NamedTuple
-    )
-
-    initialize_measurement_directories(
-            # ARGUMENTS
-            comm::MPI.Comm,
-            simulation_info::SimulationInfo,
-            measurement_container::NamedTuple
-    )
-
-Initialize the measurement directories for simulation. If using MPI and a `comm::MPI.Comm` object is passed
-as the first argument, then none of the MPI processes will proceed beyond this function call until the measurement
-directories have been initialized.
-"""
-function initialize_measurement_directories(
-        # Arguments
-        comm::MPI.Comm;
-        # Keyword Arguments
-        simulation_info::SimulationInfo,
-        measurement_container::NamedTuple
-)
-
-    initialize_measurement_directories(simulation_info, measurement_container)
-    MPI.Barrier(comm)
-    return nothing
-end
-
-function initialize_measurement_directories(
-        # Arguments
-        comm::MPI.Comm,
-        simulation_info::SimulationInfo,
-        measurement_container::NamedTuple
-)
-
-    initialize_measurement_directories(simulation_info, measurement_container)
-    MPI.Barrier(comm)
-    return nothing
-end
-
-function initialize_measurement_directories(;
-    # Keyword Arguments
-    simulation_info::SimulationInfo,
-    measurement_container::NamedTuple
-)
-    initialize_measurement_directories(simulation_info, measurement_container)
-    return nothing
-end
-
-function initialize_measurement_directories(
-    # Arguments
-    simulation_info::SimulationInfo,
-    measurement_container::NamedTuple
-)
-
-    (; datafolder, resuming, pID) = simulation_info
-    (; time_displaced_correlations,
-       equaltime_correlations,
-       integrated_correlations,
-       time_displaced_composite_correlations,
-       equaltime_composite_correlations,
-       integrated_composite_correlations
-    ) = measurement_container
-
-    # only initialize folders if pID = 0
-    if iszero(pID) && !resuming
-
-        # make global measurements directory
-        global_directory = joinpath(datafolder, "global")
-        mknewdir(global_directory)
-
-        # make local measurements directory
-        local_directory = joinpath(datafolder, "local")
-        mknewdir(local_directory)
-
-        # make equaltime correlation directory
-        eqaultime_directory = joinpath(datafolder, "equal-time")
-        mknewdir(eqaultime_directory)
-
-        # iterate over equal-time correlation measurements
-        for correlation in keys(equaltime_correlations)
-
-            # make directory for each individual eqaul-time correlation measurement
-            equaltime_correlation_directory = joinpath(eqaultime_directory, correlation)
-            mknewdir(equaltime_correlation_directory)
-
-            # create sub-directories for position and momentum space data
-            mknewdir(joinpath(equaltime_correlation_directory, "position"))
-            mknewdir(joinpath(equaltime_correlation_directory, "momentum"))
-        end
-
-        # iterate over equal-time composite correlation measurements
-        for name in keys(equaltime_composite_correlations)
-
-            # make directory for each individual eqaul-time correlation measurement
-            equaltime_correlation_directory = joinpath(eqaultime_directory, name)
-            mknewdir(equaltime_correlation_directory)
-
-            # create sub-directories for position and momentum space data
-            mknewdir(joinpath(equaltime_correlation_directory, "position"))
-            mknewdir(joinpath(equaltime_correlation_directory, "momentum"))
-        end
-
-        # make time-displaced correlation directory
-        time_displaced_directory = joinpath(datafolder, "time-displaced")
-        mknewdir(time_displaced_directory)
-
-        # make integrated correlation directory
-        integrated_directory = joinpath(datafolder, "integrated")
-        mknewdir(integrated_directory)
-
-        # iterate over integrated correlation measurements
-        for correlation in keys(integrated_correlations)
-
-            # make directory for integrated correlation measurement
-            integrated_correlation_directory = joinpath(integrated_directory, correlation)
-            mknewdir(integrated_correlation_directory)
-
-            # create sub-directories for position and momentum space time-displaced correlation measurements
-            mknewdir(joinpath(integrated_correlation_directory, "position"))
-            mknewdir(joinpath(integrated_correlation_directory, "momentum"))
-
-            # check if also a time-displaced measurement should also be made
-            if time_displaced_correlations[correlation].time_displaced
-
-                # make directory for time-displaced correlation measurement
-                time_displaced_correlation_directory = joinpath(time_displaced_directory, correlation)
-                mknewdir(time_displaced_correlation_directory)
-
-                # create sub-directories for position and momentum space time-displaced correlation measurements
-                mknewdir(joinpath(time_displaced_correlation_directory, "position"))
-                mknewdir(joinpath(time_displaced_correlation_directory, "momentum"))
-            end
-        end
-
-        # iterate over integrated composite correlation measurements
-        for name in keys(integrated_composite_correlations)
-
-            # make directory for integrated correlation measurement
-            integrated_correlation_directory = joinpath(integrated_directory, name)
-            mknewdir(integrated_correlation_directory)
-
-            # create sub-directories for position and momentum space time-displaced correlation measurements
-            mknewdir(joinpath(integrated_correlation_directory, "position"))
-            mknewdir(joinpath(integrated_correlation_directory, "momentum"))
-
-            # check if also a time-displaced measurement should also be made
-            if time_displaced_composite_correlations[name].time_displaced
-
-                # make directory for time-displaced correlation measurement
-                time_displaced_correlation_directory = joinpath(time_displaced_directory, name)
-                mknewdir(time_displaced_correlation_directory)
-
-                # create sub-directories for position and momentum space time-displaced correlation measurements
-                mknewdir(joinpath(time_displaced_correlation_directory, "position"))
-                mknewdir(joinpath(time_displaced_correlation_directory, "momentum"))
-            end
-        end
-    end
-
-    return nothing
-end
-
-# make a new directory if it doesn't already exist
-mknewdir(path) = isdir(path) ? nothing : mkdir(path)

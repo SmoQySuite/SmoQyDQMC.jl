@@ -5,7 +5,7 @@
         tight_binding_model::Union{TightBindingModel,Nothing} = nothing,
         tight_binding_model_up::Union{TightBindingModel,Nothing} = nothing,
         tight_binding_model_dn::Union{TightBindingModel,Nothing} = nothing,
-        interactions::Tuple
+        interactions::Union{Tuple,Nothing} = nothing
     ) where {T<:AbstractFloat}
 
 Write model to summary to file. Note that either `tight_binding_model` or
@@ -17,7 +17,7 @@ function model_summary(;
     tight_binding_model::Union{TightBindingModel,Nothing} = nothing,
     tight_binding_model_up::Union{TightBindingModel,Nothing} = nothing,
     tight_binding_model_dn::Union{TightBindingModel,Nothing} = nothing,
-    interactions::Tuple
+    interactions::Union{Tuple,Nothing} = nothing
 ) where {T<:AbstractFloat}
 
     # if process ID is 1
@@ -51,8 +51,10 @@ function model_summary(;
                 show(fout, MIME("text/plain"), tight_binding_model)
             end
             # write various interactions to file
-            for interaction in interactions
-                show(fout, "text/plain", interaction)
+            if !isnothing(interactions)
+                for interaction in interactions
+                    show(fout, "text/plain", interaction)
+                end
             end
         end
     end

@@ -8,59 +8,34 @@ DQMC simulation performed using the [SmoQyDQMC.jl](https://github.com/SmoQySuite
 Each simulation performed with [SmoQyDQMC.jl](https://github.com/SmoQySuite/SmoQyDQMC.jl) will generate a directory
 with a user defined name that all the output of the simulation will be written to. Here we will simply refer to
 this top-level directory as the `datafolder`, but again, the user may call it whatever they like.
-Inside the `datafolder` a set of files and folders resembling the structure outlined below will be found:
+Inside the `datafolder` a set of files and folders resembling the structure outlined below will be found;
+note the CSV files will only be present if results are exported to CSV files as the default storage format is
+HDF5 files:
 
 - `[datafolder]`: 
   - `model_summary.toml`: A TOML file that describes the Hamiltonian that was simulated, and defines the various types of IDs that measurements are reported in terms of.
-  - `simulation_info_pID*_sID*.toml`: A TOML file reporting basic information about the simulation, including the version of Julia and [SmoQyDQMC.jl](https://github.com/SmoQySuite/SmoQyDQMC.jl) that was used to run the simulation. An `[additional_info]` table contains the contents of a user defined dictionary as well. One such file is generated for each `pID` MPI rank if multiple simulations are being performed in parallel using MPI.
+  - `simulation_info_pID*_sID*.toml`: A TOML file reporting basic information about the simulation, including the version of Julia and [SmoQyDQMC.jl](https://github.com/SmoQySuite/SmoQyDQMC.jl) that was used to run the simulation. An `[metadata]` table contains the contents of a user defined dictionary as well. One such file is generated for each `pID` MPI rank if multiple simulations are being performed in parallel using MPI.
+  - `stats.h5`: HDF5 file containing computed measurement statistics.
+  - `[bins]`: Directory containing binned measurent data stored in HDF5 files.
+    - `bins_pID-0.h5`: HDF5 file containing the binned measurement data associated with `pID = 0`.
+    - `bins_pID-1.h5`: HDF5 file containing the binned measurement data associated with `pID = 1`.
+    - `[...]`
   - `global_stats.csv`: CSV file containing final average and error for all global measurements.
   - `local_stats.csv`: CSV file containing final average and error for all local measurements.
-  - `[global]`: Directory contained binned global measurements written as binary JDL2 files.
-    - `bin-1_pID-0.jld2`
-    - `bin-2_pID-0.jld2`
-    - `...`
-  - `[local]`: Directory contained binned local measurements written as binary JDL2 files.
-    - `bin-1_pID-0.jld2`
-    - `bin-2_pID-0.jld2`
-    - `...`
   - `[equal-time]`: Top-level directory containing all equal-time correlation function measurement results.
     - `[density]`: As an example, directory containing equal-time density-density correlations.
       - `density_momentum_equal-time_stats.csv`: CSV file containing average and error for density-density correlation in momentum space.
       - `density_position_equal-time_stats.csv`: CSV file containing average and error for density-density correlation in position space.
-      - `[momentum]`: Directory containing binned momentum space density-density correlation data as binary JLD2 files.
-        - `bin-1_pID-0.jld2`
-        - `bin-2_pID-0.jld2`
-        - `...`
-      - `[position]`: Directory containing binned position space density-density correlation data as binary JLD2 files.
-        - `bin-1_pID-0.jld2`
-        - `bin-2_pID-0.jld2`
-        - `...`
     - `[...]`
   - `[time-displaced]`: Top-level directory containing all time-displaced correlation function measurement results.
     - `[greens]`
       - `greens_momentum_equal-time_stats.csv`
       - `greens_position_equal-time_stats.csv`
-      - `[momentum]`
-        - `bin-1_pID-0.jld2`
-        - `bin-2_pID-0.jld2`
-        - `...`
-      - `[position]`
-        - `bin-1_pID-0.jld2`
-        - `bin-2_pID-0.jld2`
-        - `...`
     - `[...]`
   - `[integrated]`: Top-level directory containing all integrated correlation function measurement results.
     - `[density]`
       - `density_momentum_integrated_stats.csv`
       - `density_position_integrated_stats.csv`
-      - `[momentum]`
-        - `bin-1_pID-0.jld2`
-        - `bin-2_pID-0.jld2`
-        - `...`
-      - `[position]`
-        - `bin-1_pID-0.jld2`
-        - `bin-2_pID-0.jld2`
-        - `...`
     - `[...]`
 
 ## Model Summary
@@ -128,9 +103,6 @@ including the type of ID it is reported in terms of, is defined below.
 - `hopping_inversion`: (`HOPPING_ID`) Fraction of the time the overall sign of the total hopping amplitude is inverted as a result of interactions, without first averaging the hopping amplitude over imaginary time.
 - `hopping_inversion_up`: (`HOPPING_ID`) Fraction of the time the overall sign of the spin-up hopping amplitude is inverted as a result of interactions, without first averaging the hopping amplitude over imaginary time.
 - `hopping_inversion_dn`: (`HOPPING_ID`) Fraction of the time the overall sign of the spin-down hopping amplitude is inverted as a result of interactions, without first averaging the hopping amplitude over imaginary time.
-- `hopping_inversion_avg`: (`HOPPING_ID`) Fraction of the time the overall sign of the total hopping amplitude is inverted as a result of interactions, as calculated after first averaging the hopping amplitude over imaginary time.
-- `hopping_inversion_avg_up`: (`HOPPING_ID`) Fraction of the time the overall sign of the spin-up hopping amplitude is inverted as a result of interactions, as calculated after first averaging the hopping amplitude over imaginary time.
-- `hopping_inversion_avg_dn`: (`HOPPING_ID`) Fraction of the time the overall sign of the spin-down hopping amplitude is inverted as a result of interactions,as calculated after first averaging the hopping amplitude over imaginary time.
 
 ### Local Hubbard Measurements
 
@@ -194,14 +166,14 @@ Consider a ``D`` dimensional finite periodic lattice, where ``\mathbf{a}_d`` and
 The extent of the lattice in unit cells in the direction of each of the lattice vectors is denoted by ``L_d``.
 Given these definitions, the displacement vectors are parametetized as
 ```math
-\mathbf{r} = \sum_{d=1}^D \left( \frac{\mathtt{R\_d}}{L_d} \right) \mathbf{a}_d,
+\mathbf{r} = \sum_{d=1}^D \mathtt{R}_d \mathbf{a}_d,
 ```
-and then reported in terms of the set of integers ``\mathtt{R\_d} \in [0, L_d)``.
+and then reported in terms of the set of integers ``\mathtt{R}_d \in [0, L_d)``.
 Similarly, the set of ``\mathbf{k}``-points associated with the finite lattice are given by
 ```math
-\mathbf{k} = \sum_{d=1}^D \left( \frac{\mathtt{K\_d}}{L_d} \right) \mathbf{b}_d
+\mathbf{k} = \sum_{d=1}^D \left( \frac{\mathtt{K}_d}{L_d} \right) \mathbf{b}_d
 ```
-and then reported in term of the set of integers ``\mathtt{K\_d} \in [0, L_d)``.
+and then reported in term of the set of integers ``\mathtt{K}_d \in [0, L_d)``.
 
 ### Correlation Function Reporting Conventions
 

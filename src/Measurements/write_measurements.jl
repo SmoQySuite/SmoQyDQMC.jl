@@ -9,17 +9,17 @@
         model_geometry::ModelGeometry{D, E, N},
         Δτ::E,
         bin_size::Int,
-        update::Int = 0,
-        bin::Int = update ÷ bin_size,
+        measurement::Int = 0,
+        bin::Int = measurement ÷ bin_size
     ) where {D, E<:AbstractFloat, N}
 
 Write the measurements contained in `measurement_container` to file if `update % bin_size == 0`.
 Measurements are written to file in a binary format using the [`JLD2.jl`](https://github.com/JuliaIO/JLD2.jl.git) package.
 
 This function also does a few other things:
-1. Normalizes all the measurements by the `bin_size` i.e. the number of measurements that were accumlated into the measurement container.
+1. Normalizes all the measurements by the `bin_size` i.e. the number of measurements that were accumulated into the measurement container.
 2. Take position space correlation function measurements and fourier transform them to momentum space.
-3. Integrate relevant time-displaced correlation function measurements over imaginary time to get the corresponding zero matsubara frequency correlation function.
+3. Integrate relevant time-displaced correlation function measurements over imaginary time to get the corresponding zero Matsubara frequency correlation function.
 4. Reset all the measurements in `measurement_container` to zero after the measurements are written to file.
 """
 function write_measurements!(;
@@ -28,208 +28,347 @@ function write_measurements!(;
     model_geometry::ModelGeometry{D, E, N},
     Δτ::E,
     bin_size::Int,
-    update::Int = 0,
-    bin::Int = update ÷ bin_size,
+    measurement::Int = 0,
+    bin::Int = measurement ÷ bin_size,
+    update::Int = 0 # OLD KEYWORD ARGUMENT, WILL BE DEPRECATED EVENTUALLY
 ) where {D, E<:AbstractFloat, N}
 
-    # check if bin file needs to be written
-    if update % bin_size == 0
+    # USE OLD KEYWORD ARGUMENTS, WILL BE DEPRECATED EVENTUALLY
+    if !iszero(update) && iszero(measurement)
+        measurement = update
+        bin = !iszero(bin) ? bin : measurement ÷ bin_size
+    end
 
-        (; datafolder, pID) = simulation_info
+    # check if bin file needs to be written
+    if measurement % bin_size == 0
+
+        (; datafolder, pID, write_bins_concurrent, bin_files) = simulation_info
         lattice   = model_geometry.lattice::Lattice{D}
         unit_cell = model_geometry.unit_cell::UnitCell{D,E,N}
         bonds     = model_geometry.bonds::Vector{Bond{D}}
 
+        (; global_measurements, local_measurements,
+           equaltime_correlations, equaltime_composite_correlations,
+           time_displaced_correlations, time_displaced_composite_correlations,
+           integrated_correlations, integrated_composite_correlations, pfft!
+        ) = measurement_container
+
         # construct filename
-        fn = @sprintf "bin-%d_pID-%d.jld2" bin pID
+        filename = joinpath(datafolder, "bins", @sprintf("pID-%d", pID), @sprintf("bin-%d.h5", bin))
 
         # normalize all measurements by the bin size
-        normalize_measurements!(measurement_container::NamedTuple, bin_size::Int)
+        normalize_measurements!(measurement_container, bin_size)
 
-        # write global measurements to file
-        global_measurements = measurement_container.global_measurements::Dict{String, Complex{E}}
-        JLD2.save(joinpath(datafolder, "global", fn), global_measurements)
+        # get hopping and phonon to bond ID mappings
+        hopping_to_bond_id = measurement_container.hopping_to_bond_id
+        phonon_basis_vecs = measurement_container.phonon_basis_vecs
+
+        # displacement vector
+        r = zeros(E, D)
+
+        # open HDF5 file to write binned data to
+        file = write_bins_concurrent ? h5open(filename, "w") : h5open(filename, "w"; driver=Drivers.Core(; backing_store=false))
+
+        # if first bin record system info
+        if isone(bin)
+            # Length of imaginary time axis
+            Lτ = measurement_container.Lτ
+            # record inverse temperature
+            attributes(file)["BETA"] = Lτ * Δτ
+            # record the imaginary-time discretization
+            attributes(file)["DELTA_TAU"] = Δτ
+            # record the length of the imaginary-time axis
+            attributes(file)["L_TAU"] = Lτ
+            # record total number of orbitals in lattice
+            attributes(file)["N_ORBITALS"] = nsites(unit_cell, lattice)
+        end
+
+        # write global measurements to group
+        Global = create_group(file, "GLOBAL")
+        for (measurement, value) in global_measurements
+            Global[measurement] = value
+        end
 
         # reset global measurements to zero
         for measurement in keys(global_measurements)
             global_measurements[measurement] = zero(Complex{E})
         end
 
-        # write local measurements to file
-        local_measurements = measurement_container.local_measurements::Dict{String, Vector{Complex{E}}}
-        JLD2.save(joinpath(datafolder, "local", fn), local_measurements)
+        # write local measurements to group
+        Local = create_group(file, "LOCAL")
+        for (measurement, value) in local_measurements
+            Local[measurement] = value
+        end
 
         # reset global measurements to zero
         for measurement in keys(local_measurements)
             fill!(local_measurements[measurement], zero(Complex{E}))
         end
 
-        # get hopping and phonon to bond ID mappings
-        hopping_to_bond_id = measurement_container.hopping_to_bond_id::Vector{Int}
-        phonon_to_bond_id = measurement_container.phonon_to_bond_id::Vector{Int}
+        # create group to contain correlation measurements
+        Correlations = create_group(file, "CORRELATIONS")
 
-        # iterate over equal-time measurements
-        equaltime_correlations = measurement_container.equaltime_correlations
+        # create standard correlation group
+        Standard = create_group(Correlations, "STANDARD")
+
+        # create group for standard equal-time correlation measurements
+        StandardEqualTime = create_group(Standard, "EQUAL-TIME")
+
+        # iterate over standard equal-time correlation measurements
         for correlation in keys(equaltime_correlations)
 
-            # get the correlation container
+            # get the correlation container for current standard equal-time correlation measurement
             correlation_container = equaltime_correlations[correlation]
-            pairs = correlation_container.id_pairs::Vector{NTuple{2,Int}}
+            id_pairs = correlation_container.id_pairs::Vector{NTuple{2,Int}}
+            id_type = CORRELATION_FUNCTIONS[correlation]
             correlations = correlation_container.correlations::Vector{Array{Complex{E}, D}}
 
-            # write position space equal-time correlation to file
-            save(joinpath(datafolder, "equal-time", correlation, "position", fn), correlation_container)
+            # create a group for correlation measurement
+            StandardEqualTimeCorrelation = create_group(StandardEqualTime, correlation)
+
+            # record ID pairs that were measured
+            attributes(StandardEqualTimeCorrelation)["ID_PAIRS"] = id_pairs
+
+            # record the ID type corresponding to correlation measurement
+            attributes(StandardEqualTimeCorrelation)["ID_TYPE"] = id_type
+
+            # record the position space correlations
+            StandardEqualTimeCorrelation["POSITION"] = stack(correlations)
 
             # fourier transform correlations to momentum space
             for i in eachindex(correlations)
                 # get the pair of orbitals associated with the correlation
-                if (CORRELATION_FUNCTIONS[correlation] == "ORBITAL_ID") || (CORRELATION_FUNCTIONS[correlation] == "BOND_ID")
-                    bond_b_id, bond_a_id = pairs[i]
-                elseif CORRELATION_FUNCTIONS[correlation] == "HOPPING_ID"
-                    hopping_b_id, hopping_a_id = pairs[i]
+                if (id_type == "ORBITAL_ID") || (id_type == "BOND_ID")
+                    bond_b_id, bond_a_id = id_pairs[i]
+                    a = bonds[bond_a_id].orbitals[1]
+                    b = bonds[bond_b_id].orbitals[1]
+                    # perform fourier transform
+                    fourier_transform!(correlations[i], a, b, unit_cell, lattice, pfft!)
+                elseif id_type == "HOPPING_ID"
+                    hopping_b_id, hopping_a_id = id_pairs[i]
                     bond_a_id = hopping_to_bond_id[hopping_a_id]
                     bond_b_id = hopping_to_bond_id[hopping_b_id]
-                elseif CORRELATION_FUNCTIONS[correlation] == "PHONON_ID"
-                    phonon_b_id, phonon_a_id = pairs[i]
-                    bond_a_id = phonon_to_bond_id[phonon_a_id]
-                    bond_b_id = phonon_to_bond_id[phonon_b_id]
+                    a = bonds[bond_a_id].orbitals[1]
+                    b = bonds[bond_b_id].orbitals[1]
+                    # perform fourier transform
+                    fourier_transform!(correlations[i], a, b, unit_cell, lattice, pfft!)
+                elseif id_type == "PHONON_ID"
+                    phonon_b_id, phonon_a_id = id_pairs[i]
+                    ra = phonon_basis_vecs[phonon_a_id]
+                    rb = phonon_basis_vecs[phonon_b_id]
+                    @. r = ra - rb
+                    # perform fourier transform
+                    fourier_transform!(correlations[i], r, unit_cell, lattice, pfft!)
                 end
-                a = bonds[bond_a_id].orbitals[1]
-                b = bonds[bond_b_id].orbitals[1]
-                # perform fourier transform
-                fourier_transform!(correlations[i], a, b, unit_cell, lattice)
             end
 
-            # write momentum space equal-time correlation to file
-            save(joinpath(datafolder, "equal-time", correlation, "momentum", fn), correlation_container)
+            # record the momentum space correlations
+            StandardEqualTimeCorrelation["MOMENTUM"] = stack(correlations)
 
-            # set the correlations to zero
+            # reset the correlation measurements to zero
             reset!(correlation_container)
         end
 
-        # iterate over equal-time composite measurements
-        equaltime_composite_correlations = measurement_container.equaltime_composite_correlations
-        for name in keys(equaltime_composite_correlations)
+        # create group for standard time-displaced correlation measurements
+        StandardTimeDisplaced = create_group(Standard, "TIME-DISPLACED")
 
-            # get the correlation container
-            correlation_container = equaltime_composite_correlations[name]
+        # create group for standard integrated correlation measurements
+        StandardIntegrated = create_group(Standard, "INTEGRATED")
 
-            # write position space equal-time correlation to file
-            save(joinpath(datafolder, "equal-time", name, "position", fn), correlation_container, momentum = false)
-
-            # write momentum space equal-time correlation to file
-            save(joinpath(datafolder, "equal-time", name, "momentum", fn), correlation_container, momentum = true)
-
-            # set the correlations to zero
-            reset!(correlation_container)
-        end
-
-        # iterate over time-displaced correlations
-        time_displaced_correlations = measurement_container.time_displaced_correlations
-        integrated_correlations = measurement_container.integrated_correlations
+        # iterate over standard time-displaced correlation measurements
         for correlation in keys(time_displaced_correlations)
 
-            # get the correlation container
+            # get the standard time-displaced correlation container
             correlation_container = time_displaced_correlations[correlation]
-            pairs = correlation_container.id_pairs::Vector{NTuple{2,Int}}
+            id_pairs = correlation_container.id_pairs::Vector{NTuple{2,Int}}
+            id_type = CORRELATION_FUNCTIONS[correlation]
             correlations = correlation_container.correlations::Vector{Array{Complex{E}, D+1}}
+            time_displaced = correlation_container.time_displaced::Bool
 
-            # write position space time-displaced correlation to file
-            if correlation_container.time_displaced
-                save(joinpath(datafolder, "time-displaced", correlation, "position", fn), correlation_container)
+            # if standard time-displaced correlation measurement is being written to file
+            if time_displaced
+
+                # create a group for standard time-displaced correlation measurement
+                StandardTimeDisplacedCorrelation = create_group(StandardTimeDisplaced, correlation)
+
+                # record ID pairs that were measured
+                attributes(StandardTimeDisplacedCorrelation)["ID_PAIRS"] = id_pairs
+
+                # record the ID type corresponding to correlation measurement
+                attributes(StandardTimeDisplacedCorrelation)["ID_TYPE"] = id_type
+
+                # record the position space correlations
+                StandardTimeDisplacedCorrelation["POSITION"] = stack(correlations)
             end
 
-            # get susceptibility container
-            susceptibility_container = integrated_correlations[correlation]
-            susceptibilities = susceptibility_container.correlations::Vector{Array{Complex{E}, D}}
+            # if integrated measurement is also being made
+            if haskey(integrated_correlations, correlation)
 
-            # calculate position space susceptibilies/integrated correlations
-            for i in eachindex(correlations)
-                # calculate susceptibility
-                susceptibility!(susceptibilities[i], correlations[i], Δτ, D+1)
+                # get standard susceptibility/integrated correlation container
+                susceptibility_container = integrated_correlations[correlation]
+                susceptibilities = susceptibility_container.correlations::Vector{Array{Complex{E}, D}}
+
+                # create a group for standard integrated correlation measurement
+                StandardIntegratedCorrelation = create_group(StandardIntegrated, correlation)
+
+                # record ID pairs that were measured
+                attributes(StandardIntegratedCorrelation)["ID_PAIRS"] = id_pairs
+
+                # record the ID type corresponding to correlation measurement
+                attributes(StandardIntegratedCorrelation)["ID_TYPE"] = id_type
+
+                # calculate position-space standard integrated correlation function
+                for i in eachindex(correlations)
+
+                    # perform integration of imaginary-time axis
+                    susceptibility!(susceptibilities[i], correlations[i], Δτ, D+1)
+                end
+
+                # record the position space susceptibilities
+                StandardIntegratedCorrelation["POSITION"] = stack(susceptibilities)
             end
-
-            # write position space susceptibility to file
-            save(joinpath(datafolder, "integrated", correlation, "position", fn), susceptibility_container)
 
             # fourier transform correlations to momentum space
             for i in eachindex(correlations)
                 # get the pair of orbitals associated with the correlation
-                if (CORRELATION_FUNCTIONS[correlation] == "ORBITAL_ID") || (CORRELATION_FUNCTIONS[correlation] == "BOND_ID")
-                    bond_b_id, bond_a_id = pairs[i]
-                elseif CORRELATION_FUNCTIONS[correlation] == "HOPPING_ID"
-                    hopping_b_id, hopping_a_id = pairs[i]
+                if (id_type == "ORBITAL_ID") || (id_type == "BOND_ID")
+                    bond_b_id, bond_a_id = id_pairs[i]
+                    a = bonds[bond_a_id].orbitals[1]
+                    b = bonds[bond_b_id].orbitals[1]
+                    # perform fourier transform
+                    fourier_transform!(correlations[i], a, b, D+1, unit_cell, lattice, pfft!)
+                elseif id_type == "HOPPING_ID"
+                    hopping_b_id, hopping_a_id = id_pairs[i]
                     bond_a_id = hopping_to_bond_id[hopping_a_id]
                     bond_b_id = hopping_to_bond_id[hopping_b_id]
-                elseif CORRELATION_FUNCTIONS[correlation] == "PHONON_ID"
-                    phonon_b_id, phonon_a_id = pairs[i]
-                    bond_a_id = phonon_to_bond_id[phonon_a_id]
-                    bond_b_id = phonon_to_bond_id[phonon_b_id]
+                    a = bonds[bond_a_id].orbitals[1]
+                    b = bonds[bond_b_id].orbitals[1]
+                    # perform fourier transform
+                    fourier_transform!(correlations[i], a, b, D+1, unit_cell, lattice, pfft!)
+                elseif id_type == "PHONON_ID"
+                    phonon_b_id, phonon_a_id = id_pairs[i]
+                    ra = phonon_basis_vecs[phonon_a_id]
+                    rb = phonon_basis_vecs[phonon_b_id]
+                    @. r = ra - rb
+                    # perform fourier transform
+                    fourier_transform!(correlations[i], r, D+1, unit_cell, lattice, pfft!)
                 end
-                a = bonds[bond_a_id].orbitals[1]
-                b = bonds[bond_b_id].orbitals[1]
-                # perform fourier transform
-                fourier_transform!(correlations[i], a, b, D+1, unit_cell, lattice)
             end
 
-            # write momentum space time-displaced correlation to file
-            if correlation_container.time_displaced
-                save(joinpath(datafolder, "time-displaced", correlation, "momentum", fn), correlation_container)
+            # if standard time-displaced correlation measurement is being written to file
+            if time_displaced
+
+                # record the momentum space correlations
+                StandardTimeDisplacedCorrelation["MOMENTUM"] = stack(correlations)
             end
 
-            # calculate momentum space susceptibilies/integrated correlations
-            for i in eachindex(correlations)
-                # calculate susceptibility
-                susceptibility!(susceptibilities[i], correlations[i], Δτ, D+1)
+            # if integrated measurement is also being made
+            if haskey(integrated_correlations, correlation)
+
+                # calculate momentum-space standard integrated correlation function
+                for i in eachindex(correlations)
+
+                    # perform integration of imaginary-time axis
+                    susceptibility!(susceptibilities[i], correlations[i], Δτ, D+1)
+                end
+
+                # record the momentum space susceptibilities
+                StandardIntegratedCorrelation["MOMENTUM"] = stack(susceptibilities)
             end
 
-            # write momentum space susceptibility to file
-            save(joinpath(datafolder, "integrated", correlation, "momentum", fn), susceptibility_container)
-
-            # set the correlations to zero
+            # reset the correlation measurements to zero
             reset!(correlation_container)
         end
 
-        # iterate over time-displaced composite correlations
-        time_displaced_composite_correlations = measurement_container.time_displaced_composite_correlations
-        integrated_composite_correlations = measurement_container.integrated_composite_correlations
-        for name in keys(time_displaced_composite_correlations)
+        # create composite correlation group
+        Composite = create_group(Correlations, "COMPOSITE")
 
-            # get the correlation container
+        # create group for composite equal-time correlation measurements
+        CompositeEqualTime = create_group(Composite, "EQUAL-TIME")
+
+        # iterate over composite equal-time correlation measurements
+        for correlation in keys(equaltime_composite_correlations)
+
+            # get the composite correlation container
+            correlation_container = equaltime_composite_correlations[correlation]
+            correlations = correlation_container.correlations::Array{Complex{E}, D}
+            structure_factors = correlation_container.structure_factors::Array{Complex{E}, D}
+
+            # create a group for composite equal-time correlation measurement
+            CompositeEqualTimeCorrelation = create_group(CompositeEqualTime, correlation)
+
+            # record the position space correlations
+            CompositeEqualTimeCorrelation["POSITION"] = correlations
+
+            # record the momentum space correlations
+            CompositeEqualTimeCorrelation["MOMENTUM"] = structure_factors
+
+            # reset the correlation measurements to zero
+            reset!(correlation_container)
+        end 
+
+        # create group for composite time-displaced correlation measurements
+        CompositeTimeDisplaced = create_group(Composite, "TIME-DISPLACED")
+
+        # create group for composite integrated correlation measurements
+        CompositeIntegrated = create_group(Composite, "INTEGRATED")
+
+        # iterate over composite time-displaced correlation measurements
+        for name in keys(time_displaced_composite_correlations)
+            
+            # get the composite correlation container
             correlation_container = time_displaced_composite_correlations[name]
             correlations = correlation_container.correlations::Array{Complex{E}, D+1}
             structure_factors = correlation_container.structure_factors::Array{Complex{E}, D+1}
+            time_displaced = correlation_container.time_displaced::Bool
 
-            # write position space time-displaced correlation to file
-            if correlation_container.time_displaced
-                save(joinpath(datafolder, "time-displaced", name, "position", fn), correlation_container, momentum = false)
+            # if composite time-displaced correlation measurement is being written to file
+            if time_displaced
+
+                # create a group for composite time-displaced correlation measurement
+                CompositeTimeDisplacedCorrelation = create_group(CompositeTimeDisplaced, name)
+
+                # record the position space correlations
+                CompositeTimeDisplacedCorrelation["POSITION"] = correlations
+
+                # record the momentum space correlations
+                CompositeTimeDisplacedCorrelation["MOMENTUM"] = structure_factors
             end
 
-            # get susceptibility container
-            susceptibility_container = integrated_composite_correlations[name]
-            susceptibilities_pos = susceptibility_container.correlations::Array{Complex{E}, D}
-            susceptibilities_mom = susceptibility_container.structure_factors::Array{Complex{E}, D}
+            # if integrated measurement is also being made
+            if haskey(integrated_composite_correlations, name)
 
-            # calculate the position space susceptibility/integrated correlations
-            susceptibility!(susceptibilities_pos, correlations, Δτ, D+1)
+                # get susceptibility container
+                susceptibility_container = integrated_composite_correlations[name]
+                susceptibilities_pos = susceptibility_container.correlations::Array{Complex{E}, D}
+                susceptibilities_mom = susceptibility_container.structure_factors::Array{Complex{E}, D}
 
-            # write position space susceptibility to file
-            save(joinpath(datafolder, "integrated", name, "position", fn), susceptibility_container, momentum = false)
+                # create a group for composite integrate correlation measurement
+                CompositeIntegratedCorrelation = create_group(CompositeIntegrated, name)
 
-            # write momentum space time-displaced correlation to file
-            if correlation_container.time_displaced
-                save(joinpath(datafolder, "time-displaced", name, "momentum", fn), correlation_container, momentum = true)
+                # calculate the position space susceptibility/integrated correlations
+                susceptibility!(susceptibilities_pos, correlations, Δτ, D+1)
+
+                # record the position space correlations
+                CompositeIntegratedCorrelation["POSITION"] = susceptibilities_pos
+
+                # calculate momentum space susceptibilies/integrated correlations
+                susceptibility!(susceptibilities_mom, structure_factors, Δτ, D+1)
+
+                # record the momentum space correlations
+                CompositeIntegratedCorrelation["MOMENTUM"] = susceptibilities_mom
             end
 
-            # calculate momentum space susceptibilies/integrated correlations
-            susceptibility!(susceptibilities_mom, structure_factors, Δτ, D+1)
-
-            # write momentum space susceptibility to file
-            save(joinpath(datafolder, "integrated", name, "momentum", fn), susceptibility_container, momentum = true)
-
-            # set the correlations to zero
+            # reset the correlation measurements to zero
             reset!(correlation_container)
         end
+
+        # record the h5file filename or contents
+        file_bytes = write_bins_concurrent ? Vector{UInt8}(filename) : Vector{UInt8}(file)
+        push!(bin_files, file_bytes)
+        
+        # close file
+        close(file)
     end
 
     return nothing
@@ -313,13 +452,13 @@ end
 
 # normalize correlation measurement
 function normalize_composite_correlation_measurements!(
-    composite_correlation_measurements::Dict{String, CompositeCorrelationContainer{D, T}}, bin_size::Int
-) where {D, T<:AbstractFloat}
+    composite_correlation_measurements::Dict{String, CompositeCorrelationContainer{D, P, T}}, bin_size::Int
+) where {D, P, T<:AbstractFloat}
 
     for name in keys(composite_correlation_measurements)
         correlation_container = composite_correlation_measurements[name]
-        correlations = correlation_container.correlations::Array{Complex{T}, D}
-        structure_factors = correlation_container.structure_factors::Array{Complex{T}, D}
+        correlations = correlation_container.correlations::Array{Complex{T}, P}
+        structure_factors = correlation_container.structure_factors::Array{Complex{T}, P}
         @. correlations /= bin_size
         @. structure_factors /= bin_size
     end

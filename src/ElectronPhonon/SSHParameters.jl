@@ -76,11 +76,11 @@ function SSHParameters(;
     rng::AbstractRNG
 ) where {T,E,D}
 
-    ssh_couplings_up = electron_phonon_model.ssh_couplings_up::Vector{SSHCoupling{T,E,D}}
-    ssh_couplings_dn = electron_phonon_model.ssh_couplings_dn::Vector{SSHCoupling{T,E,D}}
-    phonon_modes = electron_phonon_model.phonon_modes::Vector{PhononMode{E}}
-    lattice = model_geometry.lattice::Lattice{D}
-    unit_cell = model_geometry.unit_cell::UnitCell{D,E}
+    ssh_couplings_up = electron_phonon_model.ssh_couplings_up
+    ssh_couplings_dn = electron_phonon_model.ssh_couplings_dn
+    phonon_modes = electron_phonon_model.phonon_modes
+    lattice = model_geometry.lattice
+    unit_cell = model_geometry.unit_cell
 
     # number holstein coupling definitions
     nssh = length(ssh_couplings_up)
@@ -139,8 +139,8 @@ function SSHParameters(;
             ssh_coupling_up = ssh_couplings_up[sc]
             ssh_coupling_dn = ssh_couplings_dn[sc]
             # get the pair of phonon mode definitions assoicated with ssh coupling
-            phonon_mode_i = ssh_coupling_up.phonon_modes[1]
-            phonon_mode_f = ssh_coupling_up.phonon_modes[2]
+            phonon_mode_i = ssh_coupling_up.phonon_ids[1]
+            phonon_mode_f = ssh_coupling_up.phonon_ids[2]
             # get the bond id associated with the ssh coupling
             ssh_bond_id = ssh_coupling_up.bond_id
             # get range/slice of bare hoppings that need to be iterated over for given bond_id
@@ -161,15 +161,16 @@ function SSHParameters(;
                 unit_cell_id_final = site_to_unitcell(site_id_final, unit_cell)
                 # record the final phonon
                 coupling_to_phonon[2,ssh_counter] = Ncells * (phonon_mode_f-1) + unit_cell_id_final
-                # initialize coupling parameters
-                α_up[ssh_counter]  = ssh_coupling_up.α_mean  + ssh_coupling_up.α_std  * randn(rng)
-                α2_up[ssh_counter] = ssh_coupling_up.α2_mean + ssh_coupling_up.α2_std * randn(rng)
-                α3_up[ssh_counter] = ssh_coupling_up.α3_mean + ssh_coupling_up.α3_std * randn(rng)
-                α4_up[ssh_counter] = ssh_coupling_up.α4_mean + ssh_coupling_up.α4_std * randn(rng)
-                α_dn[ssh_counter]  = ssh_coupling_dn.α_mean  + ssh_coupling_dn.α_std  * randn(rng)
-                α2_dn[ssh_counter] = ssh_coupling_dn.α2_mean + ssh_coupling_dn.α2_std * randn(rng)
-                α3_dn[ssh_counter] = ssh_coupling_dn.α3_mean + ssh_coupling_dn.α3_std * randn(rng)
-                α4_dn[ssh_counter] = ssh_coupling_dn.α4_mean + ssh_coupling_dn.α4_std * randn(rng)
+                # initialize spin-up coupling parameters
+                α_up[ssh_counter]  = ssh_coupling_up.expniϕ * (ssh_coupling_up.α_mean  + sign_or_0to1(ssh_coupling_up.α_mean)  * ssh_coupling_up.α_std * randn(rng))
+                α2_up[ssh_counter] = ssh_coupling_up.expniϕ * (ssh_coupling_up.α2_mean + sign_or_0to1(ssh_coupling_up.α2_mean) * ssh_coupling_up.α2_std * randn(rng))
+                α3_up[ssh_counter] = ssh_coupling_up.expniϕ * (ssh_coupling_up.α3_mean + sign_or_0to1(ssh_coupling_up.α3_mean) * ssh_coupling_up.α3_std * randn(rng))
+                α4_up[ssh_counter] = ssh_coupling_up.expniϕ * (ssh_coupling_up.α4_mean + sign_or_0to1(ssh_coupling_up.α4_mean) * ssh_coupling_up.α4_std * randn(rng))
+                # initialize spin-down coupling parameters
+                α_dn[ssh_counter]  = ssh_coupling_dn.expniϕ * (ssh_coupling_dn.α_mean  + sign_or_0to1(ssh_coupling_dn.α_mean)  * ssh_coupling_dn.α_std * randn(rng))
+                α2_dn[ssh_counter] = ssh_coupling_dn.expniϕ * (ssh_coupling_dn.α2_mean + sign_or_0to1(ssh_coupling_dn.α2_mean) * ssh_coupling_dn.α2_std * randn(rng))
+                α3_dn[ssh_counter] = ssh_coupling_dn.expniϕ * (ssh_coupling_dn.α3_mean + sign_or_0to1(ssh_coupling_dn.α3_mean) * ssh_coupling_dn.α3_std * randn(rng))
+                α4_dn[ssh_counter] = ssh_coupling_dn.expniϕ * (ssh_coupling_dn.α4_mean + sign_or_0to1(ssh_coupling_dn.α4_mean) * ssh_coupling_dn.α4_std * randn(rng))
             end
         end
 
@@ -206,21 +207,32 @@ function SSHParameters(;
 end
 
 @doc raw"""
-    SSHParameters(electron_phonon_model::ElectronPhononModel{T,E,D}) where {T,E,D}
+    SSHParameters(
+        electron_phonon_model::ElectronPhononModel{T,E,D}
+    ) where {T,E,D}
 
 Initialize and return null (empty) instance of [`SSHParameters`](@ref).
 """
-function SSHParameters(electron_phonon_model::ElectronPhononModel{T,E,D}) where {T,E,D}
+function SSHParameters(
+    electron_phonon_model::ElectronPhononModel{T,E,D}
+) where {T,E,D}
 
-    return SSHParameters(0, 0, T[], T[], T[], T[], Matrix{Int}(undef,2,0), Matrix{Int}(undef,2,0), Vector{Int}[], Vector{Int}[], Vector{Int}[], Int[])
+    return SSHParameters(
+        0, 0, T[], T[], T[], T[],
+        Matrix{Int}(undef,2,0), Matrix{Int}(undef,2,0),
+        Vector{Int}[], Vector{Int}[], Vector{Int}[], Int[]
+    )
 end
 
 # Update the total hopping energy for each time-slice based on the SSH interaction
 # and the phonon field configuration `x`, where `sgn = ±1` determines whether the SSH
 # contribution to the total hopping energy is either added or subtracted.
-function update!(fermion_path_integral::FermionPathIntegral{T,E},
-                 ssh_parameters::SSHParameters{T},
-                 x::Matrix{E}, sgn::Int) where {T,E}
+function update!(
+    fermion_path_integral::FermionPathIntegral{H,T},
+    ssh_parameters::SSHParameters{T},
+    x::Matrix{R},
+    sgn::Int
+) where {H<:Number, T<:Number, R<:AbstractFloat}
 
     (; t, Lτ) = fermion_path_integral
     (; Nssh, α, α2, α3, α4, coupling_to_phonon, coupling_to_hopping) = ssh_parameters

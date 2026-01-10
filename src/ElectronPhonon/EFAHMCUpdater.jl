@@ -48,30 +48,30 @@ end
 
 @doc raw"""
     EFAHMCUpdater(;
-        # Keyword Arguments Start Here
+        # KEYWORD ARGUMENTS
         electron_phonon_parameters::ElectronPhononParameters{T,E},
         G::Matrix{T},
         Nt::Int,
-        Δt::E,
+        Δt::E = π/(2*Nt),
         reg::E = 0.0,
         δ::E = 0.05
     ) where {T<:Number, E<:AbstractFloat}
 
-# Arguments
+# Keyword Arguments
 
 - `electron_phonon_parameters::ElectronPhononParameters{T,E}`: Defines electron-phonon model.
 - `G::Matrix{T}`: Sample Green's function matrix.
 - `Nt::Int`: Number of time-steps used in EFA-HMC update.
-- `Δt::E`: Average step size used for HMC update.
-- `reg::E = Inf`: Regularization used for mass in equations of motion.
+- `Δt::E = π/(2*Nt)`: Average step size used for HMC update.
+- `reg::E = 0.0`: Regularization used for mass in equations of motion.
 - `δ::E = 0.05`: Amount of jitter added to time-step used in EFA-HMC update.
 """
 function EFAHMCUpdater(;
-    # Keyword Arguments Start Here
+    # KEYWORD ARGUMENTS
     electron_phonon_parameters::ElectronPhononParameters{T,E},
     G::Matrix{T},
     Nt::Int,
-    Δt::E,
+    Δt::E = π/(2*Nt),
     reg::E = 0.0,
     δ::E = 0.05
 ) where {T<:Number, E<:AbstractFloat}
@@ -92,64 +92,97 @@ end
 
 @doc raw"""
     hmc_update!(
-        Gup::Matrix{T}, logdetGup::E, sgndetGup::T,
-        Gdn::Matrix{T}, logdetGdn::E, sgndetGdn::T,
-        electron_phonon_parameters::ElectronPhononParameters{T,E},
-        hmc_updater::EFAHMCUpdater{T,E};
-        # Keyword Arguments Start Here
-        fermion_path_integral_up::FermionPathIntegral{T,E},
-        fermion_path_integral_dn::FermionPathIntegral{T,E},
-        fermion_greens_calculator_up::FermionGreensCalculator{T,E},
-        fermion_greens_calculator_dn::FermionGreensCalculator{T,E},
-        fermion_greens_calculator_up_alt::FermionGreensCalculator{T,E},
-        fermion_greens_calculator_dn_alt::FermionGreensCalculator{T,E},
+        # ARGUMENTS
+        Gup::Matrix{H}, logdetGup::R, sgndetGup::H,
+        Gdn::Matrix{H}, logdetGdn::R, sgndetGdn::H,
+        electron_phonon_parameters::ElectronPhononParameters{T,R},
+        hmc_updater::EFAHMCUpdater{T,R};
+        # KEYWORD ARGUMENTS
+        fermion_path_integral_up::FermionPathIntegral{H,T},
+        fermion_path_integral_dn::FermionPathIntegral{H,T},
+        fermion_greens_calculator_up::FermionGreensCalculator{H,R},
+        fermion_greens_calculator_dn::FermionGreensCalculator{H,R},
+        fermion_greens_calculator_up_alt::FermionGreensCalculator{H,R},
+        fermion_greens_calculator_dn_alt::FermionGreensCalculator{H,R},
         Bup::Vector{P}, Bdn::Vector{P},
-        δG::E, δθ::E, rng::AbstractRNG,
+        δG::R, δθ::R, rng::AbstractRNG, 
         update_stabilization_frequency::Bool = false,
-        δG_max::E = 1e-5,
-        δG_reject::E = 1e-2,
+        δG_max::R = 1e-5,
+        δG_reject::R = 1e-2,
         recenter!::Function = identity,
         Nt::Int = hmc_updater.Nt,
-        Δt::E = hmc_updater.Δt,
-        δ::E = hmc_updater.δ
-    ) where {T, E, P<:AbstractPropagator{T,E}}
+        Δt::R = hmc_updater.Δt,
+        δ::R = hmc_updater.δ
+    ) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator{T}}
 
 Perform EFA-HMC update to the phonon degrees of freedom.
 This method returns `(accepted, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ)`, where `accepted`
 is a boolean field indicating whether the proposed HMC update was accepted or rejected.
+
+# Arguments
+
+- `Gup::Matrix{H}`: Green's function matrix for spin up.
+- `logdetGup::R`: Log determinant of Green's function matrix for spin up.
+- `sgndetGup::H`: Sign of determinant of Green's function matrix for spin up.
+- `Gdn::Matrix{H}`: Green's function matrix for spin down.
+- `logdetGdn::R`: Log determinant of Green's function matrix for spin down.
+- `electron_phonon_parameters::ElectronPhononParameters{T,R}`: Electron-phonon model parameters.
+- `hmc_updater::EFAHMCUpdater{T,R}`: EFA-HMC updater.
+
+# Keyword Arguments
+
+- `fermion_path_integral_up::FermionPathIntegral{H}`: Fermion path integral for spin up.
+- `fermion_path_integral_dn::FermionPathIntegral{H}`: Fermion path integral for spin down.
+- `fermion_greens_calculator_up::FermionGreensCalculator{H,R}`: Fermion greens calculator for spin up.
+- `fermion_greens_calculator_dn::FermionGreensCalculator{H,R}`: Fermion greens calculator for spin down.
+- `fermion_greens_calculator_up_alt::FermionGreensCalculator{H,R}`: Alternative fermion greens calculator for spin up.
+- `fermion_greens_calculator_dn_alt::FermionGreensCalculator{H,R}`: Alternative fermion greens calculator for spin down.
+- `Bup::Vector{P}`: Spin up propagators.
+- `Bdn::Vector{P}`: Spin down propagators.
+- `δG::R`: Numerical error in Green's function corrected by numerical stabilization.
+- `δθ::R`: Numerical error in the phase of the determinant of the Green's function matrix corrected by numerical stabilization.
+- `rng::AbstractRNG`: Random number generator.
+- `update_stabilization_frequency::Bool = false`: Whether to update the stabilization frequency.
+- `δG_max::R = 1e-5`: Maximum numerical error in Green's function corrected by numerical stabilization.
+- `δG_reject::R = 1e-2`: Reject the update if the numerical error in Green's function corrected by numerical stabilization is greater than this value.
+- `Nt::Int = hmc_updater.Nt`: Number of time-steps used in EFA-HMC update.
+- `Δt::R = hmc_updater.Δt`: Average step size used for HMC update.
+- `δ::R = hmc_updater.δ`: Amount of jitter added to time-step used in EFA-HMC update.
 """
 function hmc_update!(
-    Gup::Matrix{T}, logdetGup::E, sgndetGup::T,
-    Gdn::Matrix{T}, logdetGdn::E, sgndetGdn::T,
-    electron_phonon_parameters::ElectronPhononParameters{T,E},
-    hmc_updater::EFAHMCUpdater{T,E};
-    # Keyword Arguments Start Here
-    fermion_path_integral_up::FermionPathIntegral{T,E},
-    fermion_path_integral_dn::FermionPathIntegral{T,E},
-    fermion_greens_calculator_up::FermionGreensCalculator{T,E},
-    fermion_greens_calculator_dn::FermionGreensCalculator{T,E},
-    fermion_greens_calculator_up_alt::FermionGreensCalculator{T,E},
-    fermion_greens_calculator_dn_alt::FermionGreensCalculator{T,E},
+    # ARGUMENTS
+    Gup::Matrix{H}, logdetGup::R, sgndetGup::H,
+    Gdn::Matrix{H}, logdetGdn::R, sgndetGdn::H,
+    electron_phonon_parameters::ElectronPhononParameters{T,R},
+    hmc_updater::EFAHMCUpdater{T,R};
+    # KEYWORD ARGUMENTS
+    fermion_path_integral_up::FermionPathIntegral{H,T},
+    fermion_path_integral_dn::FermionPathIntegral{H,T},
+    fermion_greens_calculator_up::FermionGreensCalculator{H,R},
+    fermion_greens_calculator_dn::FermionGreensCalculator{H,R},
+    fermion_greens_calculator_up_alt::FermionGreensCalculator{H,R},
+    fermion_greens_calculator_dn_alt::FermionGreensCalculator{H,R},
     Bup::Vector{P}, Bdn::Vector{P},
-    δG::E, δθ::E, rng::AbstractRNG,
+    δG::R, δθ::R, rng::AbstractRNG, 
     update_stabilization_frequency::Bool = false,
-    δG_max::E = 1e-5,
-    δG_reject::E = 1e-2,
+    δG_max::R = 1e-5,
+    δG_reject::R = 1e-2,
     recenter!::Function = identity,
     Nt::Int = hmc_updater.Nt,
-    Δt::E = hmc_updater.Δt,
-    δ::E = hmc_updater.δ
-) where {T, E, P<:AbstractPropagator{T,E}}
+    Δt::R = hmc_updater.Δt,
+    δ::R = hmc_updater.δ
+) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator{T}}
+
+    @assert fermion_path_integral_up.Sb == fermion_path_integral_dn.Sb "$(fermion_path_integral_up.Sb) ≠ $(fermion_path_integral_dn.Sb)"
 
     (; p, dSdx, Gup′, Gdn′, efa) = hmc_updater
-
-    Δτ = electron_phonon_parameters.Δτ::E
-    holstein_parameters_up = electron_phonon_parameters.holstein_parameters_up::HolsteinParameters{E}
-    holstein_parameters_dn = electron_phonon_parameters.holstein_parameters_dn::HolsteinParameters{E}
-    ssh_parameters_up = electron_phonon_parameters.ssh_parameters_up::SSHParameters{T}
-    ssh_parameters_dn = electron_phonon_parameters.ssh_parameters_dn::SSHParameters{T}
-    phonon_parameters = electron_phonon_parameters.phonon_parameters::PhononParameters{E}
-    dispersion_parameters = electron_phonon_parameters.dispersion_parameters::DispersionParameters{E}
+    Δτ = electron_phonon_parameters.Δτ
+    holstein_parameters_up = electron_phonon_parameters.holstein_parameters_up
+    holstein_parameters_dn = electron_phonon_parameters.holstein_parameters_dn
+    ssh_parameters_up = electron_phonon_parameters.ssh_parameters_up
+    ssh_parameters_dn = electron_phonon_parameters.ssh_parameters_dn
+    phonon_parameters = electron_phonon_parameters.phonon_parameters
+    dispersion_parameters = electron_phonon_parameters.dispersion_parameters
 
     # add a bit of noise to the time-step
     Δt = Δt * (1.0 + (2*rand(rng)-1)*δ)
@@ -191,7 +224,7 @@ function hmc_update!(
     S = Sb + Sf
 
     # calculate the initial total energy
-    H = S + K
+    E = S + K
 
     # initialize numerical error
     δG′ = δG
@@ -209,7 +242,7 @@ function hmc_update!(
     # iterate over HMC time-steps
     for t in 1:Nt
 
-        # intialize derivative of action to zero
+        # initialize derivative of action to zero
         fill!(dSdx, 0)
 
         # update the spin up and spin down propagators to reflect current phonon configuration
@@ -334,19 +367,19 @@ function hmc_update!(
         S′ = Sb′ + Sf′
 
         # calculate the initial total energy
-        H′ = S′ + K′
+        E′ = S′ + K′
 
         # calculate the change in energy
-        ΔH = H′ - H
+        ΔE = E′ - E
 
         # calculate the acceptance probability
-        P_accept = min(1.0, exp(-ΔH))
+        P_accept = min(1.0, exp(-ΔE))
 
     # if update went numerically unstable
     else
 
         # reject the proposed update
-        P_accept = zero(E)
+        P_accept = zero(R)
     end
 
     # determine if update accepted
@@ -365,6 +398,11 @@ function hmc_update!(
         logdetGdn = logdetGdn′
         sgndetGdn = sgndetGdn′
 
+        # update bosonic action
+        ΔSb = Sb′ - Sb
+        fermion_path_integral_up.Sb += ΔSb
+        fermion_path_integral_dn.Sb += ΔSb
+
         # record the final state of the fermion greens calculator
         copyto!(fermion_greens_calculator_up, fermion_greens_calculator_up_alt)
         copyto!(fermion_greens_calculator_dn, fermion_greens_calculator_dn_alt)
@@ -375,7 +413,7 @@ function hmc_update!(
 
         # update stabilization frequency if required
         if update_stabilization_frequency
-            (updated, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = update_stabalization_frequency!(
+            (updated, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = update_stabilization_frequency!(
                 Gup, logdetGup, sgndetGup,
                 Gdn, logdetGdn, sgndetGdn,
                 fermion_greens_calculator_up = fermion_greens_calculator_up,
@@ -411,53 +449,81 @@ end
 
 @doc raw"""
     hmc_update!(
-        G::Matrix{T}, logdetG::E, sgndetG::T,
-        electron_phonon_parameters::ElectronPhononParameters{T,E},
-        hmc_updater::EFAHMCUpdater{T,E};
-        fermion_path_integral::FermionPathIntegral{T,E},
-        fermion_greens_calculator::FermionGreensCalculator{T,E},
-        fermion_greens_calculator_alt::FermionGreensCalculator{T,E},
+        # ARGUMENTS
+        G::Matrix{H}, logdetG::R, sgndetG::H,
+        electron_phonon_parameters::ElectronPhononParameters{T,R},
+        hmc_updater::EFAHMCUpdater{T,R};
+        # KEYWORD ARGUMENTS
+        fermion_path_integral::FermionPathIntegral{H,T},
+        fermion_greens_calculator::FermionGreensCalculator{H,R},
+        fermion_greens_calculator_alt::FermionGreensCalculator{H,R},
         B::Vector{P},
-        δG::E, δθ::E, rng::AbstractRNG,
+        δG::R, δθ::R, rng::AbstractRNG,
         update_stabilization_frequency::Bool = false,
-        δG_max::E = 1e-5,
-        δG_reject::E = 1e-2,
+        δG_max::R = 1e-5,
+        δG_reject::R = 1e-2,
         recenter!::Function = identity,
         Nt::Int = hmc_updater.Nt,
-        Δt::E = hmc_updater.Δt,
-        δ::E = hmc_updater.δ
-    ) where {T, E, P<:AbstractPropagator{T,E}}
+        Δt::R = hmc_updater.Δt,
+        δ::R = hmc_updater.δ
+    ) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator{T}}
 
 Perform EFA-HMC update to the phonon degrees of freedom.
 This method returns `(accepted, logdetG, sgndetG, δG, δθ)`, where `accepted`
 is a boolean field indicating whether the proposed HMC update was accepted or rejected.
+
+# Arguments
+
+- `G::Matrix{H}`: Green's function matrix for spin up.
+- `logdetG::R`: Log determinant of Green's function matrix for spin up.
+- `sgndetG::H`: Sign of determinant of Green's function matrix for spin up.
+- `electron_phonon_parameters::ElectronPhononParameters{T,R}`: Electron-phonon model parameters.
+- `hmc_updater::EFAHMCUpdater{T,R}`: EFA-HMC updater.
+
+# Keyword Arguments
+
+- `fermion_path_integral::FermionPathIntegral{H}`: Fermion path integral.
+- `fermion_greens_calculator::FermionGreensCalculator{H,R}`: Fermion greens calculator.
+- `fermion_greens_calculator_alt::FermionGreensCalculator{H,R}`: Alternative fermion greens calculator.
+- `B::Vector{P}`: Spin up propagators.
+- `δG::R`: Numerical error in Green's function corrected by numerical stabilization.
+- `δθ::R`: Numerical error in the phase of the determinant of the Green's function matrix corrected by numerical stabilization.
+- `rng::AbstractRNG`: Random number generator.
+- `update_stabilization_frequency::Bool = false`: Whether to update the stabilization frequency.
+- `δG_max::R = 1e-5`: Maximum numerical error in Green's function corrected by numerical stabilization.
+- `δG_reject::R = 1e-2`: Reject the update if the numerical error in Green's function corrected by numerical stabilization is greater than this value.
+- `Nt::Int = hmc_updater.Nt`: Number of time-steps used in EFA-HMC update.
+- `Δt::R = hmc_updater.Δt`: Average step size used for HMC update.
+- `δ::R = hmc_updater.δ`: Amount of jitter added to time-step used in EFA-HMC update.
 """
 function hmc_update!(
-    G::Matrix{T}, logdetG::E, sgndetG::T,
-    electron_phonon_parameters::ElectronPhononParameters{T,E},
-    hmc_updater::EFAHMCUpdater{T,E};
-    fermion_path_integral::FermionPathIntegral{T,E},
-    fermion_greens_calculator::FermionGreensCalculator{T,E},
-    fermion_greens_calculator_alt::FermionGreensCalculator{T,E},
+    # ARGUMENTS
+    G::Matrix{H}, logdetG::R, sgndetG::H,
+    electron_phonon_parameters::ElectronPhononParameters{T,R},
+    hmc_updater::EFAHMCUpdater{T,R};
+    # KEYWORD ARGUMENTS
+    fermion_path_integral::FermionPathIntegral{H,T},
+    fermion_greens_calculator::FermionGreensCalculator{H,R},
+    fermion_greens_calculator_alt::FermionGreensCalculator{H,R},
     B::Vector{P},
-    δG::E, δθ::E, rng::AbstractRNG,
+    δG::R, δθ::R, rng::AbstractRNG,
     update_stabilization_frequency::Bool = false,
-    δG_max::E = 1e-5,
-    δG_reject::E = 1e-2,
+    δG_max::R = 1e-5,
+    δG_reject::R = 1e-2,
     recenter!::Function = identity,
     Nt::Int = hmc_updater.Nt,
-    Δt::E = hmc_updater.Δt,
-    δ::E = hmc_updater.δ
-) where {T, E, P<:AbstractPropagator{T,E}}
+    Δt::R = hmc_updater.Δt,
+    δ::R = hmc_updater.δ
+) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator{T}}
 
     (; p, dSdx, efa) = hmc_updater
     G′ = hmc_updater.Gup′
 
-    Δτ = electron_phonon_parameters.Δτ::E
-    holstein_parameters = electron_phonon_parameters.holstein_parameters_up::HolsteinParameters{E}
-    ssh_parameters = electron_phonon_parameters.ssh_parameters_up::SSHParameters{T}
-    phonon_parameters = electron_phonon_parameters.phonon_parameters::PhononParameters{E}
-    dispersion_parameters = electron_phonon_parameters.dispersion_parameters::DispersionParameters{E}
+    Δτ = electron_phonon_parameters.Δτ::R
+    holstein_parameters = electron_phonon_parameters.holstein_parameters_up
+    ssh_parameters = electron_phonon_parameters.ssh_parameters_up
+    phonon_parameters = electron_phonon_parameters.phonon_parameters
+    dispersion_parameters = electron_phonon_parameters.dispersion_parameters
 
     # add a bit of noise to the time-step
     Δt = Δt * (1.0 + (2*rand(rng)-1)*δ)
@@ -478,7 +544,7 @@ function hmc_update!(
     x_init = hmc_updater.x
     copyto!(x_init, x)
 
-    # intialize the alternate fermion greens calculators
+    # initialize the alternate fermion greens calculators
     copyto!(fermion_greens_calculator_alt, fermion_greens_calculator)
 
     # initialize fermion green's function matrices and their determinants determinants
@@ -499,7 +565,7 @@ function hmc_update!(
     S = Sb + Sf
 
     # calculate the initial total energy
-    H = S + K
+    E = S + K
 
     # initialize numerical error
     δG′ = δG
@@ -515,7 +581,7 @@ function hmc_update!(
     # iterate over HMC time-steps
     for t in 1:Nt
 
-        # intialize derivative of action to zero
+        # initialize derivative of action to zero
         fill!(dSdx, 0)
 
         # update the propagators to reflect current phonon configuration
@@ -617,19 +683,19 @@ function hmc_update!(
         S′ = Sb′ + Sf′
 
         # calculate the initial total energy
-        H′ = S′ + K′
+        E′ = S′ + K′
 
         # calculate the change in energy
-        ΔH = H′ - H
+        ΔE = E′ - E
 
         # calculate the acceptance probability
-        P_accept = min(1.0, exp(-ΔH))
+        P_accept = min(1.0, exp(-ΔE))
 
     # if update went numerically unstable
     else
 
         # reject the proposed update
-        P_accept = zero(E)
+        P_accept = zero(R)
     end
 
     # determine if update accepted
@@ -645,6 +711,10 @@ function hmc_update!(
         logdetG = logdetG′
         sgndetG = sgndetG′
 
+        # update bosonic action
+        ΔSb = Sb′ - Sb
+        fermion_path_integral.Sb += ΔSb
+
         # record the final state of the fermion greens calculator
         copyto!(fermion_greens_calculator, fermion_greens_calculator_alt)
 
@@ -654,7 +724,7 @@ function hmc_update!(
 
         # update stabilization frequency if required
         if update_stabilization_frequency
-            (updated, logdetG, sgndetG, δG, δθ) = update_stabalization_frequency!(
+            (updated, logdetG, sgndetG, δG, δθ) = update_stabilization_frequency!(
                 G, logdetG, sgndetG,
                 fermion_greens_calculator = fermion_greens_calculator,
                 B = B, δG = δG, δθ = δθ, δG_max = δG_max

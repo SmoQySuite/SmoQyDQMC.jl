@@ -1,20 +1,20 @@
 @doc raw"""
     radial_update!(
         # ARGUMENTS
-        Gup::Matrix{T}, logdetGup::E, sgndetGup::T,
-        Gdn::Matrix{T}, logdetGdn::E, sgndetGdn::T,
-        electron_phonon_parameters::ElectronPhononParameters{T,E};
+        Gup::Matrix{H}, logdetGup::R, sgndetGup::H,
+        Gdn::Matrix{H}, logdetGdn::R, sgndetGdn::H,
+        electron_phonon_parameters::ElectronPhononParameters{T,R};
         # KEYWORD ARGUMENTS
-        fermion_path_integral_up::FermionPathIntegral{T,E},
-        fermion_path_integral_dn::FermionPathIntegral{T,E},
-        fermion_greens_calculator_up::FermionGreensCalculator{T,E},
-        fermion_greens_calculator_dn::FermionGreensCalculator{T,E},
-        fermion_greens_calculator_up_alt::FermionGreensCalculator{T,E},
-        fermion_greens_calculator_dn_alt::FermionGreensCalculator{T,E},
+        fermion_path_integral_up::FermionPathIntegral{H,T},
+        fermion_path_integral_dn::FermionPathIntegral{H,T},
+        fermion_greens_calculator_up::FermionGreensCalculator{H,R},
+        fermion_greens_calculator_dn::FermionGreensCalculator{H,R},
+        fermion_greens_calculator_up_alt::FermionGreensCalculator{H,R},
+        fermion_greens_calculator_dn_alt::FermionGreensCalculator{H,R},
         Bup::Vector{P}, Bdn::Vector{P}, rng::AbstractRNG,
         phonon_id::Union{Int, Nothing} = nothing,
-        σ::E = 1.0
-    ) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
+        σ::R = 1.0
+    ) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator{T}}
 
 Perform a radial update to the phonon fields, as described by Algorithm 1 in the paper
 [arXiv:2411.18218](https://arxiv.org/abs/2411.18218).
@@ -24,54 +24,57 @@ the number of phonon fields being updated.
 
 # Arguments
 
-- `Gup::Matrix{T}`: Spin-up eqaul-time Greens function matrix.
-- `logdetGup::E`: Log of the determinant of the spin-up eqaul-time Greens function matrix.
-- `sgndetGup::T`: Sign/phase of the determinant of the spin-up eqaul-time Greens function matrix.
-- `Gdn::Matrix{T}`: Spin-down eqaul-time Greens function matrix.
-- `logdetGdn::E`: Log of the determinant of the spin-down eqaul-time Greens function matrix.
-- `sgndetGdn::T`: Sign/phase of the determinant of the spin-down eqaul-time Greens function matrix.
-- `electron_phonon_parameters::ElectronPhononParameters{T,E}`: Electron-phonon parameters, including the current phonon configuration.
+- `Gup::Matrix{H}`: Spin-up equal-time Greens function matrix.
+- `logdetGup::R`: Log of the determinant of the spin-up equal-time Greens function matrix.
+- `sgndetGup::H`: Sign/phase of the determinant of the spin-up equal-time Greens function matrix.
+- `Gdn::Matrix{H}`: Spin-down equal-time Greens function matrix.
+- `logdetGdn::R`: Log of the determinant of the spin-down equal-time Greens function matrix.
+- `sgndetGdn::H`: Sign/phase of the determinant of the spin-down equal-time Greens function matrix.
+- `electron_phonon_parameters::ElectronPhononParameters{T,R}`: Electron-phonon parameters, including the current phonon configuration.
 
 # Keyword Arguments
 
-- `fermion_path_integral_up::FermionPathIntegral{T,E}`: An instance of [`FermionPathIntegral`](@ref) type for spin-up electrons.
-- `fermion_path_integral_dn::FermionPathIntegral{T,E}`: An instance of [`FermionPathIntegral`](@ref) type for spin-down electrons.
-- `fermion_greens_calculator_up::FermionGreensCalculator{T,E}`: Contains matrix factorization information for current spin-up sector state.
-- `fermion_greens_calculator_dn::FermionGreensCalculator{T,E}`: Contains matrix factorization information for current spin-down sector state.
-- `fermion_greens_calculator_up_alt::FermionGreensCalculator{T,E}`: Used to calculate matrix factorizations for proposed spin-up sector state.
-- `fermion_greens_calculator_dn_alt::FermionGreensCalculator{T,E}`: Used to calculate matrix factorizations for proposed spin-up sector state.
+- `fermion_path_integral_up::FermionPathIntegral{H,T}`: An instance of [`FermionPathIntegral`](@ref) type for spin-up electrons.
+- `fermion_path_integral_dn::FermionPathIntegral{H,T}`: An instance of [`FermionPathIntegral`](@ref) type for spin-down electrons.
+- `fermion_greens_calculator_up::FermionGreensCalculator{H,R}`: Contains matrix factorization information for current spin-up sector state.
+- `fermion_greens_calculator_dn::FermionGreensCalculator{H,R}`: Contains matrix factorization information for current spin-down sector state.
+- `fermion_greens_calculator_up_alt::FermionGreensCalculator{H,R}`: Used to calculate matrix factorizations for proposed spin-up sector state.
+- `fermion_greens_calculator_dn_alt::FermionGreensCalculator{H,R}`: Used to calculate matrix factorizations for proposed spin-up sector state.
 - `Bup::Vector{P}`: Spin-up propagators for each imaginary time slice.
 - `Bdn::Vector{P}`: Spin-down propagators for each imaginary time slice.
 - `rng::AbstractRNG`: Random number generator used in method instead of global random number generator, important for reproducibility.
 - `phonon_id::Union{Int, Nothing} = nothing`: Apply radial update to phonon fields corresponding tp specified `PHONON_ID`. If `phonon_id = nothing`, then radial update is applied to all phonon fields.
-- `σ::E = 1.0`: Relative size of the radial update.
+- `σ::R = 1.0`: Relative size of the radial update.
 """
 function radial_update!(
     # ARGUMENTS
-    Gup::Matrix{T}, logdetGup::E, sgndetGup::T,
-    Gdn::Matrix{T}, logdetGdn::E, sgndetGdn::T,
-    electron_phonon_parameters::ElectronPhononParameters{T,E};
+    Gup::Matrix{H}, logdetGup::R, sgndetGup::H,
+    Gdn::Matrix{H}, logdetGdn::R, sgndetGdn::H,
+    electron_phonon_parameters::ElectronPhononParameters{T,R};
     # KEYWORD ARGUMENTS
-    fermion_path_integral_up::FermionPathIntegral{T,E},
-    fermion_path_integral_dn::FermionPathIntegral{T,E},
-    fermion_greens_calculator_up::FermionGreensCalculator{T,E},
-    fermion_greens_calculator_dn::FermionGreensCalculator{T,E},
-    fermion_greens_calculator_up_alt::FermionGreensCalculator{T,E},
-    fermion_greens_calculator_dn_alt::FermionGreensCalculator{T,E},
+    fermion_path_integral_up::FermionPathIntegral{H,T},
+    fermion_path_integral_dn::FermionPathIntegral{H,T},
+    fermion_greens_calculator_up::FermionGreensCalculator{H,R},
+    fermion_greens_calculator_dn::FermionGreensCalculator{H,R},
+    fermion_greens_calculator_up_alt::FermionGreensCalculator{H,R},
+    fermion_greens_calculator_dn_alt::FermionGreensCalculator{H,R},
     Bup::Vector{P}, Bdn::Vector{P}, rng::AbstractRNG,
     phonon_id::Union{Int, Nothing} = nothing,
-    σ::E = 1.0
-) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
+    σ::R = 1.0
+) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator{T}}
+
+    @assert fermion_path_integral_up.Sb == fermion_path_integral_dn.Sb "$(fermion_path_integral_up.Sb) ≠ $(fermion_path_integral_dn.Sb)"
 
     Gup′ = fermion_greens_calculator_up_alt.G′
     Gdn′ = fermion_greens_calculator_dn_alt.G′
-    phonon_parameters = electron_phonon_parameters.phonon_parameters::PhononParameters{E}
-    holstein_parameters_up = electron_phonon_parameters.holstein_parameters_up::HolsteinParameters{E}
-    holstein_parameters_dn = electron_phonon_parameters.holstein_parameters_dn::HolsteinParameters{E}
+    phonon_parameters = electron_phonon_parameters.phonon_parameters::PhononParameters{R}
+    holstein_parameters_up = electron_phonon_parameters.holstein_parameters_up::HolsteinParameters{R}
+    holstein_parameters_dn = electron_phonon_parameters.holstein_parameters_dn::HolsteinParameters{R}
     ssh_parameters_up = electron_phonon_parameters.ssh_parameters_up::SSHParameters{T}
     ssh_parameters_dn = electron_phonon_parameters.ssh_parameters_dn::SSHParameters{T}
     x = electron_phonon_parameters.x
     M = phonon_parameters.M
+    Lτ = fermion_path_integral_up.Lτ
 
     # make sure stabilization frequencies match
     if fermion_greens_calculator_up.n_stab != fermion_greens_calculator_up_alt.n_stab
@@ -113,7 +116,7 @@ function radial_update!(
 
     # number of fields to update, excluding phonon fields that correspond
     # to phonon modes with infinite mass
-    d = count(m -> isfinite(m), M′)
+    d = count(m -> isfinite(m), M′) * Lτ
 
     # calculate standard deviation for normal distribution
     σR = σ / sqrt(d)
@@ -131,7 +134,7 @@ function radial_update!(
     # calculate initial total action
     S = Sb + Sf
 
-    # substract off the effect of the current phonon configuration on the fermion path integrals
+    # subtract off the effect of the current phonon configuration on the fermion path integrals
     if calculate_exp_V
         update!(fermion_path_integral_up, holstein_parameters_up, x, -1)
         update!(fermion_path_integral_dn, holstein_parameters_dn, x, -1)
@@ -169,7 +172,7 @@ function radial_update!(
         logdetGdn′, sgndetGdn′ = NaN, NaN
     end
 
-    # if finite fermionic determiantn
+    # if finite fermionic determinant
     if isfinite(logdetGup′) && isfinite(logdetGdn′)
 
         # calculate the final bosonic action
@@ -200,9 +203,12 @@ function radial_update!(
         copyto!(Gdn, Gdn′)
         copyto!(fermion_greens_calculator_up, fermion_greens_calculator_up_alt)
         copyto!(fermion_greens_calculator_dn, fermion_greens_calculator_dn_alt)
+        ΔSb = Sb′ - Sb
+        fermion_path_integral_up.Sb += ΔSb
+        fermion_path_integral_dn.Sb += ΔSb
         accepted = true
     else
-        # substract off the effect of the current phonon configuration on the fermion path integrals
+        # subtract off the effect of the current phonon configuration on the fermion path integrals
         if calculate_exp_V
             update!(fermion_path_integral_up, holstein_parameters_up, x, -1)
             update!(fermion_path_integral_dn, holstein_parameters_dn, x, -1)
@@ -235,16 +241,16 @@ end
 @doc raw"""
     radial_update!(
         # ARGUMENTS
-        G::Matrix{T}, logdetG::E, sgndetG::T,
-        electron_phonon_parameters::ElectronPhononParameters{T,E};
+        G::Matrix{H}, logdetG::R, sgndetG::H,
+        electron_phonon_parameters::ElectronPhononParameters{T,R};
         # KEYWORD ARGUMENTS
-        fermion_path_integral::FermionPathIntegral{T,E},
-        fermion_greens_calculator::FermionGreensCalculator{T,E},
-        fermion_greens_calculator_alt::FermionGreensCalculator{T,E},
+        fermion_path_integral::FermionPathIntegral{H,T},
+        fermion_greens_calculator::FermionGreensCalculator{H,R},
+        fermion_greens_calculator_alt::FermionGreensCalculator{H,R},
         B::Vector{P}, rng::AbstractRNG,
         phonon_id::Union{Int, Nothing} = nothing,
-        σ::E = 1.0
-    ) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
+        σ::R = 1.0
+    ) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator{T}}
 
 Perform a radial update to the phonon fields, as described by Algorithm 1 in the paper
 [arXiv:2411.18218](https://arxiv.org/abs/2411.18218).
@@ -254,40 +260,41 @@ the number of phonon fields being updated.
 
 # Arguments
 
-- `G::Matrix{T}`: Eqaul-time Greens function matrix.
-- `logdetG::E`: Log of the determinant of the eqaul-time Greens function matrix.
-- `sgndetG::T`: Sign/phase of the determinant of the eqaul-time Greens function matrix.
-- `electron_phonon_parameters::ElectronPhononParameters{T,E}`: Electron-phonon parameters, including the current phonon configuration.
+- `G::Matrix{H}`: equal-time Greens function matrix.
+- `logdetG::R`: Log of the determinant of the equal-time Greens function matrix.
+- `sgndetG::H`: Sign/phase of the determinant of the equal-time Greens function matrix.
+- `electron_phonon_parameters::ElectronPhononParameters{T,R}`: Electron-phonon parameters, including the current phonon configuration.
 
 # Keyword Arguments
 
-- `fermion_path_integral::FermionPathIntegral{T,E}`: An instance of [`FermionPathIntegral`](@ref) type.
-- `fermion_greens_calculator::FermionGreensCalculator{T,E}`: Contains matrix factorization information for current state.
-- `fermion_greens_calculator_alt::FermionGreensCalculator{T,E}`: Used to calculate matrix factorizations for proposed state.
+- `fermion_path_integral::FermionPathIntegral{H,T}`: An instance of [`FermionPathIntegral`](@ref) type.
+- `fermion_greens_calculator::FermionGreensCalculator{H,R}`: Contains matrix factorization information for current state.
+- `fermion_greens_calculator_alt::FermionGreensCalculator{H,R}`: Used to calculate matrix factorizations for proposed state.
 - `B::Vector{P}`: Propagators for each imaginary time slice.
 - `rng::AbstractRNG`: Random number generator used in method instead of global random number generator, important for reproducibility.
 - `phonon_id::Union{Int, Nothing} = nothing`: Apply radial update to phonon fields corresponding tp specified `PHONON_ID`. If `phonon_id = nothing`, then radial update is applied to all phonon fields.
-- `σ::E = 1.0`: Relative size of the radial update.
+- `σ::R = 1.0`: Relative size of the radial update.
 """
 function radial_update!(
     # ARGUMENTS
-    G::Matrix{T}, logdetG::E, sgndetG::T,
-    electron_phonon_parameters::ElectronPhononParameters{T,E};
+    G::Matrix{H}, logdetG::R, sgndetG::H,
+    electron_phonon_parameters::ElectronPhononParameters{T,R};
     # KEYWORD ARGUMENTS
-    fermion_path_integral::FermionPathIntegral{T,E},
-    fermion_greens_calculator::FermionGreensCalculator{T,E},
-    fermion_greens_calculator_alt::FermionGreensCalculator{T,E},
+    fermion_path_integral::FermionPathIntegral{H,T},
+    fermion_greens_calculator::FermionGreensCalculator{H,R},
+    fermion_greens_calculator_alt::FermionGreensCalculator{H,R},
     B::Vector{P}, rng::AbstractRNG,
     phonon_id::Union{Int, Nothing} = nothing,
-    σ::E = 1.0
-) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
+    σ::R = 1.0
+) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator{T}}
 
     G′ = fermion_greens_calculator_alt.G′
-    phonon_parameters = electron_phonon_parameters.phonon_parameters::PhononParameters{E}
-    holstein_parameters = electron_phonon_parameters.holstein_parameters_up::HolsteinParameters{E}
+    phonon_parameters = electron_phonon_parameters.phonon_parameters::PhononParameters{R}
+    holstein_parameters = electron_phonon_parameters.holstein_parameters_up::HolsteinParameters{R}
     ssh_parameters = electron_phonon_parameters.ssh_parameters_up::SSHParameters{T}
     x = electron_phonon_parameters.x
     M = phonon_parameters.M
+    Lτ = fermion_path_integral.Lτ
 
     # make sure stabilization frequencies match
     if fermion_greens_calculator.n_stab != fermion_greens_calculator_alt.n_stab
@@ -322,7 +329,7 @@ function radial_update!(
 
     # number of fields to update, excluding phonon fields that correspond
     # to phonon modes with infinite mass
-    d = count(m -> isfinite(m), M′)
+    d = count(m -> isfinite(m), M′) * Lτ
 
     # calculate standard deviation for normal distribution
     σR = σ / sqrt(d)
@@ -340,7 +347,7 @@ function radial_update!(
     # calculate initial total action
     S = Sb + Sf
 
-    # substract off the effect of the current phonon configuration on the fermion path integrals
+    # subtract off the effect of the current phonon configuration on the fermion path integrals
     if calculate_exp_V
         update!(fermion_path_integral, holstein_parameters, x, -1)
     end
@@ -370,7 +377,7 @@ function radial_update!(
         logdetG′, sgndetG′ = NaN, NaN
     end
 
-    # if finite fermionic determiantn
+    # if finite fermionic determinant
     if isfinite(logdetG′)
 
         # calculate the final bosonic action
@@ -388,7 +395,7 @@ function radial_update!(
         # calculate final acceptance rate
         P_γ = min(1.0, exp(-ΔS + d*γ))
     else
-        P_γ = 0.0
+        P_γ = zero(R)
     end
 
     # accept or reject the update
@@ -397,9 +404,10 @@ function radial_update!(
         sgndetG = sgndetG′
         copyto!(G, G′)
         copyto!(fermion_greens_calculator, fermion_greens_calculator_alt)
+        fermion_path_integral.Sb += (Sb′ - Sb)
         accepted = true
     else
-        # substract off the effect of the current phonon configuration on the fermion path integrals
+        # subtract off the effect of the current phonon configuration on the fermion path integrals
         if calculate_exp_V
             update!(fermion_path_integral, holstein_parameters, x, -1)
         end

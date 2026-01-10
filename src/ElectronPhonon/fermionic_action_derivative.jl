@@ -6,7 +6,7 @@ function fermionic_action_derivative!(
     fermion_greens_calculator::FermionGreensCalculator{T,E},
     B::Vector{P};
     spin::Int = +1
-) where {T<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,E}}
+) where {T<:Number, U<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,U}}
 
     # get some temporary storage matrices to work with
     ldr_ws = fermion_greens_calculator.ldr_ws::LDRWorkspace{T}
@@ -42,18 +42,18 @@ end
 function _fermionic_action_derivative!(
     dSdx::AbstractVector{E}, l::Int, G::Matrix{T}, sgndetG::T,
     electron_phonon_parameters::ElectronPhononParameters{T,E},
-    B::Union{SymChkbrdPropagator{T,E},SymExactPropagator{T,E}},
+    B::Union{SymChkbrdPropagator{T,U},SymExactPropagator{T,U}},
     G′::Matrix{T}, G″::Matrix{T}, G‴::Matrix{T};
     spin::Int
-) where {T<:Number, E<:AbstractFloat}
+) where {T<:Number, U<:Number, E<:AbstractFloat}
 
-    phonon_parameters = electron_phonon_parameters.phonon_parameters::PhononParameters{E}
+    phonon_parameters = electron_phonon_parameters.phonon_parameters
     if isone(spin)
-        holstein_parameters = electron_phonon_parameters.holstein_parameters_up::HolsteinParameters{E}
-        ssh_parameters = electron_phonon_parameters.ssh_parameters_up::SSHParameters{T}
+        holstein_parameters = electron_phonon_parameters.holstein_parameters_up
+        ssh_parameters = electron_phonon_parameters.ssh_parameters_up
     else
-        holstein_parameters = electron_phonon_parameters.holstein_parameters_dn::HolsteinParameters{E}
-        ssh_parameters = electron_phonon_parameters.ssh_parameters_dn::SSHParameters{T}
+        holstein_parameters = electron_phonon_parameters.holstein_parameters_dn
+        ssh_parameters = electron_phonon_parameters.ssh_parameters_dn
     end
 
     # get discretization in imaginary time
@@ -104,10 +104,10 @@ end
 function _fermionic_action_derivative!(
     dSdx::AbstractVector{E}, l::Int, G::Matrix{T}, sgndetG::T,
     electron_phonon_parameters::ElectronPhononParameters{T,E},
-    B::Union{AsymChkbrdPropagator{T,E},AsymExactPropagator{T,E}},
+    B::Union{AsymChkbrdPropagator{T,U},AsymExactPropagator{T,U}},
     G′::Matrix{T}, G″::Matrix{T}, G‴::Matrix{T};
     spin::Int
-) where {T<:Number, E<:AbstractFloat}
+) where {T<:Number, U<:Number, E<:AbstractFloat}
 
     phonon_parameters = electron_phonon_parameters.phonon_parameters::PhononParameters{E}
     if isone(spin)
@@ -152,20 +152,22 @@ end
 
 
 # evaluate ∂S/∂x += sgn(det(G))⋅Tr[(∂Λ/∂x)⋅Λ⁻¹⋅A]
-function eval_tr_dΛdx_invΛ_A!(dSdx::AbstractVector{E}, x::AbstractVector{E},
-                              Δτ::E, sgndetG::T, A::Matrix{T},
-                              holstein_parameters::HolsteinParameters{E}) where {T,E}
+function eval_tr_dΛdx_invΛ_A!(
+    dSdx::AbstractVector{E}, x::AbstractVector{E},
+    Δτ::E, sgndetG::T, A::Matrix{T},
+    holstein_parameters::HolsteinParameters{E}
+) where {T,E}
 
-    (; Nholstein, α, α2, α3, α4, neighbor_table, coupling_to_phonon) = holstein_parameters
+    (; Nholstein, α, α2, α3, α4, coupling_to_site, coupling_to_phonon) = holstein_parameters
 
     # check if finite number of holstein couplings
     if Nholstein > 0
         # iterate over holstein coupling
-        for c in 1:Nholstein
+        @inbounds for c in 1:Nholstein
             # get the phonon associated with the coupling
             p = coupling_to_phonon[c]
             # get the orbital whose density is getting coupled to
-            i = neighbor_table[2,c]
+            i = coupling_to_site[c]
             # calculate the non-zero matrix element ∂Λ/∂x[i,i] associated with current holstein coupling,
             # recalling that Λ = exp(-Δτ⋅V), where V is the diagonal on-site energy matrix.
             # therefore, ∂Λ/∂x⋅Λ⁻¹ = -Δτ⋅(∂V/∂x)
@@ -180,9 +182,11 @@ end
 
 
 # evaluate ∂S/∂x += Tr[(∂Γ/∂x)⋅Γ⁻¹⋅A]
-function eval_tr_dΓdx_invΓ_A!(dSdx::AbstractVector{E}, x::AbstractVector{E},
-                              Δτ::E, sgndetG::T, A::Matrix{T}, ssh_parameters::SSHParameters{T},
-                              Γ::AbstractMatrix{T}, M::Vector{E}, A′::Matrix{T}) where {T,E}
+function eval_tr_dΓdx_invΓ_A!(
+    dSdx::AbstractVector{E}, x::AbstractVector{E},
+    Δτ::E, sgndetG::T, A::Matrix{T}, ssh_parameters::SSHParameters{T},
+    Γ::AbstractMatrix{T}, M::Vector{E}, A′::Matrix{T}
+) where {T,E}
 
     (; Nssh, α, α2, α3, α4, coupling_to_phonon, neighbor_table) = ssh_parameters
 
@@ -191,7 +195,7 @@ function eval_tr_dΓdx_invΓ_A!(dSdx::AbstractVector{E}, x::AbstractVector{E},
     # if finite number of ssh couplints
     if Nssh > 0
         # iterate over SSH couplings
-        for c in 1:Nssh
+        @inbounds for c in 1:Nssh
             # get the pair of phonons getting coupled
             p  = coupling_to_phonon[1,c]
             p′ = coupling_to_phonon[2,c]
@@ -221,10 +225,12 @@ function eval_tr_dΓdx_invΓ_A!(dSdx::AbstractVector{E}, x::AbstractVector{E},
 end
 
 # evaluate ∂S/∂x += Tr[(∂Γ/∂x)⋅Γ⁻¹⋅A]
-function eval_tr_dΓdx_invΓ_A!(dSdx::AbstractVector{E}, x::AbstractVector{E},
-                              Δτ::E, sgndetG::T, A::Matrix{T},
-                              ssh_parameters::SSHParameters{T},
-                              Γ::CheckerboardMatrix{T}, M::Vector{E}, A′::Matrix{T}) where {T,E}
+function eval_tr_dΓdx_invΓ_A!(
+    dSdx::AbstractVector{E}, x::AbstractVector{E},
+    Δτ::E, sgndetG::T, A::Matrix{T},
+    ssh_parameters::SSHParameters{T},
+    Γ::CheckerboardMatrix{T}, M::Vector{E}, A′::Matrix{T}
+) where {T,E}
 
     (; Nssh, α, α2, α3, α4, coupling_to_phonon, hopping_to_couplings) = ssh_parameters
     (; Ncolors, perm, neighbor_table) = Γ
@@ -237,7 +243,7 @@ function eval_tr_dΓdx_invΓ_A!(dSdx::AbstractVector{E}, x::AbstractVector{E},
         # determine the order to iterate over the checkerboard colors in
         color_order = Γ.transposed ? (1:Ncolors) : (Ncolors:-1:1)
         # iterate over checkerboard colors
-        for color in color_order
+        @inbounds for color in color_order
             # iterate over bounds for current color
             start = color_bounds[1,color]
             stop  = color_bounds[2,color]

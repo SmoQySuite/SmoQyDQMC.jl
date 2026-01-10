@@ -43,6 +43,7 @@ function run_simulation(
     δG_max = 1e-6, # Threshold for numerical error corrected by stabilization.
     symmetric = false, # Whether symmetric propagator definition is used.
     checkerboard = false, # Whether checkerboard approximation is used.
+    write_bins_concurrent = true, # Whether to write binned data to file during simulation or hold it in memory.
     seed = abs(rand(Int)), # Seed for random number generator.
     filepath = "." # Filepath to where data folder will be created.
 )
@@ -67,6 +68,7 @@ function run_simulation(
     simulation_info = SimulationInfo(
         filepath = filepath,
         datafolder_prefix = datafolder_prefix,
+        write_bins_concurrent = write_bins_concurrent,
         sID = sID,
         pID = pID
     )
@@ -80,7 +82,7 @@ function run_simulation(
     ## Initialize random number generator
     rng = Xoshiro(seed)
 
-    ## Initialize additiona_info dictionary
+    ## Initialize metadata dictionary
     metadata = Dict()
 
     ## Record simulation parameters.
@@ -92,7 +94,8 @@ function run_simulation(
     metadata["symmetric"] = symmetric
     metadata["checkerboard"] = checkerboard
     metadata["seed"] = seed
-    metadata["avg_acceptance_rate"] = 0.0
+    metadata["local_acceptance_rate"] = 0.0
+    metadata["reflection_acceptance_rate"] = 0.0
 
 # ## Initialize model
 # No changes need to made to this section of the code from the previous [1a) Square Hubbard Model](@ref) tutorial.
@@ -177,7 +180,7 @@ function run_simulation(
     ## Add this bond definition to the model, by adding it the model_geometry.
     bond_pxny_id = add_bond!(model_geometry, bond_pxny)
 
-    ## Set neartest-neighbor hopping amplitude to unity,
+    ## Set nearest-neighbor hopping amplitude to unity,
     ## setting the energy scale in the model.
     t = 1.0
 
@@ -194,10 +197,10 @@ function run_simulation(
 
     ## Define the Hubbard interaction in the model.
     hubbard_model = HubbardModel(
-        shifted   = false, # if true, then Hubbard interaction is instead parameterized as U⋅nup⋅ndn
-        U_orbital = [1], # orbitals in unit cell with Hubbard interaction.
-        U_mean    = [U], # mean Hubbard interaction strength for corresponding orbital species in unit cell.
-        U_std     = [0.], # standard deviation of Hubbard interaction strength for corresponding orbital species in unit cell.
+        ph_sym_form = true, # if particle-hole symmetric form for Hubbard interaction is used.
+        U_orbital   = [1], # orbitals in unit cell with Hubbard interaction.
+        U_mean      = [U], # mean Hubbard interaction strength for corresponding orbital species in unit cell.
+        U_std       = [0.], # standard deviation of Hubbard interaction strength for corresponding orbital species in unit cell.
     )
 
     ## Write model summary TOML file specifying Hamiltonian that will be simulated.
@@ -220,24 +223,22 @@ function run_simulation(
     )
 
     ## Initialize Hubbard interaction parameters.
-    hubbard_params = HubbardParameters(
+    hubbard_parameters = HubbardParameters(
         model_geometry = model_geometry,
         hubbard_model = hubbard_model,
         rng = rng
     )
 
-    ## Apply Ising Hubbard-Stranonvich (HS) transformation to decouple the Hubbard interaction,
+    ## Apply Hubbard-Stratonovich (HS) transformation to decouple the Hubbard interaction,
     ## and initialize the corresponding HS fields that will be sampled in the DQMC simulation.
-    hubbard_stratonovich_params = HubbardIsingHSParameters(
+    hst_parameters = HubbardSpinHirschHST(
         β = β, Δτ = Δτ,
-        hubbard_parameters = hubbard_params,
+        hubbard_parameters = hubbard_parameters,
         rng = rng
     )
 
-# ## Initialize meuasurements
-# The only change we need to make to this section of the code from the previous [1a) Square Hubbard Model](@ref) tutorial
-# is to add the `comm` as the first argument to the [`initialize_measurement_directories`](@ref) function.
-# The ensures that not of the MPI processes proceed beyond that point until the directory structure has been initialized.
+# ## Initialize measurements
+# No changes need to made to this section of the code from the previous [1a) Square Hubbard Model](@ref) tutorial.
 
     ## Initialize the container that measurements will be accumulated into.
     measurement_container = initialize_measurement_container(model_geometry, β, Δτ)
@@ -299,22 +300,29 @@ function run_simulation(
         integrated = true
     )
 
-    ## Initialize the sub-directories to which the various measurements will be written.
-    initialize_measurement_directories(comm, simulation_info, measurement_container)
-
 # ## Setup DQMC simulation
 # No changes need to made to this section of the code from the previous [1a) Square Hubbard Model](@ref) tutorial.
 
-    ## Allocate FermionPathIntegral type for both the spin-up and spin-down electrons.
-    fermion_path_integral_up = FermionPathIntegral(tight_binding_parameters = tight_binding_parameters, β = β, Δτ = Δτ)
-    fermion_path_integral_dn = FermionPathIntegral(tight_binding_parameters = tight_binding_parameters, β = β, Δτ = Δτ)
+    ## Allocate FermionPathIntegral type for spin-up electrons.
+    fermion_path_integral_up = FermionPathIntegral(
+        tight_binding_parameters = tight_binding_parameters, β = β, Δτ = Δτ,
+        forced_complex_potential = (U < 0),
+        forced_complex_kinetic = false
+    )
+
+    ## Allocate FermionPathIntegral type for spin-down electrons.
+    fermion_path_integral_dn = FermionPathIntegral(
+        tight_binding_parameters = tight_binding_parameters, β = β, Δτ = Δτ,
+        forced_complex_potential = (U < 0),
+        forced_complex_kinetic = false
+    )
 
     ## Initialize FermionPathIntegral type for both the spin-up and spin-down electrons to account for Hubbard interaction.
-    initialize!(fermion_path_integral_up, fermion_path_integral_dn, hubbard_params)
+    initialize!(fermion_path_integral_up, fermion_path_integral_dn, hubbard_parameters)
 
     ## Initialize FermionPathIntegral type for both the spin-up and spin-down electrons to account for the current
     ## Hubbard-Stratonovich field configuration.
-    initialize!(fermion_path_integral_up, fermion_path_integral_dn, hubbard_stratonovich_params)
+    initialize!(fermion_path_integral_up, fermion_path_integral_dn, hst_parameters)
 
     ## Initialize imaginary-time propagators for all imaginary-time slices for spin-up and spin-down electrons.
     Bup = initialize_propagators(fermion_path_integral_up, symmetric=symmetric, checkerboard=checkerboard)
@@ -324,7 +332,11 @@ function run_simulation(
     fermion_greens_calculator_up = dqmcf.FermionGreensCalculator(Bup, β, Δτ, n_stab)
     fermion_greens_calculator_dn = dqmcf.FermionGreensCalculator(Bdn, β, Δτ, n_stab)
 
-    ## Allcoate matrices for spin-up and spin-down electron Green's function matrices.
+    ## Initialize alternate FermionGreensCalculator type for performing reflection updates.
+    fermion_greens_calculator_up_alt = dqmcf.FermionGreensCalculator(fermion_greens_calculator_up)
+    fermion_greens_calculator_dn_alt = dqmcf.FermionGreensCalculator(fermion_greens_calculator_dn)
+
+    ## Allocate matrices for spin-up and spin-down electron Green's function matrices.
     Gup = zeros(eltype(Bup[1]), size(Bup[1]))
     Gdn = zeros(eltype(Bdn[1]), size(Bdn[1]))
 
@@ -341,9 +353,9 @@ function run_simulation(
     Gdn_τ0 = similar(Gdn) # Gdn(τ,0)
     Gdn_0τ = similar(Gdn) # Gdn(0,τ)
 
-    ## Initialize diagonostic parameters to asses numerical stability.
+    ## Initialize diagnostic parameters to asses numerical stability.
     δG = zero(logdetGup)
-    δθ = zero(sgndetGup)
+    δθ = zero(logdetGup)
 
 # ## Thermalize system
 # No changes need to made to this section of the code from the previous [1a) Square Hubbard Model](@ref) tutorial.
@@ -351,10 +363,26 @@ function run_simulation(
     ## Iterate over number of thermalization updates to perform.
     for n in 1:N_therm
 
+        ## Perform reflection update for HS fields with randomly chosen site.
+        (accepted, logdetGup, sgndetGup, logdetGdn, sgndetGdn) = reflection_update!(
+            Gup, logdetGup, sgndetGup, Gdn, logdetGdn, sgndetGdn,
+            hst_parameters,
+            fermion_path_integral_up = fermion_path_integral_up,
+            fermion_path_integral_dn = fermion_path_integral_dn,
+            fermion_greens_calculator_up = fermion_greens_calculator_up,
+            fermion_greens_calculator_dn = fermion_greens_calculator_dn,
+            fermion_greens_calculator_up_alt = fermion_greens_calculator_up_alt,
+            fermion_greens_calculator_dn_alt = fermion_greens_calculator_dn_alt,
+            Bup = Bup, Bdn = Bdn, rng = rng
+        )
+
+        ## Record whether reflection update was accepted or not.
+        metadata["reflection_acceptance_rate"] += accepted
+
         ## Perform sweep all imaginary-time slice and orbitals, attempting an update to every HS field.
         (acceptance_rate, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = local_updates!(
             Gup, logdetGup, sgndetGup, Gdn, logdetGdn, sgndetGdn,
-            hubbard_stratonovich_params,
+            hst_parameters,
             fermion_path_integral_up = fermion_path_integral_up,
             fermion_path_integral_dn = fermion_path_integral_dn,
             fermion_greens_calculator_up = fermion_greens_calculator_up,
@@ -364,15 +392,15 @@ function run_simulation(
         )
 
         ## Record acceptance rate for sweep.
-        metadata["avg_acceptance_rate"] += acceptance_rate
+        metadata["local_acceptance_rate"] += acceptance_rate
     end
 
 # ## Make measurements
 # No changes need to made to this section of the code from the previous [1a) Square Hubbard Model](@ref) tutorial.
 
-    ## Reset diagonostic parameters used to monitor numerical stability to zero.
+    ## Reset diagnostic parameters used to monitor numerical stability to zero.
     δG = zero(logdetGup)
-    δθ = zero(sgndetGup)
+    δθ = zero(logdetGup)
 
     ## Calculate the bin size.
     bin_size = N_updates ÷ N_bins
@@ -380,10 +408,26 @@ function run_simulation(
     ## Iterate over updates and measurements.
     for update in 1:N_updates
 
+        ## Perform reflection update for HS fields with randomly chosen site.
+        (accepted, logdetGup, sgndetGup, logdetGdn, sgndetGdn) = reflection_update!(
+            Gup, logdetGup, sgndetGup, Gdn, logdetGdn, sgndetGdn,
+            hst_parameters,
+            fermion_path_integral_up = fermion_path_integral_up,
+            fermion_path_integral_dn = fermion_path_integral_dn,
+            fermion_greens_calculator_up = fermion_greens_calculator_up,
+            fermion_greens_calculator_dn = fermion_greens_calculator_dn,
+            fermion_greens_calculator_up_alt = fermion_greens_calculator_up_alt,
+            fermion_greens_calculator_dn_alt = fermion_greens_calculator_dn_alt,
+            Bup = Bup, Bdn = Bdn, rng = rng
+        )
+
+        ## Record whether reflection update was accepted or not.
+        metadata["reflection_acceptance_rate"] += accepted
+
         ## Perform sweep all imaginary-time slice and orbitals, attempting an update to every HS field.
         (acceptance_rate, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = local_updates!(
             Gup, logdetGup, sgndetGup, Gdn, logdetGdn, sgndetGdn,
-            hubbard_stratonovich_params,
+            hst_parameters,
             fermion_path_integral_up = fermion_path_integral_up,
             fermion_path_integral_dn = fermion_path_integral_dn,
             fermion_greens_calculator_up = fermion_greens_calculator_up,
@@ -393,7 +437,7 @@ function run_simulation(
         )
 
         ## Record acceptance rate.
-        metadata["avg_acceptance_rate"] += acceptance_rate
+        metadata["local_acceptance_rate"] += acceptance_rate
 
         ## Make measurements.
         (logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = make_measurements!(
@@ -406,7 +450,7 @@ function run_simulation(
             fermion_greens_calculator_dn = fermion_greens_calculator_dn,
             Bup = Bup, Bdn = Bdn, δG_max = δG_max, δG = δG, δθ = δθ,
             model_geometry = model_geometry, tight_binding_parameters = tight_binding_parameters,
-            coupling_parameters = (hubbard_params, hubbard_stratonovich_params)
+            coupling_parameters = (hubbard_parameters, hst_parameters)
         )
 
         ## Write the bin-averaged measurements to file if update ÷ bin_size == 0.
@@ -414,18 +458,26 @@ function run_simulation(
             measurement_container = measurement_container,
             simulation_info = simulation_info,
             model_geometry = model_geometry,
-            update = update,
+            measurement = update,
             bin_size = bin_size,
             Δτ = Δτ
         )
     end
 
+# ## Merge binned data
+# No changes need to made to this section of the code from the previous [1a) Square Hubbard Model](@ref) tutorial.
+
+    ## Merge binned data into a single HDF5 file.
+    merge_bins(simulation_info)
+
 # ## Record simulation metadata
 # No changes need to made to this section of the code from the previous [1a) Square Hubbard Model](@ref) tutorial.
 
     ## Normalize acceptance rate.
-    metadata["avg_acceptance_rate"] /=  (N_therm + N_updates)
+    metadata["local_acceptance_rate"] /= (N_therm + N_updates)
+    metadata["reflection_acceptance_rate"] /= (N_therm + N_updates)
 
+    ## Record final stabalization frequency used at end of simulation.
     metadata["n_stab_final"] = fermion_greens_calculator_up.n_stab
 
     ## Record largest numerical error.
@@ -434,40 +486,45 @@ function run_simulation(
     ## Write simulation summary TOML file.
     save_simulation_info(simulation_info, metadata)
 
-# ## Post-rocess results
-# The main change we need to make from the previos [1a) Square Hubbard Model](@ref) tutorial is to call
-# the [`process_measurements`](@ref), [`compute_correlation_ratio`](@ref) and [`compress_jld2_bins`](@ref) function
+# ## Post-process results
+# The main change we need to make from the previous [1a) Square Hubbard Model](@ref) tutorial is to call
+# the [`process_measurements`](@ref) and [`compute_correlation_ratio`](@ref) functions
 # such that the first argument is the `comm` object, thereby ensuring a parallelized version of each method is called.
 
-    ## Set the number of bins used to calculate the error in measured observables.
-    n_bins = N_bins
-
-    ## Process the simulation results, calculating final error bars for all measurements,
-    ## writing final statisitics to CSV files.
-    process_measurements(comm, simulation_info.datafolder, n_bins, time_displaced = false)
+    ## Process the simulation results, calculating final error bars for all measurements.
+    ## writing final statistics to CSV files.
+    process_measurements(
+        comm;
+        datafolder = simulation_info.datafolder,
+        n_bins = N_bins,
+        export_to_csv = true,
+        scientific_notation = false,
+        decimals = 7,
+        delimiter = " "
+    )
 
     ## Calculate AFM correlation ratio.
     Rafm, ΔRafm = compute_correlation_ratio(
         comm;
-        folder = simulation_info.datafolder,
+        datafolder = simulation_info.datafolder,
         correlation = "spin_z",
         type = "equal-time",
         id_pairs = [(1, 1)],
-        coefs = [1.0],
-        k_point = (L÷2, L÷2), # Corresponds to Q_afm = (π/a, π/a).
-        num_bins = n_bins
+        id_pair_coefficients = [1.0],
+        q_point = (L÷2, L÷2),
+        q_neighbors = [
+            (L÷2+1, L÷2), (L÷2-1, L÷2),
+            (L÷2, L÷2+1), (L÷2, L÷2-1)
+        ]
     )
 
     ## Record the AFM correlation ratio mean and standard deviation.
-    metadata["Rafm_real_mean"] = real(Rafm)
-    metadata["Rafm_imag_mean"] = imag(Rafm)
+    metadata["Rafm_mean_real"] = real(Rafm)
+    metadata["Rafm_mean_imag"] = imag(Rafm)
     metadata["Rafm_std"]       = ΔRafm
 
     ## Write simulation summary TOML file.
     save_simulation_info(simulation_info, metadata)
-
-    ## Merge binary files containing binned data into a single file.
-    compress_jld2_bins(comm, folder = simulation_info.datafolder)
 
     return nothing
 end # end of run_simulation function
@@ -479,7 +536,7 @@ end # end of run_simulation function
 # At the very end of simulation it is good practice to run the `MPI.Finalize()` function even though
 # it is typically not strictly required.
 
-# Only excute if the script is run directly from the command line.
+# Only execute if the script is run directly from the command line.
 if abspath(PROGRAM_FILE) == @__FILE__
 
     ## Initialize MPI
@@ -512,13 +569,13 @@ end
 # ```
 # This will 16 MPI processes, each running and independent simulation using a different random seed
 # the final results arrived at by averaging over all 16 walkers.
-# Here `mpiexecjl` is the MPI exectuable that can be easily install using the directions
+# Here `mpiexecjl` is the MPI executable that can be easily install using the directions
 # found [here](https://juliaparallel.org/MPI.jl/stable/usage/#Julia-wrapper-for-mpiexec) in the
 # [MPI.jl](https://github.com/JuliaParallel/MPI.jl) documentation. However, you can substitute a
 # different MPI executable here if one is already configured on your system.
 
 # Also, when submitting jobs via [SLURM](https://slurm.schedmd.com/documentation.html)
-# on a High-Performance Computing (HPC) cluster, if a default MPI exectuable
+# on a High-Performance Computing (HPC) cluster, if a default MPI executable
 # is already configured on the system, as is frequently the case, then the script can likely be run inside the
 # `*.sh` job file using the [`srun`](https://slurm.schedmd.com/srun.html) command:
 # ```bash

@@ -10,3 +10,7 @@ example_scripts/*/
 *.jld2
 *.DS_Store
 .DS_Store
+*.csv
+*.h5
+/examples/*/
+/tutorials/*/

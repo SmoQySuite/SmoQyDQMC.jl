@@ -29,6 +29,21 @@ or equivalently via `Pkg` do
 julia> using Pkg; Pkg.add("SmoQyDQMC")
 ```
 
+### Updating
+
+To update [SmoQyDQMC.jl](https://github.com/SmoQySuite/SmoQyDQMC.jl) try the following:
+```
+julia> ]
+pkg> update SmoQyDQMC
+```
+However, sometimes this fails to update required dependencies.
+If issues arise, we recommend first removing and then reinstalling [SmoQyDQMC.jl](https://github.com/SmoQySuite/SmoQyDQMC.jl):
+```
+julia> ]
+pkg> remove SmoQyDQMC
+pkg> add SmoQyDQMC
+```
+
 ## Publication List
 
 This sections lists of some of the publications that report results generated

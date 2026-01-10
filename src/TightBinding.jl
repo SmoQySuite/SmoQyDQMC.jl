@@ -4,6 +4,12 @@
 Defines a tight binding model in `D` dimensions. Note that `spin = 1 (spin = 2)` corresponds to
 spin-up (spin-down), and `spin = 0` corresponds to both spin-up and spin-down.
 
+# Types
+
+- `T<:Number`: The type of the hopping energy, which can be a real or complex number.
+- `E<:AbstractFloat`: The type of the chemical potential and on-site energy, which must be real.
+- `D`: The number of spatial dimensions the model lives in.
+
 # Fields
 
 - `μ::E`: Chemical potential.
@@ -13,6 +19,8 @@ spin-up (spin-down), and `spin = 0` corresponds to both spin-up and spin-down.
 - `t_bonds::Vector{Bond{D}}`: Bond definition for each type of hopping in the tight binding model.
 - `t_mean::Vector{T}`: Mean hopping energy for each type of hopping.
 - `t_std::Vector{E}`: Standard deviation of hopping energy for each type of hopping.
+- `η::Vector{E}`: Relative twist angle for each lattice vector direction ``d \in [1, D]`` such that ``\eta_d \in [0, 1).``
+- `expniϕ::Vector{T}`: Twist angle phase ``\exp(i n_d \phi_d)`` for each hopping.
 """
 struct TightBindingModel{T<:Number, E<:AbstractFloat, D}
     
@@ -36,35 +44,46 @@ struct TightBindingModel{T<:Number, E<:AbstractFloat, D}
 
     # standard deviation of hopping energy for each type of hopping in tight-binding model
     t_std::Vector{E}
+
+    # twist angle phase
+    expniϕ::Vector{T}
+
+    # relative twist angle
+    η::Vector{E}
 end
 
 @doc raw"""
     TightBindingModel(;
+        # KEYWORD ARGUMENTS
         model_geometry::ModelGeometry{D,E,N},
         μ::E,
         ϵ_mean::Vector{E},
         ϵ_std::Vector{E} = zeros(eltype(ϵ_mean), length(ϵ_mean)),
         t_bonds::Vector{Bond{D}} = Bond{ndims(model_geometry.unit_cell)}[],
         t_mean::Vector{T} = eltype(ϵ_mean)[],
-        t_std::Vector{E} = zeros(eltype(ϵ_mean), length(t_mean))
+        t_std::Vector{E} = zeros(eltype(ϵ_mean), length(t_mean)),
+        η::Union{Vector{E},Nothing} = nothing
     ) where {T<:Number, E<:AbstractFloat, D, N}
 
 Initialize and return an instance of [`TightBindingModel`](@ref), also adding/recording the bond defintions `t_bonds` to the
 [`ModelGeometry`](@ref) instance `model_geometry`.
 """
 function TightBindingModel(;
+    # KEYWORD ARGUMENTS
     model_geometry::ModelGeometry{D,E,N},
     μ::E,
     ϵ_mean::Vector{E},
     ϵ_std::Vector{E} = zeros(eltype(ϵ_mean), length(ϵ_mean)),
     t_bonds::Vector{Bond{D}} = Bond{ndims(model_geometry.unit_cell)}[],
     t_mean::Vector{T} = eltype(ϵ_mean)[],
-    t_std::Vector{E} = zeros(eltype(ϵ_mean), length(t_mean))
+    t_std::Vector{E} = zeros(eltype(ϵ_mean), length(t_mean)),
+    η::Union{Vector{E},Nothing} = nothing
 ) where {T<:Number, E<:AbstractFloat, D, N}
 
     # get the number of orbitals per unit cell
-    unit_cell = model_geometry.unit_cell::UnitCell{D,E,N}
-    n = unit_cell.n
+    (; bonds, unit_cell, lattice) = model_geometry
+    (; n, reciprocal_vecs) = unit_cell
+    (; L) = lattice
 
     # check that on-site energy is defined for each orbitals
     @assert length(ϵ_mean) == n
@@ -76,7 +95,33 @@ function TightBindingModel(;
         t_bond_ids[i] = add_bond!(model_geometry, t_bonds[i])
     end
 
-    return TightBindingModel(μ, ϵ_mean, ϵ_std, t_bond_ids, t_bonds, t_mean, t_std)
+    # set default twist angle to zero
+    η = isnothing(η) ? zeros(E, D) : η
+
+    # get the type of the hopping energy
+    H = all(i->iszero(i), η) ? T : Complex{E}
+
+    # set twist angle phase to unity if twist angles are all zero
+    if H<:Real
+        expniϕ = ones(H, length(t_bonds))
+    # calculate the twist angle phase for each hopping
+    else
+        expniϕ = ones(H, length(t_bonds))
+        # iterate over hoppings
+        for h in eachindex(t_bonds)
+            # calculate the displacement vector associated the bond
+            R = bond_to_vec(t_bonds[h], unit_cell)
+            # iterate of reciprocal lattice vectors
+            for d in 1:D
+                # get the current reciprocal lattice vector
+                Kd = @view reciprocal_vecs[:,d]
+                # update the twist angle phase
+                expniϕ[h] = exp(-1im * η[d] * dot(Kd,R) / L[d]) * expniϕ[h]
+            end
+        end
+    end
+
+    return TightBindingModel{H,E,D}(μ, ϵ_mean, ϵ_std, t_bond_ids, t_bonds, Vector{H}(t_mean), t_std, expniϕ, η)
 end
 
 
@@ -90,6 +135,7 @@ function Base.show(io::IO, ::MIME"text/plain", tbm::TightBindingModel{T,E,D}; sp
     else
         @printf io "[TightBindingModelDown]\n\n"
     end
+    @printf io "relative_twist_angle = %s\n"  string(round.(tbm.η, digits=6))
     @printf io "chemical_potential = %.8f\n\n" tbm.μ
     if iszero(spin)
         @printf io "[TightBindingModel.onsite_energy]\n\n"
@@ -178,7 +224,7 @@ and ``\mu`` is the chemical potential.
 - `const t::Vector{T}`: The hopping energy ``t_{i,j}`` associated with each pair of neighboring orbitals connected by a bond in the lattice.
 - `const neighbor_table::Matrix{Int}`: Neighbor table containing all pairs of orbitals in the lattices connected by a bond, with a non-zero hopping energy between them.
 - `const bond_ids::Vector{Int}`: The bond ID definitions that define the types of hopping in the lattice.
-- `const bond_slices::Vector{UnitRange{Int}}`: Slices of `neighbor_table` corresponding to given bond ID i.e. the neighbors `neighbor_table[:,bond_slices[1]]` corresponds the `bond_ids[1]` bond defintion.
+- `const bond_slices::Vector{UnitRange{Int}}`: Slices of `neighbor_table` corresponding to given bond ID i.e. the neighbors `neighbor_table[:,bond_slices[i]]` corresponds the `bond_ids[i]` bond defintion.
 - `const norbital::Int`: Number of orbitals per unit cell.
 """
 mutable struct TightBindingParameters{T<:Number, E<:AbstractFloat}
@@ -240,16 +286,6 @@ function TightBindingParameters(;
         @. ϵ_i = tight_binding_model.ϵ_mean[i] + tight_binding_model.ϵ_std[i] * ϵ_i
     end
 
-    # get number of bond definitions in model
-    nbonds = length(tight_binding_model.t_bonds)
-
-    # get the id for for each bond
-    bond_ids = copy(tight_binding_model.t_bond_ids)
-    bond_slices = UnitRange{Int}[]
-    for i in eachindex(bond_ids)
-        push!(bond_slices, (i-1)*N+1:i*N)
-    end
-
     # construct neighbor table for hoppings
     t_bonds = tight_binding_model.t_bonds::Vector{Bond{D}}
     if length(t_bonds) > 0
@@ -257,6 +293,17 @@ function TightBindingParameters(;
     else
         neighbor_table = Matrix{Int}(undef,2,0)
     end
+
+    # get th slice of bonds in the neighbor_table associated with
+    # hopping ID (and corresponding bond ID)
+    bond_ids = copy(tight_binding_model.t_bond_ids)
+    bond_slices = UnitRange{Int}[]
+    for i in eachindex(bond_ids)
+        push!(bond_slices, (i-1)*N+1:i*N)
+    end
+
+    # get number of bond definitions in model
+    nbonds = length(tight_binding_model.t_bonds)
 
     # get total number of bonds in lattice
     Nbonds = size(neighbor_table, 2)
@@ -266,9 +313,11 @@ function TightBindingParameters(;
     if Nbonds > 0
         t′ = reshape(t, (N, nbonds))
         for b in axes(t′,2)
+            t_mean = tight_binding_model.t_mean[b]
+            t_std = tight_binding_model.t_std[b]
+            expniϕ = tight_binding_model.expniϕ[b]
             t_b = @view t′[:,b]
-            randn!(rng, t_b)
-            @. t_b = tight_binding_model.t_mean[b] + tight_binding_model.t_std[b] * t_b
+            @. t_b = expniϕ  * (t_mean + sign_or_0to1(t_mean) * t_std * randn(rng))
         end
     end
 

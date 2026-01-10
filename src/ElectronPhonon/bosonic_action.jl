@@ -139,7 +139,7 @@ function eval_holstein_action(
 ) where {E<:AbstractFloat}
 
     (; M) = phonon_parameters
-    (; Nholstein, nholstein, α, α3, shifted, coupling_to_phonon) = holstein_parameters
+    (; Nholstein, nholstein, α, α3, ph_sym_form, coupling_to_phonon) = holstein_parameters
     Lτ = size(x,2)
 
     # initialize bosonic action
@@ -152,8 +152,8 @@ function eval_holstein_action(
         @fastmath @inbounds for l in 1:Lτ
             # iterate over types of holstein couplings
             for h in 1:nholstein
-                # if shifted holstein term
-                if shifted[h]
+                # if particle-hole symmetric holstein term
+                if ph_sym_form[h]
                     # iterate over unit cells
                     for i in 1:Nunitcells
                         # get the holstein coupling index
@@ -176,7 +176,7 @@ end
 
 
 # evaluate the derivative of the total bosonic action.
-# if (holstein_correction = 1) then the correction arrising from
+# if (holstein_correction = 1) then the correction arising from
 # X⋅(n-1) parameterization of the coupling is included.
 function bosonic_action_derivative!(
     dSdx::Matrix{E},
@@ -210,7 +210,7 @@ function eval_derivative_local_phonon_action!(
     # evaluate derivative of QHO action
     eval_derivative_qho_action!(dSdx, x, Δτ, phonon_parameters)
 
-    # evaluate derivative of anharmonic contribuation to action
+    # evaluate derivative of anharmonic contribution to action
     eval_derivative_anharmonic_action!(dSdx, x, Δτ, phonon_parameters)
 
     return nothing
@@ -244,7 +244,7 @@ function eval_derivative_qho_action!(
     return nothing
 end
 
-# evaluate derivative of anharmonic potetential contribution to action
+# evaluate derivative of anharmonic potential contribution to action
 function eval_derivative_anharmonic_action!(
     dSdx::Matrix{E}, x::Matrix{E}, Δτ::E,
     phonon_parameters::PhononParameters{E}
@@ -311,7 +311,7 @@ function eval_derivative_holstein_action!(
 ) where {E<:AbstractFloat}
 
     (; M) = phonon_parameters
-    (; Nholstein, nholstein, α, α3, coupling_to_phonon, shifted) = holstein_parameters
+    (; Nholstein, nholstein, α, α3, coupling_to_phonon, ph_sym_form) = holstein_parameters
     Lτ = size(x,2)
 
     # check if there are holstein couplings
@@ -322,8 +322,8 @@ function eval_derivative_holstein_action!(
             Nunitcells = Nholstein ÷ nholstein
             # iterate over types of holstein couplings
             for h in 1:nholstein
-                # if holstein type has shifted interaction
-                if shifted[h]
+                # if particle-hole symmetric holstein term
+                if ph_sym_form[h]
                     # iterate over unit cells
                     for i in 1:Nunitcells
                         # get the holstein coupling index

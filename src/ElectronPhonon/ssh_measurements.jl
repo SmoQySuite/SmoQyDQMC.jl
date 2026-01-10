@@ -49,8 +49,9 @@ function measure_ssh_energy(
         j  = nt[1,u]
         i  = nt[2,u]
         hij = -G[j,i]
+        hji = -G[i,j]
         ϵij = α′[u]*Δx + α2′[u]*Δx^2 + α3′[u]*Δx^3 + α4′[u]*Δx^4
-        ϵ_ssh += ϵij*hij + conj(ϵij*hij)
+        ϵ_ssh += ϵij*hij + conj(ϵij)*hji
     end
 
     # normalize measurement

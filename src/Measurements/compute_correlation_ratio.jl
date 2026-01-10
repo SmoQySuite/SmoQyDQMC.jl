@@ -1,27 +1,30 @@
 @doc raw"""
     compute_correlation_ratio(
         comm::MPI.Comm;
-        folder::String,
+        # KEYWORD ARGUMENTS
+        datafolder::String,
         correlation::String,
         type::String,
         id_pairs::Vector{NTuple{2,Int}},
-        coefs,
-        k_point,
+        id_pair_coefficients::Vector{T},
+        q_point::NTuple{D,Int},
+        q_neighbors::Vector{NTuple{D,Int}},
         num_bins::Int = 0,
         pIDs::Vector{Int} = Int[],
-    )
+    ) where {D, T<:Number}
 
     compute_correlation_ratio(;
-        # Keyword Arguments
-        folder::String,
+        # KEYWORD ARGUMENTS
+        datafolder::String,
         correlation::String,
         type::String,
         id_pairs::Vector{NTuple{2,Int}},
-        coefs,
-        k_point,
+        id_pair_coefficients::Vector{T},
+        q_point::NTuple{D,Int},
+        q_neighbors::Vector{NTuple{D,Int}},
         num_bins::Int = 0,
-        pIDs::Vector{Int} = Int[],
-    )
+        pIDs::Union{Int,Vector{Int}} = Int[]
+    ) where {D, T<:Number}
 
 Compute the correlation ratio at the ``\mathbf{k}``-point using a linear combination of standard correlation function measurements.
 The linear combination of correlation functions used is defined by `id_pairs` and `coefs`.
@@ -30,63 +33,31 @@ If `type` is "integrated" then the integrated correlation ratio is calculated.
 """
 function compute_correlation_ratio(
     comm::MPI.Comm;
-    # Keyword Arguments
-    folder::String,
+    # KEYWORD ARGUMENTS
+    datafolder::String,
     correlation::String,
     type::String,
     id_pairs::Vector{NTuple{2,Int}},
-    coefs,
-    k_point,
+    id_pair_coefficients::Vector{T},
+    q_point::NTuple{D,Int},
+    q_neighbors::Vector{NTuple{D,Int}},
     num_bins::Int = 0,
     pIDs::Vector{Int} = Int[],
-)
-    @assert type ∈ ("equal-time", "time-displaced", "integrated")
-    @assert correlation ∈ keys(CORRELATION_FUNCTIONS)
+) where {D, T<:Number}
 
-    # set the walkers to iterate over
-    if isempty(pIDs)
-
-        # get the number of MPI walkers
-        N_walkers = MPI.Comm_size(comm)
-
-        # get the pIDs
-        pIDs = collect(0:(N_walkers-1))
-    end
-
-    # get dimension and size of lattice
-    β, Δτ, Lτ, model_geometry = load_model_summary(folder)
-    lattice = model_geometry.lattice
-    L = lattice.L # size of lattice
-    D = ndims(lattice) # dimension of lattice
-
-    # calculate relevent k-points
-    @assert length(k_point) == ndims(lattice)
-
-    # get coefficients as vector of complex numbers
-    @assert length(coefs) == length(id_pairs)
-    coefficients = Complex{real(eltype(coefs))}[coefs...]
-
-    # get central k-point and 2⋅D neighboring k-points
-    k = tuple(k_point...)
-    k_neighbors = Vector{NTuple{D,Int}}(undef, 2*D)
-    for d in 1:D
-        k_neighbors[2*d-1] = tuple(( mod(k[d′]+isequal(d′,d),L[d]) for d′ in eachindex(k) )...)
-        k_neighbors[2*d]   = tuple(( mod(k[d′]-isequal(d′,d),L[d]) for d′ in eachindex(k) )...)
-    end
-
-    # get the MPI rank
-    mpiID = MPI.Comm_rank(comm)
-
-    # get the number of MPI ranks
+    # number of MPI processes
     N_mpi = MPI.Comm_size(comm)
-    @assert length(pIDs) == N_mpi
 
-    # get the pID corresponding to mpiID
-    pID = pIDs[mpiID+1]
+    # determine relevant pIDs
+    pIDs = isempty(pIDs) ? collect(0:N_mpi-1) : pIDs
+    pID = pIDs[MPI.Comm_rank(comm) + 1]
 
-    # compute correlation ratio for current pID
-    R, ΔR = _compute_correlation_ratio(folder, correlation, type, id_pairs, coefficients, k, k_neighbors, num_bins, pID)
-    varR = ΔR^2
+    # compute correlation ratio
+    R, ΔR = _compute_correlation_ratio(
+        datafolder, correlation, type, id_pairs, id_pair_coefficients,
+        q_point, q_neighbors, num_bins, pID
+    )
+    varR = abs2(ΔR)
 
     # perform an all-reduce to get the average statics calculate on all MPI processes
     R    = MPI.Allreduce(R, +, comm)
@@ -99,203 +70,205 @@ end
 
 # compute correlation ratio using single process
 function compute_correlation_ratio(;
-    # Keyword Arguments
-    folder::String,
+    # KEYWORD ARGUMENTS
+    datafolder::String,
     correlation::String,
     type::String,
     id_pairs::Vector{NTuple{2,Int}},
-    coefs,
-    k_point,
+    id_pair_coefficients::Vector{T},
+    q_point::NTuple{D,Int},
+    q_neighbors::Vector{NTuple{D,Int}},
     num_bins::Int = 0,
-    pIDs::Vector{Int} = Int[],
-)
-    @assert type ∈ ("equal-time", "time-displaced", "integrated")
-    @assert correlation ∈ keys(CORRELATION_FUNCTIONS)
+    pIDs::Union{Int,Vector{Int}} = Int[]
+) where {D, T<:Number}
 
-    # set the walkers to iterate over
+    # determine relevant process IDs
+    pIDs = isa(pIDs, Int) ? [pIDs,] : pIDs
     if isempty(pIDs)
-
-        # get the number of MPI walkers
-        N_walkers = get_num_walkers(folder)
-
-        # get the pIDs
-        pIDs = collect(0:(N_walkers-1))
+        pIDs = collect( 0 : length(readdir(joinpath(datafolder,"bins")))-1 )
     end
 
-    # get dimension and size of lattice
-    β, Δτ, Lτ, model_geometry = load_model_summary(folder)
-    lattice = model_geometry.lattice
-    L = lattice.L # size of lattice
-    D = ndims(lattice) # dimension of lattice
+    # initialize correlation ratio mean and variance to zero
+    R = zero(Complex{real(T)})
+    varR = zero(real(T))
 
-    # calculate relevent k-points
-    @assert length(k_point) == ndims(lattice)
+    # iterate over process IDs
+    for pID in pIDs
 
-    # get coefficients as vector of complex numbers
-    @assert length(coefs) == length(id_pairs)
-    coefficients = Complex{real(eltype(coefs))}[coefs...]
+        # compute correlation ratio for current process ID
+        R′, ΔR′ = _compute_correlation_ratio(
+            datafolder, correlation, type, id_pairs, id_pair_coefficients,
+            q_point, q_neighbors, num_bins, pID
+        )
 
-    # get central k-point and 2⋅D neighboring k-points
-    k = tuple(k_point...)
-    k_neighbors = NTuple{D,Int}[]
-    for d in 1:D
-        push!(k_neighbors, tuple(( mod(k[d′]+isequal(d′,d),L[d]) for d′ in eachindex(k) )...))
-        push!(k_neighbors, tuple(( mod(k[d′]-isequal(d′,d),L[d]) for d′ in eachindex(k) )...))
+        # record statistics
+        R += R′
+        varR += abs2(ΔR′)
     end
 
-    # initialize mean and variance of correlation ratio to zero
-    R, varR = zero(β), zero(β)
+    # calculate final stats
+    N_pID = length(pIDs)
+    R = R / N_pID
+    ΔR = sqrt(varR)/ N_pID
 
-    # iterate over pIDs
-    for i in eachindex(pIDs)
-        # calcuate correlation ratio for current PID
-        Ri, ΔRi = _compute_correlation_ratio(folder, correlation, type, id_pairs, coefficients, k, k_neighbors, num_bins, pIDs[i])
-        R += Ri
-        varR += abs2(ΔRi)
-    end
-    # normalize the final measurements, computing the final standard deviation
-    R /= length(pIDs)
-    ΔR = sqrt(varR) / length(pIDs)
-
-    return R, real(ΔR)
+    return R, ΔR
 end
 
-# compute the correlation ratio for a single walker (single pID)
+# compute correlation ration for single process
 function _compute_correlation_ratio(
-    folder::String,
+    datafolder::String,
     correlation::String,
     type::String,
     id_pairs::Vector{NTuple{2,Int}},
-    coefficients::Vector{Complex{T}},
-    k_point::NTuple{D,Int},
-    kneighbors::Vector{NTuple{D,Int}},
+    id_pair_coefficients::Vector{T},
+    q_point::NTuple{D,Int},
+    q_neighbors::Vector{NTuple{D,Int}},
     num_bins::Int,
     pID::Int
-) where {D, T<:AbstractFloat}
+) where {D, T<:Number}
 
-    # construct directory name containing binary data
-    dir = joinpath(folder, type, correlation, "momentum")
+    @assert(
+        in(correlation, keys(CORRELATION_FUNCTIONS)),
+        "The $correlation correlation is a composite correlation function when it should be a standard correlation function."
+    )
 
-    # get the number of files/measurements
-    N_files = length(glob(@sprintf("*_pID-%d.jld2", pID), dir))
+    # construct filename for HDF5 file containing binned data
+    filename = joinpath(datafolder, "bins", @sprintf("bins_pID-%d.h5", pID))
 
-    # defaults num_bins to N_files if num_bins is zero
-    num_bins = iszero(num_bins) ? N_files : num_bins
+    # uppercase type defintion
+    Type = uppercase(type)
 
-    # get bin intervals
-    bin_intervals = get_bin_intervals(folder, num_bins, pID)
+    # open HDF5 bin file
+    H5File = h5open(filename, "r")
 
-    # get the binned average sign
-    binned_sign = get_average_sign(folder, bin_intervals, pID)
+    # get all the sgn data
+    sgn = read(H5File["GLOBAL/sgn"])
 
-    # binned structure factor at k-point
-    S_k_point_bins = zeros(Complex{T}, num_bins)
+    # set number of bins if necessary
+    num_bins = iszero(num_bins) ? length(sgn) : num_bins
+    @assert length(sgn) % num_bins == 0
 
-    # binned average structure factor of neighboring k-points
-    S_kneighbors_bins = zeros(Complex{T}, num_bins)
+    # initialize vectors to contain structure factors
+    Sq_bins = zeros(eltype(sgn), num_bins)
+    Sqpdq_bins = zeros(eltype(sgn), num_bins)
 
-    # whether to load time-displaced data or not
-    Δl = isequal(type, "time-displaced") ? 0 : -1
+    # number of neighboring wavevector to average over
+    Ndq = length(q_neighbors)
+
+    # open HDF5 
+    Correlation = H5File["CORRELATIONS"]["STANDARD"][Type][correlation]
+
+    # get dataset containing momentum data
+    Momentum = Correlation["MOMENTUM"]
+
+    # load all ID pairs
+    all_id_pairs = map(p -> tuple(p...), read_attribute(Correlation, "ID_PAIRS"))
 
     # iterate over ID pairs
     for i in eachindex(id_pairs)
 
-        # load k-point data
-        _load_binned_correlation!(S_k_point_bins, bin_intervals, dir, id_pairs[i], k_point, Δl, pID, coefficients[i])
+        # get the current id pair
+        id_pair = id_pairs[i]
 
-        # iterate over neighboring k-points
-        for n in eachindex(kneighbors)
-            # load neighboring k-point data
-            _load_binned_correlation!(S_kneighbors_bins, bin_intervals, dir, id_pairs[i], kneighbors[n], Δl, pID, coefficients[i]/(2*D))
+        # get the coefficient associated with id pair
+        coef = id_pair_coefficients[i]
+
+        # get the dataset index associated with ID pair
+        indx = findfirst(p -> p == id_pair, all_id_pairs)
+
+        # if time-displaced correlation measurement
+        if Type == "TIME-DISPLACED"
+
+            # record structure factor corresponding to ordering wave-vector
+            Sq_bins += coef * bin_means(Momentum[:,(q_point[d]+1 for d in 1:D)...,1,indx], num_bins)
+
+            # iterate over neighboring wave-vectors
+            for n in 1:Ndq
+
+                # get the neighboring wave-vector
+                q_neighbor = q_neighbors[n]
+
+                # record structure factor corresponding to ordering wave-vector
+                Sqpdq_bins += coef/Ndq * bin_means(Momentum[:,(q_neighbor[d]+1 for d in 1:D)...,1,indx], num_bins)
+            end
+
+        # if equal-time or integrated correlation measurement
+        else
+
+            # record structure factor corresponding to ordering wave-vector
+            Sq_bins += coef * bin_means(Momentum[:,(q_point[d]+1 for d in 1:D)...,indx], num_bins)
+
+            # iterate over neighboring wave-vectors
+            for n in 1:Ndq
+
+                # get the neighboring wave-vector
+                q_neighbor = q_neighbors[n]
+
+                # record structure factor corresponding to ordering wave-vector
+                Sqpdq_bins += coef/Ndq * bin_means(Momentum[:,(q_neighbor[d]+1 for d in 1:D)...,indx], num_bins)
+            end
         end
     end
 
     # calculate correlation ratio
-    R, ΔR = jackknife((Skpdq, Sk, s) -> 1 - abs(Skpdq/s)/abs(Sk/s), S_kneighbors_bins, S_k_point_bins, binned_sign)
+    R, ΔR = jackknife((Sqpdq, Sq) -> 1 - Sqpdq/Sq, Sqpdq_bins, Sq_bins)
 
-    return R, real(ΔR)
+    # close HDF5 file
+    close(H5File)
+
+    return R, ΔR
 end
 
 
 @doc raw"""
     compute_composite_correlation_ratio(
         comm::MPI.Comm;
-        # Keyword Arguments
-        folder::String,
-        correlation::String,
+        # KEYWORD ARGUMENTS
+        datafolder::String,
+        name::String,
         type::String,
-        k_point,
-        num_bins::Int = 0,
-        pIDs::Vector{Int} = Int[],
-    )
+        q_point::NTuple{D,Int},
+        q_neighbors::Vector{NTuple{D,Int}},
+        pIDs::Vector{Int} = Int[]
+    ) where {D}
 
     compute_composite_correlation_ratio(;
         # Keyword Arguments
-        folder::String,
-        correlation::String,
+        datafolder::String,
+        name::String,
         type::String,
-        k_point,
+        q_point::NTuple{D,Int},
+        q_neighbors::Vector{NTuple{D,Int}},
         num_bins::Int = 0,
-        pIDs::Vector{Int} = Int[],
-    )
+        pIDs::Union{Int,Vector{Int}} = Int[]
+    ) where {D}
 
-Compute the correlation ratio for a specified ``\mathbf{k}``-point for the specified composite `correlation` function.
-If `type` is `"equal-time"` or `"time-displaced"` then the equal-time correlation ratio is calculated.
-If `type` is "integrated" then the integrated correlation ratio is calculated.
+
 """
 function compute_composite_correlation_ratio(
     comm::MPI.Comm;
-    # Keyword Arguments
-    folder::String,
-    correlation::String,
+    # KEYWORD ARGUMENTS
+    datafolder::String,
+    name::String,
     type::String,
-    k_point,
+    q_point::NTuple{D,Int},
+    q_neighbors::Vector{NTuple{D,Int}},
     num_bins::Int = 0,
-    pIDs::Vector{Int} = Int[],
-)
-    @assert type ∈ ("equal-time", "time-displaced", "integrated")
-    @assert correlation ∉ keys(CORRELATION_FUNCTIONS)
+    pIDs::Vector{Int} = Int[]
+) where {D}
 
-    # set the walkers to iterate over
-    if isempty(pIDs)
-
-        # get the number of MPI walkers
-        N_walkers = get_num_walkers(folder)
-
-        # get the pIDs
-        pIDs = collect(0:(N_walkers-1))
-    end
-
-    # get dimension and size of lattice
-    β, Δτ, Lτ, model_geometry = load_model_summary(folder)
-    lattice = model_geometry.lattice
-    L = lattice.L # size of lattice
-    D = ndims(lattice) # dimension of lattice
-
-    # calculate relevent k-points
-    @assert length(k_point) == ndims(lattice)
-
-    # get central k-point and 2⋅D neighboring k-points
-    k = tuple(k_point...)
-    k_neighbors = NTuple{D,Int}[]
-    for d in 1:D
-        push!(k_neighbors, tuple(( mod(k[d′]+isequal(d′,d),L[d]) for d′ in eachindex(k) )...))
-        push!(k_neighbors, tuple(( mod(k[d′]-isequal(d′,d),L[d]) for d′ in eachindex(k) )...))
-    end
-
-    # get the MPI rank
-    mpiID = MPI.Comm_rank(comm)
-
-    # get the number of MPI ranks
-    @assert length(pIDs) == MPI.Comm_size(comm)
+    # number of MPI processes
     N_mpi = MPI.Comm_size(comm)
 
-    # get the pID corresponding to mpiID
-    pID = pIDs[mpiID+1]
+    # determine relevant pIDs
+    pIDs = isempty(pIDs) ? collect(0:N_mpi-1) : pIDs
+    pID = pIDs[MPI.Comm_rank(comm) + 1]
 
-    # compute correlation ratio for current pID
-    R, ΔR = _compute_composite_correlation_ratio(folder, correlation, type, k, k_neighbors, num_bins, pID)
-    varR = ΔR^2
+    # compute correlation ratio
+    R, ΔR = _compute_composite_correlation_ratio(
+        datafolder, name, type, q_point, q_neighbors, num_bins, pID
+    )
+    varR = abs2(ΔR)
 
     # perform an all-reduce to get the average statics calculate on all MPI processes
     R    = MPI.Allreduce(R, +, comm)
@@ -303,156 +276,135 @@ function compute_composite_correlation_ratio(
     R    = R / N_mpi
     ΔR   = sqrt(varR) / N_mpi
 
-    return R, real(ΔR)
-end
-
-# compute correlation ratio using single process
-function compute_composite_correlation_ratio(;
-    # Keyword Arguments
-    folder::String,
-    correlation::String,
-    type::String,
-    k_point,
-    num_bins::Int = 0,
-    pIDs::Vector{Int} = Int[],
-)
-    @assert type ∈ ("equal-time", "time-displaced", "integrated")
-    @assert correlation ∉ keys(CORRELATION_FUNCTIONS)
-
-    # set the walkers to iterate over
-    if isempty(pIDs)
-
-        # get the number of MPI walkers
-        N_walkers = get_num_walkers(folder)
-
-        # get the pIDs
-        pIDs = collect(0:(N_walkers-1))
-    end
-
-    # get dimension and size of lattice
-    β, Δτ, Lτ, model_geometry = load_model_summary(folder)
-    lattice = model_geometry.lattice
-    L = lattice.L # size of lattice
-    D = ndims(lattice) # dimension of lattice
-
-    # calculate relevent k-points
-    @assert length(k_point) == ndims(lattice)
-
-    # get central k-point and 2⋅D neighboring k-points
-    k = tuple(k_point...)
-    k_neighbors = NTuple{D,Int}[]
-    for d in 1:D
-        push!(k_neighbors, tuple(( mod(k[d′]+isequal(d′,d),L[d]) for d′ in eachindex(k) )...))
-        push!(k_neighbors, tuple(( mod(k[d′]-isequal(d′,d),L[d]) for d′ in eachindex(k) )...))
-    end
-
-    # initialize mean and variance of correlation ratio to zero
-    R, varR = zero(β), zero(β)
-
-    # iterate over pIDs
-    for i in eachindex(pIDs)
-        # calcuate correlation ratio for current PID
-        Ri, ΔRi = _compute_composite_correlation_ratio(folder, correlation, type, k, k_neighbors, num_bins, pIDs[i])
-        R += Ri
-        varR += abs2(ΔRi)
-    end
-    # normalize the final measurements, computing the final standard deviation
-    R /= length(pIDs)
-    ΔR = sqrt(varR) / length(pIDs)
-
-    return R, real(ΔR)
-end
-
-
-# compute the correlation ratio for a single walker (single pID)
-function _compute_composite_correlation_ratio(
-    folder::String,
-    correlation::String,
-    type::String,
-    k_point::NTuple{D,Int},
-    kneighbors::Vector{NTuple{D,Int}},
-    num_bins::Int,
-    pID::Int
-) where {D}
-
-    # construct directory name containing binary data
-    dir = joinpath(folder, type, correlation, "momentum")
-
-    # get the number of files/measurements
-    N_files = length(glob(@sprintf("*_pID-%d.jld2", pID), dir))
-
-    # defaults num_bins to N_files if num_bins is zero
-    num_bins = iszero(num_bins) ? N_files : num_bins
-
-    # get bin intervals
-    bin_intervals = get_bin_intervals(folder, num_bins, pID)
-
-    # get the binned average sign
-    binned_sign = get_average_sign(folder, bin_intervals, pID)
-
-    # get data type
-    T = real(eltype(binned_sign))
-
-    # binned structure factor at k-point
-    S_k_point_bins = zeros(Complex{T}, num_bins)
-
-    # binned average structure factor of neighboring k-points
-    S_kneighbors_bins = zeros(Complex{T}, num_bins)
-
-    # whether to load time-displaced data or not
-    Δl = isequal(type, "time-displaced") ? 0 : -1
-
-    # load k-point data
-    _load_binned_composite_correlation!(S_k_point_bins, bin_intervals, dir, k_point, Δl, pID, 1.0)
-
-    # iterate over neighboring k-points
-    for n in eachindex(kneighbors)
-        # load neighboring k-point data
-        _load_binned_composite_correlation!(S_kneighbors_bins, bin_intervals, dir, kneighbors[n], Δl, pID, inv(2*D))
-    end
-
-    # calculate composite correlation ratio
-    R, ΔR = jackknife((Skpdq, Sk, s) -> 1 - abs(Skpdq/s)/abs(Sk/s), S_kneighbors_bins, S_k_point_bins, binned_sign)
-
     return R, ΔR
 end
 
 
-# load binned equal-time or integrated composite correlation data
-function _load_binned_composite_correlation!(
-    binned_vals::AbstractVector{Complex{T}},
-    bin_intervals::Vector{UnitRange{Int}},
-    dir::String,
-    loc::NTuple{D,Int},
-    Δl::Int,
-    pID::Int,
-    coef = one(Complex{T})
-) where {D, T<:AbstractFloat}
+function compute_composite_correlation_ratio(;
+    # Keyword Arguments
+    datafolder::String,
+    name::String,
+    type::String,
+    q_point::NTuple{D,Int},
+    q_neighbors::Vector{NTuple{D,Int}},
+    num_bins::Int = 0,
+    pIDs::Union{Int,Vector{Int}} = Int[]
+) where {D}
 
-    # number of bins
-    num_bins = length(bin_intervals)
-
-    # calculate the bin size
-    bin_size = length(bin_intervals[1])
-
-    # iterate over bins
-    for bin in 1:num_bins
-        # iterate over bin elements
-        for i in bin_intervals[bin]
-            # construct filename
-            file = joinpath(dir, @sprintf("bin-%d_pID-%d.jld2", i, pID))
-            # load correlation data
-            corr = OffsetArrays.Origin(0)(JLD2.load(file, "correlations"))
-            # record the relevant correlations
-            if Δl < 0
-                binned_vals[bin] += coef * corr[loc...]
-            else
-                binned_vals[bin] += coef * corr[loc..., Δl]
-            end
-        end
-        # normalize binned data
-        binned_vals[bin] /= bin_size
+    # determine relevant process IDs
+    pIDs = isa(pIDs, Int) ? [pIDs,] : pIDs
+    if isempty(pIDs)
+        pIDs = collect( 0 : length(readdir(joinpath(datafolder,"bins")))-1 )
     end
 
-    return nothing
+    # initialize correlation ratio mean and variance to zero
+    R = complex(0.0)
+    varR = 0.0
+
+    # iterate over process IDs
+    for pID in pIDs
+
+        # compute correlation ratio for current process ID
+        R′, ΔR′ = _compute_composite_correlation_ratio(
+            datafolder, name, type, q_point, q_neighbors, num_bins, pID
+        )
+
+        # record statistics
+        R += R′
+        varR += abs2(ΔR′)
+    end
+
+    # calculate final stats
+    N_pID = length(pIDs)
+    R = R / N_pID
+    ΔR = sqrt(varR)/ N_pID
+
+    return R, ΔR
+end
+
+# compute composite correlation ratio for single process
+function _compute_composite_correlation_ratio(
+    datafolder::String,
+    correlation::String,
+    type::String,
+    q_point::NTuple{D,Int},
+    q_neighbors::Vector{NTuple{D,Int}},
+    num_bins::Int,
+    pID::Int
+) where {D}
+
+    @assert(
+        !in(correlation, keys(CORRELATION_FUNCTIONS)),
+        "The $correlation correlation is a standard correlation function when it should be a named composite correlation function."
+    )
+
+    # construct filename for HDF5 file containing binned data
+    filename = joinpath(datafolder, "bins", @sprintf("bins_pID-%d.h5", pID))
+
+    # uppercase type definition
+    Type = uppercase(type)
+
+    # open HDF5 bin file
+    H5File = h5open(filename, "r")
+
+    # get all the sgn data
+    sgn = read(H5File["GLOBAL/sgn"])
+
+    # set number of bins if necessary
+    num_bins = iszero(num_bins) ? length(sgn) : num_bins
+    @assert length(sgn) % num_bins == 0
+
+    # initialize vectors to contain structure factors
+    Sq_bins = zeros(eltype(sgn), num_bins)
+    Sqpdq_bins = zeros(eltype(sgn), num_bins)
+
+    # number of neighboring wave-vector to average over
+    Ndq = length(q_neighbors)
+
+    # open HDF5 
+    Correlation = H5File["CORRELATIONS"]["COMPOSITE"][Type][correlation]
+
+    # get dataset containing momentum data
+    Momentum = Correlation["MOMENTUM"]
+
+    # if time-displaced correlation measurement
+    if Type == "TIME-DISPLACED"
+
+        # record structure factor corresponding to ordering wave-vector
+        Sq_bins += bin_means(Momentum[:,(q_point[d]+1 for d in 1:D)...,1], num_bins)
+
+        # iterate over neighboring wave-vectors
+        for n in 1:Ndq
+
+            # get the neighboring wave-vector
+            q_neighbor = q_neighbors[n]
+
+            # record structure factor corresponding to ordering wave-vector
+            Sqpdq_bins += bin_means(Momentum[:,(q_neighbor[d]+1 for d in 1:D)...,1], num_bins) / Ndq
+        end
+
+    # if equal-time or integrated correlation measurement
+    else
+
+        # record structure factor corresponding to ordering wave-vector
+        Sq_bins += bin_means(Momentum[:,(q_point[d]+1 for d in 1:D)...], num_bins)
+
+        # iterate over neighboring wave-vectors
+        for n in 1:Ndq
+
+            # get the neighboring wave-vector
+            q_neighbor = q_neighbors[n]
+
+            # record structure factor corresponding to ordering wave-vector
+            Sqpdq_bins += bin_means(Momentum[:,(q_neighbor[d]+1 for d in 1:D)...], num_bins) / Ndq
+        end
+    end
+
+    # calculate composite correlation ratio
+    R, ΔR = jackknife((Sqpdq, Sq) -> 1 - Sqpdq/Sq, Sqpdq_bins, Sq_bins)
+
+    # close HDF5 file
+    close(H5File)
+
+    return R, ΔR
 end

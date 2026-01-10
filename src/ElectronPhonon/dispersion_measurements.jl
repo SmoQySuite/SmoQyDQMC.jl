@@ -1,6 +1,8 @@
 @doc raw"""
-    measure_dispersion_energy(electron_phonon_parameters::ElectronPhononParameters{T,E},
-                           dispersion_id::Int) where {T<:Number, E<:AbstractFloat}
+    measure_dispersion_energy(
+        electron_phonon_parameters::ElectronPhononParameters{T,E},
+        dispersion_id::Int
+    ) where {T<:Number, E<:AbstractFloat}
 
 Evaluate the average dispersion energy
 ```math
@@ -10,8 +12,10 @@ Evaluate the average dispersion energy
 where ``M_{\rm red} = \frac{M_i M_j}{M_i + M_j}`` is the reduced mass, for the dispersive coupling
 definition specified by `dispersion_id`.
 """
-function measure_dispersion_energy(electron_phonon_parameters::ElectronPhononParameters{T,E},
-                                dispersion_id::Int) where {T<:Number, E<:AbstractFloat}
+function measure_dispersion_energy(
+    electron_phonon_parameters::ElectronPhononParameters{T,E},
+    dispersion_id::Int
+) where {T<:Number, E<:AbstractFloat}
 
     dispersion_parameters = electron_phonon_parameters.dispersion_parameters::DispersionParameters{E}
     phonon_parameters = electron_phonon_parameters.phonon_parameters::PhononParameters{E}
@@ -23,9 +27,11 @@ function measure_dispersion_energy(electron_phonon_parameters::ElectronPhononPar
     return ϵ_disp
 end
 
-function measure_dispersion_energy(dispersion_parameters::DispersionParameters{T},
-                                M::Vector{T}, x::Matrix{T},
-                                dispersion_id::Int) where {T<:AbstractFloat}
+function measure_dispersion_energy(
+    dispersion_parameters::DispersionParameters{T},
+    M::Vector{T}, x::Matrix{T},
+    dispersion_id::Int
+) where {T<:AbstractFloat}
 
     (; ndispersion, Ndispersion, Ω, Ω4, dispersion_to_phonon) = dispersion_parameters
 
