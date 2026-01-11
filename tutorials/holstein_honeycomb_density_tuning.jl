@@ -7,7 +7,7 @@
 # electron density or filling fraction.
 
 # ## Import Packages
-# Compared to the previous [1c) Square Hubbard Model with Checkpointing](@ref) tutorial,
+# Compared to the previous [2c) Honeycomb Holstein Model with Checkpointing](@ref) tutorial,
 # we now need to import the [MuTuner.jl](https://github.com/cohensbw/MuTuner.jl.git)
 # package, which is reexported by [SmoQyDQMC.jl](https://github.com/SmoQySuite/SmoQyDQMC.jl.git)
 
