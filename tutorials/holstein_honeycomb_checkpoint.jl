@@ -461,7 +461,7 @@ function run_simulation(
 
 # ## Thermalize system
 # The first change we need to make to this section is to have the for-loop iterate from `n_therm:N_therm` instead of `1:N_therm`.
-# The other change we need make to this section of the code from the previous [1b) Square Hubbard Model with MPI Parallelization](@ref) tutorial
+# The other change we need to make to this section of the code from the previous [2b) Honeycomb Holstein Model with MPI Parallelization](@ref) tutorial
 # is to add a call to the [`write_jld2_checkpoint`](@ref) function at the end of each iteration of the
 # for-loop in which we perform the thermalization updates.
 # When calling this function we need to pass it the timestamp for the previous checkpoint `checkpoint_timestamp`
@@ -697,7 +697,7 @@ end # end of run_simulation function
 # ```bash
 # srun julia holstein_honeycomb_checkpoint.jl 1 1.0 1.5 0.0 3 4.0 5000 10000 100 0.5
 # ```
-# Refer to the previous [1b) Square Hubbard Model with MPI Parallelization](@ref) tutorial for more details on how to run the simulation
+# Refer to the previous [2b) Honeycomb Holstein Model with MPI Parallelization](@ref) tutorial for more details on how to run the simulation
 # script using MPI.
 
 # In the example calls above the code will write a new checkpoint if more than 30 minutes (0.5 hours) has passed since the last checkpoint file was written.

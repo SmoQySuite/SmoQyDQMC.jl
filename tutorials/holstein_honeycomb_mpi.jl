@@ -1,4 +1,8 @@
 # # 2b) Honeycomb Holstein Model with MPI Parallelization
+# This tutorial will build on the previous [2a) Honeycomb Holstein Model](@ref) tutorial, demonstrating
+# how to add parallelization with MPI using the [MPI.jl](https://github.com/JuliaParallel/MPI.jl.git) package.
+# By this we mean that each MPI process will act as independent walker, running it's own independent DQMC simulation,
+# with the final reported estimates for measured quantities being the average across all walkers. 
 
 # ## Import packages
 # We now need to import the [MPI.jl](https://github.com/JuliaParallel/MPI.jl.git) package as well.
