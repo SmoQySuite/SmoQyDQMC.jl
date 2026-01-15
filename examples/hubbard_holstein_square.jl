@@ -331,7 +331,7 @@ function run_simulation(
             integrated = true
         )
 
-        # Initialize trace of bond correlation measurements.
+        ## Initialize trace of bond correlation measurements.
         initialize_composite_correlation_measurement!(
             measurement_container = measurement_container,
             model_geometry = model_geometry,
