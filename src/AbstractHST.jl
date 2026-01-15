@@ -36,8 +36,8 @@ abstract type AbstractAsymHST{T, R} <: AbstractHST{T, R} end
     initialize!(
         fermion_path_integral_up::FermionPathIntegral{H},
         fermion_path_integral_dn::FermionPathIntegral{H},
-        hst_parameters::Tuple{Vararg{<:AbstractHST{T},N}}
-    ) where {H<:Number, T<:Number, N}
+        hst_parameters::Tuple{Vararg{HST} where HST<:AbstractHST{T}}
+    ) where {H<:Number, T<:Number}
 
     initialize!(
         fermion_path_integral::FermionPathIntegral{H},
@@ -46,8 +46,8 @@ abstract type AbstractAsymHST{T, R} <: AbstractHST{T, R} end
 
     initialize!(
         fermion_path_integral::FermionPathIntegral{H},
-        hst_parameters::Tuple{Vararg{<:AbstractSymHST{T},N}}
-    ) where {H<:Number, T<:Number, N}
+        hst_parameters::Tuple{Vararg{HST} where HST<:AbstractSymHST{T}}
+    ) where {H<:Number, T<:Number}
 
 Initialize a `FermionPathIntegral` integral type to reflect the the current Hubbard-Stratonovich
 transformation type represented by `hst_parameters`.
@@ -68,8 +68,8 @@ end
 function initialize!(
     fermion_path_integral_up::FermionPathIntegral{H},
     fermion_path_integral_dn::FermionPathIntegral{H},
-    hst_parameters::Tuple{Vararg{<:AbstractHST{T},N}}
-) where {H<:Number, T<:Number, N}
+    hst_parameters::Tuple{Vararg{HST} where HST<:AbstractHST{T}}
+) where {H<:Number, T<:Number}
 
     for hst_params in hst_parameters
         _initialize!(fermion_path_integral_up, fermion_path_integral_dn, hst_params)
@@ -91,8 +91,8 @@ end
 
 function initialize!(
     fermion_path_integral::FermionPathIntegral{H},
-    hst_parameters::Tuple{Vararg{<:AbstractSymHST{T},N}}
-) where {H<:Number, T<:Number, N}
+    hst_parameters::Tuple{Vararg{HST} where HST<:AbstractSymHST{T}}
+) where {H<:Number, T<:Number}
 
     for hst_params in hst_parameters
         _initialize!(fermion_path_integral, hst_params)
@@ -236,7 +236,7 @@ end
         # ARGUMENTS
         Gup::Matrix{H}, logdet,Gup::R, sgndetGup::H,
         Gdn::Matrix{H}, logdetGdn::R, sgndetGdn::H,
-        hst_parameters::Tuple{Vararg{<:AbstractHST{T,R},N}};
+        hst_parameters::Tuple{Vararg{HST,N} where HST<:AbstractHST{T,R}};
         # KEYWORD ARGUMENTS
         fermion_path_integral_up::FermionPathIntegral{H},
         fermion_path_integral_dn::FermionPathIntegral{H},
@@ -260,7 +260,7 @@ Note that `acceptance_rates` is a tuple returning the acceptance rate for local 
 - `Gdn::Matrix{H}`: Spin-down equal-time Green's function matrix.
 - `logdetGdn::R`: The log of the absolute value of the determinant of the spin-down equal-time Green's function matrix, ``\log \vert \det G_\downarrow(\tau,\tau) \vert.``
 - `sgndetGdn::H`: The sign/phase of the determinant of the spin-down equal-time Green's function matrix, ``\det G_\downarrow(\tau,\tau) / \vert \det G_\downarrow(\tau,\tau) \vert.``
-- `hst_parameters::Tuple{Vararg{<:AbstractHST{T,R},N}}`: Tuple of parameters for multiple different Hubbard-Stratonovich transformation fields that will be sampled.
+- `hst_parameters::Tuple{Vararg{HST,N} where HST<:AbstractHST{T,R}}`: Tuple of parameters for multiple different Hubbard-Stratonovich transformation fields that will be sampled.
 
 ## Keyword Arguments
 
@@ -280,7 +280,7 @@ function local_updates!(
     # ARGUMENTS
     Gup::Matrix{H}, logdetGup::R, sgndetGup::H,
     Gdn::Matrix{H}, logdetGdn::R, sgndetGdn::H,
-    hst_parameters::Tuple{Vararg{<:AbstractHST{T,R},N}};
+    hst_parameters::Tuple{Vararg{HST,N} where HST<:AbstractHST{T,R}};
     # KEYWORD ARGUMENTS
     fermion_path_integral_up::FermionPathIntegral{H},
     fermion_path_integral_dn::FermionPathIntegral{H},
@@ -475,7 +475,7 @@ end
     local_updates!(
         # ARGUMENTS
         G::Matrix{H}, logdetG::R, sgndetG::H,
-        hst_parameters::Tuple{Vararg{<:AbstractSymHST{T,R},N}};
+        hst_parameters::Tuple{Vararg{HST,N} where HST<:AbstractSymHST{T,R}};
         # KEYWORD ARGUMENTS
         fermion_path_integral::FermionPathIntegral{H},
         fermion_greens_calculator::FermionGreensCalculator{H},
@@ -493,7 +493,7 @@ This method returns a tuple containing `(acceptance_rate, logdetG, sgndetG, δG,
 - `G::Matrix{H}`: Equal-time Green's function matrix.
 - `logdetG::R`: The log of the absolute value of the determinant of the equal-time Green's function matrix, ``\log \vert \det G(\tau,\tau) \vert.``
 - `sgndetG::H`: The sign/phase of the determinant of the equal-time Green's function matrix, ``\det G(\tau,\tau) / \vert \det G(\tau,\tau) \vert.``
-- `hst_parameters::Tuple{Vararg{<:AbstractSymHST{T,R},N}}`: Tuple of parameters for multiple different spin-symmetric Hubbard-Stratonovich transformation fields that will be sampled.
+- `hst_parameters::Tuple{Vararg{HST,N} where HST<:AbstractSymHST{T,R}}`: Tuple of parameters for multiple different spin-symmetric Hubbard-Stratonovich transformation fields that will be sampled.
 
 ## Keyword Arguments
 
@@ -509,7 +509,7 @@ This method returns a tuple containing `(acceptance_rate, logdetG, sgndetG, δG,
 function local_updates!(
     # ARGUMENTS
     G::Matrix{H}, logdetG::R, sgndetG::H,
-    hst_parameters::Tuple{Vararg{<:AbstractSymHST{T,R},N}};
+    hst_parameters::Tuple{Vararg{HST,N} where HST<:AbstractSymHST{T,R}};
     # KEYWORD ARGUMENTS
     fermion_path_integral::FermionPathIntegral{H},
     fermion_greens_calculator::FermionGreensCalculator{H},

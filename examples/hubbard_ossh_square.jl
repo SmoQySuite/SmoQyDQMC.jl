@@ -1,4 +1,4 @@
-# # Square Optical Su-Schrieffer-Heeger Model
+# # Square Optical Su-Schrieffer-Heeger-Hubbard Model
 #
 # In this example we simulate the optical Su-Schrieffer-Heeger (OSSH)-Hubbard model on a square lattice, with a Hamiltonian given by
 # ```math
@@ -38,17 +38,17 @@ function run_simulation(
     L, # System size.
     β, # Inverse temperature.
     N_therm, # Number of thermalization updates.
-    N_updates, # Total number of measurements and measurement updates.
+    N_measurements, # Total number of measurements.
     N_bins, # Number of times bin-averaged measurements are written to file.
+    N_local_updates, # Number of local update sweeps per measurement.
     checkpoint_freq, # Frequency with which checkpoint files are written in hours.
     runtime_limit = Inf, # Simulation runtime limit in hours.
-    Nt = 10, # Number of time-steps in HMC update.
+    Nt = 8, # Number of time-steps in HMC update.
     Δτ = 0.05, # Discretization in imaginary time.
     n_stab = 10, # Numerical stabilization period in imaginary-time slices.
     δG_max = 1e-6, # Threshold for numerical error corrected by stabilization.
     symmetric = false, # Whether symmetric propagator definition is used.
     checkerboard = false, # Whether checkerboard approximation is used.
-    write_bins_concurrent = true, # Whether to write the HDF5 bins files during the simulation.
     seed = abs(rand(Int)), # Seed for random number generator.
     filepath = "." # Filepath to where data folder will be created.
 )
@@ -72,7 +72,7 @@ function run_simulation(
     simulation_info = SimulationInfo(
         filepath = filepath,
         datafolder_prefix = datafolder_prefix,
-        write_bins_concurrent = write_bins_concurrent,
+        write_bins_concurrent = (L > 10),
         sID = sID,
         pID = pID
     )
@@ -87,7 +87,7 @@ function run_simulation(
         n_therm = 1
 
         ## Begin measurement updates from start.
-        n_updates = 1
+        n_measurements = 1
 
         ## Initialize random number generator
         rng = Xoshiro(seed)
@@ -98,7 +98,7 @@ function run_simulation(
         ## Record simulation parameters.
         metadata["Nt"] = Nt
         metadata["N_therm"] = N_therm
-        metadata["N_updates"] = N_updates
+        metadata["N_measurements"] = N_measurements
         metadata["N_bins"] = N_bins
         metadata["n_stab"] = n_stab
         metadata["dG_max"] = δG_max
@@ -107,9 +107,6 @@ function run_simulation(
         metadata["seed"] = seed
         metadata["hmc_acceptance_rate"] = 0.0
         metadata["local_acceptance_rate"] = 0.0
-        metadata["swap_acceptance_rate"] = 0.0
-        metadata["ph_ref_acceptance_rate"] = 0.0
-        metadata["hst_ref_acceptance_rate"] = 0.0
 
         ## Initialize an instance of the type UnitCell.
         unit_cell = lu.UnitCell(
@@ -259,8 +256,7 @@ function run_simulation(
             rng = rng
         )
 
-        ## Apply Ising Hubbard-Stratonovich (HS) transformation to decouple the Hubbard interaction,
-        ## and initialize the corresponding HS fields that will be sampled in the DQMC simulation.
+        ## Apply Spin Channel Hirsch Hubbard-Stratonovich transformation.
         hst_parameters = HubbardSpinHirschHST(
             β = β, Δτ = Δτ,
             hubbard_parameters = hubbard_parameters,
@@ -392,6 +388,30 @@ function run_simulation(
             integrated = true
         )
 
+        ## Initialize the d-wave pair susceptibility measurement.
+        initialize_composite_correlation_measurement!(
+            measurement_container = measurement_container,
+            model_geometry = model_geometry,
+            name = "d-wave",
+            correlation = "pair",
+            ids = [bond_px_id, bond_nx_id, bond_py_id, bond_ny_id],
+            coefficients = [0.5, 0.5, -0.5, -0.5],
+            time_displaced = false,
+            integrated = true
+        )
+
+        ## Initialize the extended s-wave pair susceptibility measurement.
+        initialize_composite_correlation_measurement!(
+            measurement_container = measurement_container,
+            model_geometry = model_geometry,
+            name = "ext-s-wave",
+            correlation = "pair",
+            ids = [bond_px_id, bond_nx_id, bond_py_id, bond_ny_id],
+            coefficients = [0.5, 0.5, 0.5, 0.5],
+            time_displaced = false,
+            integrated = true
+        )
+
         ## Write initial checkpoint file.
         checkpoint_timestamp = write_jld2_checkpoint(
             comm,
@@ -399,8 +419,9 @@ function run_simulation(
             checkpoint_freq = checkpoint_freq,
             start_timestamp = start_timestamp,
             runtime_limit = runtime_limit,
+            exit_code = 13,
             ## Contents of checkpoint file below.
-            n_therm, n_updates,
+            n_therm, n_measurements,
             tight_binding_parameters, electron_phonon_parameters,
             hubbard_parameters, hst_parameters,
             measurement_container, model_geometry, metadata, rng
@@ -413,16 +434,16 @@ function run_simulation(
         checkpoint, checkpoint_timestamp = read_jld2_checkpoint(simulation_info)
 
         ## Unpack contents of checkpoint dictionary.
-        tight_binding_parameters    = checkpoint["tight_binding_parameters"]
-        hubbard_parameters          = checkpoint["hubbard_parameters"]
-        hst_parameters              = checkpoint["hst_parameters"]
-        electron_phonon_parameters  = checkpoint["electron_phonon_parameters"]
-        measurement_container       = checkpoint["measurement_container"]
-        model_geometry              = checkpoint["model_geometry"]
-        metadata                    = checkpoint["metadata"]
-        rng                         = checkpoint["rng"]
-        n_therm                     = checkpoint["n_therm"]
-        n_updates                   = checkpoint["n_updates"]
+        tight_binding_parameters = checkpoint["tight_binding_parameters"]
+        hubbard_parameters = checkpoint["hubbard_parameters"]
+        hst_parameters = checkpoint["hst_parameters"]
+        electron_phonon_parameters = checkpoint["electron_phonon_parameters"]
+        measurement_container = checkpoint["measurement_container"]
+        model_geometry = checkpoint["model_geometry"]
+        metadata = checkpoint["metadata"]
+        rng = checkpoint["rng"]
+        n_therm = checkpoint["n_therm"]
+        n_measurements = checkpoint["n_measurements"]
     end
 
     ## Allocate FermionPathIntegral type for both the spin-up and spin-down electrons.
@@ -481,40 +502,6 @@ function run_simulation(
     ## Iterate over number of thermalization updates to perform.
     for update in n_therm:N_therm
 
-        ## Perform a reflection update.
-        (accepted, logdetGup, sgndetGup, logdetGdn, sgndetGdn) = reflection_update!(
-            Gup, logdetGup, sgndetGup,
-            Gdn, logdetGdn, sgndetGdn,
-            electron_phonon_parameters,
-            fermion_path_integral_up = fermion_path_integral_up,
-            fermion_path_integral_dn = fermion_path_integral_dn,
-            fermion_greens_calculator_up = fermion_greens_calculator_up,
-            fermion_greens_calculator_dn = fermion_greens_calculator_dn,
-            fermion_greens_calculator_up_alt = fermion_greens_calculator_up_alt,
-            fermion_greens_calculator_dn_alt = fermion_greens_calculator_dn_alt,
-            Bup = Bup, Bdn = Bdn, rng = rng
-        )
-
-        ## Record whether the reflection update was accepted or rejected.
-        metadata["ph_ref_acceptance_rate"] += accepted
-
-        ## Perform a swap update.
-        (accepted, logdetGup, sgndetGup, logdetGdn, sgndetGdn) = swap_update!(
-            Gup, logdetGup, sgndetGup,
-            Gdn, logdetGdn, sgndetGdn,
-            electron_phonon_parameters,
-            fermion_path_integral_up = fermion_path_integral_up,
-            fermion_path_integral_dn = fermion_path_integral_dn,
-            fermion_greens_calculator_up = fermion_greens_calculator_up,
-            fermion_greens_calculator_dn = fermion_greens_calculator_dn,
-            fermion_greens_calculator_up_alt = fermion_greens_calculator_up_alt,
-            fermion_greens_calculator_dn_alt = fermion_greens_calculator_dn_alt,
-            Bup = Bup, Bdn = Bdn, rng = rng
-        )
-
-        ## Record whether the reflection update was accepted or rejected.
-        metadata["swap_acceptance_rate"] += accepted
-
         ## Perform an HMC update.
         (accepted, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = hmc_update!(
             Gup, logdetGup, sgndetGup,
@@ -532,38 +519,25 @@ function run_simulation(
         ## Record whether the HMC update was accepted or rejected.
         metadata["hmc_acceptance_rate"] += accepted
 
-        ## Perform reflection update for HS fields with randomly chosen site.
-        (accepted, logdetGup, sgndetGup, logdetGdn, sgndetGdn) = reflection_update!(
-            Gup, logdetGup, sgndetGup,
-            Gdn, logdetGdn, sgndetGdn,
-            hst_parameters,
-            fermion_path_integral_up = fermion_path_integral_up,
-            fermion_path_integral_dn = fermion_path_integral_dn,
-            fermion_greens_calculator_up = fermion_greens_calculator_up,
-            fermion_greens_calculator_dn = fermion_greens_calculator_dn,
-            fermion_greens_calculator_up_alt = fermion_greens_calculator_up_alt,
-            fermion_greens_calculator_dn_alt = fermion_greens_calculator_dn_alt,
-            Bup = Bup, Bdn = Bdn, rng = rng
-        )
+        ## Iterate over number of local updates to perform.
+        for local_update in 1:N_local_updates
 
-        ## Record whether reflection update was accepted or not.
-        metadata["hst_ref_acceptance_rate"] += accepted
+            ## Perform local update.
+            (acceptance_rate, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = local_updates!(
+                Gup, logdetGup, sgndetGup,
+                Gdn, logdetGdn, sgndetGdn,
+                hst_parameters,
+                fermion_path_integral_up = fermion_path_integral_up,
+                fermion_path_integral_dn = fermion_path_integral_dn,
+                fermion_greens_calculator_up = fermion_greens_calculator_up,
+                fermion_greens_calculator_dn = fermion_greens_calculator_dn,
+                Bup = Bup, Bdn = Bdn, δG_max = δG_max, δG = δG, δθ = δθ, rng = rng,
+                update_stabilization_frequency = true
+            )
 
-        ## Perform sweep all imaginary-time slice and orbitals, attempting an update to every HS field.
-        (acceptance_rate, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = local_updates!(
-            Gup, logdetGup, sgndetGup,
-            Gdn, logdetGdn, sgndetGdn,
-            hst_parameters,
-            fermion_path_integral_up = fermion_path_integral_up,
-            fermion_path_integral_dn = fermion_path_integral_dn,
-            fermion_greens_calculator_up = fermion_greens_calculator_up,
-            fermion_greens_calculator_dn = fermion_greens_calculator_dn,
-            Bup = Bup, Bdn = Bdn, δG_max = δG_max, δG = δG, δθ = δθ, rng = rng,
-            update_stabilization_frequency = true
-        )
-
-        ## Record acceptance rate for sweep.
-        metadata["local_acceptance_rate"] += acceptance_rate
+            ## Record acceptance rate for sweep.
+            metadata["local_acceptance_rate"] += acceptance_rate
+        end
 
         ## Write checkpoint file.
         checkpoint_timestamp = write_jld2_checkpoint(
@@ -573,9 +547,10 @@ function run_simulation(
             checkpoint_freq = checkpoint_freq,
             start_timestamp = start_timestamp,
             runtime_limit = runtime_limit,
+            exit_code = 13,
             ## Contents of checkpoint file below.
-            n_therm  = update + 1,
-            n_updates = 1,
+            n_therm = update + 1,
+            n_measurements = 1,
             tight_binding_parameters, electron_phonon_parameters,
             hubbard_parameters, hst_parameters,
             measurement_container, model_geometry, metadata, rng
@@ -587,44 +562,10 @@ function run_simulation(
     δθ = zero(logdetGup)
 
     ## Calculate the bin size.
-    bin_size = N_updates ÷ N_bins
+    bin_size = N_measurements ÷ N_bins
 
-    ## Iterate over updates and measurements.
-    for update in n_updates:N_updates
-
-        ## Perform a reflection update.
-        (accepted, logdetGup, sgndetGup, logdetGdn, sgndetGdn) = reflection_update!(
-            Gup, logdetGup, sgndetGup,
-            Gdn, logdetGdn, sgndetGdn,
-            electron_phonon_parameters,
-            fermion_path_integral_up = fermion_path_integral_up,
-            fermion_path_integral_dn = fermion_path_integral_dn,
-            fermion_greens_calculator_up = fermion_greens_calculator_up,
-            fermion_greens_calculator_dn = fermion_greens_calculator_dn,
-            fermion_greens_calculator_up_alt = fermion_greens_calculator_up_alt,
-            fermion_greens_calculator_dn_alt = fermion_greens_calculator_dn_alt,
-            Bup = Bup, Bdn = Bdn, rng = rng
-        )
-
-        ## Record whether the reflection update was accepted or rejected.
-        metadata["ph_ref_acceptance_rate"] += accepted
-
-        ## Perform a swap update.
-        (accepted, logdetGup, sgndetGup, logdetGdn, sgndetGdn) = swap_update!(
-            Gup, logdetGup, sgndetGup,
-            Gdn, logdetGdn, sgndetGdn,
-            electron_phonon_parameters,
-            fermion_path_integral_up = fermion_path_integral_up,
-            fermion_path_integral_dn = fermion_path_integral_dn,
-            fermion_greens_calculator_up = fermion_greens_calculator_up,
-            fermion_greens_calculator_dn = fermion_greens_calculator_dn,
-            fermion_greens_calculator_up_alt = fermion_greens_calculator_up_alt,
-            fermion_greens_calculator_dn_alt = fermion_greens_calculator_dn_alt,
-            Bup = Bup, Bdn = Bdn, rng = rng
-        )
-
-        ## Record whether the reflection update was accepted or rejected.
-        metadata["swap_acceptance_rate"] += accepted
+    ## Iterate over measurements.
+    for measurement in n_measurements:N_measurements
 
         ## Perform an HMC update.
         (accepted, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = hmc_update!(
@@ -643,38 +584,25 @@ function run_simulation(
         ## Record whether the HMC update was accepted or rejected.
         metadata["hmc_acceptance_rate"] += accepted
 
-        ## Perform reflection update for HS fields with randomly chosen site.
-        (accepted, logdetGup, sgndetGup, logdetGdn, sgndetGdn) = reflection_update!(
-            Gup, logdetGup, sgndetGup,
-            Gdn, logdetGdn, sgndetGdn,
-            hst_parameters,
-            fermion_path_integral_up = fermion_path_integral_up,
-            fermion_path_integral_dn = fermion_path_integral_dn,
-            fermion_greens_calculator_up = fermion_greens_calculator_up,
-            fermion_greens_calculator_dn = fermion_greens_calculator_dn,
-            fermion_greens_calculator_up_alt = fermion_greens_calculator_up_alt,
-            fermion_greens_calculator_dn_alt = fermion_greens_calculator_dn_alt,
-            Bup = Bup, Bdn = Bdn, rng = rng
-        )
+        ## Iterate over number of local updates to perform.
+        for local_update in 1:N_local_updates
 
-        ## Record whether reflection update was accepted or not.
-        metadata["hst_ref_acceptance_rate"] += accepted
+            ## Perform local update.
+            (acceptance_rate, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = local_updates!(
+                Gup, logdetGup, sgndetGup,
+                Gdn, logdetGdn, sgndetGdn,
+                hst_parameters,
+                fermion_path_integral_up = fermion_path_integral_up,
+                fermion_path_integral_dn = fermion_path_integral_dn,
+                fermion_greens_calculator_up = fermion_greens_calculator_up,
+                fermion_greens_calculator_dn = fermion_greens_calculator_dn,
+                Bup = Bup, Bdn = Bdn, δG_max = δG_max, δG = δG, δθ = δθ, rng = rng,
+                update_stabilization_frequency = true
+            )
 
-        ## Perform sweep all imaginary-time slice and orbitals, attempting an update to every HS field.
-        (acceptance_rate, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = local_updates!(
-            Gup, logdetGup, sgndetGup,
-            Gdn, logdetGdn, sgndetGdn,
-            hst_parameters,
-            fermion_path_integral_up = fermion_path_integral_up,
-            fermion_path_integral_dn = fermion_path_integral_dn,
-            fermion_greens_calculator_up = fermion_greens_calculator_up,
-            fermion_greens_calculator_dn = fermion_greens_calculator_dn,
-            Bup = Bup, Bdn = Bdn, δG_max = δG_max, δG = δG, δθ = δθ, rng = rng,
-            update_stabilization_frequency = true
-        )
-
-        ## Record acceptance rate for sweep.
-        metadata["local_acceptance_rate"] += acceptance_rate
+            ## Record acceptance rate for sweep.
+            metadata["local_acceptance_rate"] += acceptance_rate
+        end
 
         ## Make measurements.
         (logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = make_measurements!(
@@ -696,7 +624,7 @@ function run_simulation(
             measurement_container = measurement_container,
             simulation_info = simulation_info,
             model_geometry = model_geometry,
-            measurement = update,
+            measurement = measurement,
             bin_size = bin_size,
             Δτ = Δτ
         )
@@ -709,9 +637,10 @@ function run_simulation(
             checkpoint_freq = checkpoint_freq,
             start_timestamp = start_timestamp,
             runtime_limit = runtime_limit,
+            exit_code = 13,
             ## Contents of checkpoint file below.
-            n_therm  = N_therm + 1,
-            n_updates = update + 1,
+            n_therm = N_therm + 1,
+            n_measurements = measurement + 1,
             tight_binding_parameters, electron_phonon_parameters,
             hubbard_parameters, hst_parameters,
             measurement_container, model_geometry, metadata, rng
@@ -722,11 +651,8 @@ function run_simulation(
     merge_bins(simulation_info)
 
     ## Calculate acceptance rates.
-    metadata["hmc_acceptance_rate"] /= (N_updates + N_therm)
-    metadata["ph_ref_acceptance_rate"] /= (N_updates + N_therm)
-    metadata["swap_acceptance_rate"] /= (N_updates + N_therm)
-    metadata["local_acceptance_rate"] /= (N_updates + N_therm)
-    metadata["hst_ref_acceptance_rate"] /= (N_updates + N_therm)
+    metadata["hmc_acceptance_rate"] /= (N_measurements + N_therm)
+    metadata["local_acceptance_rate"] /= (N_local_updates * N_measurements + N_therm)
 
     ## Record largest numerical error encountered during simulation.
     metadata["dG"] = δG
@@ -741,8 +667,8 @@ function run_simulation(
         datafolder = simulation_info.datafolder,
         n_bins = N_bins,
         export_to_csv = true,
-        scientific_notation = false,
-        decimals = 9,
+        scientific_notation = true,
+        decimals = 6,
         delimiter = " "
     )
 
@@ -760,9 +686,26 @@ function run_simulation(
     )
 
     ## Record the correlation ratio.
-    metadata["Rbow_mean_real"] = real(Rbow)
-    metadata["Rbow_mean_imag"] = imag(Rbow)
+    metadata["Rbow_mean"] = real(Rbow)
     metadata["Rbow_std"] = ΔRbow
+
+    ## Calculate AFM correlation ratio.
+    Rafm, ΔRafm = compute_correlation_ratio(
+        datafolder = simulation_info.datafolder,
+        correlation = "spin_z",
+        type = "equal-time",
+        id_pairs = [(1, 1)],
+        id_pair_coefficients = [1.0],
+        q_point = (L÷2, L÷2),
+        q_neighbors = [
+            (L÷2+1, L÷2), (L÷2-1, L÷2),
+            (L÷2, L÷2+1), (L÷2, L÷2-1)
+        ]
+    )
+
+    ## Record the AFM correlation ratio mean and standard deviation.
+    metadata["Rafm_mean"] = real(Rafm)
+    metadata["Rafm_std"] = ΔRafm
 
     ## Write simulation summary TOML file.
     save_simulation_info(simulation_info, metadata)
@@ -788,17 +731,18 @@ if abspath(PROGRAM_FILE) == @__FILE__
     ## Run the simulation.
     run_simulation(
         comm;
-        sID             = parse(Int,     ARGS[1]),  # Simulation ID.
-        U               = parse(Float64, ARGS[2]),  # Hubbard interaction strength.
-        Ω               = parse(Float64, ARGS[3]),  # Phonon energy.
-        α               = parse(Float64, ARGS[4]),  # Electron-phonon coupling.
-        μ               = parse(Float64, ARGS[5]),  # Chemical potential.
-        L               = parse(Int,     ARGS[6]),  # System size.
-        β               = parse(Float64, ARGS[7]),  # Inverse temperature.
-        N_therm         = parse(Int,     ARGS[8]),  # Number of thermalization updates.
-        N_updates       = parse(Int,     ARGS[9]),  # Total number of measurements and measurement updates.
-        N_bins          = parse(Int,     ARGS[10]),  # Number of times bin-averaged measurements are written to file.
-        checkpoint_freq = parse(Float64, ARGS[11]), # Frequency with which checkpoint files are written in hours.
+        sID = parse(Int, ARGS[1]), # Simulation ID.
+        U = parse(Float64, ARGS[2]), # Hubbard interaction strength.
+        Ω = parse(Float64, ARGS[3]), # Phonon energy.
+        α = parse(Float64, ARGS[4]), # Electron-phonon coupling.
+        μ = parse(Float64, ARGS[5]), # Chemical potential.
+        L = parse(Int, ARGS[6]), # System size.
+        β = parse(Float64, ARGS[7]), # Inverse temperature.
+        N_therm = parse(Int, ARGS[8]), # Number of thermalization updates.
+        N_measurements = parse(Int, ARGS[9]), # Total number of measurements.
+        N_bins = parse(Int, ARGS[10]), # Number of times bin-averaged measurements are recorded.
+        N_local_updates = parse(Int, ARGS[11]), # Number of local updates per measurement.
+        checkpoint_freq = parse(Float64, ARGS[12]), # Frequency with which checkpoint files are written in hours.
     )
 
     ## Finalize MPI.

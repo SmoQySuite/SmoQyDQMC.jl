@@ -12,10 +12,9 @@
             L = 4,
             β = 1.0,
             N_therm = 1,
-            N_updates = 2,
+            N_measurements = 2,
             N_bins = 2,
             checkpoint_freq = 1.0,
-            write_bins_concurrent = false,
             filepath = tempdir()
         )
     )
