@@ -55,14 +55,14 @@ function run_simulation(;
     L, # System size.
     β, # Inverse temperature.
     N_therm, # Number of thermalization updates.
-    N_updates, # Total number of measurements and measurement updates.
-    N_bins, # Number of times bin-averaged measurements are written to file.
+    N_measurements, # Total number of measurements.
+    N_bins, # Number of measurement bins.
+    N_updates, # Number of updates per measurement.
     Δτ = 0.05, # Discretization in imaginary time.
     n_stab = 10, # Numerical stabilization period in imaginary-time slices.
     δG_max = 1e-6, # Threshold for numerical error corrected by stabilization.
     symmetric = false, # Whether symmetric propagator definition is used.
     checkerboard = false, # Whether checkerboard approximation is used.
-    write_bins_concurrent = true, # Whether to write binned data to file during simulation or hold it in memory.
     seed = abs(rand(Int)), # Seed for random number generator.
     filepath = "." # Filepath to where data folder will be created.
 )
@@ -72,10 +72,12 @@ function run_simulation(;
 # This is done by initializing an instances of the [`SimulationInfo`](@ref) type, and then calling the [`initialize_datafolder`](@ref) function.
 
 # Note that the `write_bins_concurrent` keyword arguments controls whether or not binned simulation measurement data
-# is written to file during the simulation, or held in memory and only written to file once the simulation is complete.
-# The default behavior is to `write_bins_concurrent = true` to mitigate concerns regarding the simulation using too much memory.
-# However, when performing simulations of small systems that do not take very long, writing data to file too frequently can
-# sometimes cause network latency issues on some clusters and HPC systems, in which case it may be advisable to set `write_bins_concurrent = false`.
+# is written to HDF5 file during the simulation, or held in memory and only written to file once the simulation is complete.
+# Here we decide how to set `write_bins_concurrent` based on the system size being simulated.
+# This is because when performing simulations of small systems that do not take very long, writing data to file too frequently can
+# sometimes cause network latency problems on clusters and HPC systems. However, for larger systems that take longer to simulate,
+# you are not limited by file IO frequency but rather by available memory, so writing data to file more frequently is preferred
+# in these cases.
 
     ## Construct the foldername the data will be written to.
     datafolder_prefix = @sprintf "hubbard_square_U%.2f_tp%.2f_mu%.2f_L%d_b%.2f" U t′ μ L β
@@ -84,7 +86,7 @@ function run_simulation(;
     simulation_info = SimulationInfo(
         filepath = filepath,                     
         datafolder_prefix = datafolder_prefix,
-        write_bins_concurrent = write_bins_concurrent,
+        write_bins_concurrent = (L > 10),
         sID = sID
     )
 
@@ -104,6 +106,7 @@ function run_simulation(;
 
     ## Record simulation parameters.
     metadata["N_therm"] = N_therm
+    metadata["N_measurements"] = N_measurements
     metadata["N_updates"] = N_updates
     metadata["N_bins"] = N_bins
     metadata["n_stab_init"] = n_stab
@@ -223,7 +226,7 @@ function run_simulation(;
 
 # Next we specify the non-interacting tight-binding term in our Hamiltonian with the [`TightBindingModel`](@ref) type.
 
-    ## Set neartest-neighbor hopping amplitude to unity,
+    ## Set nearest-neighbor hopping amplitude to unity,
     ## setting the energy scale in the model.
     t = 1.0
 
@@ -231,24 +234,24 @@ function run_simulation(;
     tight_binding_model = TightBindingModel(
         model_geometry = model_geometry,
         t_bonds = [bond_px, bond_py, bond_pxpy, bond_pxny], # defines hopping
-        t_mean  = [t, t, t′, t′], # defines corresponding mean hopping amplitude
-        t_std   = [0., 0., 0., 0.], # defines corresponding standard deviation in hopping amplitude
-        ϵ_mean  = [0.], # set mean on-site energy for each orbital in unit cell
-        ϵ_std   = [0.], # set standard deviation of on-site energy or each orbital in unit cell
-        μ       = μ # set chemical potential
+        t_mean = [t, t, t′, t′], # defines corresponding mean hopping amplitude
+        t_std = [0., 0., 0., 0.], # defines corresponding standard deviation in hopping amplitude
+        ϵ_mean = [0.], # set mean on-site energy for each orbital in unit cell
+        ϵ_std = [0.], # set standard deviation of on-site energy or each orbital in unit cell
+        μ  = μ # set chemical potential
     )
 
 # Finally, we define the Hubbard interaction with the [`HubbardModel`](@ref) type.
-# Here the boolean `ph_sym_form` keyword argument determines whether the particle-hole symemtric form (`ph_sym_form = true`) for the Hubbard
+# Here the boolean `ph_sym_form` keyword argument determines whether the particle-hole symmetric form (`ph_sym_form = true`) for the Hubbard
 # interaction ``U(\hat{n}_{\uparrow,i}-\tfrac{1}{2})(\hat{n}_{\downarrow,i}-\tfrac{1}{2})`` is used, or the form
 # ``U\hat{n}_{\uparrow,i}\hat{n}_{\downarrow,i}`` is used (`ph_sym_form = false`) instead.
 
     ## Define the Hubbard interaction in the model.
     hubbard_model = HubbardModel(
         ph_sym_form = true, # if particle-hole symmetric form for Hubbard interaction is used.
-        U_orbital   = [1], # orbitals in unit cell with Hubbard interaction.
-        U_mean      = [U], # mean Hubbard interaction strength for corresponding orbital species in unit cell.
-        U_std       = [0.], # standard deviation of Hubbard interaction strength for corresponding orbital species in unit cell.
+        U_orbital = [1], # orbitals in unit cell with Hubbard interaction.
+        U_mean = [U], # mean Hubbard interaction strength for corresponding orbital species in unit cell.
+        U_std = [0.], # standard deviation of Hubbard interaction strength for corresponding orbital species in unit cell.
     )
 
 # Note that most terms in our model can support random disorder.
@@ -295,7 +298,7 @@ function run_simulation(;
 # The [SmoQyDQMC.jl](https://github.com/SmoQySuite/SmoQyDQMC.jl.git) package implements four types of Hubbard-Stratonovich transformations
 # for decoupling the local Hubbard interaction, represented by the four types [`HubbardDensityHirschHST`](@ref), [`HubbardDensityGaussHermiteHST`](@ref),
 # [`HubbardSpinHirschHST`](@ref) and [`HubbardSpinGaussHermiteHST`]. In this example we will use the [`HubbardSpinHirschHST`](@ref) type
-# to decouple the local Hubabrd interactions.
+# to decouple the local Hubbard interactions.
 
     ## Apply Spin Hirsch Hubbard-Stratonovich (HS) transformation to decouple the Hubbard interaction,
     ## and initialize the corresponding HS fields that will be sampled in the DQMC simulation.
@@ -530,7 +533,7 @@ function run_simulation(;
 # This type of reflection update [has been shown](https://journals.aps.org/prb/abstract/10.1103/PhysRevB.44.10502)
 # to be important for mitigating ergodicity issues in large Hubbard ``U`` simulations.
 
-# In the block of code below, `N_therm` is the number of local sweeps and reflection updates that are performed to thermalize the system.
+# In the block of code below, `N_therm` is the number of local sweeps and reflection updates performed to thermalize the system.
 
     ## Iterate over number of thermalization updates to perform.
     for n in 1:N_therm
@@ -568,12 +571,12 @@ function run_simulation(;
     end
 
 # ## [Make measurements](@id hubbard_square_make_measurements)
-# In this next section of code we continue to sample the HS field with [`local_updates!`](@ref) function, but begin making measurements as well.
-# Here, `N_updates` refers to the number of times [`local_updates!`](@ref) is called,
-# as well as the number of times measurements are made using the [`make_measurements!`](@ref) function.
-# The parameter `N_bins` then controls the number of times bin-averaged measurements are written to binary
-# [JLD2](https://github.com/JuliaIO/JLD2.jl.git) files, subject to the constraint that `(N_updates % N_bins) == 0`.
-# Therefore, the number of measurements that are averaged over per bin is given by `bin_size = N_updates ÷ N_bins`.
+# In this next section of code we continue to sample the HS fields, but we also begin making measurements as well.
+# Here, `N_measurements` refers to the number of times measurements are made using the [`make_measurements!`](@ref) function,
+# and `N_updates` refers to the number of times [`local_updates!`](@ref) and [`reflection_update!`](@ref) are called between measurements being made.
+# The parameter `N_bins` then controls the number of times bin-averaged measurements are stored in an HDF5 that is either stored in memory or written to file,
+# subject to the constraint that `(N_measurements % N_bins) == 0`.
+# Therefore, the number of measurements that are averaged over per bin is given by `bin_size = N_measurements ÷ N_bins`.
 # The bin-averaged measurements are written to file once `bin_size` measurements are accumulated using the [`write_measurements!`](@ref) function.
 
     ## Reset diagnostic parameters used to monitor numerical stability to zero.
@@ -581,41 +584,45 @@ function run_simulation(;
     δθ = zero(logdetGup)
 
     ## Calculate the bin size.
-    bin_size = N_updates ÷ N_bins
+    bin_size = N_measurements ÷ N_bins
 
-    ## Iterate over updates and measurements.
-    for update in 1:N_updates
+    ## Iterate over measurements.
+    for measurement in 1:N_measurements
 
-        ## Perform reflection update for HS fields with randomly chosen site.
-        (accepted, logdetGup, sgndetGup, logdetGdn, sgndetGdn) = reflection_update!(
-            Gup, logdetGup, sgndetGup, Gdn, logdetGdn, sgndetGdn,
-            hst_parameters,
-            fermion_path_integral_up = fermion_path_integral_up,
-            fermion_path_integral_dn = fermion_path_integral_dn,
-            fermion_greens_calculator_up = fermion_greens_calculator_up,
-            fermion_greens_calculator_dn = fermion_greens_calculator_dn,
-            fermion_greens_calculator_up_alt = fermion_greens_calculator_up_alt,
-            fermion_greens_calculator_dn_alt = fermion_greens_calculator_dn_alt,
-            Bup = Bup, Bdn = Bdn, rng = rng
-        )
+        ## Iterate over updates between measurements.
+        for update in 1:N_updates
 
-        ## Record whether reflection update was accepted or not.
-        metadata["reflection_acceptance_rate"] += accepted
+            ## Perform reflection update for HS fields with randomly chosen site.
+            (accepted, logdetGup, sgndetGup, logdetGdn, sgndetGdn) = reflection_update!(
+                Gup, logdetGup, sgndetGup, Gdn, logdetGdn, sgndetGdn,
+                hst_parameters,
+                fermion_path_integral_up = fermion_path_integral_up,
+                fermion_path_integral_dn = fermion_path_integral_dn,
+                fermion_greens_calculator_up = fermion_greens_calculator_up,
+                fermion_greens_calculator_dn = fermion_greens_calculator_dn,
+                fermion_greens_calculator_up_alt = fermion_greens_calculator_up_alt,
+                fermion_greens_calculator_dn_alt = fermion_greens_calculator_dn_alt,
+                Bup = Bup, Bdn = Bdn, rng = rng
+            )
 
-        ## Perform sweep all imaginary-time slice and orbitals, attempting an update to every HS field.
-        (acceptance_rate, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = local_updates!(
-            Gup, logdetGup, sgndetGup, Gdn, logdetGdn, sgndetGdn,
-            hst_parameters,
-            fermion_path_integral_up = fermion_path_integral_up,
-            fermion_path_integral_dn = fermion_path_integral_dn,
-            fermion_greens_calculator_up = fermion_greens_calculator_up,
-            fermion_greens_calculator_dn = fermion_greens_calculator_dn,
-            Bup = Bup, Bdn = Bdn, δG_max = δG_max, δG = δG, δθ = δθ, rng = rng,
-            update_stabilization_frequency = false
-        )
+            ## Record whether reflection update was accepted or not.
+            metadata["reflection_acceptance_rate"] += accepted
 
-        ## Record acceptance rate.
-        metadata["local_acceptance_rate"] += acceptance_rate
+            ## Perform sweep all imaginary-time slice and orbitals, attempting an update to every HS field.
+            (acceptance_rate, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = local_updates!(
+                Gup, logdetGup, sgndetGup, Gdn, logdetGdn, sgndetGdn,
+                hst_parameters,
+                fermion_path_integral_up = fermion_path_integral_up,
+                fermion_path_integral_dn = fermion_path_integral_dn,
+                fermion_greens_calculator_up = fermion_greens_calculator_up,
+                fermion_greens_calculator_dn = fermion_greens_calculator_dn,
+                Bup = Bup, Bdn = Bdn, δG_max = δG_max, δG = δG, δθ = δθ, rng = rng,
+                update_stabilization_frequency = false
+            )
+
+            ## Record acceptance rate.
+            metadata["local_acceptance_rate"] += acceptance_rate
+        end
 
         ## Make measurements.
         (logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = make_measurements!(
@@ -636,7 +643,7 @@ function run_simulation(;
             measurement_container = measurement_container,
             simulation_info = simulation_info,
             model_geometry = model_geometry,
-            measurement = update,
+            measurement = measurement,
             bin_size = bin_size,
             Δτ = Δτ
         )
@@ -644,8 +651,8 @@ function run_simulation(;
 
 # ## Merge binned data
 # At this point the simulation is essentially complete, with all updates and measurements having been performed.
-# However, the binned measurement data resides in many seperate HDF5 files currently.
-# Here we will merge these seperate HDF5 files into a single file containing all the binned data
+# However, the binned measurement data resides in many separate HDF5 files currently.
+# Here we will merge these separate HDF5 files into a single file containing all the binned data
 # using the [`merge_bins`](@ref) function.
 
     ## Merge binned data into a single HDF5 file.
@@ -658,8 +665,8 @@ function run_simulation(;
 # This is done using the [`save_simulation_info`](@ref) function.
 
     ## Normalize acceptance rate.
-    metadata["local_acceptance_rate"] /=  (N_therm + N_updates)
-    metadata["reflection_acceptance_rate"] /= (N_therm + N_updates)
+    metadata["local_acceptance_rate"] /=  (N_therm + N_measurements * N_updates)
+    metadata["reflection_acceptance_rate"] /= (N_therm + N_measurements * N_updates)
 
     ## Record final stabilization period used at the end of the simulation.
     metadata["n_stab_final"] = fermion_greens_calculator_up.n_stab
@@ -674,7 +681,7 @@ function run_simulation(;
 # In this final section of code we post-process the binned data.
 # This includes calculating the final estimates for the mean and error of all measured observables,
 # which will be written to an HDF5 file using the [`process_measurements`](@ref) function.
-# Inside this function the binned data gets further rebinned into `n_bins`,
+# Inside this function the binned data gets further re-binned into `n_bins`,
 # where `n_bins` is any positive integer satisfying the constraints `(N_bins ≥ n_bin)` and `(N_bins % n_bins == 0)`.
 # Note that the [`process_measurements`](@ref) function has many additional keyword arguments that can be used to control the output.
 # For instance, in this example in addition to writing the statistics to an HDF5 file, we also export the statistics to CSV files
@@ -694,13 +701,13 @@ function run_simulation(;
 
 # A common measurement that needs to be computed at the end of a DQMC simulation is something called the correlation
 # ratio with respect to the ordering wave-vector for a specified type of structure factor measured during the simulation.
-# In the case of the square Hubbard model, we are interested in measureing the correlation ratio
+# In the case of the square Hubbard model, we are interested in measuring the correlation ratio
 # ```math
 # R_z(\mathbf{Q}_\text{afm}) = 1 - \frac{1}{4} \sum_{\delta\mathbf{q}} \frac{S_z(\mathbf{Q}_\text{afm} + \delta\mathbf{q})}{S_z(\mathbf{Q}_\text{afm})}
 # ```
 # with respect to the equal-time antiferromagnetic (AFM) structure factor ``S_z(\mathbf{Q}_\text{afm})``, where ``S_z(\mathbf{q})`` is the spin-``z``
 # equal-time structure factor and ``\mathbf{Q}_\text{afm} = (\pi/a, \pi/a)`` is the AFM ordering wave-vector.
-# The sum over ``\delta\mathbf{q}`` runs over the four wave-vectors that neigboring ``\mathbf{Q}_\text{afm}.``
+# The sum over ``\delta\mathbf{q}`` runs over the four wave-vectors that neighboring ``\mathbf{Q}_\text{afm}.``
 
 # Here we use the [`compute_correlation_ratio`](@ref) function to compute to compute this correlation ratio.
 # Note that the ``\mathbf{Q}_\text{afm}`` is specified using the `q_point` keyword argument, and the four neighboring wave-vectors
@@ -727,7 +734,7 @@ function run_simulation(;
     ## Record the AFM correlation ratio mean and standard deviation.
     metadata["Rafm_mean_real"] = real(Rafm)
     metadata["Rafm_mean_imag"] = imag(Rafm)
-    metadata["Rafm_std"]       = ΔRafm
+    metadata["Rafm_std"] = ΔRafm
 
     ## Write simulation summary TOML file.
     save_simulation_info(simulation_info, metadata)
@@ -749,25 +756,27 @@ if abspath(PROGRAM_FILE) == @__FILE__
 
     ## Run the simulation, reading in command line arguments.
     run_simulation(;
-        sID       = parse(Int,     ARGS[1]), # Simulation ID.
-        U         = parse(Float64, ARGS[2]), # Hubbard interaction strength.
-        t′        = parse(Float64, ARGS[3]), # Next-nearest-neighbor hopping amplitude.
-        μ         = parse(Float64, ARGS[4]), # Chemical potential.
-        L         = parse(Int,     ARGS[5]), # Lattice size.
-        β         = parse(Float64, ARGS[6]), # Inverse temperature.
-        N_therm   = parse(Int,     ARGS[7]), # Number of thermalization sweeps.
-        N_updates = parse(Int,     ARGS[8]), # Number of measurement sweeps.
-        N_bins    = parse(Int,     ARGS[9])  # Number times binned data is written to file.
+        sID = parse(Int, ARGS[1]), # Simulation ID.
+        U = parse(Float64, ARGS[2]), # Hubbard interaction strength.
+        t′ = parse(Float64, ARGS[3]), # Next-nearest-neighbor hopping amplitude.
+        μ = parse(Float64, ARGS[4]), # Chemical potential.
+        L = parse(Int, ARGS[5]), # Lattice size.
+        β = parse(Float64, ARGS[6]), # Inverse temperature.
+        N_therm = parse(Int, ARGS[7]), # Number of thermalization sweeps.
+        N_measurements = parse(Int, ARGS[8]), # Number of measurement to make.
+        N_bins = parse(Int, ARGS[9]), # Number of measurement bins.
+        N_updates = parse(Int, ARGS[10]) # Number of updates per measurement.
     )
 end
 
 # For instance, the command
 # ```
-# > julia hubbard_square.jl 1 5.0 -0.25 -2.0 4 4.0 2500 10000 100
+# > julia hubbard_square.jl 1 5.0 -0.25 -2.0 4 4.0 2000 2000 40 5
 # ```
 # runs a DQMC simulation of a ``N = 4 \times 4`` doped square Hubbard model at inverse temperature ``\beta = 4.0``
 # with interaction strength ``U = 5.0,`` chemical potential ``\mu = -2.0`` and next-nearest-neighbor hopping amplitude ``t^\prime = -0.25``.
-# In the DQMC simulation, ``2500`` sweeps through the lattice are be performed to thermalize the system.
-# Then an additional ``10,000`` sweeps are performed, after each of which measurements are made.
-# During the simulation, bin-averaged measurements are written to file ``100`` times,
-# with each bin of data containing the average of ``10,000/100 = 100`` sequential measurements.
+# In the DQMC simulation, ``2,000`` sweeps through the lattice are be performed to thermalize the system.
+# Then ``2,000`` measurements are made, each separated by ``5`` updates to the HS fields.
+# Therefore, a total of ``2,000 \times 5 = 10,000`` updates are performed during the measurement phase of the simulation.
+# During the simulation, bin-averaged measurements are written to file or stored in memory ``40`` times,
+# with each bin of data containing the average of ``2,000/40 = 50`` sequential measurements.

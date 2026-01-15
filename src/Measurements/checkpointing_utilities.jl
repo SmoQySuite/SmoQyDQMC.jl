@@ -176,8 +176,11 @@ function write_jld2_checkpoint(
         # synchronize MPI processes before exiting simulation
         MPI.Barrier(comm)
 
-        # exit simulation
-        MPI.Abort(comm, error_code)
+        # finalize MPI
+        MPI.Finalize()
+
+        # exit the simulation with given specified error code
+        exit(error_code)
     end
 
     return checkpoint_timestamp

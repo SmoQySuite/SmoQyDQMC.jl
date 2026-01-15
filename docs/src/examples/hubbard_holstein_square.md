@@ -1,25 +1,27 @@
 ```@meta
-EditURL = "../../../examples/hubbard_ossh_square.jl"
+EditURL = "../../../examples/hubbard_holstein_square.jl"
 ```
 
-# Square Optical Su-Schrieffer-Heeger-Hubbard Model
-Download this example as a [Julia script](../assets/scripts/examples/hubbard_ossh_square.jl).
+# Square Holstein-Hubbard Model
+Download this example as a [Julia script](../assets/scripts/examples/hubbard_holstein_square.jl).
 
-In this example we simulate the optical Su-Schrieffer-Heeger (OSSH)-Hubbard model on a square lattice, with a Hamiltonian given by
+In this example we simulate the Holstein-Hubbard model on a square lattice, with a Hamiltonian given by
 ```math
 \begin{align*}
-\hat{H} & = \sum_{\mathbf{i}}\left(\frac{1}{2M}\hat{P}_{\mathbf{i},x}^{2}+\frac{1}{2}M\Omega^{2}\hat{X}_{\mathbf{i}}^{2}\right) + \sum_{\mathbf{i}}\left(\frac{1}{2M}\hat{P}_{\mathbf{i},y}^{2}+\frac{1}{2}M\Omega^{2}\hat{Y}_{\mathbf{i}}^{2}\right) \\
-        & + U \sum_{\mathbf{i}}(\hat{n}_{\uparrow,\mathbf{i}}-\tfrac{1}{2}) (\hat{n}_{\downarrow,\mathbf{i}}-\tfrac{1}{2}) - \mu\sum_{\mathbf{i},\sigma}\hat{n}_{\sigma,\mathbf{i}}\\
-        & - \sum_{\mathbf{i},\sigma}\left[t-\alpha\left(\hat{X}_{\mathbf{i}+\mathbf{x}}-\hat{X}_{\mathbf{i}}\right)\right]\left(\hat{c}_{\sigma,\mathbf{i}+\mathbf{x}}^{\dagger}\hat{c}_{\sigma,\mathbf{i}}^{\phantom{\dagger}}+\hat{c}_{\sigma,\mathbf{i}}^{\dagger}\hat{c}_{\sigma,\mathbf{i}+\mathbf{x}}^{\phantom{\dagger}}\right) \\
-        & - \sum_{\mathbf{i},\sigma}\left[t-\alpha\left(\hat{Y}_{\mathbf{i}+\mathbf{y}}-\hat{Y}_{\mathbf{i}}\right)\right]\left(\hat{c}_{\sigma,\mathbf{i}+\mathbf{y}}^{\dagger}\hat{c}_{\sigma,\mathbf{i}}^{\phantom{\dagger}}+\hat{c}_{\sigma,\mathbf{i}}^{\dagger}\hat{c}_{\sigma,\mathbf{i}+\mathbf{y}}^{\phantom{\dagger}}\right),
+\hat{H} & = \sum_i \left( \frac{1}{2M}\hat{P}_i^2 + \frac{1}{2} M \Omega^2 \hat{X}_i^2 \right) \\
+& - t \sum_{\sigma,\langle i,j \rangle} \left( \hat{c}_{\sigma,i}^{\dagger} \hat{c}_{\sigma,j}^{\phantom\dagger} + \hat{c}_{\sigma,j}^{\dagger} \hat{c}_{\sigma,i}^{\phantom\dagger} \right) - \mu \sum_{\sigma,i} \hat{n}_{\sigma,i} \\
+& + U \sum_i \left( \hat{n}_{\uparrow,i} - \tfrac{1}{2} \right)\left( \hat{n}_{\downarrow,j} + \tfrac{1}{2} \right) + \alpha \sum_{\sigma,i} \hat{X}_i \left( \hat{n}_{\sigma,i} - \tfrac{1}{2} \right)
 \end{align*}
 ```
-in which the fluctuations in the position of dispersionless phonon modes placed on each site in the lattice modulate the hopping amplitude between neighboring sites.
-In the above expression ``\hat{c}^\dagger_{\sigma,\mathbf{i}} \ (\hat{c}^{\phantom \dagger}_{\sigma,\mathbf{i}})`` creation (annihilation) operator
-a spin ``\sigma`` electron on site ``\mathbf{i}`` in the lattice, and ``\hat{n}_{\sigma,\mathbf{i}} = \hat{c}^\dagger_{\sigma,\mathbf{i}} \hat{c}^{\phantom \dagger}_{\sigma,\mathbf{i}}``
-is corresponding electron number operator. The phonon position (momentum) operator for the dispersionless phonon mode on site ``\mathbf{i}``
-is given by ``\hat{X}_{\mathbf{i}} \ (\hat{P}_{\mathbf{i}})``, where ``\Omega`` and ``M`` are the phonon frequency and associated ion mass respectively.
-Therefore, the strength of the electron-phonon coupling is controlled by the parameter ``\alpha``. Lastly, the parameter ``U`` controls the strength of the on-site Hubbard interaction.
+in which the fluctuations in the position of dispersionless phonon modes placed on each site in the lattice modulate the on-site energy.
+In the above expression ``\hat{c}^\dagger_{\sigma,i} \ (\hat{c}^{\phantom \dagger}_{\sigma,i})`` creation (annihilation) operator
+a spin ``\sigma`` electron on site ``i`` in the lattice, and ``\hat{n}_{\sigma,i} = \hat{c}^\dagger_{\sigma,i} \hat{c}^{\phantom \dagger}_{\sigma,i}``
+is corresponding electron number operator. Here the sum over ``\langle i,j \rangle`` runs over all nearest-neighbor pairs of sites in the lattice,
+and ``t`` and ``\mu`` are the nearest-neighbor hopping amplitude and chemical potential, respectively.
+The phonon position (momentum) operator for the dispersionless phonon mode on site ``i``
+is given by ``\hat{X}_{i} \ (\hat{P}_{i})``, where ``\Omega`` and ``M`` are the phonon frequency and associated ion mass respectively.
+Therefore, the strength of the electron-phonon coupling is controlled by the parameter ``\alpha``.
+Lastly, the parameter ``U`` controls the strength of the on-site Hubbard interaction.
 
 Note that this example script comes with all the bells and whistles so to speak, including support for MPI parallelization as well as checkpointing.
 
@@ -46,7 +48,7 @@ function run_simulation(
     N_therm, # Number of thermalization updates.
     N_measurements, # Total number of measurements.
     N_bins, # Number of times bin-averaged measurements are written to file.
-    N_local_updates, # Number of local update sweeps per measurement.
+    N_local_updates, # Number of local update sweeps per HMC update and measurement.
     checkpoint_freq, # Frequency with which checkpoint files are written in hours.
     runtime_limit = Inf, # Simulation runtime limit in hours.
     Nt = 8, # Number of time-steps in HMC update.
@@ -69,7 +71,7 @@ function run_simulation(
     checkpoint_freq = checkpoint_freq * 60.0^2
 
     # Construct the foldername the data will be written to.
-    datafolder_prefix = @sprintf "square_hubbard_ossh_U%2.f_w%.2f_a%.2f_mu%.2f_L%d_b%.2f" U Ω α μ L β
+    datafolder_prefix = @sprintf "square_hol_hub_U%2.f_w%.2f_a%.2f_mu%.2f_L%d_b%.2f" U Ω α μ L β
 
     # Get MPI process ID.
     pID = MPI.Comm_rank(comm)
@@ -111,6 +113,7 @@ function run_simulation(
         metadata["symmetric"] = symmetric
         metadata["checkerboard"] = checkerboard
         metadata["seed"] = seed
+        metadata["reflection_acceptance_rate"] = 0.0
         metadata["hmc_acceptance_rate"] = 0.0
         metadata["local_acceptance_rate"] = 0.0
 
@@ -118,7 +121,7 @@ function run_simulation(
         unit_cell = lu.UnitCell(
             lattice_vecs = [[1.0,0.0],
                             [0.0,1.0]],
-            basis_vecs   = [[0.0,0.0]]
+            basis_vecs = [[0.0,0.0]]
         )
 
         # Initialize an instance of the type Lattice.
@@ -183,60 +186,33 @@ function run_simulation(
             tight_binding_model = tight_binding_model
         )
 
-        # Define a dispersionless phonon mode to represent vibrations in the x-direction.
-        phonon_x = PhononMode(
+        # Define a dispersionless phonon mode.
+        phonon = PhononMode(
             basis_vec = [0.0,0.0],
             Ω_mean = Ω
         )
 
-        # Add x-direction optical ssh phonon to electron-phonon model.
-        phonon_x_id = add_phonon_mode!(
+        # Add dispersionless phonon mode phonon to the model.
+        phonon_id = add_phonon_mode!(
             electron_phonon_model = electron_phonon_model,
-            phonon_mode = phonon_x
+            phonon_mode = phonon
         )
 
-        # Define a dispersionless phonon mode to represent vibrations in the y-direction.
-        phonon_y = PhononMode(
-            basis_vec = [0.0,0.0],
-            Ω_mean = Ω
-        )
-
-        # Add y-direction optical ssh phonon to electron-phonon model.
-        phonon_y_id = add_phonon_mode!(
-            electron_phonon_model = electron_phonon_model,
-            phonon_mode = phonon_y
-        )
-
-        # Defines ssh e-ph coupling such that total effective hopping.
-        ossh_x_coupling = SSHCoupling(
+        # Define first local Holstein coupling for first phonon mode.
+        holstein_coupling = HolsteinCoupling(
             model_geometry = model_geometry,
-            tight_binding_model = tight_binding_model,
-            phonon_ids = (phonon_x_id, phonon_x_id),
-            bond = bond_px,
-            α_mean = α
+            phonon_id = phonon_id,
+            orbital_id = 1,
+            displacement = [0, 0],
+            α_mean = α,
+            ph_sym_form = true,
         )
 
-        # Add x-direction optical SSH coupling to the electron-phonon model.
-        ossh_x_coupling_id = add_ssh_coupling!(
+        # Add Holstein coupling to the model.
+        holstein_coupling_id = add_holstein_coupling!(
             electron_phonon_model = electron_phonon_model,
-            ssh_coupling = ossh_x_coupling,
-            tight_binding_model = tight_binding_model
-        )
-
-        # Defines ssh e-ph coupling such that total effective hopping.
-        ossh_y_coupling = SSHCoupling(
-            model_geometry = model_geometry,
-            tight_binding_model = tight_binding_model,
-            phonon_ids = (phonon_y_id, phonon_y_id),
-            bond = bond_py,
-            α_mean = α
-        )
-
-        # Add y-direction optical SSH coupling to the electron-phonon model.
-        ossh_y_coupling_id = add_ssh_coupling!(
-            electron_phonon_model = electron_phonon_model,
-            ssh_coupling = ossh_y_coupling,
-            tight_binding_model = tight_binding_model
+            holstein_coupling = holstein_coupling,
+            model_geometry = model_geometry
         )
 
         # Write a model summary to file.
@@ -309,8 +285,7 @@ function run_simulation(
             correlation = "phonon_greens",
             time_displaced = true,
             pairs = [
-                (phonon_x_id, phonon_x_id),
-                (phonon_y_id, phonon_y_id)
+                (phonon_id, phonon_id)
             ]
         )
 
@@ -334,8 +309,6 @@ function run_simulation(
             time_displaced = false,
             integrated = true,
             pairs = [
-                # Measure local s-wave pair susceptibility associated with
-                # each orbital in the unit cell.
                 (1, 1),
             ]
         )
@@ -352,48 +325,6 @@ function run_simulation(
             ]
         )
 
-        # Initialize the bond correlation measurement
-        initialize_correlation_measurements!(
-            measurement_container = measurement_container,
-            model_geometry = model_geometry,
-            correlation = "bond",
-            time_displaced = false,
-            integrated = true,
-            pairs = [
-                (bond_px_id, bond_px_id),
-                (bond_py_id, bond_py_id),
-                (bond_px_id, bond_py_id),
-            ]
-        )
-
-        # Measure composite bond correlation for detecting a bond ordered wave (BOW)
-        # that breaks a C4 rotation symmetry.
-        initialize_composite_correlation_measurement!(
-            measurement_container = measurement_container,
-            model_geometry = model_geometry,
-            name = "BOW_C4",
-            correlation = "bond",
-            ids = [bond_px_id, bond_py_id, bond_nx_id, bond_ny_id],
-            coefficients = [+1.0, +1.0im, -1.0, -1.0im],
-            displacement_vecs = [[0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [0.0, 0.0]],
-            time_displaced = false,
-            integrated = true
-        )
-
-        # Measure composite bond correlation for detecting a bond ordered wave (BOW)
-        # that breaks a C2 rotation symmetry.
-        initialize_composite_correlation_measurement!(
-            measurement_container = measurement_container,
-            model_geometry = model_geometry,
-            name = "BOW_C2",
-            correlation = "bond",
-            ids = [bond_px_id, bond_py_id, bond_nx_id, bond_ny_id],
-            coefficients = [+1.0, -1.0, +1.0, -1.0],
-            displacement_vecs = [[0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [0.0, 0.0]],
-            time_displaced = false,
-            integrated = true
-        )
-
         # Initialize the d-wave pair susceptibility measurement.
         initialize_composite_correlation_measurement!(
             measurement_container = measurement_container,
@@ -402,18 +333,26 @@ function run_simulation(
             correlation = "pair",
             ids = [bond_px_id, bond_nx_id, bond_py_id, bond_ny_id],
             coefficients = [0.5, 0.5, -0.5, -0.5],
-            time_displaced = false,
+            time_displaced = true,
             integrated = true
         )
+````
 
-        # Initialize the extended s-wave pair susceptibility measurement.
+Initialize trace of bond correlation measurements.
+
+````julia
         initialize_composite_correlation_measurement!(
             measurement_container = measurement_container,
             model_geometry = model_geometry,
-            name = "ext-s-wave",
-            correlation = "pair",
-            ids = [bond_px_id, bond_nx_id, bond_py_id, bond_ny_id],
-            coefficients = [0.5, 0.5, 0.5, 0.5],
+            name = "tr_bonds",
+            correlation = "bond",
+            id_pairs = [
+                (bond_px_id, bond_px_id),
+                (bond_py_id, bond_py_id)
+            ],
+            coefficients = [
+                +1.0, +1.0
+            ],
             time_displaced = false,
             integrated = true
         )
@@ -508,6 +447,23 @@ function run_simulation(
     # Iterate over number of thermalization updates to perform.
     for update in n_therm:N_therm
 
+        # Perform a reflection update.
+        (accepted, logdetGup, sgndetGup, logdetGdn, sgndetGdn) = reflection_update!(
+            Gup, logdetGup, sgndetGup,
+            Gdn, logdetGdn, sgndetGdn,
+            electron_phonon_parameters,
+            fermion_path_integral_up = fermion_path_integral_up,
+            fermion_path_integral_dn = fermion_path_integral_dn,
+            fermion_greens_calculator_up = fermion_greens_calculator_up,
+            fermion_greens_calculator_dn = fermion_greens_calculator_dn,
+            fermion_greens_calculator_up_alt = fermion_greens_calculator_up_alt,
+            fermion_greens_calculator_dn_alt = fermion_greens_calculator_dn_alt,
+            Bup = Bup, Bdn = Bdn, rng = rng
+        )
+
+        # Record whether the reflection update was accepted or rejected.
+        metadata["reflection_acceptance_rate"] += accepted
+
         # Perform an HMC update.
         (accepted, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = hmc_update!(
             Gup, logdetGup, sgndetGup,
@@ -572,6 +528,23 @@ function run_simulation(
 
     # Iterate over measurements.
     for measurement in n_measurements:N_measurements
+
+        # Perform a reflection update.
+        (accepted, logdetGup, sgndetGup, logdetGdn, sgndetGdn) = reflection_update!(
+            Gup, logdetGup, sgndetGup,
+            Gdn, logdetGdn, sgndetGdn,
+            electron_phonon_parameters,
+            fermion_path_integral_up = fermion_path_integral_up,
+            fermion_path_integral_dn = fermion_path_integral_dn,
+            fermion_greens_calculator_up = fermion_greens_calculator_up,
+            fermion_greens_calculator_dn = fermion_greens_calculator_dn,
+            fermion_greens_calculator_up_alt = fermion_greens_calculator_up_alt,
+            fermion_greens_calculator_dn_alt = fermion_greens_calculator_dn_alt,
+            Bup = Bup, Bdn = Bdn, rng = rng
+        )
+
+        # Record whether the reflection update was accepted or rejected.
+        metadata["reflection_acceptance_rate"] += accepted
 
         # Perform an HMC update.
         (accepted, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = hmc_update!(
@@ -657,6 +630,7 @@ function run_simulation(
     merge_bins(simulation_info)
 
     # Calculate acceptance rates.
+    metadata["reflection_acceptance_rate"] /= (N_measurements + N_therm)
     metadata["hmc_acceptance_rate"] /= (N_measurements + N_therm)
     metadata["local_acceptance_rate"] /= (N_local_updates * N_measurements + N_therm)
 
@@ -678,22 +652,23 @@ function run_simulation(
         delimiter = " "
     )
 
-    # Calculate C4 BOW q=(π,π) correlation ratio.
-    Rbow, ΔRbow = compute_composite_correlation_ratio(
-        comm;
+    # Calculate CDW correlation ratio.
+    Rcdw, ΔRcdw = compute_correlation_ratio(
         datafolder = simulation_info.datafolder,
-        name = "BOW_C4",
+        correlation = "density",
         type = "equal-time",
+        id_pairs = [(1, 1)],
+        id_pair_coefficients = [1.0],
         q_point = (L÷2, L÷2),
         q_neighbors = [
-            (L÷2+1, L÷2), (L÷2, L÷2+1),
-            (L÷2-1, L÷2), (L÷2, L÷2-1)
+            (L÷2+1, L÷2), (L÷2-1, L÷2),
+            (L÷2, L÷2+1), (L÷2, L÷2-1)
         ]
     )
 
     # Record the correlation ratio.
-    metadata["Rbow_mean"] = real(Rbow)
-    metadata["Rbow_std"] = ΔRbow
+    metadata["Rcdw_mean"] = real(Rcdw)
+    metadata["Rcdw_std"] = ΔRcdw
 
     # Calculate AFM correlation ratio.
     Rafm, ΔRafm = compute_correlation_ratio(
@@ -747,7 +722,7 @@ if abspath(PROGRAM_FILE) == @__FILE__
         N_therm = parse(Int, ARGS[8]), # Number of thermalization updates.
         N_measurements = parse(Int, ARGS[9]), # Total number of measurements.
         N_bins = parse(Int, ARGS[10]), # Number of times bin-averaged measurements are recorded.
-        N_local_updates = parse(Int, ARGS[11]), # Number of local updates per measurement.
+        N_local_updates = parse(Int, ARGS[11]), # Number of local update sweeps per HMC update and measurement.
         checkpoint_freq = parse(Float64, ARGS[12]), # Frequency with which checkpoint files are written in hours.
     )
 

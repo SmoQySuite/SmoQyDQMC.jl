@@ -4,6 +4,7 @@
         "plaintext": false,
         "markdown": false,
         "scminput": false,
-        "julia": false
+        "python": true,
+        "julia": true
     }
 }

@@ -18,7 +18,7 @@ become very inefficient as simply providing an accurate measurement of the densi
 compressibility (which is used to adjust the chemical potential) will become challenging.
 
 ## Import Packages
-Compared to the previouse [1c) Square Hubbard Model with Checkpointing](@ref) tutorial,
+Compared to the previous [1c) Square Hubbard Model with Checkpointing](@ref) tutorial,
 we now need to import the [MuTuner.jl](https://github.com/cohensbw/MuTuner.jl.git)
 package, which is reexported by [SmoQyDQMC.jl](https://github.com/SmoQySuite/SmoQyDQMC.jl.git)
 
@@ -52,8 +52,9 @@ function run_simulation(
     L, # System size.
     β, # Inverse temperature.
     N_therm, # Number of thermalization updates.
-    N_updates, # Total number of measurements and measurement updates.
+    N_measurements, # Number of measurements to make.
     N_bins, # Number of times bin-averaged measurements are written to file.
+    N_updates, # Number of updates between measurements.
     checkpoint_freq, # Frequency with which checkpoint files are written in hours.
     runtime_limit = Inf, # Simulation runtime limit in hours.
     Δτ = 0.05, # Discretization in imaginary time.
@@ -61,7 +62,6 @@ function run_simulation(
     δG_max = 1e-6, # Threshold for numerical error corrected by stabilization.
     symmetric = false, # Whether symmetric propagator definition is used.
     checkerboard = false, # Whether checkerboard approximation is used.
-    write_bins_concurrent = true, # Whether to write HDF5 bins during the simulation.
     seed = abs(rand(Int)), # Seed for random number generator.
     filepath = "." # Filepath to where data folder will be created.
 )
@@ -91,7 +91,7 @@ No changes need to made to this section of the code from the previous
     simulation_info = SimulationInfo(
         filepath = filepath,
         datafolder_prefix = datafolder_prefix,
-        write_bins_concurrent = write_bins_concurrent,
+        write_bins_concurrent = (L > 10),
         sID = sID,
         pID = pID
     )
@@ -112,7 +112,7 @@ in the metadata dictionary.
         n_therm = 1
 
         # Begin measurement updates from start.
-        n_updates = 1
+        n_measurements = 1
 
         # Initialize random number generator
         rng = Xoshiro(seed)
@@ -123,8 +123,9 @@ in the metadata dictionary.
         # Record simulation parameters.
         metadata["mu"] = μ
         metadata["N_therm"] = N_therm
-        metadata["N_updates"] = N_updates
+        metadata["N_measurements"] = N_measurements
         metadata["N_bins"] = N_bins
+        metadata["N_updates"] = N_updates
         metadata["n_stab_init"] = n_stab
         metadata["dG_max"] = δG_max
         metadata["symmetric"] = symmetric
@@ -227,19 +228,19 @@ No changes need to made to this section of the code from the previous
         tight_binding_model = TightBindingModel(
             model_geometry = model_geometry,
             t_bonds = [bond_px, bond_py, bond_pxpy, bond_pxny], # defines hopping
-            t_mean  = [t, t, t′, t′], # defines corresponding mean hopping amplitude
-            t_std   = [0., 0., 0., 0.], # defines corresponding standard deviation in hopping amplitude
-            ϵ_mean  = [0.], # set mean on-site energy for each orbital in unit cell
-            ϵ_std   = [0.], # set standard deviation of on-site energy or each orbital in unit cell
-            μ       = μ # set chemical potential
+            t_mean = [t, t, t′, t′], # defines corresponding mean hopping amplitude
+            t_std = [0., 0., 0., 0.], # defines corresponding standard deviation in hopping amplitude
+            ϵ_mean = [0.], # set mean on-site energy for each orbital in unit cell
+            ϵ_std = [0.], # set standard deviation of on-site energy or each orbital in unit cell
+            μ = μ # set chemical potential
         )
 
         # Define the Hubbard interaction in the model.
         hubbard_model = HubbardModel(
             ph_sym_form = true, # if particle-hole symmetric form for Hubbard interaction is used.
-            U_orbital   = [1], # orbitals in unit cell with Hubbard interaction.
-            U_mean      = [U], # mean Hubbard interaction strength for corresponding orbital species in unit cell.
-            U_std       = [0.], # standard deviation of Hubbard interaction strength for corresponding orbital species in unit cell.
+            U_orbital = [1], # orbitals in unit cell with Hubbard interaction.
+            U_mean = [U], # mean Hubbard interaction strength for corresponding orbital species in unit cell.
+            U_std = [0.], # standard deviation of Hubbard interaction strength for corresponding orbital species in unit cell.
         )
 
         # Write model summary TOML file specifying Hamiltonian that will be simulated.
@@ -375,7 +376,7 @@ instance `chemical_potential_tuner` to the checkpoint file.
             start_timestamp = start_timestamp,
             runtime_limit = runtime_limit,
             # Contents of checkpoint file below.
-            n_therm, n_updates,
+            n_therm, n_measurements,
             tight_binding_parameters, hubbard_params, hst_parameters,
             chemical_potential_tuner, measurement_container, model_geometry, metadata, rng
         )
@@ -393,16 +394,16 @@ instance `chemical_potential_tuner` from the checkpoint file.
         checkpoint, checkpoint_timestamp = read_jld2_checkpoint(simulation_info)
 
         # Unpack contents of checkpoint dictionary.
-        tight_binding_parameters    = checkpoint["tight_binding_parameters"]
-        hubbard_params              = checkpoint["hubbard_params"]
-        hst_parameters              = checkpoint["hst_parameters"]
-        chemical_potential_tuner    = checkpoint["chemical_potential_tuner"]
-        measurement_container       = checkpoint["measurement_container"]
-        model_geometry              = checkpoint["model_geometry"]
-        metadata                    = checkpoint["metadata"]
-        rng                         = checkpoint["rng"]
-        n_therm                     = checkpoint["n_therm"]
-        n_updates                   = checkpoint["n_updates"]
+        tight_binding_parameters = checkpoint["tight_binding_parameters"]
+        hubbard_params = checkpoint["hubbard_params"]
+        hst_parameters = checkpoint["hst_parameters"]
+        chemical_potential_tuner = checkpoint["chemical_potential_tuner"]
+        measurement_container = checkpoint["measurement_container"]
+        model_geometry = checkpoint["model_geometry"]
+        metadata = checkpoint["metadata"]
+        rng = checkpoint["rng"]
+        n_therm = checkpoint["n_therm"]
+        n_measurements = checkpoint["n_measurements"]
     end
 ````
 
@@ -465,6 +466,19 @@ And again, we need to make sure the include the `chemical_potential_tuner` in th
     # Iterate over number of thermalization updates to perform.
     for update in n_therm:N_therm
 
+        # Update the chemical potential to achieve the target density.
+        (logdetGup, sgndetGup, logdetGdn, sgndetGdn) = update_chemical_potential!(
+            Gup, logdetGup, sgndetGup,
+            Gdn, logdetGdn, sgndetGdn;
+            chemical_potential_tuner = chemical_potential_tuner,
+            tight_binding_parameters = tight_binding_parameters,
+            fermion_path_integral_up = fermion_path_integral_up,
+            fermion_path_integral_dn = fermion_path_integral_dn,
+            fermion_greens_calculator_up = fermion_greens_calculator_up,
+            fermion_greens_calculator_dn = fermion_greens_calculator_dn,
+            Bup = Bup, Bdn = Bdn
+        )
+
         # Perform reflection update for HS fields with randomly chosen site.
         (accepted, logdetGup, sgndetGup, logdetGdn, sgndetGdn) = reflection_update!(
             Gup, logdetGup, sgndetGup, Gdn, logdetGdn, sgndetGdn,
@@ -496,19 +510,6 @@ And again, we need to make sure the include the `chemical_potential_tuner` in th
         # Record acceptance rate for sweep.
         metadata["local_acceptance_rate"] += acceptance_rate
 
-        # Update the chemical potential to achieve the target density.
-        (logdetGup, sgndetGup, logdetGdn, sgndetGdn) = update_chemical_potential!(
-            Gup, logdetGup, sgndetGup,
-            Gdn, logdetGdn, sgndetGdn;
-            chemical_potential_tuner = chemical_potential_tuner,
-            tight_binding_parameters = tight_binding_parameters,
-            fermion_path_integral_up = fermion_path_integral_up,
-            fermion_path_integral_dn = fermion_path_integral_dn,
-            fermion_greens_calculator_up = fermion_greens_calculator_up,
-            fermion_greens_calculator_dn = fermion_greens_calculator_dn,
-            Bup = Bup, Bdn = Bdn
-        )
-
         # Write checkpoint file.
         checkpoint_timestamp = write_jld2_checkpoint(
             comm,
@@ -519,7 +520,7 @@ And again, we need to make sure the include the `chemical_potential_tuner` in th
             runtime_limit = runtime_limit,
             # Contents of checkpoint file below.
             n_therm = update + 1,
-            n_updates = 1,
+            n_measurements = 1,
             tight_binding_parameters, hubbard_params, hst_parameters,
             chemical_potential_tuner, measurement_container, model_geometry, metadata, rng
         )
@@ -537,41 +538,58 @@ And again, we need to make sure the include the `chemical_potential_tuner` in th
     δθ = zero(logdetGup)
 
     # Calculate the bin size.
-    bin_size = N_updates ÷ N_bins
+    bin_size = N_measurements ÷ N_bins
 
-    # Iterate over updates and measurements.
-    for update in n_updates:N_updates
+    # Iterate over measurements.
+    for measurement in n_measurements:N_measurements
 
-        # Perform reflection update for HS fields with randomly chosen site.
-        (accepted, logdetGup, sgndetGup, logdetGdn, sgndetGdn) = reflection_update!(
-            Gup, logdetGup, sgndetGup, Gdn, logdetGdn, sgndetGdn,
-            hst_parameters,
-            fermion_path_integral_up = fermion_path_integral_up,
-            fermion_path_integral_dn = fermion_path_integral_dn,
-            fermion_greens_calculator_up = fermion_greens_calculator_up,
-            fermion_greens_calculator_dn = fermion_greens_calculator_dn,
-            fermion_greens_calculator_up_alt = fermion_greens_calculator_up_alt,
-            fermion_greens_calculator_dn_alt = fermion_greens_calculator_dn_alt,
-            Bup = Bup, Bdn = Bdn, rng = rng
-        )
+        # Iterate over number of updates between measurements.
+        for update in 1:N_updates
 
-        # Record whether reflection update was accepted or not.
-        metadata["reflection_acceptance_rate"] += accepted
+            # Update the chemical potential to achieve the target density.
+            (logdetGup, sgndetGup, logdetGdn, sgndetGdn) = update_chemical_potential!(
+                Gup, logdetGup, sgndetGup,
+                Gdn, logdetGdn, sgndetGdn;
+                chemical_potential_tuner = chemical_potential_tuner,
+                tight_binding_parameters = tight_binding_parameters,
+                fermion_path_integral_up = fermion_path_integral_up,
+                fermion_path_integral_dn = fermion_path_integral_dn,
+                fermion_greens_calculator_up = fermion_greens_calculator_up,
+                fermion_greens_calculator_dn = fermion_greens_calculator_dn,
+                Bup = Bup, Bdn = Bdn
+            )
 
-        # Perform sweep all imaginary-time slice and orbitals, attempting an update to every HS field.
-        (acceptance_rate, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = local_updates!(
-            Gup, logdetGup, sgndetGup, Gdn, logdetGdn, sgndetGdn,
-            hst_parameters,
-            fermion_path_integral_up = fermion_path_integral_up,
-            fermion_path_integral_dn = fermion_path_integral_dn,
-            fermion_greens_calculator_up = fermion_greens_calculator_up,
-            fermion_greens_calculator_dn = fermion_greens_calculator_dn,
-            Bup = Bup, Bdn = Bdn, δG_max = δG_max, δG = δG, δθ = δθ, rng = rng,
-            update_stabilization_frequency = true
-        )
+            # Perform reflection update for HS fields with randomly chosen site.
+            (accepted, logdetGup, sgndetGup, logdetGdn, sgndetGdn) = reflection_update!(
+                Gup, logdetGup, sgndetGup, Gdn, logdetGdn, sgndetGdn,
+                hst_parameters,
+                fermion_path_integral_up = fermion_path_integral_up,
+                fermion_path_integral_dn = fermion_path_integral_dn,
+                fermion_greens_calculator_up = fermion_greens_calculator_up,
+                fermion_greens_calculator_dn = fermion_greens_calculator_dn,
+                fermion_greens_calculator_up_alt = fermion_greens_calculator_up_alt,
+                fermion_greens_calculator_dn_alt = fermion_greens_calculator_dn_alt,
+                Bup = Bup, Bdn = Bdn, rng = rng
+            )
 
-        # Record acceptance rate.
-        metadata["local_acceptance_rate"] += acceptance_rate
+            # Record whether reflection update was accepted or not.
+            metadata["reflection_acceptance_rate"] += accepted
+
+            # Perform sweep all imaginary-time slice and orbitals, attempting an update to every HS field.
+            (acceptance_rate, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = local_updates!(
+                Gup, logdetGup, sgndetGup, Gdn, logdetGdn, sgndetGdn,
+                hst_parameters,
+                fermion_path_integral_up = fermion_path_integral_up,
+                fermion_path_integral_dn = fermion_path_integral_dn,
+                fermion_greens_calculator_up = fermion_greens_calculator_up,
+                fermion_greens_calculator_dn = fermion_greens_calculator_dn,
+                Bup = Bup, Bdn = Bdn, δG_max = δG_max, δG = δG, δθ = δθ, rng = rng,
+                update_stabilization_frequency = true
+            )
+
+            # Record acceptance rate.
+            metadata["local_acceptance_rate"] += acceptance_rate
+        end
 
         # Make measurements.
         (logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = make_measurements!(
@@ -592,22 +610,9 @@ And again, we need to make sure the include the `chemical_potential_tuner` in th
             measurement_container = measurement_container,
             simulation_info = simulation_info,
             model_geometry = model_geometry,
-            measurement = update,
+            measurement = measurement,
             bin_size = bin_size,
             Δτ = Δτ
-        )
-
-        # Update the chemical potential to achieve the target density.
-        (logdetGup, sgndetGup, logdetGdn, sgndetGdn) = update_chemical_potential!(
-            Gup, logdetGup, sgndetGup,
-            Gdn, logdetGdn, sgndetGdn;
-            chemical_potential_tuner = chemical_potential_tuner,
-            tight_binding_parameters = tight_binding_parameters,
-            fermion_path_integral_up = fermion_path_integral_up,
-            fermion_path_integral_dn = fermion_path_integral_dn,
-            fermion_greens_calculator_up = fermion_greens_calculator_up,
-            fermion_greens_calculator_dn = fermion_greens_calculator_dn,
-            Bup = Bup, Bdn = Bdn
         )
 
         # Write checkpoint file.
@@ -620,7 +625,7 @@ And again, we need to make sure the include the `chemical_potential_tuner` in th
             runtime_limit = runtime_limit,
             # Contents of checkpoint file below.
             n_therm  = N_therm + 1,
-            n_updates = update + 1,
+            n_measurements = measurement + 1,
             tight_binding_parameters, hubbard_params, hst_parameters,
             chemical_potential_tuner, measurement_container, model_geometry, metadata, rng
         )
@@ -641,8 +646,10 @@ of the chemical potential and density tuning process.
 
 ````julia
     # Normalize acceptance rate.
-    metadata["local_acceptance_rate"] /=  (N_therm + N_updates)
+    metadata["local_acceptance_rate"] /=  (N_therm + N_measurements * N_updates)
+    metadata["reflection_acceptance_rate"] /=  (N_therm + N_measurements * N_updates)
 
+    # Record final stabilization frequency used at end of simulation.
     metadata["n_stab_final"] = fermion_greens_calculator_up.n_stab
 
     # Record largest numerical error.
@@ -694,7 +701,7 @@ No changes need to made to this section of the code from the previous
     # Record the AFM correlation ratio mean and standard deviation.
     metadata["Rafm_mean_real"] = real(Rafm)
     metadata["Rafm_mean_imag"] = imag(Rafm)
-    metadata["Rafm_std"]       = ΔRafm
+    metadata["Rafm_std"] = ΔRafm
 
     # Write simulation summary TOML file.
     save_simulation_info(simulation_info, metadata)
@@ -714,11 +721,11 @@ Here we add an additional command line argument to specify the target density `n
 Now the `μ` command line argument specifies the initial chemical potential we begin the simulation with.
 For instance, a simulation can be run with the command
 ```bash
-mpiexecjl -n 16 julia hubbard_square_density_tuning.jl 1 5.0 -0.25 0.8 0.0 4 4.0 2500 10000 100 1.0
+mpiexecjl -n 16 julia hubbard_square_density_tuning.jl 1 5.0 -0.25 0.8 0.0 4 4.0 2000 2000 40 5 1.0
 ```
 or
 ```bash
-srun julia hubbard_square_density_tuning.jl 1 5.0 -0.25 0.8 0.0 4 4.0 2500 10000 100 1.0
+srun julia hubbard_square_density_tuning.jl 1 5.0 -0.25 0.8 0.0 4 4.0 2000 2000 40 5 1.0
 ```
 where the target density is ``\langle n \rangle = 0.8`` and the initial chemical potential is ``\mu = 0.0``.
 
@@ -734,17 +741,18 @@ if abspath(PROGRAM_FILE) == @__FILE__
     # Run the simulation, reading in command line arguments.
     run_simulation(
         comm;
-        sID             = parse(Int,     ARGS[1]),  # Simulation ID.
-        U               = parse(Float64, ARGS[2]),  # Hubbard interaction.
-        t′              = parse(Float64, ARGS[3]),  # Next-nearest-neighbor hopping amplitude.
-        n               = parse(Float64, ARGS[4]),  # Target density.
-        μ               = parse(Float64, ARGS[5]),  # Initial chemical potential.
-        L               = parse(Int,     ARGS[6]),  # System size.
-        β               = parse(Float64, ARGS[7]),  # Inverse temperature.
-        N_therm         = parse(Int,     ARGS[8]),  # Number of thermalization updates.
-        N_updates       = parse(Int,     ARGS[9]),  # Total number of measurements and measurement updates.
-        N_bins          = parse(Int,     ARGS[10]), # Number of times bin-averaged measurements are written to file.
-        checkpoint_freq = parse(Float64, ARGS[11])  # Frequency with which checkpoint files are written in hours.
+        sID = parse(Int, ARGS[1]), # Simulation ID.
+        U = parse(Float64, ARGS[2]), # Hubbard interaction.
+        t′ = parse(Float64, ARGS[3]), # Next-nearest-neighbor hopping amplitude.
+        n = parse(Float64, ARGS[4]), # Target density.
+        μ = parse(Float64, ARGS[5]), # Initial chemical potential.
+        L = parse(Int, ARGS[6]), # System size.
+        β = parse(Float64, ARGS[7]), # Inverse temperature.
+        N_therm = parse(Int, ARGS[8]), # Number of thermalization updates.
+        N_measurements = parse(Int, ARGS[9]), # Number of measurements to make.
+        N_bins = parse(Int, ARGS[10]), # Number of times bin-averaged measurements are written to file.
+        N_updates = parse(Int, ARGS[11]), # Number of updates between measurements.
+        checkpoint_freq = parse(Float64, ARGS[12]) # Frequency with which checkpoint files are written in hours.
     )
 
     # Finalize MPI.
