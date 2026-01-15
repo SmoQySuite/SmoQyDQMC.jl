@@ -15,14 +15,14 @@ function run_simulation(;
     L, # System size.
     β, # Inverse temperature.
     N_therm, # Number of thermalization updates.
-    N_updates, # Total number of measurements and measurement updates.
-    N_bins, # Number of times bin-averaged measurements are written to file.
+    N_measurements, # Total number of measurements.
+    N_bins, # Number of measurement bins.
+    N_updates, # Number of updates per measurement.
     Δτ = 0.05, # Discretization in imaginary time.
     n_stab = 10, # Numerical stabilization period in imaginary-time slices.
     δG_max = 1e-6, # Threshold for numerical error corrected by stabilization.
     symmetric = false, # Whether symmetric propagator definition is used.
     checkerboard = false, # Whether checkerboard approximation is used.
-    write_bins_concurrent = true, # Whether to write binned data to file during simulation or hold it in memory.
     seed = abs(rand(Int)), # Seed for random number generator.
     filepath = "." # Filepath to where data folder will be created.
 )
@@ -34,7 +34,7 @@ function run_simulation(;
     simulation_info = SimulationInfo(
         filepath = filepath,
         datafolder_prefix = datafolder_prefix,
-        write_bins_concurrent = write_bins_concurrent,
+        write_bins_concurrent = (L > 10),
         sID = sID
     )
 
@@ -49,6 +49,7 @@ function run_simulation(;
 
     # Record simulation parameters.
     metadata["N_therm"] = N_therm
+    metadata["N_measurements"] = N_measurements
     metadata["N_updates"] = N_updates
     metadata["N_bins"] = N_bins
     metadata["n_stab_init"] = n_stab
@@ -139,7 +140,7 @@ function run_simulation(;
     # Add this bond definition to the model, by adding it the model_geometry.
     bond_pxny_id = add_bond!(model_geometry, bond_pxny)
 
-    # Set neartest-neighbor hopping amplitude to unity,
+    # Set nearest-neighbor hopping amplitude to unity,
     # setting the energy scale in the model.
     t = 1.0
 
@@ -147,19 +148,19 @@ function run_simulation(;
     tight_binding_model = TightBindingModel(
         model_geometry = model_geometry,
         t_bonds = [bond_px, bond_py, bond_pxpy, bond_pxny], # defines hopping
-        t_mean  = [t, t, t′, t′], # defines corresponding mean hopping amplitude
-        t_std   = [0., 0., 0., 0.], # defines corresponding standard deviation in hopping amplitude
-        ϵ_mean  = [0.], # set mean on-site energy for each orbital in unit cell
-        ϵ_std   = [0.], # set standard deviation of on-site energy or each orbital in unit cell
-        μ       = μ # set chemical potential
+        t_mean = [t, t, t′, t′], # defines corresponding mean hopping amplitude
+        t_std = [0., 0., 0., 0.], # defines corresponding standard deviation in hopping amplitude
+        ϵ_mean = [0.], # set mean on-site energy for each orbital in unit cell
+        ϵ_std = [0.], # set standard deviation of on-site energy or each orbital in unit cell
+        μ  = μ # set chemical potential
     )
 
     # Define the Hubbard interaction in the model.
     hubbard_model = HubbardModel(
         ph_sym_form = true, # if particle-hole symmetric form for Hubbard interaction is used.
-        U_orbital   = [1], # orbitals in unit cell with Hubbard interaction.
-        U_mean      = [U], # mean Hubbard interaction strength for corresponding orbital species in unit cell.
-        U_std       = [0.], # standard deviation of Hubbard interaction strength for corresponding orbital species in unit cell.
+        U_orbital = [1], # orbitals in unit cell with Hubbard interaction.
+        U_mean = [U], # mean Hubbard interaction strength for corresponding orbital species in unit cell.
+        U_std = [0.], # standard deviation of Hubbard interaction strength for corresponding orbital species in unit cell.
     )
 
     # Write model summary TOML file specifying Hamiltonian that will be simulated.
@@ -347,41 +348,45 @@ function run_simulation(;
     δθ = zero(logdetGup)
 
     # Calculate the bin size.
-    bin_size = N_updates ÷ N_bins
+    bin_size = N_measurements ÷ N_bins
 
-    # Iterate over updates and measurements.
-    for update in 1:N_updates
+    # Iterate over measurements.
+    for measurement in 1:N_measurements
 
-        # Perform reflection update for HS fields with randomly chosen site.
-        (accepted, logdetGup, sgndetGup, logdetGdn, sgndetGdn) = reflection_update!(
-            Gup, logdetGup, sgndetGup, Gdn, logdetGdn, sgndetGdn,
-            hst_parameters,
-            fermion_path_integral_up = fermion_path_integral_up,
-            fermion_path_integral_dn = fermion_path_integral_dn,
-            fermion_greens_calculator_up = fermion_greens_calculator_up,
-            fermion_greens_calculator_dn = fermion_greens_calculator_dn,
-            fermion_greens_calculator_up_alt = fermion_greens_calculator_up_alt,
-            fermion_greens_calculator_dn_alt = fermion_greens_calculator_dn_alt,
-            Bup = Bup, Bdn = Bdn, rng = rng
-        )
+        # Iterate over updates between measurements.
+        for update in 1:N_updates
 
-        # Record whether reflection update was accepted or not.
-        metadata["reflection_acceptance_rate"] += accepted
+            # Perform reflection update for HS fields with randomly chosen site.
+            (accepted, logdetGup, sgndetGup, logdetGdn, sgndetGdn) = reflection_update!(
+                Gup, logdetGup, sgndetGup, Gdn, logdetGdn, sgndetGdn,
+                hst_parameters,
+                fermion_path_integral_up = fermion_path_integral_up,
+                fermion_path_integral_dn = fermion_path_integral_dn,
+                fermion_greens_calculator_up = fermion_greens_calculator_up,
+                fermion_greens_calculator_dn = fermion_greens_calculator_dn,
+                fermion_greens_calculator_up_alt = fermion_greens_calculator_up_alt,
+                fermion_greens_calculator_dn_alt = fermion_greens_calculator_dn_alt,
+                Bup = Bup, Bdn = Bdn, rng = rng
+            )
 
-        # Perform sweep all imaginary-time slice and orbitals, attempting an update to every HS field.
-        (acceptance_rate, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = local_updates!(
-            Gup, logdetGup, sgndetGup, Gdn, logdetGdn, sgndetGdn,
-            hst_parameters,
-            fermion_path_integral_up = fermion_path_integral_up,
-            fermion_path_integral_dn = fermion_path_integral_dn,
-            fermion_greens_calculator_up = fermion_greens_calculator_up,
-            fermion_greens_calculator_dn = fermion_greens_calculator_dn,
-            Bup = Bup, Bdn = Bdn, δG_max = δG_max, δG = δG, δθ = δθ, rng = rng,
-            update_stabilization_frequency = false
-        )
+            # Record whether reflection update was accepted or not.
+            metadata["reflection_acceptance_rate"] += accepted
 
-        # Record acceptance rate.
-        metadata["local_acceptance_rate"] += acceptance_rate
+            # Perform sweep all imaginary-time slice and orbitals, attempting an update to every HS field.
+            (acceptance_rate, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = local_updates!(
+                Gup, logdetGup, sgndetGup, Gdn, logdetGdn, sgndetGdn,
+                hst_parameters,
+                fermion_path_integral_up = fermion_path_integral_up,
+                fermion_path_integral_dn = fermion_path_integral_dn,
+                fermion_greens_calculator_up = fermion_greens_calculator_up,
+                fermion_greens_calculator_dn = fermion_greens_calculator_dn,
+                Bup = Bup, Bdn = Bdn, δG_max = δG_max, δG = δG, δθ = δθ, rng = rng,
+                update_stabilization_frequency = false
+            )
+
+            # Record acceptance rate.
+            metadata["local_acceptance_rate"] += acceptance_rate
+        end
 
         # Make measurements.
         (logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = make_measurements!(
@@ -402,7 +407,7 @@ function run_simulation(;
             measurement_container = measurement_container,
             simulation_info = simulation_info,
             model_geometry = model_geometry,
-            measurement = update,
+            measurement = measurement,
             bin_size = bin_size,
             Δτ = Δτ
         )
@@ -412,8 +417,8 @@ function run_simulation(;
     merge_bins(simulation_info)
 
     # Normalize acceptance rate.
-    metadata["local_acceptance_rate"] /=  (N_therm + N_updates)
-    metadata["reflection_acceptance_rate"] /= (N_therm + N_updates)
+    metadata["local_acceptance_rate"] /=  (N_therm + N_measurements * N_updates)
+    metadata["reflection_acceptance_rate"] /= (N_therm + N_measurements * N_updates)
 
     # Record final stabilization period used at the end of the simulation.
     metadata["n_stab_final"] = fermion_greens_calculator_up.n_stab
@@ -452,7 +457,7 @@ function run_simulation(;
     # Record the AFM correlation ratio mean and standard deviation.
     metadata["Rafm_mean_real"] = real(Rafm)
     metadata["Rafm_mean_imag"] = imag(Rafm)
-    metadata["Rafm_std"]       = ΔRafm
+    metadata["Rafm_std"] = ΔRafm
 
     # Write simulation summary TOML file.
     save_simulation_info(simulation_info, metadata)
@@ -465,14 +470,15 @@ if abspath(PROGRAM_FILE) == @__FILE__
 
     # Run the simulation, reading in command line arguments.
     run_simulation(;
-        sID       = parse(Int,     ARGS[1]), # Simulation ID.
-        U         = parse(Float64, ARGS[2]), # Hubbard interaction strength.
-        t′        = parse(Float64, ARGS[3]), # Next-nearest-neighbor hopping amplitude.
-        μ         = parse(Float64, ARGS[4]), # Chemical potential.
-        L         = parse(Int,     ARGS[5]), # Lattice size.
-        β         = parse(Float64, ARGS[6]), # Inverse temperature.
-        N_therm   = parse(Int,     ARGS[7]), # Number of thermalization sweeps.
-        N_updates = parse(Int,     ARGS[8]), # Number of measurement sweeps.
-        N_bins    = parse(Int,     ARGS[9])  # Number times binned data is written to file.
+        sID = parse(Int, ARGS[1]), # Simulation ID.
+        U = parse(Float64, ARGS[2]), # Hubbard interaction strength.
+        t′ = parse(Float64, ARGS[3]), # Next-nearest-neighbor hopping amplitude.
+        μ = parse(Float64, ARGS[4]), # Chemical potential.
+        L = parse(Int, ARGS[5]), # Lattice size.
+        β = parse(Float64, ARGS[6]), # Inverse temperature.
+        N_therm = parse(Int, ARGS[7]), # Number of thermalization sweeps.
+        N_measurements = parse(Int, ARGS[8]), # Number of measurement to make.
+        N_bins = parse(Int, ARGS[9]), # Number of measurement bins.
+        N_updates = parse(Int, ARGS[10]) # Number of updates per measurement.
     )
 end

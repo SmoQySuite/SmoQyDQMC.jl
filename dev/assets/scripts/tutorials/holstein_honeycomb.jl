@@ -15,15 +15,14 @@ function run_simulation(;
     L, # System size.
     β, # Inverse temperature.
     N_therm, # Number of thermalization updates.
-    N_updates, # Total number of measurements and measurement updates.
+    N_measurements, # Total number of measurements and measurement updates.
     N_bins, # Number of times bin-averaged measurements are written to file.
-    Nt = 10, # Number of time-steps in HMC update.
+    Nt = 8, # Number of time-steps in HMC update.
     Δτ = 0.05, # Discretization in imaginary time.
     n_stab = 10, # Numerical stabilization period in imaginary-time slices.
     δG_max = 1e-6, # Threshold for numerical error corrected by stabilization.
     symmetric = false, # Whether symmetric propagator definition is used.
     checkerboard = false, # Whether checkerboard approximation is used.
-    write_bins_concurrent = true, # Whether to write HDF5 bins during the simulation.
     seed = abs(rand(Int)), # Seed for random number generator.
     filepath = "." # Filepath to where data folder will be created.
 )
@@ -35,7 +34,7 @@ function run_simulation(;
     simulation_info = SimulationInfo(
         filepath = filepath,
         datafolder_prefix = datafolder_prefix,
-        write_bins_concurrent = write_bins_concurrent,
+        write_bins_concurrent = (L > 7),
         sID = sID
     )
 
@@ -51,7 +50,7 @@ function run_simulation(;
     # Record simulation parameters.
     metadata["Nt"] = Nt
     metadata["N_therm"] = N_therm
-    metadata["N_updates"] = N_updates
+    metadata["N_measurements"] = N_measurements
     metadata["N_bins"] = N_bins
     metadata["n_stab"] = n_stab
     metadata["dG_max"] = δG_max
@@ -74,7 +73,7 @@ function run_simulation(;
     # Define the unit cell.
     unit_cell = lu.UnitCell(
         lattice_vecs = [a1, a2],
-        basis_vecs   = [r1, r2]
+        basis_vecs = [r1, r2]
     )
 
     # Define finite lattice with periodic boundary conditions.
@@ -111,10 +110,10 @@ function run_simulation(;
     # Define the honeycomb tight-binding model.
     tight_binding_model = TightBindingModel(
         model_geometry = model_geometry,
-        t_bonds        = [bond_1, bond_2, bond_3], # defines hopping
-        t_mean         = [t, t, t], # defines corresponding hopping amplitude
-        μ              = μ, # set chemical potential
-        ϵ_mean         = [0.0, 0.0] # set the (mean) on-site energy
+        t_bonds = [bond_1, bond_2, bond_3], # defines hopping
+        t_mean = [t, t, t], # defines corresponding hopping amplitude
+        μ  = μ, # set chemical potential
+        ϵ_mean = [0.0, 0.0] # set the (mean) on-site energy
     )
 
     # Initialize a null electron-phonon model.
@@ -383,10 +382,10 @@ function run_simulation(;
     δθ = zero(logdetG)
 
     # Calculate the bin size.
-    bin_size = N_updates ÷ N_bins
+    bin_size = N_measurements ÷ N_bins
 
     # Iterate over updates and measurements.
-    for update in 1:N_updates
+    for measurement in 1:N_measurements
 
         # Perform a reflection update.
         (accepted, logdetG, sgndetG) = reflection_update!(
@@ -440,7 +439,7 @@ function run_simulation(;
             measurement_container = measurement_container,
             simulation_info = simulation_info,
             model_geometry = model_geometry,
-            measurement = update,
+            measurement = measurement,
             bin_size = bin_size,
             Δτ = Δτ
         )
@@ -450,9 +449,9 @@ function run_simulation(;
     merge_bins(simulation_info)
 
     # Calculate acceptance rates.
-    metadata["hmc_acceptance_rate"] /= (N_updates + N_therm)
-    metadata["reflection_acceptance_rate"] /= (N_updates + N_therm)
-    metadata["swap_acceptance_rate"] /= (N_updates + N_therm)
+    metadata["hmc_acceptance_rate"] /= (N_measurements + N_therm)
+    metadata["reflection_acceptance_rate"] /= (N_measurements + N_therm)
+    metadata["swap_acceptance_rate"] /= (N_measurements + N_therm)
 
     # Record largest numerical error encountered during simulation.
     metadata["dG"] = δG
@@ -499,14 +498,14 @@ if abspath(PROGRAM_FILE) == @__FILE__
 
     # Run the simulation.
     run_simulation(;
-        sID       = parse(Int,     ARGS[1]), # Simulation ID.
-        Ω         = parse(Float64, ARGS[2]), # Phonon energy.
-        α         = parse(Float64, ARGS[3]), # Electron-phonon coupling.
-        μ         = parse(Float64, ARGS[4]), # Chemical potential.
-        L         = parse(Int,     ARGS[5]), # System size.
-        β         = parse(Float64, ARGS[6]), # Inverse temperature.
-        N_therm   = parse(Int,     ARGS[7]), # Number of thermalization updates.
-        N_updates = parse(Int,     ARGS[8]), # Total number of measurements and measurement updates.
-        N_bins    = parse(Int,     ARGS[9])  # Number of times bin-averaged measurements are written to file.
+        sID = parse(Int, ARGS[1]), # Simulation ID.
+        Ω = parse(Float64, ARGS[2]), # Phonon energy.
+        α = parse(Float64, ARGS[3]), # Electron-phonon coupling.
+        μ = parse(Float64, ARGS[4]), # Chemical potential.
+        L = parse(Int, ARGS[5]), # System size.
+        β = parse(Float64, ARGS[6]), # Inverse temperature.
+        N_therm = parse(Int, ARGS[7]), # Number of thermalization updates.
+        N_measurements = parse(Int, ARGS[8]), # Total number of measurements and measurement updates.
+        N_bins = parse(Int, ARGS[9]) # Number of times bin-averaged measurements are written to file.
     )
 end
