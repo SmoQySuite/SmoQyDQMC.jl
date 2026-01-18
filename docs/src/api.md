@@ -99,9 +99,9 @@ Below is the shared API for the [`AbstractHST`](@ref) type.
 ```@docs
 initialize!(::FermionPathIntegral{H}, ::FermionPathIntegral{H}, ::AbstractHST{T}) where {H<:Number, T<:Number}
 local_updates!(::Matrix{H}, ::R, ::H, ::Matrix{H}, ::R, ::H, ::AbstractHST{T,R}) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator}
-local_updates!(::Matrix{H}, ::R, ::H, ::Matrix{H}, ::R, ::H, ::Tuple{Vararg{HST,N} where HST<:AbstractHST{T,R}}) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator, N}
+local_updates!(::Matrix{H}, ::R, ::H, ::Matrix{H}, ::R, ::H, ::Tuple) where {H<:Number, R<:Real, P<:AbstractPropagator}
 local_updates!(::Matrix{H}, ::R, ::H, ::AbstractSymHST{T,R}) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator}
-local_updates!(::Matrix{H}, ::R, ::H, ::Tuple{Vararg{HST,N} where HST<:AbstractSymHST{T,R}}) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator, N}
+local_updates!(::Matrix{H}, ::R, ::H, ::Tuple) where {H<:Number, R<:Real, P<:AbstractPropagator}
 reflection_update!(::Matrix{H}, ::R, ::H, ::Matrix{H}, ::R, ::H, ::AbstractHST{T,R}) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator}
 reflection_update!(::Matrix{H}, ::R, ::H, hst_parameters::AbstractSymHST{T,R}) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator}
 swap_update!(::Matrix{H}, ::R, ::H, ::Matrix{H}, ::R, ::H, ::AbstractHST{T,R}) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator}

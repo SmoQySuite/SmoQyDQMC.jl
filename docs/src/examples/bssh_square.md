@@ -50,8 +50,8 @@ function run_simulation(
     Δτ = 0.05, # Discretization in imaginary time.
     n_stab = 10, # Numerical stabilization period in imaginary-time slices.
     δG_max = 1e-6, # Threshold for numerical error corrected by stabilization.
-    symmetric = false, # Whether symmetric propagator definition is used.
-    checkerboard = false, # Whether checkerboard approximation is used.
+    symmetric = true, # Whether symmetric propagator definition is used.
+    checkerboard = true, # Whether checkerboard approximation is used.
     seed = abs(rand(Int)), # Seed for random number generator.
     filepath = "." # Filepath to where data folder will be created.
 )
