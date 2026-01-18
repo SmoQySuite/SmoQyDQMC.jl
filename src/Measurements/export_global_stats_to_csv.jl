@@ -138,7 +138,7 @@ function _export_global_stats_to_csv(
         # write measurement to csv
         avg = read(Global[measurement]["MEAN"])
         err = read(Global[measurement]["STD"])
-        join(CSVFile, (measurement, formatter(real(avg)), formatter(imag(avg)), err), delimiter)
+        join(CSVFile, (measurement, formatter(real(avg)), formatter(imag(avg)), formatter(err)), delimiter)
         write(CSVFile, "\n")
     end
 

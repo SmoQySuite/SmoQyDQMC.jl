@@ -25,6 +25,9 @@ transformation is real or complex.
 """
 abstract type AbstractAsymHST{T, R} <: AbstractHST{T, R} end
 
+# function to return Hubbard-Stratonovich field type
+_hst_field_type(hst::AbstractHST{T,R}) where {T,R} = T
+
 @doc raw"""
 
     initialize!(
@@ -36,8 +39,8 @@ abstract type AbstractAsymHST{T, R} <: AbstractHST{T, R} end
     initialize!(
         fermion_path_integral_up::FermionPathIntegral{H},
         fermion_path_integral_dn::FermionPathIntegral{H},
-        hst_parameters::Tuple{Vararg{HST} where HST<:AbstractHST{T}}
-    ) where {H<:Number, T<:Number}
+        hst_parameters::Tuple
+    ) where {H<:Number}
 
     initialize!(
         fermion_path_integral::FermionPathIntegral{H},
@@ -46,8 +49,8 @@ abstract type AbstractAsymHST{T, R} <: AbstractHST{T, R} end
 
     initialize!(
         fermion_path_integral::FermionPathIntegral{H},
-        hst_parameters::Tuple{Vararg{HST} where HST<:AbstractSymHST{T}}
-    ) where {H<:Number, T<:Number}
+        hst_parameters::Tuple
+    ) where {H<:Number}
 
 Initialize a `FermionPathIntegral` integral type to reflect the the current Hubbard-Stratonovich
 transformation type represented by `hst_parameters`.
@@ -68,10 +71,14 @@ end
 function initialize!(
     fermion_path_integral_up::FermionPathIntegral{H},
     fermion_path_integral_dn::FermionPathIntegral{H},
-    hst_parameters::Tuple{Vararg{HST} where HST<:AbstractHST{T}}
-) where {H<:Number, T<:Number}
+    hst_parameters::Tuple
+) where {H<:Number}
 
     for hst_params in hst_parameters
+
+        @assert isa(hst_params, AbstractHST)
+        @assert !((H<:Real) && (_hst_field_type(hst_params)<:Complex)) "Green's function matrices are real while Hubbard-Stratonovich transformation is complex."
+        
         _initialize!(fermion_path_integral_up, fermion_path_integral_dn, hst_params)
     end
 
@@ -91,10 +98,14 @@ end
 
 function initialize!(
     fermion_path_integral::FermionPathIntegral{H},
-    hst_parameters::Tuple{Vararg{HST} where HST<:AbstractSymHST{T}}
-) where {H<:Number, T<:Number}
+    hst_parameters::Tuple
+) where {H<:Number}
 
     for hst_params in hst_parameters
+
+        @assert isa(hst_params, AbstractSymHST)
+        @assert !((H<:Real) && (_hst_field_type(hst_params)<:Complex)) "Green's function matrices are real while Hubbard-Stratonovich transformation is complex."
+        
         _initialize!(fermion_path_integral, hst_params)
     end
 
@@ -234,9 +245,9 @@ end
 @doc raw"""
     local_updates!(
         # ARGUMENTS
-        Gup::Matrix{H}, logdet,Gup::R, sgndetGup::H,
+        Gup::Matrix{H}, logdetGup::R, sgndetGup::H,
         Gdn::Matrix{H}, logdetGdn::R, sgndetGdn::H,
-        hst_parameters::Tuple{Vararg{HST,N} where HST<:AbstractHST{T,R}};
+        hst_parameters::Tuple;
         # KEYWORD ARGUMENTS
         fermion_path_integral_up::FermionPathIntegral{H},
         fermion_path_integral_dn::FermionPathIntegral{H},
@@ -246,7 +257,7 @@ end
         δG::R, δθ::R,  rng::AbstractRNG,
         δG_max::R = 1e-6,
         update_stabilization_frequency::Bool = true
-    ) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator, N}
+    ) where {H<:Number, R<:Real, P<:AbstractPropagator}
 
 Perform local updates to Hubbard-Stratonovich fields for `N` different types of Hubbard-Stratonovich transformations.
 This method returns a tuple containing `(acceptance_rates, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ)`.
@@ -260,7 +271,7 @@ Note that `acceptance_rates` is a tuple returning the acceptance rate for local 
 - `Gdn::Matrix{H}`: Spin-down equal-time Green's function matrix.
 - `logdetGdn::R`: The log of the absolute value of the determinant of the spin-down equal-time Green's function matrix, ``\log \vert \det G_\downarrow(\tau,\tau) \vert.``
 - `sgndetGdn::H`: The sign/phase of the determinant of the spin-down equal-time Green's function matrix, ``\det G_\downarrow(\tau,\tau) / \vert \det G_\downarrow(\tau,\tau) \vert.``
-- `hst_parameters::Tuple{Vararg{HST,N} where HST<:AbstractHST{T,R}}`: Tuple of parameters for multiple different Hubbard-Stratonovich transformation fields that will be sampled.
+- `hst_parameters::Tuple`: Tuple of parameters for multiple different Hubbard-Stratonovich transformation fields that will be sampled.
 
 ## Keyword Arguments
 
@@ -280,7 +291,7 @@ function local_updates!(
     # ARGUMENTS
     Gup::Matrix{H}, logdetGup::R, sgndetGup::H,
     Gdn::Matrix{H}, logdetGdn::R, sgndetGdn::H,
-    hst_parameters::Tuple{Vararg{HST,N} where HST<:AbstractHST{T,R}};
+    hst_parameters::Tuple;
     # KEYWORD ARGUMENTS
     fermion_path_integral_up::FermionPathIntegral{H},
     fermion_path_integral_dn::FermionPathIntegral{H},
@@ -290,15 +301,16 @@ function local_updates!(
     δG::R, δθ::R,  rng::AbstractRNG,
     δG_max::R = 1e-6,
     update_stabilization_frequency::Bool = true
-) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator, N}
+) where {H<:Number, R<:Real, P<:AbstractPropagator}
 
-    @assert !( (H<:Real) &&  (T<:Complex)) "Green's function matrices are real while Hubbard-Stratonovich transformation is complex."
+    @assert all(hst -> isa(hst, AbstractHST), hst_parameters)
+    @assert all(hst -> !((H<:Real) && (_hst_field_type(hst)<:Complex)), hst_parameters) "Green's function matrices are real while Hubbard-Stratonovich transformation is complex."
 
     # get temporary storage matrix
     G′ = fermion_greens_calculator_up.G′
 
     # initialize vector to record acceptance rates
-    acceptance_rates = @MVector zeros(R, N)
+    acceptance_rates = @MVector zeros(R, length(hst_parameters))
 
     # Iterate over imaginary time τ=Δτ⋅l.
     for l in fermion_greens_calculator_up
@@ -475,7 +487,7 @@ end
     local_updates!(
         # ARGUMENTS
         G::Matrix{H}, logdetG::R, sgndetG::H,
-        hst_parameters::Tuple{Vararg{HST,N} where HST<:AbstractSymHST{T,R}};
+        hst_parameters::Tuple;
         # KEYWORD ARGUMENTS
         fermion_path_integral::FermionPathIntegral{H},
         fermion_greens_calculator::FermionGreensCalculator{H},
@@ -483,7 +495,7 @@ end
         δG::R, δθ::R,  rng::AbstractRNG,
         δG_max::R = 1e-6,
         update_stabilization_frequency::Bool = true
-    ) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator, N}
+    ) where {H<:Number, R<:Real, P<:AbstractPropagator}
 
 Perform local updates to multiple types Hubbard-Stratonovich fields for a spin-symmetric (density channel) Hubbard-Stratonovich transformation.
 This method returns a tuple containing `(acceptance_rate, logdetG, sgndetG, δG, δθ)`.
@@ -493,7 +505,7 @@ This method returns a tuple containing `(acceptance_rate, logdetG, sgndetG, δG,
 - `G::Matrix{H}`: Equal-time Green's function matrix.
 - `logdetG::R`: The log of the absolute value of the determinant of the equal-time Green's function matrix, ``\log \vert \det G(\tau,\tau) \vert.``
 - `sgndetG::H`: The sign/phase of the determinant of the equal-time Green's function matrix, ``\det G(\tau,\tau) / \vert \det G(\tau,\tau) \vert.``
-- `hst_parameters::Tuple{Vararg{HST,N} where HST<:AbstractSymHST{T,R}}`: Tuple of parameters for multiple different spin-symmetric Hubbard-Stratonovich transformation fields that will be sampled.
+- `hst_parameters::Tuple`: Tuple of parameters for multiple different spin-symmetric Hubbard-Stratonovich transformation fields that will be sampled.
 
 ## Keyword Arguments
 
@@ -509,7 +521,7 @@ This method returns a tuple containing `(acceptance_rate, logdetG, sgndetG, δG,
 function local_updates!(
     # ARGUMENTS
     G::Matrix{H}, logdetG::R, sgndetG::H,
-    hst_parameters::Tuple{Vararg{HST,N} where HST<:AbstractSymHST{T,R}};
+    hst_parameters::Tuple;
     # KEYWORD ARGUMENTS
     fermion_path_integral::FermionPathIntegral{H},
     fermion_greens_calculator::FermionGreensCalculator{H},
@@ -517,15 +529,16 @@ function local_updates!(
     δG::R, δθ::R,  rng::AbstractRNG,
     δG_max::R = 1e-6,
     update_stabilization_frequency::Bool = true
-) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator, N}
+) where {H<:Number, R<:Real, P<:AbstractPropagator}
 
-    @assert !( (H<:Real) &&  (T<:Complex)) "Green's function matrices are real while Hubbard-Stratonovich transformation is complex."
+    @assert all(hst -> isa(hst, AbstractHST), hst_parameters)
+    @assert all(hst -> !((H<:Real) && (_hst_field_type(hst)<:Complex)), hst_parameters) "Green's function matrices are real while Hubbard-Stratonovich transformation is complex."
 
     # get temporary storage matrix
     G′ = fermion_greens_calculator.G′
 
     # initialize vector to record acceptance rates
-    acceptance_rates = @MVector zeros(R, N)
+    acceptance_rates = @MVector zeros(R, length(hst_parameters))
 
     # Iterate over imaginary time τ=Δτ⋅l.
     for l in fermion_greens_calculator
