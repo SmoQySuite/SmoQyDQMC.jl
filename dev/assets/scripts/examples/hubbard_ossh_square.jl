@@ -27,8 +27,8 @@ function run_simulation(
     Δτ = 0.05, # Discretization in imaginary time.
     n_stab = 10, # Numerical stabilization period in imaginary-time slices.
     δG_max = 1e-6, # Threshold for numerical error corrected by stabilization.
-    symmetric = false, # Whether symmetric propagator definition is used.
-    checkerboard = false, # Whether checkerboard approximation is used.
+    symmetric = true, # Whether symmetric propagator definition is used.
+    checkerboard = true, # Whether checkerboard approximation is used.
     seed = abs(rand(Int)), # Seed for random number generator.
     filepath = "." # Filepath to where data folder will be created.
 )
@@ -43,7 +43,7 @@ function run_simulation(
     checkpoint_freq = checkpoint_freq * 60.0^2
 
     # Construct the foldername the data will be written to.
-    datafolder_prefix = @sprintf "square_hubbard_ossh_U%2.f_w%.2f_a%.2f_mu%.2f_L%d_b%.2f" U Ω α μ L β
+    datafolder_prefix = @sprintf "square_hubbard_ossh_U%.2f_w%.2f_a%.2f_mu%.2f_L%d_b%.2f" U Ω α μ L β
 
     # Get MPI process ID.
     pID = MPI.Comm_rank(comm)

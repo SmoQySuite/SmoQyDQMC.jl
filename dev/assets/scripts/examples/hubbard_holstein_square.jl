@@ -43,7 +43,7 @@ function run_simulation(
     checkpoint_freq = checkpoint_freq * 60.0^2
 
     # Construct the foldername the data will be written to.
-    datafolder_prefix = @sprintf "square_hol_hub_U%2.f_w%.2f_a%.2f_mu%.2f_L%d_b%.2f" U Ω α μ L β
+    datafolder_prefix = @sprintf "square_hol_hub_U%.2f_w%.2f_a%.2f_mu%.2f_L%d_b%.2f" U Ω α μ L β
 
     # Get MPI process ID.
     pID = MPI.Comm_rank(comm)
