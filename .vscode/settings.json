@@ -5,6 +5,6 @@
         "markdown": false,
         "scminput": false,
         "python": true,
-        "julia": true
+        "julia": false
     }
 }

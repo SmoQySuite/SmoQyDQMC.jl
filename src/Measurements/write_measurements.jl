@@ -67,7 +67,12 @@ function write_measurements!(;
         r = zeros(E, D)
 
         # open HDF5 file to write binned data to
-        file = write_bins_concurrent ? h5open(filename, "w") : h5open(filename, "w"; driver=Drivers.Core(; backing_store=false))
+        if write_bins_concurrent
+            file = h5open(filename, "w")
+        else
+            # Use in-memory file
+            file = h5open(filename, "w"; driver=Drivers.Core(; backing_store=false))
+        end
 
         # if first bin record system info
         if isone(bin)
@@ -89,20 +94,10 @@ function write_measurements!(;
             Global[measurement] = value
         end
 
-        # reset global measurements to zero
-        for measurement in keys(global_measurements)
-            global_measurements[measurement] = zero(Complex{E})
-        end
-
         # write local measurements to group
         Local = create_group(file, "LOCAL")
         for (measurement, value) in local_measurements
             Local[measurement] = value
-        end
-
-        # reset global measurements to zero
-        for measurement in keys(local_measurements)
-            fill!(local_measurements[measurement], zero(Complex{E}))
         end
 
         # create group to contain correlation measurements
@@ -133,7 +128,7 @@ function write_measurements!(;
             attributes(StandardEqualTimeCorrelation)["ID_TYPE"] = id_type
 
             # record the position space correlations
-            StandardEqualTimeCorrelation["POSITION"] = stack(correlations)
+            StandardEqualTimeCorrelation["POSITION"] = copy(stack(correlations))
 
             # fourier transform correlations to momentum space
             for i in eachindex(correlations)
@@ -163,10 +158,7 @@ function write_measurements!(;
             end
 
             # record the momentum space correlations
-            StandardEqualTimeCorrelation["MOMENTUM"] = stack(correlations)
-
-            # reset the correlation measurements to zero
-            reset!(correlation_container)
+            StandardEqualTimeCorrelation["MOMENTUM"] = copy(stack(correlations))
         end
 
         # create group for standard time-displaced correlation measurements
@@ -198,7 +190,7 @@ function write_measurements!(;
                 attributes(StandardTimeDisplacedCorrelation)["ID_TYPE"] = id_type
 
                 # record the position space correlations
-                StandardTimeDisplacedCorrelation["POSITION"] = stack(correlations)
+                StandardTimeDisplacedCorrelation["POSITION"] = copy(stack(correlations))
             end
 
             # if integrated measurement is also being made
@@ -225,7 +217,7 @@ function write_measurements!(;
                 end
 
                 # record the position space susceptibilities
-                StandardIntegratedCorrelation["POSITION"] = stack(susceptibilities)
+                StandardIntegratedCorrelation["POSITION"] = copy(stack(susceptibilities))
             end
 
             # fourier transform correlations to momentum space
@@ -259,7 +251,7 @@ function write_measurements!(;
             if time_displaced
 
                 # record the momentum space correlations
-                StandardTimeDisplacedCorrelation["MOMENTUM"] = stack(correlations)
+                StandardTimeDisplacedCorrelation["MOMENTUM"] = copy(stack(correlations))
             end
 
             # if integrated measurement is also being made
@@ -275,9 +267,6 @@ function write_measurements!(;
                 # record the momentum space susceptibilities
                 StandardIntegratedCorrelation["MOMENTUM"] = stack(susceptibilities)
             end
-
-            # reset the correlation measurements to zero
-            reset!(correlation_container)
         end
 
         # create composite correlation group
@@ -302,9 +291,6 @@ function write_measurements!(;
 
             # record the momentum space correlations
             CompositeEqualTimeCorrelation["MOMENTUM"] = structure_factors
-
-            # reset the correlation measurements to zero
-            reset!(correlation_container)
         end 
 
         # create group for composite time-displaced correlation measurements
@@ -352,23 +338,78 @@ function write_measurements!(;
                 # record the position space correlations
                 CompositeIntegratedCorrelation["POSITION"] = susceptibilities_pos
 
-                # calculate momentum space susceptibilies/integrated correlations
+                # calculate momentum space susceptibilities/integrated correlations
                 susceptibility!(susceptibilities_mom, structure_factors, Δτ, D+1)
 
                 # record the momentum space correlations
                 CompositeIntegratedCorrelation["MOMENTUM"] = susceptibilities_mom
             end
+        end
 
-            # reset the correlation measurements to zero
+        # If writing binned data to file.
+        if write_bins_concurrent
+            # For regular files, close first then read filename
+            close(file)
+            file_bytes = Vector{UInt8}(filename)  # Just stores the filename string
+            push!(bin_files, file_bytes)
+
+        # If using in-memory files.
+        else
+            # Ensure all writes are complete
+            flush(file)
+            # Get the file contents as bytes while still open
+            file_bytes = Vector{UInt8}(file)
+            close(file)
+            push!(bin_files, file_bytes)
+        end
+
+        # ZERO THE MEASUREMENT CONTAINER
+
+        # reset global measurements to zero
+        for measurement in keys(global_measurements)
+            global_measurements[measurement] = zero(Complex{E})
+        end
+
+        # reset global measurements to zero
+        for measurement in keys(local_measurements)
+            fill!(local_measurements[measurement], zero(Complex{E}))
+        end
+
+        # reset equal-time correlation measurements to zero
+        for correlation in keys(equaltime_correlations)
+            correlation_container = equaltime_correlations[correlation]
             reset!(correlation_container)
         end
 
-        # record the h5file filename or contents
-        file_bytes = write_bins_concurrent ? Vector{UInt8}(filename) : Vector{UInt8}(file)
-        push!(bin_files, file_bytes)
-        
-        # close file
-        close(file)
+        # reset time-displaced correlation measurements to zero
+        for correlation in keys(time_displaced_correlations)
+            correlation_container = time_displaced_correlations[correlation]
+            reset!(correlation_container)
+        end
+
+        # reset equal-time composite correlation measurements to zero
+        for correlation in keys(equaltime_composite_correlations)
+            correlation_container = equaltime_composite_correlations[correlation]
+            reset!(correlation_container)
+        end
+
+        # reset time-displaced composite correlation measurements to zero
+        for correlation in keys(time_displaced_composite_correlations)
+            correlation_container = time_displaced_composite_correlations[correlation]
+            reset!(correlation_container)
+        end
+
+        # reset integrated correlation measurements to zero
+        for correlation in keys(integrated_correlations)
+            correlation_container = integrated_correlations[correlation]
+            reset!(correlation_container)
+        end
+
+        # reset integrated composite correlation measurements to zero
+        for correlation in keys(integrated_composite_correlations)
+            correlation_container = integrated_composite_correlations[correlation]
+            reset!(correlation_container)
+        end
     end
 
     return nothing
