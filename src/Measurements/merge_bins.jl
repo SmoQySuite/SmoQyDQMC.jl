@@ -35,7 +35,11 @@ function merge_bins(
             # Record the number of bins
             attributes(fout)["N_BINS"] = N_bins
             # open first HDF5 bin file
-            fin = write_bins_concurrent ? h5open(String(bin_files[1]), "r") : h5open(bin_files[1], "r"; name = "in_mem_bin.h5")
+            if write_bins_concurrent
+                fin = h5open(String(bin_files[1]), "r")
+            else
+                fin = h5open(bin_files[1], "r"; name = "in_mem_bin-1.h5")
+            end
             # initialize/allocate HDF5 file to contain all binned data
             init_hdf5_bins_file(fout, fin, N_bins)
             # copy contents of first bin file over
@@ -45,7 +49,11 @@ function merge_bins(
             # iterate over remaining bin files
             for bin in 2:N_bins
                 # open HDF5 bin file
-                fin = write_bins_concurrent ? h5open(String(bin_files[bin]), "r") : h5open(bin_files[bin], "r"; name = "in_mem_bin.h5")
+                if write_bins_concurrent
+                    fin = h5open(String(bin_files[bin]), "r")
+                else
+                    fin = h5open(bin_files[bin], "r"; name = @sprintf("in_mem_bin-%d.h5", bin))
+                end
                 # copy contents of first bin file over
                 copyto_hdf5_bin(fout, fin, bin)
                 # close HDF5 bin file
@@ -83,7 +91,8 @@ function init_hdf5_bins_file(
     Global = create_group(fout, "GLOBAL")
     Global_Bin = fin["GLOBAL"]
     for key in keys(Global_Bin)
-        Global_Measurement = create_dataset(Global, key, eltype(Global_Bin[key]), N_bins)
+        write_dataset(Global, key, zeros(eltype(Global_Bin[key]), N_bins))
+        Global_Measurement = Global[key]
         attributes(Global_Measurement)["DIM_LABELS"] = ["BIN"]
     end
 
@@ -91,7 +100,8 @@ function init_hdf5_bins_file(
     Local = create_group(fout, "LOCAL")
     Local_Bin = fin["LOCAL"]
     for key in keys(Local_Bin)
-        Local_Measurement = create_dataset(Local, key, eltype(Local_Bin[key]), (N_bins, size(Local_Bin[key])...))
+        write_dataset(Local, key, zeros(eltype(Local_Bin[key]), (N_bins, size(Local_Bin[key])...)))
+        Local_Measurement = Local[key]
         attributes(Local_Measurement)["DIM_LABELS"] = ["BIN", "ID"]
         attributes(Local_Measurement)["ID_TYPE"] = LOCAL_MEASUREMENTS[key]
     end
@@ -115,9 +125,11 @@ function init_hdf5_bins_file(
         attributes(Correlation)["ID_PAIRS"] = read_attribute(Correlation_Bin, "ID_PAIRS")
         attributes(Correlation)["ID_TYPE"] = read_attribute(Correlation_Bin, "ID_TYPE")
         Position_Bin = Correlation_Bin["POSITION"]
-        Position = create_dataset(Correlation, "POSITION", eltype(Position_Bin), (N_bins, size(Position_Bin)...))
+        write_dataset(Correlation, "POSITION", zeros(eltype(Position_Bin), (N_bins, size(Position_Bin)...)))
+        Position = Correlation["POSITION"]
         Momentum_Bin = Correlation_Bin["MOMENTUM"]
-        Momentum = create_dataset(Correlation, "MOMENTUM", eltype(Momentum_Bin), (N_bins, size(Momentum_Bin)...))
+        write_dataset(Correlation, "MOMENTUM", zeros(eltype(Momentum_Bin), (N_bins, size(Momentum_Bin)...)))
+        Momentum = Correlation["MOMENTUM"]
         D = ndims(Position_Bin) - 1 # number of spatial dimensions
         attributes(Position)["DIM_LABELS"] = ["BIN", position_column_labels(D)..., "ID_PAIR"]
         attributes(Momentum)["DIM_LABELS"] = ["BIN", momentum_column_labels(D)..., "ID_PAIR"]
@@ -131,9 +143,11 @@ function init_hdf5_bins_file(
         attributes(Correlation)["ID_PAIRS"] = read_attribute(Correlation_Bin, "ID_PAIRS")
         attributes(Correlation)["ID_TYPE"] = read_attribute(Correlation_Bin, "ID_TYPE")
         Position_Bin = Correlation_Bin["POSITION"]
-        Position = create_dataset(Correlation, "POSITION", eltype(Position_Bin), (N_bins, size(Position_Bin)...))
+        write_dataset(Correlation, "POSITION", zeros(eltype(Position_Bin), (N_bins, size(Position_Bin)...)))
+        Position = Correlation["POSITION"]
         Momentum_Bin = Correlation_Bin["MOMENTUM"]
-        Momentum = create_dataset(Correlation, "MOMENTUM", eltype(Momentum_Bin), (N_bins, size(Momentum_Bin)...))
+        write_dataset(Correlation, "MOMENTUM", zeros(eltype(Momentum_Bin), (N_bins, size(Momentum_Bin)...)))
+        Momentum = Correlation["MOMENTUM"]
         D = ndims(Position_Bin) - 2 # number of spatial dimensions
         attributes(Position)["DIM_LABELS"] = ["BIN", position_column_labels(D)..., "TAU", "ID_PAIR"]
         attributes(Momentum)["DIM_LABELS"] = ["BIN", momentum_column_labels(D)..., "TAU", "ID_PAIR"]
@@ -147,9 +161,11 @@ function init_hdf5_bins_file(
         attributes(Correlation)["ID_PAIRS"] = read_attribute(Correlation_Bin, "ID_PAIRS")
         attributes(Correlation)["ID_TYPE"] = read_attribute(Correlation_Bin, "ID_TYPE")
         Position_Bin = Correlation_Bin["POSITION"]
-        Position = create_dataset(Correlation, "POSITION", eltype(Position_Bin), (N_bins, size(Position_Bin)...))
+        write_dataset(Correlation, "POSITION", zeros(eltype(Position_Bin), (N_bins, size(Position_Bin)...)))
+        Position = Correlation["POSITION"]
         Momentum_Bin = Correlation_Bin["MOMENTUM"]
-        Momentum = create_dataset(Correlation, "MOMENTUM", eltype(Momentum_Bin), (N_bins, size(Momentum_Bin)...))
+        write_dataset(Correlation, "MOMENTUM", zeros(eltype(Momentum_Bin), (N_bins, size(Momentum_Bin)...)))
+        Momentum = Correlation["MOMENTUM"]
         D = ndims(Position_Bin) - 1 # number of spatial dimensions
         attributes(Position)["DIM_LABELS"] = ["BIN", position_column_labels(D)..., "ID_PAIR"]
         attributes(Momentum)["DIM_LABELS"] = ["BIN", momentum_column_labels(D)..., "ID_PAIR"]
@@ -161,9 +177,11 @@ function init_hdf5_bins_file(
         Correlation_Bin = CompositeEqualTime_Bin[key]
         Correlation = create_group(CompositeEqualTime, key)
         Position_Bin = Correlation_Bin["POSITION"]
-        Position = create_dataset(Correlation, "POSITION", eltype(Position_Bin), (N_bins, size(Position_Bin)...))
+        write_dataset(Correlation, "POSITION", zeros(eltype(Position_Bin), (N_bins, size(Position_Bin)...)))
+        Position = Correlation["POSITION"]
         Momentum_Bin = Correlation_Bin["MOMENTUM"]
-        Momentum = create_dataset(Correlation, "MOMENTUM", eltype(Momentum_Bin), (N_bins, size(Momentum_Bin)...))
+        write_dataset(Correlation, "MOMENTUM", zeros(eltype(Momentum_Bin), (N_bins, size(Momentum_Bin)...)))
+        Momentum = Correlation["MOMENTUM"]
         D = ndims(Position_Bin) # number of spatial dimensions
         attributes(Position)["DIM_LABELS"] = ["BIN", position_column_labels(D)...]
         attributes(Momentum)["DIM_LABELS"] = ["BIN", momentum_column_labels(D)...]
@@ -175,9 +193,11 @@ function init_hdf5_bins_file(
         Correlation_Bin = CompositeTimeDisplaced_Bin[key]
         Correlation = create_group(CompositeTimeDisplaced, key)
         Position_Bin = Correlation_Bin["POSITION"]
-        Position = create_dataset(Correlation, "POSITION", eltype(Position_Bin), (N_bins, size(Position_Bin)...))
+        write_dataset(Correlation, "POSITION", zeros(eltype(Position_Bin), (N_bins, size(Position_Bin)...)))
+        Position = Correlation["POSITION"]
         Momentum_Bin = Correlation_Bin["MOMENTUM"]
-        Momentum = create_dataset(Correlation, "MOMENTUM", eltype(Momentum_Bin), (N_bins, size(Momentum_Bin)...))
+        write_dataset(Correlation, "MOMENTUM", zeros(eltype(Momentum_Bin), (N_bins, size(Momentum_Bin)...)))
+        Momentum = Correlation["MOMENTUM"]
         D = ndims(Position_Bin) - 1 # number of spatial dimensions
         attributes(Position)["DIM_LABELS"] = ["BIN", position_column_labels(D)..., "TAU"]
         attributes(Momentum)["DIM_LABELS"] = ["BIN", momentum_column_labels(D)..., "TAU"]
@@ -189,9 +209,11 @@ function init_hdf5_bins_file(
         Correlation_Bin = CompositeIntegrated_Bin[key]
         Correlation = create_group(CompositeIntegrated, key)
         Position_Bin = Correlation_Bin["POSITION"]
-        Position = create_dataset(Correlation, "POSITION", eltype(Position_Bin), (N_bins, size(Position_Bin)...))
+        write_dataset(Correlation, "POSITION", zeros(eltype(Position_Bin), (N_bins, size(Position_Bin)...)))
+        Position = Correlation["POSITION"]
         Momentum_Bin = Correlation_Bin["MOMENTUM"]
-        Momentum = create_dataset(Correlation, "MOMENTUM", eltype(Momentum_Bin), (N_bins, size(Momentum_Bin)...))
+        write_dataset(Correlation, "MOMENTUM", zeros(eltype(Momentum_Bin), (N_bins, size(Momentum_Bin)...)))
+        Momentum = Correlation["MOMENTUM"]
         D = ndims(Position_Bin) # number of spatial dimensions
         attributes(Position)["DIM_LABELS"] = ["BIN", position_column_labels(D)...]
         attributes(Momentum)["DIM_LABELS"] = ["BIN", momentum_column_labels(D)...]

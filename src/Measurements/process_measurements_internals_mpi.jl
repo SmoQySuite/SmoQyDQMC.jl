@@ -262,8 +262,8 @@ function process_correlations!(
     correlation_type::String,
     correlations::Vector{String},
     binned_sign::Vector{Complex{T}},
-    jackknife_sample_means = (similar(binned_signs), similar(binned_signs)),
-    jackknife_g = similar(binned_signs)
+    jackknife_sample_means = (similar(binned_sign), similar(binned_sign)),
+    jackknife_g = similar(binned_sign)
 ) where {T<:AbstractFloat}
 
     # get current MPI rank
@@ -291,7 +291,7 @@ function process_correlations!(
             )
             # record stats
             Mean_Out[c] = avg
-            Var_Out[c] = abs(err)
+            Var_Out[c] = abs2(err)
         end
         # collect stats from all MPI processes
         MPI.Reduce!(Mean_Out, +, comm)
@@ -322,7 +322,7 @@ function process_correlations!(
             )
             # record stats
             Mean_Out[c] = avg
-            Var_Out[c] = abs(err)
+            Var_Out[c] = abs2(err)
         end
         # collect stats from all MPI processes
         MPI.Reduce!(Mean_Out, +, comm)
