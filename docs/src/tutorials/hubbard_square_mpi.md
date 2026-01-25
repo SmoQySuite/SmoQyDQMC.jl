@@ -151,12 +151,6 @@ No changes need to made to this section of the code from the previous [1a) Squar
     # Add this bond definition to the model, by adding it the model_geometry.
     bond_py_id = add_bond!(model_geometry, bond_py)
 
-    # Define the next-nearest-neighbor bond in +x+y direction.
-    bond_pxpy = lu.Bond(
-        orbitals = (1,1),
-        displacement = [1, 1]
-    )
-
     # Define the nearest-neighbor bond in -x direction.
     # Will be used to make measurements later in this tutorial.
     bond_nx = lu.Bond(
