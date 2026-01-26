@@ -2433,7 +2433,7 @@ function measure_equaltime_composite_phonon_greens!(
     lattice = model_geometry.lattice::Lattice{D}
     unit_cell = model_geometry.unit_cell::UnitCell{D,E}
     phonon_parameters = electron_phonon_parameters.phonon_parameters::PhononParameters{E}
-    phonon_basis_vecs = phonon_parameters.basis_vecs::Vector{Int}
+    displacement_vecs = phonon_greens.displacement_vecs::Vector{SVector{D,E}}
 
     # get phonon field
     x = electron_phonon_parameters.x::Matrix{E}
@@ -2549,12 +2549,12 @@ function measure_time_displaced_composite_phonon_greens!(
     @assert phonon_greens.correlation == "phonon_greens"
     id_pairs = phonon_greens.id_pairs::Vector{NTuple{2,Int}}
     coefficients = phonon_greens.coefficients::Vector{Complex{E}}
-    correlations = phonon_greens.correlations::Array{Complex{E}, D}
-    structure_factors = phonon_greens.structure_factors::Array{Complex{E}, D}
+    correlations = phonon_greens.correlations::Array{Complex{E}, P}
+    structure_factors = phonon_greens.structure_factors::Array{Complex{E}, P}
     lattice = model_geometry.lattice::Lattice{D}
     unit_cell = model_geometry.unit_cell::UnitCell{D,E,N}
     phonon_parameters = electron_phonon_parameters.phonon_parameters::PhononParameters{E}
-    phonon_basis_vecs = phonon_parameters.basis_vecs::Vector{Int}
+    displacement_vecs = phonon_greens.displacement_vecs::Vector{SVector{D,E}}
 
     # get phonon field
     x = electron_phonon_parameters.x::Matrix{E}
@@ -2584,8 +2584,8 @@ function measure_time_displaced_composite_phonon_greens!(
         phonon_1_id = id_pairs[i][1]
         phonon_2_id = id_pairs[i][2]
         # get the phonon fields associated with the appropriate pair of phonon modes in the unit cell
-        x0 = selectdim(x′, D+1, phonon_id_1)
-        xr = selectdim(x′, D+1, phonon_id_2)
+        x0 = selectdim(x′, D+1, phonon_1_id)
+        xr = selectdim(x′, D+1, phonon_2_id)
         copyto!(X0, x0)
         copyto!(Xr, xr)
         # calculate phonon greens function in position space
