@@ -109,13 +109,13 @@ function reflection_update!(
     # calculate the initial bosonic action
     Sb = bosonic_action(electron_phonon_parameters)
 
-    # calculate initial ferimonic action
+    # calculate initial fermionic action
     Sf = logdetGup + logdetGdn
 
     # calculate the total initial action
     S = Sb + Sf
 
-    # substract off the effect of the current phonon configuration on the fermion path integrals
+    # subtract off the effect of the current phonon configuration on the fermion path integrals
     if calculate_exp_V
         update!(fermion_path_integral_up, holstein_parameters_up, x, -1)
         update!(fermion_path_integral_dn, holstein_parameters_dn, x, -1)
@@ -190,7 +190,7 @@ function reflection_update!(
         fermion_path_integral_up.Sb
         accepted = true
     else
-        # substract off the effect of the current phonon configuration on the fermion path integrals
+        # subtract off the effect of the current phonon configuration on the fermion path integrals
         if calculate_exp_V
             update!(fermion_path_integral_up, holstein_parameters_up, x, -1)
             update!(fermion_path_integral_dn, holstein_parameters_dn, x, -1)
@@ -309,7 +309,7 @@ function reflection_update!(
     # calculate the total initial action
     S = Sb + Sf
 
-    # substract off the effect of the current phonon configuration on the fermion path integrals
+    # subtract off the effect of the current phonon configuration on the fermion path integrals
     if calculate_exp_V
         update!(fermion_path_integral, holstein_parameters, x, -1)
     end
@@ -370,7 +370,7 @@ function reflection_update!(
         fermion_path_integral.Sb += (Sb′ - Sb)
         accepted = true
     else
-        # substract off the effect of the current phonon configuration on the fermion path integrals
+        # subtract off the effect of the current phonon configuration on the fermion path integrals
         if calculate_exp_V
             update!(fermion_path_integral, holstein_parameters, x, -1)
         end

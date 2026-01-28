@@ -141,7 +141,8 @@ function _process_measurements(
         # with re-weighting to account for the sign problem
         κ, Δκ = jackknife(
             (n̄, N̄², S̄) -> (β/N_orbitals)*(N̄²/S̄ - (N_orbitals*n̄/S̄)^2),
-            n, N², S
+            n, N², S,
+            bias_corrected=false
         )
         κ_avg += κ
         κ_var += Δκ^2
@@ -429,7 +430,8 @@ function binning_analysis(
     avg, err = jackknife(
         /, binned_data, sgn,
         jackknife_sample_means = jackknife_sample_means,
-        jackknife_g = jackknife_g
+        jackknife_g = jackknife_g,
+        bias_corrected=false
     )
 
     return avg, err

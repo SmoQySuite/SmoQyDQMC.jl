@@ -128,7 +128,8 @@ function _process_measurements(
             avg, err = jackknife(
                 /, binned_vals, binned_sign,
                 jackknife_sample_means = jackknife_sample_means,
-                jackknife_g = jackknife_g
+                jackknife_g = jackknife_g,
+                bias_corrected=false
             )
             err = abs2(err)
         end
@@ -148,7 +149,8 @@ function _process_measurements(
     S  = binned_sign
     κ, Δκ = jackknife(
         (n̄, N̄², S̄) -> (β/N_orbitals)*(N̄²/S̄ - (N_orbitals*n̄/S̄)^2),
-        n, N², S
+        n, N², S,
+        bias_corrected=false
     )
     κ = MPI.Reduce(κ, +, comm)
     varκ = MPI.Reduce(abs2(Δκ), +, comm)

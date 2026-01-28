@@ -158,7 +158,7 @@ function _compute_function_of_correlations(
     F(z...) = f(map(x->x/z[1], z[2:end])...)
 
     # calculate the composite correlation
-    C, ΔC = jackknife(F, binned_sgn, binned_correlations...)
+    C, ΔC = jackknife(F, binned_sgn, binned_correlations..., bias_corrected=false)
 
     # close HDF5 file containing binned data
     close(h5)

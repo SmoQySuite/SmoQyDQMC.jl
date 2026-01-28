@@ -211,7 +211,7 @@ function _compute_correlation_ratio(
     end
 
     # calculate correlation ratio
-    R, ΔR = jackknife((Sqpdq, Sq) -> 1 - Sqpdq/Sq, Sqpdq_bins, Sq_bins)
+    R, ΔR = jackknife((Sqpdq, Sq) -> 1 - Sqpdq/Sq, Sqpdq_bins, Sq_bins, bias_corrected=false)
 
     # close HDF5 file
     close(H5File)
@@ -401,7 +401,7 @@ function _compute_composite_correlation_ratio(
     end
 
     # calculate composite correlation ratio
-    R, ΔR = jackknife((Sqpdq, Sq) -> 1 - Sqpdq/Sq, Sqpdq_bins, Sq_bins)
+    R, ΔR = jackknife((Sqpdq, Sq) -> 1 - Sqpdq/Sq, Sqpdq_bins, Sq_bins, bias_corrected=false)
 
     # close HDF5 file
     close(H5File)

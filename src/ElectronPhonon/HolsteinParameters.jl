@@ -18,7 +18,7 @@ Defines the Holstein coupling parameters in lattice.
 """
 struct HolsteinParameters{E<:AbstractFloat}
 
-    # number of type of holstien couplings
+    # number of type of holstein couplings
     nholstein::Int
 
     # number of Holstein couplings

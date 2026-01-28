@@ -115,13 +115,13 @@ function swap_update!(
     # calculate the initial bosonic action
     Sb = bosonic_action(electron_phonon_parameters)
 
-    # calculate the initial fermionc action
+    # calculate the initial fermionic action
     Sf = logdetGup + logdetGdn
 
     # calculate initial total action
     S = Sb + Sf
 
-    # substract off the effect of the current phonon configuration on the fermion path integrals
+    # subtract off the effect of the current phonon configuration on the fermion path integrals
     if calculate_exp_V
         update!(fermion_path_integral_up, holstein_parameters_up, x, -1)
         update!(fermion_path_integral_dn, holstein_parameters_dn, x, -1)
@@ -312,13 +312,13 @@ function swap_update!(
     # calculate the initial bosonic action
     Sb = bosonic_action(electron_phonon_parameters)
 
-    # caculate initial fermionic action
+    # calculate initial fermionic action
     Sf = 2*logdetG
 
     # calculate initial total action
     S = Sb + Sf
 
-    # substract off the effect of the current phonon configuration on the fermion path integrals
+    # subtract off the effect of the current phonon configuration on the fermion path integrals
     if calculate_exp_V
         update!(fermion_path_integral, holstein_parameters, x, -1)
     end
@@ -380,7 +380,7 @@ function swap_update!(
         copyto!(fermion_greens_calculator, fermion_greens_calculator_alt)
         fermion_path_integral.Sb += Sb′ - Sb
     else
-        # substract off the effect of the current phonon configuration on the fermion path integrals
+        # subtract off the effect of the current phonon configuration on the fermion path integrals
         if calculate_exp_V
             update!(fermion_path_integral, holstein_parameters, x, -1)
         end
@@ -423,7 +423,7 @@ function _sample_phonon_mode_pair(rng::AbstractRNG, nphonon::Int, Nunitcells::In
     end
 
     # check to make sure phonon_id_pair is correct type
-    @assert isa(phonon_id_pair, NTuple{2,Int}) "Each element of `phonon_id_pairs` must be convertable to a `Tuple{Int,Int}` type."
+    @assert isa(phonon_id_pair, NTuple{2,Int}) "Each element of `phonon_id_pairs` must be convertible to a `Tuple{Int,Int}` type."
     
     return _sample_phonon_mode_pair(rng, nphonon, Nunitcells, masses, phonon_id_pair)
 end
