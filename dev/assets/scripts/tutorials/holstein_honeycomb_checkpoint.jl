@@ -571,7 +571,7 @@ function run_simulation(
     # Record the AFM correlation ratio mean and standard deviation.
     metadata["Rcdw_mean_real"] = real(Rcdw)
     metadata["Rcdw_mean_imag"] = imag(Rcdw)
-    metadata["Rcdw_std"]       = ΔRcdw
+    metadata["Rcdw_std"] = ΔRcdw
 
     # Write simulation summary TOML file.
     save_simulation_info(simulation_info, metadata)
