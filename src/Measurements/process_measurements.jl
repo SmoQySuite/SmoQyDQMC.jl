@@ -233,7 +233,7 @@ function process_measurements(;
     if isempty(pIDs)
         bin_dir = joinpath(datafolder,"bins")
         pID_bin_dirs = filter(f -> isdir(f) && startswith(f, "pID-"), readdir(bin_dir))
-        pIDs = collect( 0 : length(pID_bin_dirs) )
+        pIDs = collect( 0 : length(pID_bin_dirs) - 1 )
     end
 
     # construct filename for stats HDF5 file
