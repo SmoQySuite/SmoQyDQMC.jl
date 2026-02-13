@@ -319,7 +319,7 @@ function SSHCoupling(;
     # get the hopping ID associated with SSH coupling
     hopping_id = findfirst(b -> b == bond, tight_binding_model.t_bonds)
 
-    # get the twist-angle phase factor associatedw with the hopping
+    # get the twist-angle phase factor associated with the hopping
     expniϕ = tight_binding_model.expniϕ[hopping_id]
 
     # determine the type of the hopping
