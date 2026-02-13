@@ -346,8 +346,8 @@ Defines a dispersive phonon coupling between phonon modes. Specifically, it defi
         \frac{M_{\mathbf{i}+\mathbf{r},\kappa}M_{\mathbf{i},\nu}}{M_{\mathbf{i}+\mathbf{r},\kappa}+M_{\mathbf{i},\nu}}
     \right)
     \bigg[
-                    \Omega_{\mathbf{i},(\mathbf{r},\kappa,\nu)}^{2}\Big(\hat{X}_{\mathbf{i}+\mathbf{r},\kappa}-\hat{X}_{\mathbf{i},\nu}\Big)^{2}
-       +\frac{1}{12}\Omega_{4,\mathbf{i},(\mathbf{r},\kappa,\nu)}^{2}\Big(\hat{X}_{\mathbf{i}+\mathbf{r},\kappa}-\hat{X}_{\mathbf{i},\nu}\Big)^{4}
+                    \Omega_{\mathbf{i},(\mathbf{r},\kappa,\nu)}^{2}\Big(\hat{X}_{\mathbf{i}+\mathbf{r},\kappa}-\zeta_{\mathbf{r},\kappa,\nu}\hat{X}_{\mathbf{i},\nu}\Big)^{2}
+       +\frac{1}{12}\Omega_{4,\mathbf{i},(\mathbf{r},\kappa,\nu)}^{2}\Big(\hat{X}_{\mathbf{i}+\mathbf{r},\kappa}-\zeta_{\mathbf{r},\kappa,\nu}\hat{X}_{\mathbf{i},\nu}\Big)^{4}
     \bigg]
 ```
 where the sum over ``\mathbf{i}`` runs over unit cells in the lattice.
@@ -361,6 +361,7 @@ In the above ``\nu`` and ``\kappa`` IDs specify the phonon modes in the unit cel
 - `Ω_std::E`: Standard deviation of dispersive phonon frequency ``\Omega_{\mathbf{i},(\mathbf{r},\kappa,\nu)}.``
 - `Ω4_mean::E`: Mean quartic dispersive phonon coefficient ``\Omega_{4,\mathbf{i},(\mathbf{r},\kappa,\nu)}.``
 - `Ω4_std::E`: Standard deviation of quartic dispersive phonon coefficient ``\Omega_{4,\mathbf{i},(\mathbf{r},\kappa,\nu)}.``
+- `ζ::Int`: The parameter ``\zeta_{\mathbf{r},\kappa,\nu} = \pm 1`` controls whether the sum or difference of coupled phonon displacements appears in dispersive coupling term.
 """
 struct PhononDispersion{E<:AbstractFloat, D}
 
@@ -381,6 +382,9 @@ struct PhononDispersion{E<:AbstractFloat, D}
 
     # standard deviation of quartic coefficient
     Ω4_std::E
+
+    # sign of coupling
+    ζ::Int
 end
 
 @doc raw"""
@@ -392,7 +396,8 @@ end
         Ω_mean::E,
         Ω_std::E=0.0,
         Ω4_mean::E=0.0,
-        Ω4_std::E=0.0
+        Ω4_std::E=0.0,
+        ζ::Int=1
     ) where {E<:AbstractFloat, D}
 
 Initialize and return a instance of [`PhononDispersion`](@ref).
@@ -405,11 +410,13 @@ function PhononDispersion(;
     Ω_mean::E,
     Ω_std::E=0.0,
     Ω4_mean::E=0.0,
-    Ω4_std::E=0.0
+    Ω4_std::E=0.0,
+    ζ::Int=1
 ) where {E<:AbstractFloat, D}
 
     r = SVector{D,Int}(displacement)
-    return PhononDispersion(phonon_ids, r, Ω_mean, Ω_std, Ω4_mean, Ω4_std)
+    @assert isone(abs(ζ))
+    return PhononDispersion(phonon_ids, r, Ω_mean, Ω_std, Ω4_mean, Ω4_std, ζ)
 end
 
 
@@ -515,7 +522,8 @@ function Base.show(io::IO, ::MIME"text/plain", elphm::ElectronPhononModel{T,E,D}
         @printf io "omega_mean    = %.6f\n" dispersion.Ω_mean
         @printf io "omega_std     = %.6f\n" dispersion.Ω_std
         @printf io "omega_4_mean  = %.6f\n" dispersion.Ω4_mean
-        @printf io "omega_4_std   = %.6f\n\n" dispersion.Ω4_std
+        @printf io "omega_4_std   = %.6f\n" dispersion.Ω4_std
+        @printf io "zeta          = %d\n\n" dispersion.ζ
     end
     for i in eachindex(elphm.holstein_couplings_up)
 
@@ -615,7 +623,8 @@ function Base.show(io::IO, ::MIME"text/plain", elphm::ElectronPhononModel{T,E,D}
         @printf io "omega_mean    = %.6f\n" dispersion.Ω_mean
         @printf io "omega_std     = %.6f\n" dispersion.Ω_std
         @printf io "omega_4_mean  = %.6f\n" dispersion.Ω4_mean
-        @printf io "omega_4_std   = %.6f\n\n" dispersion.Ω4_std
+        @printf io "omega_4_std   = %.6f\n" dispersion.Ω4_std
+        @printf io "zeta          = %d\n\n" dispersion.ζ
     end
     for i in eachindex(elphm.holstein_couplings_up)
 

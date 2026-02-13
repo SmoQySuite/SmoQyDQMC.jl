@@ -33,7 +33,7 @@ function measure_dispersion_energy(
     dispersion_id::Int
 ) where {T<:AbstractFloat}
 
-    (; ndispersion, Ndispersion, Ω, Ω4, dispersion_to_phonon) = dispersion_parameters
+    (; ndispersion, Ndispersion, Ω, Ω4, ζ, dispersion_to_phonon) = dispersion_parameters
 
     # length of imaginary time axis
     Lτ = size(x,2)
@@ -48,6 +48,7 @@ function measure_dispersion_energy(
     slice = (dispersion_id-1)*Nunitcell+1 : dispersion_id*Nunitcell
     Ω′  = @view  Ω[slice]
     Ω4′ = @view Ω4[slice]
+    ζ′  = @view ζ[slice]
     dtp = @view dispersion_to_phonon[:, slice]
 
     # iterate over imaginary time slice
@@ -56,7 +57,7 @@ function measure_dispersion_energy(
         for u in axes(dtp,2)
             p  = dtp[1,u]
             p′ = dtp[2,u]
-            Δx = x[p′,l] - x[p,l]
+            Δx = x[p′,l] - ζ′[u] * x[p,l]
             # calculate the reduced mass M″ = (M⋅M′)/(M + M′)
             M″ = reduced_mass(M[p′], M[p])
             # calculate dispersive potential energy

@@ -434,15 +434,15 @@ instance `chemical_potential_tuner` from the checkpoint file.
         checkpoint, checkpoint_timestamp = read_jld2_checkpoint(simulation_info)
 
         # Unpack contents of checkpoint dictionary.
-        tight_binding_parameters    = checkpoint["tight_binding_parameters"]
-        electron_phonon_parameters  = checkpoint["electron_phonon_parameters"]
-        chemical_potential_tuner    = checkpoint["chemical_potential_tuner"]
-        measurement_container       = checkpoint["measurement_container"]
-        model_geometry              = checkpoint["model_geometry"]
-        metadata                    = checkpoint["metadata"]
-        rng                         = checkpoint["rng"]
-        n_therm                     = checkpoint["n_therm"]
-        n_measurements                   = checkpoint["n_measurements"]
+        tight_binding_parameters = checkpoint["tight_binding_parameters"]
+        electron_phonon_parameters = checkpoint["electron_phonon_parameters"]
+        chemical_potential_tuner = checkpoint["chemical_potential_tuner"]
+        measurement_container = checkpoint["measurement_container"]
+        model_geometry = checkpoint["model_geometry"]
+        metadata = checkpoint["metadata"]
+        rng = checkpoint["rng"]
+        n_therm = checkpoint["n_therm"]
+        n_measurements = checkpoint["n_measurements"]
     end
 ````
 
@@ -727,7 +727,7 @@ No changes need to made to this section of the code from the previous
     # Record the AFM correlation ratio mean and standard deviation.
     metadata["Rcdw_mean_real"] = real(Rcdw)
     metadata["Rcdw_mean_imag"] = imag(Rcdw)
-    metadata["Rcdw_std"]       = ΔRcdw
+    metadata["Rcdw_std"] = ΔRcdw
 
     # Write simulation summary TOML file.
     save_simulation_info(simulation_info, metadata)

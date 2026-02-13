@@ -27,6 +27,9 @@ struct DispersionParameters{E<:AbstractFloat}
     # quartic coefficient for phonon potential energy (X⁴)
     Ω4::Vector{E}
 
+    # phase of coupling
+    ζ::Vector{Int}
+
     # map dispersion to phonon mode
     dispersion_to_phonon::Matrix{Int}
 
@@ -73,7 +76,7 @@ function DispersionParameters(;
         # get total number of phonon modes
         Nphonon = nphonon * Ncells
 
-        # total number of disperson phonon couplings in lattice
+        # total number of dispersion phonon couplings in lattice
         Ndispersion = ndispersion * Ncells
 
         # construct map going from dispersion to phonon modes in lattice
@@ -94,20 +97,22 @@ function DispersionParameters(;
 
         # allocate dispersive coupling coefficients
         Ω  = zeros(E, Ndispersion)
-        Ω4 = zeros(E, Ndispersion) 
+        Ω4 = zeros(E, Ndispersion)
+        ζ  = zeros(Int, Ndispersion)
 
         # iterate over dispersive coupling definition
-        dipsersion_counter = 0 # count dispersive couplings
+        dispersion_counter = 0 # count dispersive couplings
         for n in 1:ndispersion
             # get the dispersive coupling definition
             phonon_dispersion = phonon_dispersions[n]
             # iterate over unit cells
             for uc in 1:Ncells
                 # increment dispersive coupling counter
-                dipsersion_counter += 1
+                dispersion_counter += 1
                 # initialize dispersive coupling coefficient
-                Ω[dipsersion_counter]  = phonon_dispersion.Ω_mean  + phonon_dispersion.Ω_std  * randn(rng)
-                Ω4[dipsersion_counter] = phonon_dispersion.Ω4_mean + phonon_dispersion.Ω4_std * randn(rng)
+                Ω[dispersion_counter]  = phonon_dispersion.Ω_mean  + phonon_dispersion.Ω_std  * randn(rng)
+                Ω4[dispersion_counter] = phonon_dispersion.Ω4_mean + phonon_dispersion.Ω4_std * randn(rng)
+                ζ[dispersion_counter] = phonon_dispersion.ζ
             end
         end
 
@@ -123,7 +128,7 @@ function DispersionParameters(;
 
         # initialize dispersion parameters
         dispersion_parameters = DispersionParameters(
-            ndispersion, Ndispersion, Ω, Ω4, dispersion_to_phonon,
+            ndispersion, Ndispersion, Ω, Ω4, ζ, dispersion_to_phonon,
             init_phonon_to_dispersion, final_phonon_to_dispersion
         )
     else
@@ -146,5 +151,5 @@ function DispersionParameters(
     electron_phonon_model::ElectronPhononModel{T,E,D}
 ) where {T,E,D}
 
-    return DispersionParameters(0, 0, E[], E[], Matrix{Int}(undef,2,0), Vector{Int}[], Vector{Int}[])
+    return DispersionParameters(0, 0, E[], E[], Int[], Matrix{Int}(undef,2,0), Vector{Int}[], Vector{Int}[])
 end

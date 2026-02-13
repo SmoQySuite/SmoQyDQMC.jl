@@ -59,7 +59,7 @@ function eval_qho_action(
             if isfinite(M[n])
                 # potential energy Δτ⋅M⋅Ω²⋅x²/2
                 Sb += Δτ * M[n] * Ω[n]^2/2 * x[n,l]^2
-                # kintetic energy Δτ⋅M/2⋅[(x[l]-x[l-1])²/Δτ²]
+                # kinetic energy Δτ⋅M/2⋅[(x[l]-x[l-1])²/Δτ²]
                 Sb += M[n] * (x[n,l]-x[n,mod1(l-1,Lτ)])^2 / (2*Δτ)
             end
         end
@@ -103,7 +103,7 @@ function eval_dispersive_action(
 ) where {E<:AbstractFloat}
 
     (; M) = phonon_parameters
-    (; Ndispersion, Ω, Ω4, dispersion_to_phonon) = dispersion_parameters
+    (; Ndispersion, Ω, Ω4, ζ, dispersion_to_phonon) = dispersion_parameters
     Lτ = size(x, 2)
 
     # initialize bosonic action
@@ -112,7 +112,7 @@ function eval_dispersive_action(
     if Ndispersion > 0
         # iterate over imaginary time slice
         @fastmath @inbounds for l in 1:Lτ
-            # iterarte over dispersive phonon coupling
+            # iterate over dispersive phonon coupling
             for n in 1:Ndispersion
                 # get the pair of coupled phonon modes
                 p  = dispersion_to_phonon[1,n]
@@ -120,7 +120,7 @@ function eval_dispersive_action(
                 # calculate the reduced mass M″ = (M⋅M′)/(M + M′)
                 M″ = reduced_mass(M[p′], M[p])
                 # calculate the difference in phonon position
-                Δx = x[p′,l] - x[p,l]
+                Δx = x[p′,l] - ζ[n]*x[p,l]
                 # calculate the potential energy M″⋅Ω²⋅(xᵢ-xⱼ)² + M″⋅Ω₄²⋅(xᵢ-xⱼ)⁴/12
                 Sb += Δτ*M″*(Ω[n]^2*Δx^2 + Ω4[n]^2*Δx^4/12)
             end
@@ -275,7 +275,7 @@ function eval_derivative_dispersive_action!(
 ) where {E<:AbstractFloat}
 
     (; M) = phonon_parameters
-    (; Ndispersion, Ω, Ω4, dispersion_to_phonon) = dispersion_parameters
+    (; Ndispersion, Ω, Ω4, ζ, dispersion_to_phonon) = dispersion_parameters
     Lτ = size(x, 2)
 
     # iterate over imaginary time slice
@@ -288,10 +288,10 @@ function eval_derivative_dispersive_action!(
             # calculate the reduced mass M″ = (M⋅M′)/(M + M′)
             M″ = reduced_mass(M[p′], M[p])
             # calculate the difference in phonon position
-            Δx = x[p′,l] - x[p,l]
+            Δx = x[p′,l] - ζ[n]*x[p,l]
             # evaluate derivative with respect to first phonon field
             if isfinite(M[p])
-                dSdx[p,l] -= Δτ*M″*(2*Ω[n]^2*Δx + Ω4[n]^2*Δx^3/3)
+                dSdx[p,l] -= ζ[n]*Δτ*M″*(2*Ω[n]^2*Δx + Ω4[n]^2*Δx^3/3)
             end
             # evaluate derivative with respect to second phonon field
             if isfinite(M[p′])
