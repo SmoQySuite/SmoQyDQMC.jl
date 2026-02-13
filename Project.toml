@@ -1,7 +1,7 @@
 name = "SmoQyDQMC"
 uuid = "00e12d65-277b-447e-9c1d-a17422dd36f5"
 authors = ["Benjamin Cohen-Stead <benwcs@gmail.com>"]
-version = "2.0.5"
+version = "2.0.6"
 
 [deps]
 Checkerboard = "b297549e-c8cb-44e5-9c33-b7e2667db6fc"
