@@ -91,35 +91,35 @@ end
 
 @doc raw"""
     write_jld2_checkpoint(
-        # Arguments
+        # ARGUMENTS
         comm::MPI.Comm,
         simulation_info::SimulationInfo;
-        # Required Keyword Arguments
+        # REQUIRED KEYWORD ARGUMENTS
         model_geometry::ModelGeometry,
         measurement_container::NamedTuple,
-        # Optional Keyword Arguments
+        # OPTIONAL KEYWORD ARGUMENTS
         checkpoint_timestamp::T = 0.0,
         checkpoint_freq::T = 0.0,
         start_timestamp::T = 0.0,
         runtime_limit::T = Inf,
         error_code::Int = 13,
-        # Arbitrary Keyword Arguments Written to Checkpoint
+        # ARBITRARY KEYWORD ARGUMENTS WRITTEN TO CHECKPOINT
         kwargs...
     ) where {T<:AbstractFloat}
 
     write_jld2_checkpoint(
-        # Arguments
+        # ARGUMENTS
         simulation_info::SimulationInfo;
-        # Required Keyword Arguments
+        # REQUIRED KEYWORD ARGUMENTS
         model_geometry::ModelGeometry,
         measurement_container::NamedTuple,
-        # Optional Keyword Arguments
+        # OPTIONAL KEYWORD ARGUMENTS
         checkpoint_timestamp::T = 0.0,
         checkpoint_freq::T = 0.0,
         start_timestamp::T = 0.0,
         runtime_limit::T = Inf,
         error_code::Int = 13,
-        # Arbitrary Keyword Arguments Written to Checkpoint
+        # ARBITRARY KEYWORD ARGUMENTS WRITTEN TO CHECKPOINT
         kwargs...
     ) where {T<:AbstractFloat}
 
@@ -146,19 +146,19 @@ The default values for the `checkpoint_timestamp`, `checkpoint_freq`, `start_tim
 result in there being no runtime limit for the simulation and a new checkpoint file being written every time this function is called.
 """
 function write_jld2_checkpoint(
-    # Arguments
+    # ARGUMENTS
     comm::MPI.Comm,
     simulation_info::SimulationInfo;
-    # Required Keyword Arguments
+    # REQUIRED KEYWORD ARGUMENTS
     model_geometry::ModelGeometry,
     measurement_container::NamedTuple,
-    # Optional Keyword Arguments
+    # OPTIONAL KEYWORD ARGUMENTS
     checkpoint_timestamp::T = 0.0,
     checkpoint_freq::T = 0.0,
     start_timestamp::T = 0.0,
     runtime_limit::T = Inf,
     error_code::Int = 13,
-    # Arbitrary Keyword Arguments Written to Checkpoint
+    # ARBITRARY KEYWORD ARGUMENTS WRITTEN TO CHECKPOINT
     kwargs...
 ) where {T<:AbstractFloat}
 
@@ -187,18 +187,18 @@ function write_jld2_checkpoint(
 end
 
 function write_jld2_checkpoint(
-    # Arguments
+    # ARGUMENTS
     simulation_info::SimulationInfo;
-    # Required Keyword Arguments
+    # REQUIRED KEYWORD ARGUMENTS
     model_geometry::ModelGeometry,
     measurement_container::NamedTuple,
-    # Optional Keyword Arguments
+    # OPTIONAL KEYWORD ARGUMENTS
     checkpoint_timestamp::T = 0.0,
     checkpoint_freq::T = 0.0,
     start_timestamp::T = 0.0,
     runtime_limit::T = Inf,
     error_code::Int = 13,
-    # Arbitrary Keyword Arguments Written to Checkpoint
+    # ARBITRARY KEYWORD ARGUMENTS WRITTEN TO CHECKPOINT
     kwargs...
 ) where {T<:AbstractFloat}
 
