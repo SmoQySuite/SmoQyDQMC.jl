@@ -11,8 +11,8 @@
         logdetGdn::E, sgndetGdn::T, Gdn::AbstractMatrix{T},
         Gdn_ττ::AbstractMatrix{T}, Gdn_τ0::AbstractMatrix{T}, Gdn_0τ::AbstractMatrix{T};
         # KEYWORD ARGUMENTS
-        fermion_path_integral_up::FermionPathIntegral{T,E},
-        fermion_path_integral_dn::FermionPathIntegral{T,E},
+        fermion_path_integral_up::FermionPathIntegral{T},
+        fermion_path_integral_dn::FermionPathIntegral{T},
         fermion_greens_calculator_up::FermionGreensCalculator{T,E},
         fermion_greens_calculator_dn::FermionGreensCalculator{T,E},
         Bup::Vector{P}, Bdn::Vector{P},
@@ -37,8 +37,8 @@ function make_measurements!(
     logdetGdn::E, sgndetGdn::T, Gdn::AbstractMatrix{T},
     Gdn_ττ::AbstractMatrix{T}, Gdn_τ0::AbstractMatrix{T}, Gdn_0τ::AbstractMatrix{T};
     # KEYWORD ARGUMENTS
-    fermion_path_integral_up::FermionPathIntegral{T,E},
-    fermion_path_integral_dn::FermionPathIntegral{T,E},
+    fermion_path_integral_up::FermionPathIntegral{T},
+    fermion_path_integral_dn::FermionPathIntegral{T},
     fermion_greens_calculator_up::FermionGreensCalculator{T,E},
     fermion_greens_calculator_dn::FermionGreensCalculator{T,E},
     Bup::Vector{P}, Bdn::Vector{P},

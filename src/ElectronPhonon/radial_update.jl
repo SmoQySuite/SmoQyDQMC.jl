@@ -383,7 +383,7 @@ function radial_update!(
         # calculate the final bosonic action
         Sb′ = bosonic_action(electron_phonon_parameters)
 
-        # calculate final fermionci action
+        # calculate final fermionic action
         Sf′ = 2*logdetG′
 
         # calculate final action

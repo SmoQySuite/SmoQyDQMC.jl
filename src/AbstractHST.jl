@@ -226,15 +226,14 @@ function local_updates!(
     end
 
     # update stabilization frequency if required
-    if update_stabilization_frequency
-        (updated, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = update_stabilization_frequency!(
-            Gup, logdetGup, sgndetGup,
-            Gdn, logdetGdn, sgndetGdn,
-            fermion_greens_calculator_up = fermion_greens_calculator_up,
-            fermion_greens_calculator_dn = fermion_greens_calculator_dn,
-            Bup = Bup, Bdn = Bdn, δG = δG, δθ = δθ, δG_max = δG_max
-        )
-    end
+    (updated, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = update_stabilization_frequency!(
+        Gup, logdetGup, sgndetGup,
+        Gdn, logdetGdn, sgndetGdn,
+        fermion_greens_calculator_up = fermion_greens_calculator_up,
+        fermion_greens_calculator_dn = fermion_greens_calculator_dn,
+        Bup = Bup, Bdn = Bdn, δG = δG, δθ = δθ, δG_max = δG_max,
+        active = update_stabilization_frequency
+    )
 
     # normalize acceptance rate
     acceptance_rate /= fermion_path_integral_up.Lτ
@@ -363,15 +362,14 @@ function local_updates!(
     end
 
     # update stabilization frequency if required
-    if update_stabilization_frequency
-        (updated, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = update_stabilization_frequency!(
-            Gup, logdetGup, sgndetGup,
-            Gdn, logdetGdn, sgndetGdn,
-            fermion_greens_calculator_up = fermion_greens_calculator_up,
-            fermion_greens_calculator_dn = fermion_greens_calculator_dn,
-            Bup = Bup, Bdn = Bdn, δG = δG, δθ = δθ, δG_max = δG_max
-        )
-    end
+    (updated, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = update_stabilization_frequency!(
+        Gup, logdetGup, sgndetGup,
+        Gdn, logdetGdn, sgndetGdn,
+        fermion_greens_calculator_up = fermion_greens_calculator_up,
+        fermion_greens_calculator_dn = fermion_greens_calculator_dn,
+        Bup = Bup, Bdn = Bdn, δG = δG, δθ = δθ, δG_max = δG_max,
+        active = update_stabilization_frequency
+    )
 
     # normalize the acceptance rates and convert to tuple
     @. acceptance_rates /= fermion_path_integral_up.Lτ
@@ -469,13 +467,12 @@ function local_updates!(
     end
 
     # update stabilization frequency if required
-    if update_stabilization_frequency
-        (updated, logdetG, sgndetG, δG, δθ) = update_stabilization_frequency!(
-            G, logdetG, sgndetG,
-            fermion_greens_calculator = fermion_greens_calculator,
-            B = B, δG = δG, δθ = δθ, δG_max = δG_max
-        )
-    end
+    (updated, logdetG, sgndetG, δG, δθ) = update_stabilization_frequency!(
+        G, logdetG, sgndetG,
+        fermion_greens_calculator = fermion_greens_calculator,
+        B = B, δG = δG, δθ = δθ, δG_max = δG_max,
+        active = update_stabilization_frequency
+    )
 
     # normalize acceptance rate
     acceptance_rate /= fermion_path_integral.Lτ
@@ -579,13 +576,12 @@ function local_updates!(
     end
 
     # update stabilization frequency if required
-    if update_stabilization_frequency
-        (updated, logdetG, sgndetG, δG, δθ) = update_stabilization_frequency!(
-            G, logdetG, sgndetG,
-            fermion_greens_calculator = fermion_greens_calculator,
-            B = B, δG = δG, δθ = δθ, δG_max = δG_max
-        )
-    end
+    (updated, logdetG, sgndetG, δG, δθ) = update_stabilization_frequency!(
+        G, logdetG, sgndetG,
+        fermion_greens_calculator = fermion_greens_calculator,
+        B = B, δG = δG, δθ = δθ, δG_max = δG_max,
+        active = update_stabilization_frequency
+    )
 
     # normalize acceptance rate
     @. acceptance_rates /= fermion_path_integral.Lτ

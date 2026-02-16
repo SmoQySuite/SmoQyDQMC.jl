@@ -283,11 +283,14 @@ function hmc_update!(
             )
 
             # record max numerical error
-            δG′ = max(δG, δGup′, δGdn′)
-            δθ′ = max(δθ, δθup′, δθdn′)
+            δG′ = max(δG′, δGup′, δGdn′)
+            δθ′ = max(δθ′, δθup′, δθdn′)
 
         # if failed to calculate derivative of fermionic action
         catch
+
+            # numerical instability encountered in EFA-HMC update
+            @warn "Numerical instability encountered during EFA-HMC trajectory." δG′ logdetGup logdetGdn
 
             # record that numerically instability was encountered
             numerically_stable = false
@@ -298,6 +301,9 @@ function hmc_update!(
 
         # detect numerical instability if occurred
         if !isfinite(δG′) || !isfinite(logdetGup) || !isfinite(logdetGdn) || δG′ > δG_reject
+
+            # numerical instability encountered in EFA-HMC update
+            @warn "Numerical instability encountered during EFA-HMC trajectory." δG′ logdetGup logdetGdn
 
             # record that numerically instability was encountered
             numerically_stable = false
@@ -412,15 +418,14 @@ function hmc_update!(
         δθ = max(δθ, δθ′)
 
         # update stabilization frequency if required
-        if update_stabilization_frequency
-            (updated, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = update_stabilization_frequency!(
-                Gup, logdetGup, sgndetGup,
-                Gdn, logdetGdn, sgndetGdn,
-                fermion_greens_calculator_up = fermion_greens_calculator_up,
-                fermion_greens_calculator_dn = fermion_greens_calculator_dn,
-                Bup = Bup, Bdn = Bdn, δG = δG, δθ = δθ, δG_max = δG_max
-            )
-        end
+        (updated, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = update_stabilization_frequency!(
+            Gup, logdetGup, sgndetGup,
+            Gdn, logdetGdn, sgndetGdn,
+            fermion_greens_calculator_up = fermion_greens_calculator_up,
+            fermion_greens_calculator_dn = fermion_greens_calculator_dn,
+            Bup = Bup, Bdn = Bdn, δG = δG, δθ = δθ, δG_max = δG_max,
+            active = update_stabilization_frequency
+        )
 
     # if update is rejected
     else
@@ -605,11 +610,14 @@ function hmc_update!(
             )
 
             # record max numerical error
-            δG′ = max(δG, δG″)
-            δθ′ = max(δθ, δθ″)
+            δG′ = max(δG′, δG″)
+            δθ′ = max(δθ′, δθ″)
             
         # if failed to calculate fermionic deterimant
         catch
+
+            # numerical instability encountered in EFA-HMC update
+            @warn "Numerical instability encountered during EFA-HMC trajectory." δG′ logdetG
 
             # record that numerically instability was encountered
             numerically_stable = false
@@ -620,6 +628,9 @@ function hmc_update!(
 
         # detect numerical instability if occurred
         if !isfinite(δG′) || !isfinite(logdetG) || δG′ > δG_reject
+
+            # numerical instability encountered in EFA-HMC update
+            @warn "Numerical instability encountered during EFA-HMC trajectory." δG′ logdetG
 
             # record that numerically instability was encountered
             numerically_stable = false
@@ -723,13 +734,12 @@ function hmc_update!(
         δθ = max(δθ, δθ′)
 
         # update stabilization frequency if required
-        if update_stabilization_frequency
-            (updated, logdetG, sgndetG, δG, δθ) = update_stabilization_frequency!(
-                G, logdetG, sgndetG,
-                fermion_greens_calculator = fermion_greens_calculator,
-                B = B, δG = δG, δθ = δθ, δG_max = δG_max
-            )
-        end
+        (updated, logdetG, sgndetG, δG, δθ) = update_stabilization_frequency!(
+            G, logdetG, sgndetG,
+            fermion_greens_calculator = fermion_greens_calculator,
+            B = B, δG = δG, δθ = δθ, δG_max = δG_max,
+            active = update_stabilization_frequency
+        )
 
     # if update is rejected
     else
