@@ -138,7 +138,7 @@ function SSHParameters(;
             # get the ssh coupling definition
             ssh_coupling_up = ssh_couplings_up[sc]
             ssh_coupling_dn = ssh_couplings_dn[sc]
-            # get the pair of phonon mode definitions assoicated with ssh coupling
+            # get the pair of phonon mode definitions associated with ssh coupling
             phonon_mode_i = ssh_coupling_up.phonon_ids[1]
             phonon_mode_f = ssh_coupling_up.phonon_ids[2]
             # get the bond id associated with the ssh coupling
@@ -155,9 +155,9 @@ function SSHParameters(;
                 push!(hopping_to_couplings[hopping_index], ssh_counter)
                 # record the initial phonon
                 coupling_to_phonon[1,ssh_counter] = Ncells * (phonon_mode_i-1) + unit_cell_id
-                # get the site the final phonon lives on
+                # get the site the terminal phonon is associated with
                 site_id_final = ssh_neighbor_table[2, ssh_counter]
-                # get the unit cell the final phonon lives on from the site it lives on
+                # get the unit cell the terminal phonon is associated with
                 unit_cell_id_final = site_to_unitcell(site_id_final, unit_cell)
                 # record the final phonon
                 coupling_to_phonon[2,ssh_counter] = Ncells * (phonon_mode_f-1) + unit_cell_id_final
@@ -241,7 +241,7 @@ function update!(
     if Nssh > 0
         # iterate over imaginary time slice
         @fastmath @inbounds for l in 1:Lτ
-            # iterate over ssh couplinges
+            # iterate over ssh couplings
             for i in 1:Nssh
                 # get pair of phonons
                 p  = coupling_to_phonon[1,i]

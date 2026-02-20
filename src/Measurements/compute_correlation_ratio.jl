@@ -26,7 +26,7 @@
         pIDs::Union{Int,Vector{Int}} = Int[]
     ) where {D, T<:Number}
 
-Compute the correlation ratio at the ``\mathbf{k}``-point using a linear combination of standard correlation function measurements.
+Compute the correlation ratio at the ``\mathbf{q}``-point using a linear combination of standard correlation function measurements.
 The linear combination of correlation functions used is defined by `id_pairs` and `coefs`.
 If `type` is `"equal-time"` or `"time-displaced"` then the equal-time correlation ratio is calculated.
 If `type` is "integrated" then the integrated correlation ratio is calculated.
@@ -52,20 +52,37 @@ function compute_correlation_ratio(
     pIDs = isempty(pIDs) ? collect(0:N_mpi-1) : pIDs
     pID = pIDs[MPI.Comm_rank(comm) + 1]
 
-    # compute correlation ratio
-    R, ΔR = _compute_correlation_ratio(
-        datafolder, correlation, type, id_pairs, id_pair_coefficients,
-        q_point, q_neighbors, num_bins, pID
+    # load the relevant data
+    Sq, Sqpdq = _load_structure_factor_data(
+        datafolder, correlation, type,
+        id_pairs, id_pair_coefficients,
+        q_point, q_neighbors,
+        num_bins, pID
     )
-    varR = abs2(ΔR)
 
-    # perform an all-reduce to get the average statics calculate on all MPI processes
-    R    = MPI.Allreduce(R, +, comm)
-    varR = MPI.Allreduce(varR, +, comm)
-    R    = R / N_mpi
-    ΔR   = sqrt(varR) / N_mpi
+    # gather the data across all pIDs
+    Sq_bins = MPI.gather(Sq, comm)
+    Sqpdq_bins = MPI.gather(Sqpdq, comm)
 
-    return R, real(ΔR)
+    # if root process
+    if iszero(MPI.Comm_rank(comm))
+
+        # concatenate all the data together
+        Sq_bins = vcat(Sq...)
+        Sqpdq_bins = vcat(Sq...)
+
+        # calculate correlation ratio
+        R, ΔR = jackknife((Sqpdq, Sq) -> 1 - Sqpdq/Sq, Sqpdq_bins, Sq_bins, bias_corrected=false)
+    else
+
+        R, ΔR = nothing, nothing
+    end
+
+    # broadcast the number to all processes
+    R = MPI.bcast(R, comm)
+    ΔR = MPI.bcast(R, comm)
+
+    return R, ΔR
 end
 
 # compute correlation ratio using single process
@@ -88,34 +105,28 @@ function compute_correlation_ratio(;
         pIDs = collect( 0 : length(readdir(joinpath(datafolder,"bins")))-1 )
     end
 
-    # initialize correlation ratio mean and variance to zero
-    R = zero(Complex{real(T)})
-    varR = zero(real(T))
+    # load the relevant data
+    data = tuple((
+        _load_structure_factor_data(
+            datafolder, correlation, type,
+            id_pairs, id_pair_coefficients,
+            q_point, q_neighbors,
+            num_bins, pID
+        ) for pID in pIDs
+    )...)
 
-    # iterate over process IDs
-    for pID in pIDs
+    # extract relevant structure factor data
+    Sq_bins = vcat((d[1] for d in data)...)
+    Sqpdq_bins = vcat((d[2] for d in data))
 
-        # compute correlation ratio for current process ID
-        R′, ΔR′ = _compute_correlation_ratio(
-            datafolder, correlation, type, id_pairs, id_pair_coefficients,
-            q_point, q_neighbors, num_bins, pID
-        )
-
-        # record statistics
-        R += R′
-        varR += abs2(ΔR′)
-    end
-
-    # calculate final stats
-    N_pID = length(pIDs)
-    R = R / N_pID
-    ΔR = sqrt(varR)/ N_pID
+    # calculate correlation ratio
+    R, ΔR = jackknife((Sqpdq, Sq) -> 1 - Sqpdq/Sq, Sqpdq_bins, Sq_bins, bias_corrected=false)
 
     return R, ΔR
 end
 
 # compute correlation ration for single process
-function _compute_correlation_ratio(
+function _load_structure_factor_data(
     datafolder::String,
     correlation::String,
     type::String,
@@ -129,13 +140,13 @@ function _compute_correlation_ratio(
 
     @assert(
         in(correlation, keys(CORRELATION_FUNCTIONS)),
-        "The $correlation correlation is a composite correlation function when it should be a standard correlation function."
+        "$correlation is not a defined STANDARD correlation function."
     )
 
     # construct filename for HDF5 file containing binned data
     filename = joinpath(datafolder, "bins", @sprintf("bins_pID-%d.h5", pID))
 
-    # uppercase type defintion
+    # uppercase type definition
     Type = uppercase(type)
 
     # open HDF5 bin file
@@ -152,7 +163,7 @@ function _compute_correlation_ratio(
     Sq_bins = zeros(eltype(sgn), num_bins)
     Sqpdq_bins = zeros(eltype(sgn), num_bins)
 
-    # number of neighboring wavevector to average over
+    # number of neighboring momentum to average over
     Ndq = length(q_neighbors)
 
     # open HDF5 
@@ -180,7 +191,7 @@ function _compute_correlation_ratio(
         if Type == "TIME-DISPLACED"
 
             # record structure factor corresponding to ordering wave-vector
-            Sq_bins += coef * bin_means(Momentum[:,(q_point[d]+1 for d in 1:D)...,1,indx], num_bins)
+            Sq_bins += coef * rebin(Momentum[:,(q_point[d]+1 for d in 1:D)...,1,indx], num_bins)
 
             # iterate over neighboring wave-vectors
             for n in 1:Ndq
@@ -189,14 +200,14 @@ function _compute_correlation_ratio(
                 q_neighbor = q_neighbors[n]
 
                 # record structure factor corresponding to ordering wave-vector
-                Sqpdq_bins += coef/Ndq * bin_means(Momentum[:,(q_neighbor[d]+1 for d in 1:D)...,1,indx], num_bins)
+                Sqpdq_bins += coef/Ndq * rebin(Momentum[:,(q_neighbor[d]+1 for d in 1:D)...,1,indx], num_bins)
             end
 
         # if equal-time or integrated correlation measurement
         else
 
             # record structure factor corresponding to ordering wave-vector
-            Sq_bins += coef * bin_means(Momentum[:,(q_point[d]+1 for d in 1:D)...,indx], num_bins)
+            Sq_bins += coef * rebin(Momentum[:,(q_point[d]+1 for d in 1:D)...,indx], num_bins)
 
             # iterate over neighboring wave-vectors
             for n in 1:Ndq
@@ -205,18 +216,12 @@ function _compute_correlation_ratio(
                 q_neighbor = q_neighbors[n]
 
                 # record structure factor corresponding to ordering wave-vector
-                Sqpdq_bins += coef/Ndq * bin_means(Momentum[:,(q_neighbor[d]+1 for d in 1:D)...,indx], num_bins)
+                Sqpdq_bins += coef/Ndq * rebin(Momentum[:,(q_neighbor[d]+1 for d in 1:D)...,indx], num_bins)
             end
         end
     end
 
-    # calculate correlation ratio
-    R, ΔR = jackknife((Sqpdq, Sq) -> 1 - Sqpdq/Sq, Sqpdq_bins, Sq_bins, bias_corrected=false)
-
-    # close HDF5 file
-    close(H5File)
-
-    return R, ΔR
+    return Sq_bins, Sqpdq
 end
 
 
@@ -243,7 +248,9 @@ end
         pIDs::Union{Int,Vector{Int}} = Int[]
     ) where {D}
 
-
+Compute the correlation ratio at a specified ``\mathbf{q}``-point for a measured composite correlation measurement.
+If `type` is `"equal-time"` or `"time-displaced"` then the equal-time correlation ratio is calculated.
+If `type` is "integrated" then the integrated correlation ratio is calculated.
 """
 function compute_composite_correlation_ratio(
     comm::MPI.Comm;
@@ -264,17 +271,20 @@ function compute_composite_correlation_ratio(
     pIDs = isempty(pIDs) ? collect(0:N_mpi-1) : pIDs
     pID = pIDs[MPI.Comm_rank(comm) + 1]
 
-    # compute correlation ratio
-    R, ΔR = _compute_composite_correlation_ratio(
-        datafolder, name, type, q_point, q_neighbors, num_bins, pID
+    # load the relevant data
+    Sq, Sqpdq = _load_composite_structure_factor_data(
+        datafolder, correlation, type,
+        q_point, q_neighbors,
+        num_bins, pID
     )
-    varR = abs2(ΔR)
 
-    # perform an all-reduce to get the average statics calculate on all MPI processes
-    R    = MPI.Allreduce(R, +, comm)
-    varR = MPI.Allreduce(varR, +, comm)
-    R    = R / N_mpi
-    ΔR   = sqrt(varR) / N_mpi
+    # gather the data across all pIDs
+    Sq_bins = MPI.Allgather(Sq, comm)
+    Sqpdq_bins = MPI.Allgather(Sqpdq, comm)
+
+    # concatenate all the data together
+    Sq_bins = vcat(Sq...)
+    Sqpdq_bins = vcat(Sq...)
 
     return R, ΔR
 end
@@ -297,33 +307,27 @@ function compute_composite_correlation_ratio(;
         pIDs = collect( 0 : length(readdir(joinpath(datafolder,"bins")))-1 )
     end
 
-    # initialize correlation ratio mean and variance to zero
-    R = complex(0.0)
-    varR = 0.0
+    # load the relevant data
+    data = tuple((
+        _load_composite_structure_factor_data(
+            datafolder, correlation, type,
+            q_point, q_neighbors,
+            num_bins, pID
+        ) for pID in pIDs
+    )...)
 
-    # iterate over process IDs
-    for pID in pIDs
+    # extract relevant structure factor data
+    Sq_bins = vcat((d[1] for d in data)...)
+    Sqpdq_bins = vcat((d[2] for d in data))
 
-        # compute correlation ratio for current process ID
-        R′, ΔR′ = _compute_composite_correlation_ratio(
-            datafolder, name, type, q_point, q_neighbors, num_bins, pID
-        )
-
-        # record statistics
-        R += R′
-        varR += abs2(ΔR′)
-    end
-
-    # calculate final stats
-    N_pID = length(pIDs)
-    R = R / N_pID
-    ΔR = sqrt(varR)/ N_pID
+    # calculate correlation ratio
+    R, ΔR = jackknife((Sqpdq, Sq) -> 1 - Sqpdq/Sq, Sqpdq_bins, Sq_bins, bias_corrected=false)
 
     return R, ΔR
 end
 
 # compute composite correlation ratio for single process
-function _compute_composite_correlation_ratio(
+function _load_composite_structure_factor_data(
     datafolder::String,
     correlation::String,
     type::String,
@@ -332,11 +336,6 @@ function _compute_composite_correlation_ratio(
     num_bins::Int,
     pID::Int
 ) where {D}
-
-    @assert(
-        !in(correlation, keys(CORRELATION_FUNCTIONS)),
-        "The $correlation correlation is a standard correlation function when it should be a named composite correlation function."
-    )
 
     # construct filename for HDF5 file containing binned data
     filename = joinpath(datafolder, "bins", @sprintf("bins_pID-%d.h5", pID))
@@ -406,5 +405,5 @@ function _compute_composite_correlation_ratio(
     # close HDF5 file
     close(H5File)
 
-    return R, ΔR
+    return Sq_bins, Sqpdq_bins
 end

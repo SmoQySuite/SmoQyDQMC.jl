@@ -30,7 +30,7 @@ function fermionic_action_derivative!(
         logdetG, sgndetG, δG′, δθ′ = stabilize_equaltime_greens!(G, logdetG, sgndetG, fermion_greens_calculator, B, update_B̄=false)
 
         # record maximum error recorded by numerical stabilization
-        δG = maximum((δG, δG′))
+        δG = max(δG, δG′)
         δθ = maximum(abs, (δθ, δθ′))
     end
 
@@ -192,7 +192,7 @@ function eval_tr_dΓdx_invΓ_A!(
 
     # comment: Γ = exp(-Δτ⋅K) ==> ∂Γ/∂x⋅Γ⁻¹ = -Δτ⋅∂K/∂x
 
-    # if finite number of ssh couplints
+    # if finite number of ssh couplings
     if Nssh > 0
         # iterate over SSH couplings
         @inbounds for c in 1:Nssh

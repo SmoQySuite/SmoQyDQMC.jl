@@ -23,3 +23,37 @@ function draw2(rng, N)
     b += (b >= a)
     return a, b
 end
+
+# detects a not finite number
+@inline notfinite(x::Number, thresh = Inf) = ( (!isfinite(x)) || abs(x) > thresh )
+
+# rebin a data array along a specified array dimension
+function rebin(
+    data::AbstractArray{T},
+    N_bins::Int,
+    dim::Int = 1
+) where {T<:Number}
+
+    # Get the length of the dimension to be rebinned
+    N_data = size(data,dim)
+    @assert iszero(mod(N_data, N_bins))
+    # if no rebinning is required
+    if N_data == N_bins
+        # relabel the original data array the rebinned array
+        rebinned_data =  data
+    # perform rebinning if necessary
+    else
+        # Calculate the bin size
+        N_binsize = N_data ÷ N_bins
+        # get size of data array
+        data_dims = size(data)
+        # calculated reshaped dims
+        reshaped_dims = (data_dims[1:dim-1]..., N_binsize, N_bins, data_dims[dim+1:end]...)
+        # reshape the data array
+        reshaped_data = reshape(data, reshaped_dims)
+        # calculate the average of each new bin and write the rebinned data to a new array
+        rebinned_data = dropdims(mean(reshaped_data, dims=dim), dims=dim)
+    end
+
+    return rebinned_data
+end

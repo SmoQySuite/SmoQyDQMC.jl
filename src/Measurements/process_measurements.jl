@@ -29,7 +29,7 @@ Below I group them together into related categories and define their meanings.
 
 ## Keyword for Controlling Workflow
 
-- `n_bins::Union{Int, Nothing} = nothing`: Number of bins used to calculate statistics. If `nothing` then set equal to the number of data bins written to file during the simulation. Must be a factor of the number of bins written to file during the DQMC simulation.
+- `n_bins::Union{Int, Nothing} = nothing`: Number of bins used per walker to calculate statistics. If `nothing` then set equal to the number of data bins written to file during the simulation. Must be a factor of the number of bins written to file per walker during the DQMC simulation.
 - `pIDs::Union{Int,Vector{Int}} = Int[]`: Specifies for which process IDs to calculate average statistics. If `pIDs = Int[]`, the calculate for all process IDs. If `comm::MPI.Comm` is passed as first function argument then `pIDs` must be of type `Vector{Int}` and not `Int`.
 - `filename_prefix::String = "stats"`: Start of filename for HDF5 containing final statistics. HDF5 files containing statistics for a single process ID will end with `pID-$(pID).h5`.
 - `rm_binned_data::Bool = false`: Whether to delete the binned data after final statistics are computed.
@@ -97,8 +97,10 @@ function process_measurements(
 
 
     # determine relevant pIDs
-    pIDs = isempty(pIDs) ? collect(0:MPI.Comm_size(comm)-1) : pIDs
+    num_pIDs = MPI.Comm_size(comm)
+    pIDs = isempty(pIDs) ? collect(0:num_pIDs-1) : pIDs
     pID = pIDs[MPI.Comm_rank(comm) + 1]
+    @assert num_pIDs * n_bins > 1 "The total number of data bins is one or smaller, and therefore measurement errors cannot be estimated."
 
     # construct filename for stats HDF5 file
     if isone(length(pIDs))
@@ -235,6 +237,8 @@ function process_measurements(;
         h5_bin_files = filter(f -> startswith(f, "bins_pID-") && endswith(f, ".h5"), readdir(bin_dir))
         pIDs = collect( 0 : length(h5_bin_files) - 1 )
     end
+    num_pIDs = length(pIDs)
+    @assert num_pIDs * n_bins > 1 "The total number of data bins is one (or smaller), and therefore measurement errors cannot be estimated."
 
     # construct filename for stats HDF5 file
     if isone(length(pIDs))

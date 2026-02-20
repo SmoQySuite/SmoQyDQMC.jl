@@ -56,19 +56,14 @@ function compute_function_of_correlations(
     pIDs = isempty(pIDs) ? collect(0:N_mpi-1) : pIDs
     pID = pIDs[MPI.Comm_rank(comm) + 1]
 
-    # calculate stats for specified pID
-    C, ΔC = _compute_function_of_correlations(f, datafolder, pID, correlations, num_bins)
-    
-    # calculate the variance of the current proecess
-    varC = abs2(ΔC)
+    # initialize version of function that take the sign as the first argument
+    # and ensure re-weighting is performed when evaluating the function
+    F(z...) = f(map(x->x/z[1], z[2:end])...)
 
-    # perform an all-reduce to get the average statics calculate on all MPI processes
-    C = MPI.Allreduce(C, +, comm)
-    varC = MPI.Allreduce(varC, +, comm)
-    C = C / N_mpi
-    ΔC = sqrt(varC) / N_mpi
+    # calculate the composite correlation
+    C, ΔC = jackknife(F, binned_sign, binned_correlations..., bias_corrected=false)
 
-    return C, real(ΔC)
+    return C, ΔC
 end
 
 function compute_function_of_correlations(;
@@ -89,32 +84,44 @@ function compute_function_of_correlations(;
     # number of process IDs
     N_pID = length(pIDs)
 
-    # calculate mean and standard deviation for fist HDF5 file
-    C, ΔC = _compute_function_of_correlations(f, datafolder, pIDs[1], correlations, num_bins)
+    # open all the input HDF5 bin files
+    H5BinFiles = [h5open(joinpath(datafolder, "bins", "bins_pID-$(pID).h5"), "r") for pID in pIDs]
 
-    # if number of process IDs exceeds one
-    if N_pID > 1
+    # get the total number of bins per pID
+    n_bins = read_attribute(H5BinFiles[1], "N_BINS")
 
-        # initialize the variance
-        varC = abs2(ΔC)
+    # determine the number of bins to use to calculate statistics
+    num_bins = iszero(num_bins) ? n_bins : num_bins
+    @assert iszero(mod(num_bins, n_bins)) "num_bins = $(num_bins) is not a factor of the number of data bins per pID, $(n_bins)."
 
-        # iterate over remaining HDF5 files containing binned data
-        for n in 2:N_pID
+    # read in binned sign data
+    binned_sign = vcat((
+        rebin(read(h5["GLOBAL/sgn"]), num_bins) for h5 in H5BinFiles
+    )...)
 
-            # calculate mean and standard deviation for fist HDF5 file
-            C′, ΔC′ = _compute_function_of_correlations(f, datafolder, pIDs[n], correlations, num_bins)
+    # read in the binned sign data
+    binned_correlations = tuple((
+        (
+            rebin(
+                _read_correlation_bins(),
+                num_bins
+            )
+            for h5 in H5BinFiles
+        )
+        for correlation in correlations
+    )...)
 
-            # update mean and variance
-            C += C′
-            varC += abs2(ΔC′)
-        end
+    # initialize version of function that take the sign as the first argument
+    # and ensure re-weighting is performed when evaluating the function
+    F(z...) = f(map(x->x/z[1], z[2:end])...)
 
-        # normalize mean and calculate final standard deviation
-        C = C / N_pID
-        ΔC = sqrt(varC) / N_pID
-    end
+    # calculate the composite correlation
+    C, ΔC = jackknife(F, binned_sign, binned_correlations..., bias_corrected=false)
 
-    return C, real(ΔC)
+    # close all the H5 bin files
+    close.(H5BinFiles)
+
+    return C, ΔC
 end
 
 
@@ -134,14 +141,17 @@ function _compute_function_of_correlations(
     # open HDF5 file containing binned data
     h5 = h5open(filename, "r")
 
+    # get the total number of bins per pID
+    n_bins = read_attribute(h5, "N_BINS")
+
     # determine the number of bins to use to calculate statistics
     num_bins = iszero(num_bins) ? read_attribute(h5, "N_BINS") : num_bins
 
     # read in binned sign
-    binned_sgn = bin_means(read(h5["GLOBAL/sgn"]), num_bins)
+    binned_sign = bin_means(read(h5["GLOBAL/sgn"]), num_bins)
 
     # real type
-    R = real(eltype(binned_sgn))
+    R = real(eltype(binned_sign))
 
     # initialize vector to contain binned values
     binned_correlations = Vector{Vector{Complex{R}}}(undef, length(correlations))
@@ -158,7 +168,7 @@ function _compute_function_of_correlations(
     F(z...) = f(map(x->x/z[1], z[2:end])...)
 
     # calculate the composite correlation
-    C, ΔC = jackknife(F, binned_sgn, binned_correlations..., bias_corrected=false)
+    C, ΔC = jackknife(F, binned_sign, binned_correlations..., bias_corrected=false)
 
     # close HDF5 file containing binned data
     close(h5)
@@ -172,8 +182,7 @@ end
 # from the HDF5 file
 function _read_correlation_bins(
     h5::HDF5.File,
-    correlation::NamedTuple,
-    num_bins::Int
+    correlation::NamedTuple
 )
 
     # extract name of correlation
@@ -232,13 +241,13 @@ function _read_correlation_bins(
             i = findfirst(p -> p == id_pair, all_id_pairs)
 
             # extract the binned values
-            binned_vals = bin_means(DataSet[:,entry...,l,i], num_bins)
+            binned_vals = DataSet[:,entry...,l,i]
 
         # if a composite correlation measurement
         else
 
             # extract the binned values
-            binned_vals = bin_means(DataSet[:,entry...,l], num_bins)
+            binned_vals = DataSet[:,entry...,l]
         end
     else
 
@@ -255,13 +264,13 @@ function _read_correlation_bins(
             i = findfirst(p -> p == id_pair, all_id_pairs)
 
             # extract the binned values
-            binned_vals = bin_means(DataSet[:,entry...,i], num_bins)
+            binned_vals = DataSet[:,entry...,i]
 
         # if a composite correlation measurement
         else
 
             # extract the binned values
-            binned_vals = bin_means(DataSet[:,entry...], num_bins)
+            binned_vals = DataSet[:,entry...]
         end
     end
 

@@ -342,9 +342,9 @@ end
 # Calculate the reduced mass given the mass of two phonons `M` and `M′`.
 function reduced_mass(M::T, M′::T) where {T<:AbstractFloat}
 
-    if !isfinite(M)
+    if notfinite(M)
         M″ = M′
-    elseif !isfinite(M′)
+    elseif notfinite(M′)
         M″ = M
     else
         M″ = (M*M′)/(M+M′)

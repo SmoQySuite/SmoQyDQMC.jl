@@ -21,7 +21,8 @@
         tight_binding_parameters_up::Union{Nothing, TightBindingParameters} = nothing,
         tight_binding_parameters_dn::Union{Nothing, TightBindingParameters} = nothing,
         coupling_parameters::Tuple,
-        δG::E, δθ::E, δG_max::E = 1e-6
+        δG::E, δθ::E, δG_max::E = 1e-5,
+        update_stabilization_frequency::Bool = false
     ) where {T<:Number, E<:AbstractFloat, D, N, P<:AbstractPropagator}
 
 Make measurements, including time-displaced correlation and zero Matsubara frequency measurements.
@@ -47,7 +48,8 @@ function make_measurements!(
     tight_binding_parameters_up::Union{Nothing, TightBindingParameters} = nothing,
     tight_binding_parameters_dn::Union{Nothing, TightBindingParameters} = nothing,
     coupling_parameters::Tuple,
-    δG::E, δθ::E, δG_max::E = 1e-6
+    δG::E, δθ::E, δG_max::E = 1e-5,
+    update_stabilization_frequency::Bool = false
 ) where {T<:Number, E<:AbstractFloat, D, N, P<:AbstractPropagator}
 
     @assert fermion_path_integral_up.Sb == fermion_path_integral_dn.Sb "$(fermion_path_integral_up.Sb) ≠ $(fermion_path_integral_dn.Sb)"
@@ -229,6 +231,16 @@ function make_measurements!(
         end
     end
 
+    # update stabilization frequency if required
+    (updated, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = update_stabilization_frequency!(
+        Gup, logdetGup, sgndetGup,
+        Gdn, logdetGdn, sgndetGdn,
+        fermion_greens_calculator_up = fermion_greens_calculator_up,
+        fermion_greens_calculator_dn = fermion_greens_calculator_dn,
+        Bup = Bup, Bdn = Bdn, δG = δG, δθ = δθ, δG_max = δG_max,
+        active = update_stabilization_frequency
+    )
+
     return (logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ)
 end
 
@@ -245,7 +257,8 @@ end
         model_geometry::ModelGeometry{D,E,N},
         tight_binding_parameters::TightBindingParameters,
         coupling_parameters::Tuple,
-        δG::E, δθ::E, δG_max::E = 1e-6
+        δG::E, δθ::E, δG_max::E = 1e-5,
+        update_stabilization_frequency::Bool = false
     ) where {T<:Number, E<:AbstractFloat, D, N, P<:AbstractPropagator}
 
 Make measurements, including time-displaced correlation and zero Matsubara frequency measurements.
@@ -263,7 +276,8 @@ function make_measurements!(
     model_geometry::ModelGeometry{D,E,N},
     tight_binding_parameters::TightBindingParameters,
     coupling_parameters::Tuple,
-    δG::E, δθ::E, δG_max::E = 1e-6
+    δG::E, δθ::E, δG_max::E = 1e-5,
+    update_stabilization_frequency::Bool = false
 ) where {T<:Number, E<:AbstractFloat, D, N, P<:AbstractPropagator}
 
     # extract temporary storage vectors
@@ -420,6 +434,14 @@ function make_measurements!(
             end
         end
     end
+
+    # update stabilization frequency if required
+    (updated, logdetG, sgndetG, δG, δθ) = update_stabilization_frequency!(
+        G, logdetG, sgndetG,
+        fermion_greens_calculator = fermion_greens_calculator,
+        B = B, δG = δG, δθ = δθ, δG_max = δG_max,
+        active = update_stabilization_frequency
+    )
 
     return (logdetG, sgndetG, δG, δθ)
 end

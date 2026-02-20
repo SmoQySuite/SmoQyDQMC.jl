@@ -300,7 +300,7 @@ function hmc_update!(
         end
 
         # detect numerical instability if occurred
-        if !isfinite(δG′) || !isfinite(logdetGup) || !isfinite(logdetGdn) || δG′ > δG_reject
+        if notfinite(δG′) || notfinite(logdetGup) || notfinite(logdetGdn) || δG′ > δG_reject
 
             # numerical instability encountered in EFA-HMC update
             @warn "Numerical instability encountered during EFA-HMC trajectory." δG′ logdetGup logdetGdn
@@ -627,7 +627,7 @@ function hmc_update!(
         end
 
         # detect numerical instability if occurred
-        if !isfinite(δG′) || !isfinite(logdetG) || δG′ > δG_reject
+        if notfinite(δG′) || notfinite(logdetG) || δG′ > δG_reject
 
             # numerical instability encountered in EFA-HMC update
             @warn "Numerical instability encountered during EFA-HMC trajectory." δG′ logdetG
