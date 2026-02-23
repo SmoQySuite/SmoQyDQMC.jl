@@ -86,8 +86,6 @@ function write_measurements!(;
             attributes(file)["L_TAU"] = Lτ
             # record total number of orbitals in lattice
             attributes(file)["N_ORBITALS"] = nsites(unit_cell, lattice)
-            # record extent of lattice in unit cells
-            attribute(file)["L"] = lattice.L
         end
 
         # write global measurements to group

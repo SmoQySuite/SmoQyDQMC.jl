@@ -90,8 +90,6 @@ function _process_measurements(
     β = read_attribute(H5BinFile, "BETA")
     Δτ = read_attribute(H5BinFile, "DELTA_TAU")
     Lτ = read_attribute(H5BinFile, "L_TAU")
-    L = read_attribute(H5BinFile, "L")
-    D = length(L)
 
     # record metadata about stats
     if isroot
@@ -100,7 +98,6 @@ function _process_measurements(
         attributes(H5StatsFile)["DELTA_TAU"] = Δτ
         attributes(H5StatsFile)["L_TAU"] = Lτ
         attributes(H5StatsFile)["N_ORBITALS"] = N_orbitals
-        attributes(H5StatsFile)["L"] = L
         attributes(H5StatsFile)["N_BINS"] = N_bins
     end
 
@@ -114,7 +111,7 @@ function _process_measurements(
 
     # type of reported mean and standard deviations
     T_mean = eltype(binned_sign)
-    T_std = real(Tmean)
+    T_std = real(T_mean)
 
     # get the output global measurement stats group
     Global_Out = isroot ? H5StatsFile["GLOBAL"] : nothing
@@ -142,8 +139,8 @@ function _process_measurements(
                 )
             end
             # record the global measurement stats
-            Global_Out["MEAN"] = avg
-            Global_Out["STD"] = stdev
+            Global_Out[key]["MEAN"] = avg
+            Global_Out[key]["STD"] = stdev
         end
     end
 
@@ -187,7 +184,7 @@ function _process_measurements(
             average = zeros(T_mean, N_IDs)
             stdev = zeros(T_std, N_IDs)
             # iterate over IDs associated with Local Measurement
-            for ID in 1_N_IDs
+            for ID in 1:N_IDs
                 # perform jackknife reweighting to calculate stats
                 average[ID], stdev[ID] = jackknife(
                     /, view(data, :, ID), binned_sign;
@@ -204,7 +201,7 @@ function _process_measurements(
     # process standard equal-time correlations
     process_correlations!(
         comm, H5StatsFile, H5BinFile,
-        "CORRELATIONS/STANDARD/EQUAL-TIME",
+        "STANDARD", "EQUAL-TIME",
         standard_equal_time,
         binned_sign, jackknife_sample_means, jackknife_g
     )
@@ -212,7 +209,7 @@ function _process_measurements(
     # process standard time-displaced correlations
     process_correlations!(
         comm, H5StatsFile, H5BinFile,
-        "CORRELATIONS/STANDARD/TIME-DISPLACED",
+        "STANDARD", "TIME-DISPLACED",
         standard_time_displaced,
         binned_sign, jackknife_sample_means, jackknife_g
     )
@@ -220,7 +217,7 @@ function _process_measurements(
     # process standard INTEGRATED correlations
     process_correlations!(
         comm, H5StatsFile, H5BinFile,
-        "CORRELATIONS/STANDARD/INTEGRATED",
+        "STANDARD", "INTEGRATED",
         standard_integrated,
         binned_sign, jackknife_sample_means, jackknife_g
     )
@@ -228,7 +225,7 @@ function _process_measurements(
     # process composite equal-time correlations
     process_correlations!(
         comm, H5StatsFile, H5BinFile,
-        "CORRELATIONS/COMPOSITE/EQUAL-TIME",
+        "COMPOSITE", "EQUAL-TIME",
         composite_equal_time,
         binned_sign, jackknife_sample_means, jackknife_g
     )
@@ -236,7 +233,7 @@ function _process_measurements(
     # process composite time-displaced correlations
     process_correlations!(
         comm, H5StatsFile, H5BinFile,
-        "CORRELATIONS/COMPOSITE/TIME-DISPLACED",
+        "COMPOSITE", "TIME-DISPLACED",
         composite_time_displaced,
         binned_sign, jackknife_sample_means, jackknife_g
     )
@@ -244,10 +241,16 @@ function _process_measurements(
     # process composite INTEGRATED correlations
     process_correlations!(
         comm, H5StatsFile, H5BinFile,
-        "CORRELATIONS/COMPOSITE/INTEGRATED",
+        "COMPOSITE", "INTEGRATED",
         composite_integrated,
         binned_sign, jackknife_sample_means, jackknife_g
     )
+
+    # close the HDF5 bin file
+    close(H5BinFile)
+
+    # close HDF5 stats file
+    close(H5StatsFile)
 
     # delete HDF5 files containing binned data
     if rm_binned_data
@@ -261,10 +264,10 @@ function process_correlations!(
     comm::MPI.Comm,
     H5StatsFile::Union{HDF5.File,Nothing},
     H5BinFile::HDF5.File,
+    correlation_group::String,
     correlation_type::String,
     correlations::Vector{String},
     binned_sign::Vector{Complex{T}},
-    D::Int,
     jackknife_sample_means = (similar(binned_sign), similar(binned_sign)),
     jackknife_g = similar(binned_sign)
 ) where {T<:AbstractFloat}
@@ -278,8 +281,8 @@ function process_correlations!(
     # get current MPI rank
     rank = MPI.Comm_rank(comm)
     # get input and output groups containing correlation type
-    Correlations_In = H5BinFile[correlation_type]
-    Correlations_Out = isnothing(H5StatsFile) ? nothing : H5StatsFile[correlation_type]
+    Correlations_In = H5BinFile["CORRELATIONS"][correlation_group][correlation_type]
+    Correlations_Out = isnothing(H5StatsFile) ? nothing : H5StatsFile["CORRELATIONS"][correlation_group][correlation_type]
     # iterate over correlations
     for key in correlations
         # input correlations
@@ -291,16 +294,16 @@ function process_correlations!(
         # initialize array to contain stats
         average = iszero(rank) ? zeros(Complex{T}, dims[2:end]) : nothing
         stdev = iszero(rank) ? zeros(T, dims[2:end]) : nothing
+        # number of spatial dimensions of lattice
+        D = length(dims) - 1 - Int("STANDARD" == correlation_group) - Int("TIME-DISPLACED" == correlation_type)
         # get extent of lattice size
         L = dims[2:D+1]
         # get index range associated with lattice size
         Ls = tuple((1:l for l in L)...)
         # iterate over imaginary-time slice and ID pairs when relevant
         for n in CartesianIndices(dims[D+2:end])
-            # read in the position data
-            data = read(Position_In[:,Ls...,n.I...])
-            # rebin the position data
-            data = rebin(data, n_bins)
+            # read in and rebin the position data
+            data = rebin(Position_In[:,Ls...,n.I...], n_bins)
             # gather all the data into the root process
             data = MPI.gather(data, comm)
             # if root process
@@ -324,10 +327,8 @@ function process_correlations!(
         end
         # iterate over imaginary-time slice and ID pairs if relevant
         for n in CartesianIndices(dims[D+2:end])
-            # read in the momentum data
-            data = read(Momentum_In[:,Ls...,n.I...])
-            # rebin the momentum data
-            data = rebin(data, n_bins)
+            # read in and rebin the momentum data
+            data = rebin(Momentum_In[:,Ls...,n.I...], n_bins)
             # gather all the data into the root process
             data = MPI.gather(data, comm)
             # if root process

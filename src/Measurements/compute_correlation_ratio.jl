@@ -80,7 +80,7 @@ function compute_correlation_ratio(
 
     # broadcast the number to all processes
     R = MPI.bcast(R, comm)
-    ΔR = MPI.bcast(R, comm)
+    ΔR = MPI.bcast(ΔR, comm)
 
     return R, ΔR
 end
@@ -117,7 +117,7 @@ function compute_correlation_ratio(;
 
     # extract relevant structure factor data
     Sq_bins = vcat((d[1] for d in data)...)
-    Sqpdq_bins = vcat((d[2] for d in data))
+    Sqpdq_bins = vcat((d[2] for d in data)...)
 
     # calculate correlation ratio
     R, ΔR = jackknife((Sqpdq, Sq) -> 1 - Sqpdq/Sq, Sqpdq_bins, Sq_bins, bias_corrected=false)
@@ -221,7 +221,7 @@ function _load_structure_factor_data(
         end
     end
 
-    return Sq_bins, Sqpdq
+    return Sq_bins, Sqpdq_bins
 end
 
 
@@ -273,7 +273,7 @@ function compute_composite_correlation_ratio(
 
     # load the relevant data
     Sq, Sqpdq = _load_composite_structure_factor_data(
-        datafolder, correlation, type,
+        datafolder, name, type,
         q_point, q_neighbors,
         num_bins, pID
     )
@@ -282,11 +282,26 @@ function compute_composite_correlation_ratio(
     Sq_bins = MPI.Allgather(Sq, comm)
     Sqpdq_bins = MPI.Allgather(Sqpdq, comm)
 
-    # concatenate all the data together
-    Sq_bins = vcat(Sq...)
-    Sqpdq_bins = vcat(Sq...)
+    # if root process
+    if iszero(MPI.Comm_rank(comm))
+
+        # concatenate all the data together
+        Sq_bins = vcat(Sq...)
+        Sqpdq_bins = vcat(Sq...)
+
+        # calculate correlation ratio
+        R, ΔR = jackknife((Sqpdq, Sq) -> 1 - Sqpdq/Sq, Sqpdq_bins, Sq_bins, bias_corrected=false)
+    else
+
+        R, ΔR = nothing, nothing
+    end
+
+    # broadcast the number to all processes
+    R = MPI.bcast(R, comm)
+    ΔR = MPI.bcast(ΔR, comm)
 
     return R, ΔR
+
 end
 
 
@@ -310,7 +325,7 @@ function compute_composite_correlation_ratio(;
     # load the relevant data
     data = tuple((
         _load_composite_structure_factor_data(
-            datafolder, correlation, type,
+            datafolder, name, type,
             q_point, q_neighbors,
             num_bins, pID
         ) for pID in pIDs
@@ -318,7 +333,7 @@ function compute_composite_correlation_ratio(;
 
     # extract relevant structure factor data
     Sq_bins = vcat((d[1] for d in data)...)
-    Sqpdq_bins = vcat((d[2] for d in data))
+    Sqpdq_bins = vcat((d[2] for d in data)...)
 
     # calculate correlation ratio
     R, ΔR = jackknife((Sqpdq, Sq) -> 1 - Sqpdq/Sq, Sqpdq_bins, Sq_bins, bias_corrected=false)
@@ -370,7 +385,7 @@ function _load_composite_structure_factor_data(
     if Type == "TIME-DISPLACED"
 
         # record structure factor corresponding to ordering wave-vector
-        Sq_bins += bin_means(Momentum[:,(q_point[d]+1 for d in 1:D)...,1], num_bins)
+        Sq_bins += rebin(Momentum[:,(q_point[d]+1 for d in 1:D)...,1], num_bins)
 
         # iterate over neighboring wave-vectors
         for n in 1:Ndq
@@ -379,14 +394,14 @@ function _load_composite_structure_factor_data(
             q_neighbor = q_neighbors[n]
 
             # record structure factor corresponding to ordering wave-vector
-            Sqpdq_bins += bin_means(Momentum[:,(q_neighbor[d]+1 for d in 1:D)...,1], num_bins) / Ndq
+            Sqpdq_bins += rebin(Momentum[:,(q_neighbor[d]+1 for d in 1:D)...,1], num_bins) / Ndq
         end
 
     # if equal-time or integrated correlation measurement
     else
 
         # record structure factor corresponding to ordering wave-vector
-        Sq_bins += bin_means(Momentum[:,(q_point[d]+1 for d in 1:D)...], num_bins)
+        Sq_bins += rebin(Momentum[:,(q_point[d]+1 for d in 1:D)...], num_bins)
 
         # iterate over neighboring wave-vectors
         for n in 1:Ndq
@@ -395,12 +410,9 @@ function _load_composite_structure_factor_data(
             q_neighbor = q_neighbors[n]
 
             # record structure factor corresponding to ordering wave-vector
-            Sqpdq_bins += bin_means(Momentum[:,(q_neighbor[d]+1 for d in 1:D)...], num_bins) / Ndq
+            Sqpdq_bins += rebin(Momentum[:,(q_neighbor[d]+1 for d in 1:D)...], num_bins) / Ndq
         end
     end
-
-    # calculate composite correlation ratio
-    R, ΔR = jackknife((Sqpdq, Sq) -> 1 - Sqpdq/Sq, Sqpdq_bins, Sq_bins, bias_corrected=false)
 
     # close HDF5 file
     close(H5File)

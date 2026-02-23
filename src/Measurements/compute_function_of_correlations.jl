@@ -56,12 +56,71 @@ function compute_function_of_correlations(
     pIDs = isempty(pIDs) ? collect(0:N_mpi-1) : pIDs
     pID = pIDs[MPI.Comm_rank(comm) + 1]
 
-    # initialize version of function that take the sign as the first argument
-    # and ensure re-weighting is performed when evaluating the function
-    F(z...) = f(map(x->x/z[1], z[2:end])...)
+    # if root process
+    isroot = iszero(pID)
 
-    # calculate the composite correlation
-    C, ΔC = jackknife(F, binned_sign, binned_correlations..., bias_corrected=false)
+    # get HDF5 filename containing binned data
+    filename = joinpath(datafolder, "bins", "bins_pID-$(pID).h5")
+
+    # open HDF5 file containing binned data
+    H5BinFile = h5open(filename, "r")
+
+    # get the binned sign data
+    binned_sign = read(H5BinFile["GLOBAL/sgn"])
+
+    # get number of bins per process
+    n_bins = length(binned_sign)
+    num_bins = iszero(num_bins) ? n_bins : num_bins
+    @assert iszero(mod(num_bins, n_bins)) "num_bins = $(num_bins) is not a factor of the number of data bins per pID, $(n_bins)."
+
+    # rebin the sign data
+    binned_sign = rebin(binned_sign, num_bins)
+
+    # gather sign data onto root process
+    binned_sign = MPI.gather(binned_sign, comm)
+    binned_sign = isroot ? vcat(binned_sign...) : nothing
+
+    # get the data type
+    R = isroot ? real(eltype(binned_sign)) : nothing
+
+    # initialize vector to contain binned values
+    binned_correlations = isroot ? Vector{Vector{Complex{R}}}(undef, 0) : nothing
+
+    # iterate over correlations
+    for correlation in correlations
+        
+        # read in the binned correlation
+        binned_correlation = rebin(_read_correlation_bins(H5BinFile, correlation), num_bins)
+
+        # gather the binned correlation data
+        binned_correlation = MPI.gather(binned_correlation, comm)
+
+        # record the correlation data
+        if isroot
+            push!(binned_correlations, vcat(binned_correlation...))
+        end
+    end
+
+    # if is root process
+    if isroot
+
+        # initialize version of function that take the sign as the first argument
+        # and ensure re-weighting is performed when evaluating the function
+        F(z...) = f(map(x->x/z[1], z[2:end])...)
+
+        # calculate the composite correlation
+        C, ΔC = jackknife(F, binned_sign, binned_correlations..., bias_corrected=false)
+    else
+
+        C, ΔC = nothing, nothing
+    end
+
+    # broadcast the number to all processes
+    C = MPI.bcast(C, comm)
+    ΔC = MPI.bcast(ΔC, comm)
+
+    # close the H5 file
+    close(H5BinFile)
 
     return C, ΔC
 end
@@ -96,20 +155,14 @@ function compute_function_of_correlations(;
 
     # read in binned sign data
     binned_sign = vcat((
-        rebin(read(h5["GLOBAL/sgn"]), num_bins) for h5 in H5BinFiles
+        vcat((rebin(read(h5["GLOBAL/sgn"]), num_bins) for h5 in H5BinFiles)...)
     )...)
 
     # read in the binned sign data
-    binned_correlations = tuple((
-        (
-            rebin(
-                _read_correlation_bins(),
-                num_bins
-            )
-            for h5 in H5BinFiles
-        )
-        for correlation in correlations
-    )...)
+    binned_correlations = [
+        (vcat((rebin(_read_correlation_bins(h5, correlation),num_bins) for h5 in H5BinFiles)...)
+         for correlation in correlations)...
+    ]
 
     # initialize version of function that take the sign as the first argument
     # and ensure re-weighting is performed when evaluating the function
@@ -120,58 +173,6 @@ function compute_function_of_correlations(;
 
     # close all the H5 bin files
     close.(H5BinFiles)
-
-    return C, ΔC
-end
-
-
-# calculate function of correlation based on single HDF5 file containing
-# the binned data for one walker
-function _compute_function_of_correlations(
-    f::Function,
-    datafolder::String,
-    pID::Int,
-    correlations::Vector{<:NamedTuple},
-    num_bins::Int
-)
-
-    # get HDF5 filename containing binned data
-    filename = joinpath(datafolder, "bins", "bins_pID-$(pID).h5")
-
-    # open HDF5 file containing binned data
-    h5 = h5open(filename, "r")
-
-    # get the total number of bins per pID
-    n_bins = read_attribute(h5, "N_BINS")
-
-    # determine the number of bins to use to calculate statistics
-    num_bins = iszero(num_bins) ? read_attribute(h5, "N_BINS") : num_bins
-
-    # read in binned sign
-    binned_sign = bin_means(read(h5["GLOBAL/sgn"]), num_bins)
-
-    # real type
-    R = real(eltype(binned_sign))
-
-    # initialize vector to contain binned values
-    binned_correlations = Vector{Vector{Complex{R}}}(undef, length(correlations))
-
-    # iterate over correlations to read in
-    for n in eachindex(binned_correlations)
-
-        # get the binned correlation data
-        binned_correlations[n] = _read_correlation_bins(h5, correlations[n], num_bins)
-    end
-
-    # initialize version of function that take the sign as the first argument
-    # and ensure re-weighting is performed when evaluating the function
-    F(z...) = f(map(x->x/z[1], z[2:end])...)
-
-    # calculate the composite correlation
-    C, ΔC = jackknife(F, binned_sign, binned_correlations..., bias_corrected=false)
-
-    # close HDF5 file containing binned data
-    close(h5)
 
     return C, ΔC
 end
@@ -249,6 +250,8 @@ function _read_correlation_bins(
             # extract the binned values
             binned_vals = DataSet[:,entry...,l]
         end
+
+    # if equal-time or integrated correlation measurement
     else
 
         # if a standard correlation measurement

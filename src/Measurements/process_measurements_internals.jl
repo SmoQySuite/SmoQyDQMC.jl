@@ -76,14 +76,12 @@ function _process_measurements(
     β = read_attribute(H5BinFiles[1], "BETA")
     Δτ = read_attribute(H5BinFiles[1], "DELTA_TAU")
     Lτ = read_attribute(H5BinFiles[1], "L_TAU")
-    L = read_attribute(H5BinFile, "L")
 
     # record metadata about stats to computes
     attributes(H5StatsFile)["BETA"] = β
     attributes(H5StatsFile)["DELTA_TAU"] = Δτ
     attributes(H5StatsFile)["L_TAU"] = Lτ
     attributes(H5StatsFile)["N_ORBITALS"] = N_orbitals
-    attributes(H5StatsFile)["L"] = L
     attributes(H5StatsFile)["N_BINS"] = N_bins
 
     # calculate the binned average sign for each HDF5 containing binned data
@@ -103,8 +101,8 @@ function _process_measurements(
     # iterate over global measurements
     for key in keys(Global_Out)
         # read in global measurement
-        vals = vcat((rebin(read(H5BinFiles[n]["GLOBAL"][key]),n_bins) for n in 1:N_pIDs)...)
-        binned_vals = bin_means(vals , N_bins)
+        binned_vals = vcat((rebin(read(H5BinFiles[n]["GLOBAL"][key]),n_bins) for n in 1:N_pIDs)...)
+        binned_vals = rebin(binned_vals , N_bins)
         # if a global measurement does not require reweighting
         if startswith(key,"sgn") || startswith(key,"log") || startswith(key,"action") || startswith(key,"chemical_potential")
             average = mean(binned_vals)
@@ -112,7 +110,7 @@ function _process_measurements(
         # if a global measurement requires reweighting
         else
             average, stdev = jackknife(
-                /, vals, binned_sign;
+                /, binned_vals, binned_sign;
                 jackknife_sample_means, jackknife_g
             )
         end
@@ -133,8 +131,7 @@ function _process_measurements(
     S = binned_sign
     κ, Δκ = jackknife(
         (n̄, N̄², S̄) -> (β/N_orbitals)*(N̄²/S̄ - (N_orbitals*n̄/S̄)^2),
-        n, N², S;
-        jackknife_sample_means, jackknife_g
+         n, N², S
     )
     Compressibility = create_group(Global_Out, "compressibility")
     Compressibility["MEAN"] = κ
@@ -168,37 +165,37 @@ function _process_measurements(
 
     # process standard equal-time correlation measurements
     process_correlations!(
-        H5StatsFile, H5BinFiles, "CORRELATIONS/STANDARD/EQUAL-TIME",
+        H5StatsFile, H5BinFiles, "STANDARD/EQUAL-TIME",
         binned_sign, jackknife_sample_means, jackknife_g
     )
 
     # process standard time-displaced correlation measurements
     process_correlations!(
-        H5StatsFile, H5BinFiles, "CORRELATIONS/STANDARD/TIME-DISPLACED",
+        H5StatsFile, H5BinFiles, "STANDARD/TIME-DISPLACED",
         binned_sign, jackknife_sample_means, jackknife_g
     )
 
     # process standard integrated correlation measurements
     process_correlations!(
-        H5StatsFile, H5BinFiles, "CORRELATIONS/STANDARD/INTEGRATED",
+        H5StatsFile, H5BinFiles, "STANDARD/INTEGRATED",
         binned_sign, jackknife_sample_means, jackknife_g
     )
 
     # process composite equal-time correlation measurements
     process_correlations!(
-        H5StatsFile, H5BinFiles, "CORRELATIONS/COMPOSITE/EQUAL-TIME",
+        H5StatsFile, H5BinFiles, "COMPOSITE/EQUAL-TIME",
         binned_sign, jackknife_sample_means, jackknife_g
     )
 
     # process composite time-displaced correlation measurements
     process_correlations!(
-        H5StatsFile, H5BinFiles, "CORRELATIONS/COMPOSITE/TIME-DISPLACED",
+        H5StatsFile, H5BinFiles, "COMPOSITE/TIME-DISPLACED",
         binned_sign, jackknife_sample_means, jackknife_g
     )
 
     # process composite integrated correlation measurements
     process_correlations!(
-        H5StatsFile, H5BinFiles, "CORRELATIONS/COMPOSITE/INTEGRATED",
+        H5StatsFile, H5BinFiles, "COMPOSITE/INTEGRATED",
         binned_sign, jackknife_sample_means, jackknife_g
     )
 
@@ -228,33 +225,32 @@ function process_correlations!(
 ) where {T<:AbstractFloat}
 
     # get output correlations
-    Correlations_Out = H5StatsFile[correlation_type]
+    Correlations_Out = H5StatsFile["CORRELATIONS"][correlation_type]
 
     # get the number of pIDs
     N_pIDs = length(H5BinFiles)
 
     # total number of bins
-    N_bins = size(binned_sign)
+    N_bins = length(binned_sign)
 
     # number of bins per pID
     n_bins = N_bins ÷ N_pIDs
 
     for key in keys(Correlations_Out)
 
-
-        # allocate arrays to contain stats
-        average = zeros(Complex{T}, dims)
-        stdev = zeros(T, dims)
-
         # get the output group for the position space correlation
-        Position_Out = Correlation_Out["POSITION"]
+        Position_Out = Correlations_Out[key]["POSITION"]
 
         # get the input binned datasets for the position correlations
-        Positions_In = tuple((H5BinFiles[n][correlation_type][key]["POSITION"] for n in 1:N_pIDs)...)
+        Positions_In = tuple((H5BinFiles[n]["CORRELATIONS"][correlation_type][key]["POSITION"] for n in 1:N_pIDs)...)
 
         # get the dimensionality of the correlation data.
         # first dimension is cut off as that one corresponds to the bins.
         dims = size(first(Positions_In))[2:end]
+
+        # allocate arrays to contain stats
+        average = zeros(Complex{T}, dims)
+        stdev = zeros(T, dims)
 
         # iterate over all correlation displacement vectors
         for c in CartesianIndices(dims)
@@ -263,7 +259,7 @@ function process_correlations!(
                 # rebin the data associated with single pID
                 rebin(
                     # read in the binned data associated with each pID
-                    read(Positions_In[n][:,c.I...] for n in 1:N_pIDs),
+                    Positions_In[n][:,c.I...],
                     n_bins
                 )
                 # iterate over pIDs
@@ -277,14 +273,14 @@ function process_correlations!(
         end
 
         # record the final stats
-        Position_Out["MEAN"] = averages
-        Position_Out["STD"] = stdevs
+        Position_Out["MEAN"] = average
+        Position_Out["STD"] = stdev
 
         # get the output group for the momentum space correlation
-        Momentum_Out = Correlation_Out["MOMENTUM"]
+        Momentum_Out = Correlations_Out[key]["MOMENTUM"]
 
         # get the input binned datasets for the position correlations
-        Momentums_In = tuple((H5BinFiles[n][correlation_type][key]["MOMENTUM"] for n in 1:N_pIDs)...)
+        Momentum_In = tuple((H5BinFiles[n]["CORRELATIONS"][correlation_type][key]["MOMENTUM"] for n in 1:N_pIDs)...)
 
         # iterate over all scatting momentum vectors
         for c in CartesianIndices(dims)
@@ -293,7 +289,7 @@ function process_correlations!(
                 # rebin the data associated with single pID
                 rebin(
                     # read in the binned data associated with each pID
-                    read(Momentums_In[n][:,c.I...]),
+                    Momentum_In[n][:,c.I...],
                     n_bins
                 )
                 # iterate over pIDs
@@ -307,8 +303,8 @@ function process_correlations!(
         end
 
         # record the final stats
-        Momentum_Out["MEAN"] = averages
-        Momentum_Out["STD"] = stdevs
+        Momentum_Out["MEAN"] = average
+        Momentum_Out["STD"] = stdev
     end
 
     return nothing
