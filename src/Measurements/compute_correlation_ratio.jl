@@ -61,18 +61,18 @@ function compute_correlation_ratio(
     )
 
     # gather the data across all pIDs
-    Sq_bins = MPI.gather(Sq, comm)
-    Sqpdq_bins = MPI.gather(Sqpdq, comm)
+    Sq = MPI.gather(Sq, comm)
+    Sqpdq = MPI.gather(Sqpdq, comm)
 
     # if root process
     if iszero(MPI.Comm_rank(comm))
 
         # concatenate all the data together
-        Sq_bins = vcat(Sq...)
-        Sqpdq_bins = vcat(Sq...)
+        Sq = vcat(Sq...)
+        Sqpdq = vcat(Sqpdq...)
 
         # calculate correlation ratio
-        R, ΔR = jackknife((Sqpdq, Sq) -> 1 - Sqpdq/Sq, Sqpdq_bins, Sq_bins, bias_corrected=false)
+        R, ΔR = jackknife((Sqpdq, Sq) -> 1 - Sqpdq/Sq, Sqpdq, Sq, bias_corrected=false)
     else
 
         R, ΔR = nothing, nothing
@@ -116,11 +116,11 @@ function compute_correlation_ratio(;
     )...)
 
     # extract relevant structure factor data
-    Sq_bins = vcat((d[1] for d in data)...)
-    Sqpdq_bins = vcat((d[2] for d in data)...)
+    Sq = vcat((d[1] for d in data)...)
+    Sqpdq = vcat((d[2] for d in data)...)
 
     # calculate correlation ratio
-    R, ΔR = jackknife((Sqpdq, Sq) -> 1 - Sqpdq/Sq, Sqpdq_bins, Sq_bins, bias_corrected=false)
+    R, ΔR = jackknife((Sqpdq, Sq) -> 1 - Sqpdq/Sq, Sqpdq, Sq, bias_corrected=false)
 
     return R, ΔR
 end
@@ -279,18 +279,18 @@ function compute_composite_correlation_ratio(
     )
 
     # gather the data across all pIDs
-    Sq_bins = MPI.Allgather(Sq, comm)
-    Sqpdq_bins = MPI.Allgather(Sqpdq, comm)
+    Sq = MPI.Allgather(Sq, comm)
+    Sqpdq = MPI.Allgather(Sqpdq, comm)
 
     # if root process
     if iszero(MPI.Comm_rank(comm))
 
         # concatenate all the data together
-        Sq_bins = vcat(Sq...)
-        Sqpdq_bins = vcat(Sq...)
+        Sq = vcat(Sq...)
+        Sqpdq = vcat(Sqpdq...)
 
         # calculate correlation ratio
-        R, ΔR = jackknife((Sqpdq, Sq) -> 1 - Sqpdq/Sq, Sqpdq_bins, Sq_bins, bias_corrected=false)
+        R, ΔR = jackknife((Sqpdq, Sq) -> 1 - Sqpdq/Sq, Sqpdq, Sq, bias_corrected=false)
     else
 
         R, ΔR = nothing, nothing
@@ -332,11 +332,11 @@ function compute_composite_correlation_ratio(;
     )...)
 
     # extract relevant structure factor data
-    Sq_bins = vcat((d[1] for d in data)...)
-    Sqpdq_bins = vcat((d[2] for d in data)...)
+    Sq = vcat((d[1] for d in data)...)
+    Sqpdq = vcat((d[2] for d in data)...)
 
     # calculate correlation ratio
-    R, ΔR = jackknife((Sqpdq, Sq) -> 1 - Sqpdq/Sq, Sqpdq_bins, Sq_bins, bias_corrected=false)
+    R, ΔR = jackknife((Sqpdq, Sq) -> 1 - Sqpdq/Sq, Sqpdq, Sq, bias_corrected=false)
 
     return R, ΔR
 end

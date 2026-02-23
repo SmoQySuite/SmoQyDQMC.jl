@@ -237,7 +237,6 @@ function process_measurements(;
         pIDs = collect( 0 : length(h5_bin_files) - 1 )
     end
     num_pIDs = length(pIDs)
-    @assert num_pIDs * n_bins > 1 "The total number of data bins is one (or smaller), and therefore measurement errors cannot be estimated."
 
     # construct filename for stats HDF5 file
     if isone(length(pIDs))
