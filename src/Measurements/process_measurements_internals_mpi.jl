@@ -49,6 +49,7 @@ function _process_measurements(
     n_data_bins = read_attribute(H5BinFile, "N_BINS")
     n_bins = isnothing(n_bins) ? n_data_bins : n_bins
     @assert (n_data_bins % n_bins) == 0
+    @assert N_pIDs * n_bins > 1 "The total number of data bins is one or smaller, and therefore measurement errors cannot be estimated."
 
     # calculate total number bins across all pIDs
     N_bins = n_bins * N_pIDs
@@ -103,18 +104,30 @@ function _process_measurements(
 
     # calculate the binned average sign for each HDF5 containing binned data
     binned_sign = MPI.gather(rebin(read(H5BinFile["GLOBAL/sgn"]), n_bins), comm)
-    binned_sign = isroot ? vcat(binned_sign...) : nothing
 
-    # preallocate arrays for jackknife
-    jackknife_sample_means = (similar(binned_sign), similar(binned_sign))
-    jackknife_g = similar(binned_sign)
+    # if root process
+    if isroot
 
-    # type of reported mean and standard deviations
-    T_mean = eltype(binned_sign)
-    T_std = real(T_mean)
+        # joint all the binned sign data together
+        binned_sign = vcat(binned_sign...)
 
-    # get the output global measurement stats group
-    Global_Out = isroot ? H5StatsFile["GLOBAL"] : nothing
+        # preallocate arrays for jackknife
+        jackknife_sample_means = (similar(binned_sign), similar(binned_sign))
+        jackknife_g = similar(binned_sign)
+
+        # type of reported mean and standard deviations
+        T_mean = eltype(binned_sign)
+        T_std = real(T_mean)
+
+        # get the output global measurement stats group
+        Global_Out = H5StatsFile["GLOBAL"]
+
+    # default values if not root process
+    else
+
+        # set defaults to nothing for jackknife arrays
+        jackknife_sample_means, jackknife_g = nothing, nothing
+    end
 
     # get the input global measurements group
     Global_In = H5BinFile["GLOBAL"]
@@ -202,7 +215,7 @@ function _process_measurements(
     process_correlations!(
         comm, H5StatsFile, H5BinFile,
         "STANDARD", "EQUAL-TIME",
-        standard_equal_time,
+        standard_equal_time, n_bins,
         binned_sign, jackknife_sample_means, jackknife_g
     )
 
@@ -210,7 +223,7 @@ function _process_measurements(
     process_correlations!(
         comm, H5StatsFile, H5BinFile,
         "STANDARD", "TIME-DISPLACED",
-        standard_time_displaced,
+        standard_time_displaced, n_bins,
         binned_sign, jackknife_sample_means, jackknife_g
     )
 
@@ -218,7 +231,7 @@ function _process_measurements(
     process_correlations!(
         comm, H5StatsFile, H5BinFile,
         "STANDARD", "INTEGRATED",
-        standard_integrated,
+        standard_integrated, n_bins,
         binned_sign, jackknife_sample_means, jackknife_g
     )
 
@@ -226,7 +239,7 @@ function _process_measurements(
     process_correlations!(
         comm, H5StatsFile, H5BinFile,
         "COMPOSITE", "EQUAL-TIME",
-        composite_equal_time,
+        composite_equal_time, n_bins,
         binned_sign, jackknife_sample_means, jackknife_g
     )
 
@@ -234,7 +247,7 @@ function _process_measurements(
     process_correlations!(
         comm, H5StatsFile, H5BinFile,
         "COMPOSITE", "TIME-DISPLACED",
-        composite_time_displaced,
+        composite_time_displaced, n_bins,
         binned_sign, jackknife_sample_means, jackknife_g
     )
 
@@ -242,7 +255,7 @@ function _process_measurements(
     process_correlations!(
         comm, H5StatsFile, H5BinFile,
         "COMPOSITE", "INTEGRATED",
-        composite_integrated,
+        composite_integrated, n_bins,
         binned_sign, jackknife_sample_means, jackknife_g
     )
 
@@ -250,7 +263,9 @@ function _process_measurements(
     close(H5BinFile)
 
     # close HDF5 stats file
-    close(H5StatsFile)
+    if isroot
+        close(H5StatsFile)
+    end
 
     # delete HDF5 files containing binned data
     if rm_binned_data
@@ -267,17 +282,12 @@ function process_correlations!(
     correlation_group::String,
     correlation_type::String,
     correlations::Vector{String},
-    binned_sign::Vector{Complex{T}},
-    jackknife_sample_means = (similar(binned_sign), similar(binned_sign)),
-    jackknife_g = similar(binned_sign)
-) where {T<:AbstractFloat}
+    n_bins::Int,
+    binned_sign,
+    jackknife_sample_means,
+    jackknife_g
+)
 
-    # Get the number of bins
-    N_bins = length(binned_sign)
-    # Get the number of pIDs
-    N_pID = MPI.Comm_size(comm)
-    # get the number of bins per pID
-    n_bins = N_bins ÷ N_pID
     # get current MPI rank
     rank = MPI.Comm_rank(comm)
     # get input and output groups containing correlation type
@@ -292,6 +302,7 @@ function process_correlations!(
         # get dimensions of output correlation group
         dims = size(Position_In)
         # initialize array to contain stats
+        T = iszero(rank) ? real(eltype(binned_sign)) : nothing
         average = iszero(rank) ? zeros(Complex{T}, dims[2:end]) : nothing
         stdev = iszero(rank) ? zeros(T, dims[2:end]) : nothing
         # number of spatial dimensions of lattice

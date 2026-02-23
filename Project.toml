@@ -1,7 +1,7 @@
 name = "SmoQyDQMC"
 uuid = "00e12d65-277b-447e-9c1d-a17422dd36f5"
 authors = ["Benjamin Cohen-Stead <benwcs@gmail.com>"]
-version = "2.0.6"
+version = "2.0.7"
 
 [deps]
 Checkerboard = "b297549e-c8cb-44e5-9c33-b7e2667db6fc"
@@ -36,7 +36,7 @@ FastLapackInterface = "1, 2"
 Format = "1.3"
 Glob = "1.3"
 HDF5 = "0.17"
-JDQMCFramework = "1.2.4"
+JDQMCFramework = "1.2.5"
 JDQMCMeasurements = "1.9.2"
 JLD2 = "0.4, 0.5, 0.6"
 LatticeUtilities = "2"

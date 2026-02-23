@@ -38,6 +38,7 @@ function _process_measurements(
     n_data_bins = read_attribute(H5BinFiles[1], "N_BINS")
     n_bins = isnothing(n_bins) ? n_data_bins : n_bins
     @assert (n_data_bins % n_bins) == 0
+    @assert N_pIDs * n_bins > 1 "The total number of data bins is one or smaller, and therefore measurement errors cannot be estimated."
 
     # calculate total number bins across all pIDs
     N_bins = n_bins * N_pIDs

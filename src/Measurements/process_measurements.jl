@@ -100,7 +100,6 @@ function process_measurements(
     num_pIDs = MPI.Comm_size(comm)
     pIDs = isempty(pIDs) ? collect(0:num_pIDs-1) : pIDs
     pID = pIDs[MPI.Comm_rank(comm) + 1]
-    @assert num_pIDs * n_bins > 1 "The total number of data bins is one or smaller, and therefore measurement errors cannot be estimated."
 
     # construct filename for stats HDF5 file
     if isone(length(pIDs))
