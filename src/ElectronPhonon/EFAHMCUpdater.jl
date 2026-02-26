@@ -300,7 +300,7 @@ function hmc_update!(
         catch
 
             # numerical instability encountered in EFA-HMC update
-            @warn "Numerical instability encountered during EFA-HMC trajectory." δG′ logdetGup′ logdetGdn′
+            @warn "Numerical instability encountered during EFA-HMC trajectory." δG′ logdetGup′ logdetGdn′ δG logdetGup logdetGdn
 
             # record that numerically instability was encountered
             numerically_stable = false
@@ -313,7 +313,7 @@ function hmc_update!(
         if notfinite(δG′) || notfinite(logdetGup′) || notfinite(logdetGdn′) || δG′ > δG_reject
 
             # numerical instability encountered in EFA-HMC update
-            @warn "Numerical instability encountered during EFA-HMC trajectory." δG′ logdetGup′ logdetGdn′
+            @warn "Numerical instability encountered during EFA-HMC trajectory." δG′ logdetGup′ logdetGdn′ δG logdetGup logdetGdn
 
             # record that numerically instability was encountered
             numerically_stable = false
@@ -370,14 +370,16 @@ function hmc_update!(
             numerically_stable = false
 
             # numerical instability encountered in EFA-HMC update
-            @warn "Numerical instability encountered during EFA-HMC trajectory." δG′ logdetGup′ logdetGdn′
+            @warn "Numerical instability encountered during EFA-HMC trajectory." δG′ logdetGup′ logdetGdn′ δG logdetGup logdetGdn
+
         end
 
         # detect numerical instability if occurred
         if notfinite(δG′) || notfinite(logdetGup′) || notfinite(logdetGdn′) || δG′ > δG_reject
 
             # numerical instability encountered in EFA-HMC update
-            @warn "Numerical instability encountered during EFA-HMC trajectory." δG′ logdetGup′ logdetGdn′
+            @warn "Numerical instability encountered during EFA-HMC trajectory." δG′ logdetGup′ logdetGdn′ δG logdetGup logdetGdn
+
 
             # record that numerically instability was encountered
             numerically_stable = false
@@ -651,7 +653,7 @@ function hmc_update!(
         catch
 
             # numerical instability encountered in EFA-HMC update
-            @warn "Numerical instability encountered during EFA-HMC trajectory." δG′ logdetG′
+            @warn "Numerical instability encountered during EFA-HMC trajectory." δG′ logdetG′ δG logdetG
 
             # record that numerically instability was encountered
             numerically_stable = false
@@ -664,7 +666,7 @@ function hmc_update!(
         if notfinite(δG′) || notfinite(logdetG′) || δG′ > δG_reject
 
             # numerical instability encountered in EFA-HMC update
-            @warn "Numerical instability encountered during EFA-HMC trajectory." δG′ logdetG′
+            @warn "Numerical instability encountered during EFA-HMC trajectory." δG′ logdetG′ δG logdetG
 
             # record that numerically instability was encountered
             numerically_stable = false
@@ -715,14 +717,14 @@ function hmc_update!(
             numerically_stable = false
 
             # numerical instability encountered in EFA-HMC update
-            @warn "Numerical instability encountered during EFA-HMC trajectory." δG′ logdetG′
+            @warn "Numerical instability encountered during EFA-HMC trajectory." δG′ logdetG′ δG logdetG
         end
 
         # detect numerical instability if occurred
         if notfinite(δG′) || notfinite(logdetG′) || δG′ > δG_reject
 
             # numerical instability encountered in EFA-HMC update
-            @warn "Numerical instability encountered during EFA-HMC trajectory." δG′ logdetG′
+            @warn "Numerical instability encountered during EFA-HMC trajectory." δG′ logdetG′ δG logdetG
 
             # record that numerically instability was encountered
             numerically_stable = false
