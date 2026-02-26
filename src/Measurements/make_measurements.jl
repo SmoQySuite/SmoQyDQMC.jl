@@ -53,6 +53,7 @@ function make_measurements!(
 ) where {T<:Number, E<:AbstractFloat, D, N, P<:AbstractPropagator}
 
     @assert fermion_path_integral_up.Sb == fermion_path_integral_dn.Sb "$(fermion_path_integral_up.Sb) ≠ $(fermion_path_integral_dn.Sb)"
+    @assert fermion_greens_calculator_up.forward == fermion_greens_calculator_dn.forward
 
     # extract temporary storage vectors
     (; 
@@ -240,6 +241,11 @@ function make_measurements!(
         Bup = Bup, Bdn = Bdn, δG = δG, δθ = δθ, δG_max = δG_max,
         active = update_stabilization_frequency
     )
+    # if updated
+    #     println("In Measurements")
+    #     println(fermion_greens_calculator_up.n_stab)
+    #     println(fermion_greens_calculator_dn.n_stab)
+    # end
 
     return (logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ)
 end

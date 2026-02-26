@@ -663,8 +663,8 @@ function run_simulation(
         type = "equal-time",
         q_point = (0, 0),
         q_neighbors = [
-            (1,0),   (0,1),   (1,1),
-            (L-1,0), (0,L-1), (L-1,L-1)
+            (1,0),   (0,1),   (1,L-1),
+            (L-1,0), (0,L-1), (L-1,1)
         ]
     )
 

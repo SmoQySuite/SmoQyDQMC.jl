@@ -203,6 +203,10 @@ function hmc_update!(
     x_init = hmc_updater.x
     copyto!(x_init, x)
 
+    # initialize the alternate fermion greens calculators
+    copyto!(fermion_greens_calculator_up_alt, fermion_greens_calculator_up)
+    copyto!(fermion_greens_calculator_dn_alt, fermion_greens_calculator_dn)
+
     # initialize fermion green's function matrices and their determinants determinants
     copyto!(Gup′, Gup)
     copyto!(Gdn′, Gdn)
@@ -242,23 +246,23 @@ function hmc_update!(
     # iterate over HMC time-steps
     for t in 1:Nt
 
-        # initialize derivative of action to zero
-        fill!(dSdx, 0)
-
-        # update the spin up and spin down propagators to reflect current phonon configuration
-        calculate_propagators!(
-            Bup, fermion_path_integral_up,
-            calculate_exp_K = calculate_exp_K,
-            calculate_exp_V = calculate_exp_V
-        )
-        calculate_propagators!(
-            Bdn, fermion_path_integral_dn,
-            calculate_exp_K = calculate_exp_K,
-            calculate_exp_V = calculate_exp_V
-        )
-
         # attempt to calculate derivative of fermionic action
         try
+
+            # initialize derivative of action to zero
+            fill!(dSdx, 0)
+
+            # update the spin up and spin down propagators to reflect current phonon configuration
+            calculate_propagators!(
+                Bup, fermion_path_integral_up,
+                calculate_exp_K = calculate_exp_K,
+                calculate_exp_V = calculate_exp_V
+            )
+            calculate_propagators!(
+                Bdn, fermion_path_integral_dn,
+                calculate_exp_K = calculate_exp_K,
+                calculate_exp_V = calculate_exp_V
+            )
 
             # update the Green's function to reflect the new phonon configuration
             logdetGup′, sgndetGup′ = calculate_equaltime_greens!(Gup′, fermion_greens_calculator_up_alt, Bup)
@@ -290,7 +294,7 @@ function hmc_update!(
         catch
 
             # numerical instability encountered in EFA-HMC update
-            @warn "Numerical instability encountered during EFA-HMC trajectory." δG′ logdetGup logdetGdn
+            @warn "Numerical instability encountered during EFA-HMC trajectory." δG′ logdetGup′ logdetGdn′
 
             # record that numerically instability was encountered
             numerically_stable = false
@@ -300,10 +304,10 @@ function hmc_update!(
         end
 
         # detect numerical instability if occurred
-        if notfinite(δG′) || notfinite(logdetGup) || notfinite(logdetGdn) || δG′ > δG_reject
+        if notfinite(δG′) || notfinite(logdetGup′) || notfinite(logdetGdn′) || δG′ > δG_reject
 
             # numerical instability encountered in EFA-HMC update
-            @warn "Numerical instability encountered during EFA-HMC trajectory." δG′ logdetGup logdetGdn
+            @warn "Numerical instability encountered during EFA-HMC trajectory." δG′ logdetGup′ logdetGdn′
 
             # record that numerically instability was encountered
             numerically_stable = false
@@ -336,25 +340,42 @@ function hmc_update!(
         update!(fermion_path_integral_dn, electron_phonon_parameters, x, +1, spin = -1)
     end
 
-    # update the spin up and spin down propagators to reflect current phonon configuration
-    calculate_propagators!(
-        Bup, fermion_path_integral_up,
-        calculate_exp_K = calculate_exp_K,
-        calculate_exp_V = calculate_exp_V
-    )
-    calculate_propagators!(
-        Bdn, fermion_path_integral_dn,
-        calculate_exp_K = calculate_exp_K,
-        calculate_exp_V = calculate_exp_V
-    )
+    # only do this if numerically stable
+    if numerically_stable
 
-    try
-        # attempt to update the Green's function to reflect the new phonon configuration
-        logdetGup′, sgndetGup′ = calculate_equaltime_greens!(Gup′, fermion_greens_calculator_up_alt, Bup)
-        logdetGdn′, sgndetGdn′ = calculate_equaltime_greens!(Gdn′, fermion_greens_calculator_dn_alt, Bdn)
-    catch
-        # record if a numerical instability is encountered
-        numerically_stable = false
+        # update the spin up and spin down propagators to reflect current phonon configuration
+        calculate_propagators!(
+            Bup, fermion_path_integral_up,
+            calculate_exp_K = calculate_exp_K,
+            calculate_exp_V = calculate_exp_V
+        )
+        calculate_propagators!(
+            Bdn, fermion_path_integral_dn,
+            calculate_exp_K = calculate_exp_K,
+            calculate_exp_V = calculate_exp_V
+        )
+
+        try
+            # attempt to update the Green's function to reflect the new phonon configuration
+            logdetGup′, sgndetGup′ = calculate_equaltime_greens!(Gup′, fermion_greens_calculator_up_alt, Bup)
+            logdetGdn′, sgndetGdn′ = calculate_equaltime_greens!(Gdn′, fermion_greens_calculator_dn_alt, Bdn)
+        catch
+            # record if a numerical instability is encountered
+            numerically_stable = false
+
+            # numerical instability encountered in EFA-HMC update
+            @warn "Numerical instability encountered during EFA-HMC trajectory." δG′ logdetGup′ logdetGdn′
+        end
+
+        # detect numerical instability if occurred
+        if notfinite(δG′) || notfinite(logdetGup′) || notfinite(logdetGdn′) || δG′ > δG_reject
+
+            # numerical instability encountered in EFA-HMC update
+            @warn "Numerical instability encountered during EFA-HMC trajectory." δG′ logdetGup′ logdetGdn′
+
+            # record that numerically instability was encountered
+            numerically_stable = false
+        end
     end
 
     # if the simulation remained numerical stable
@@ -426,6 +447,11 @@ function hmc_update!(
             Bup = Bup, Bdn = Bdn, δG = δG, δθ = δθ, δG_max = δG_max,
             active = update_stabilization_frequency
         )
+        # if updated
+        #     println("In EFA-HMC Update")
+        #     println(fermion_greens_calculator_up.n_stab)
+        #     println(fermion_greens_calculator_dn.n_stab)
+        # end
 
     # if update is rejected
     else
@@ -586,18 +612,18 @@ function hmc_update!(
     # iterate over HMC time-steps
     for t in 1:Nt
 
-        # initialize derivative of action to zero
-        fill!(dSdx, 0)
-
-        # update the propagators to reflect current phonon configuration
-        calculate_propagators!(
-            B, fermion_path_integral,
-            calculate_exp_K = calculate_exp_K,
-            calculate_exp_V = calculate_exp_V
-        )
-
         # attempt to calculate the derivative of the fermionic action
         try
+
+            # initialize derivative of action to zero
+            fill!(dSdx, 0)
+
+            # update the propagators to reflect current phonon configuration
+            calculate_propagators!(
+                B, fermion_path_integral,
+                calculate_exp_K = calculate_exp_K,
+                calculate_exp_V = calculate_exp_V
+            )
 
             # update the Green's function to reflect the new phonon configuration
             logdetG′, sgndetG′ = calculate_equaltime_greens!(G′, fermion_greens_calculator_alt, B)
@@ -613,11 +639,11 @@ function hmc_update!(
             δG′ = max(δG′, δG″)
             δθ′ = max(δθ′, δθ″)
             
-        # if failed to calculate fermionic deterimant
+        # if failed to calculate fermionic determinant
         catch
 
             # numerical instability encountered in EFA-HMC update
-            @warn "Numerical instability encountered during EFA-HMC trajectory." δG′ logdetG
+            @warn "Numerical instability encountered during EFA-HMC trajectory." δG′ logdetG′
 
             # record that numerically instability was encountered
             numerically_stable = false
@@ -627,10 +653,10 @@ function hmc_update!(
         end
 
         # detect numerical instability if occurred
-        if notfinite(δG′) || notfinite(logdetG) || δG′ > δG_reject
+        if notfinite(δG′) || notfinite(logdetG′) || δG′ > δG_reject
 
             # numerical instability encountered in EFA-HMC update
-            @warn "Numerical instability encountered during EFA-HMC trajectory." δG′ logdetG
+            @warn "Numerical instability encountered during EFA-HMC trajectory." δG′ logdetG′
 
             # record that numerically instability was encountered
             numerically_stable = false
@@ -663,19 +689,36 @@ function hmc_update!(
         update!(fermion_path_integral, electron_phonon_parameters, x, +1)
     end
 
-    # update the spin up and spin down propagators to reflect current phonon configuration
-    calculate_propagators!(
-        B, fermion_path_integral,
-        calculate_exp_K = calculate_exp_K,
-        calculate_exp_V = calculate_exp_V
-    )
+    # only do this if numerically stable
+    if numerically_stable
 
-    try
-        # attempt to update the Green's function to reflect the new phonon configuration
-        logdetG′, sgndetG′ = calculate_equaltime_greens!(G′, fermion_greens_calculator_alt, B)
-    catch
-        # record if a numerical instability is encountered
-        numerically_stable = false
+        # update the spin up and spin down propagators to reflect current phonon configuration
+        calculate_propagators!(
+            B, fermion_path_integral,
+            calculate_exp_K = calculate_exp_K,
+            calculate_exp_V = calculate_exp_V
+        )
+
+        try
+            # attempt to update the Green's function to reflect the new phonon configuration
+            logdetG′, sgndetG′ = calculate_equaltime_greens!(G′, fermion_greens_calculator_alt, B)
+        catch
+            # record if a numerical instability is encountered
+            numerically_stable = false
+
+            # numerical instability encountered in EFA-HMC update
+            @warn "Numerical instability encountered during EFA-HMC trajectory." δG′ logdetG′
+        end
+
+        # detect numerical instability if occurred
+        if notfinite(δG′) || notfinite(logdetG′) || δG′ > δG_reject
+
+            # numerical instability encountered in EFA-HMC update
+            @warn "Numerical instability encountered during EFA-HMC trajectory." δG′ logdetG′
+
+            # record that numerically instability was encountered
+            numerically_stable = false
+        end
     end
 
     # if the simulation remained numerical stable

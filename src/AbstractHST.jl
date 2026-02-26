@@ -234,6 +234,11 @@ function local_updates!(
         Bup = Bup, Bdn = Bdn, δG = δG, δθ = δθ, δG_max = δG_max,
         active = update_stabilization_frequency
     )
+    # if updated
+    #     println("In Local Update")
+    #     println(fermion_greens_calculator_up.n_stab)
+    #     println(fermion_greens_calculator_dn.n_stab)
+    # end
 
     # normalize acceptance rate
     acceptance_rate /= fermion_path_integral_up.Lτ

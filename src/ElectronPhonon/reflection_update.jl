@@ -187,7 +187,6 @@ function reflection_update!(
         ΔSb = Sb′ - Sb
         fermion_path_integral_up.Sb += ΔSb
         fermion_path_integral_dn.Sb += ΔSb
-        fermion_path_integral_up.Sb
         accepted = true
     else
         # subtract off the effect of the current phonon configuration on the fermion path integrals
