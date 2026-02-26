@@ -371,7 +371,6 @@ function hmc_update!(
 
             # numerical instability encountered in EFA-HMC update
             @warn "Numerical instability encountered during EFA-HMC trajectory." δG′ logdetGup′ logdetGdn′ δG logdetGup logdetGdn
-
         end
 
         # detect numerical instability if occurred
@@ -379,7 +378,6 @@ function hmc_update!(
 
             # numerical instability encountered in EFA-HMC update
             @warn "Numerical instability encountered during EFA-HMC trajectory." δG′ logdetGup′ logdetGdn′ δG logdetGup logdetGdn
-
 
             # record that numerically instability was encountered
             numerically_stable = false
