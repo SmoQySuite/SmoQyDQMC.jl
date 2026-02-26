@@ -203,9 +203,15 @@ function hmc_update!(
     x_init = hmc_updater.x
     copyto!(x_init, x)
 
-    # initialize the alternate fermion greens calculators
-    copyto!(fermion_greens_calculator_up_alt, fermion_greens_calculator_up)
-    copyto!(fermion_greens_calculator_dn_alt, fermion_greens_calculator_dn)
+    # make sure stabilization frequencies match
+    if fermion_greens_calculator_up.n_stab != fermion_greens_calculator_up_alt.n_stab
+        resize!(fermion_greens_calculator_up_alt, fermion_greens_calculator_up.n_stab)
+    end
+
+    # make sure stabilization frequencies match
+    if fermion_greens_calculator_dn.n_stab != fermion_greens_calculator_dn_alt.n_stab
+        resize!(fermion_greens_calculator_dn_alt, fermion_greens_calculator_dn.n_stab)
+    end
 
     # initialize fermion green's function matrices and their determinants determinants
     copyto!(Gup′, Gup)
@@ -575,8 +581,10 @@ function hmc_update!(
     x_init = hmc_updater.x
     copyto!(x_init, x)
 
-    # initialize the alternate fermion greens calculators
-    copyto!(fermion_greens_calculator_alt, fermion_greens_calculator)
+    # make sure stabilization frequencies match
+    if fermion_greens_calculator.n_stab != fermion_greens_calculator_alt.n_stab
+        resize!(fermion_greens_calculator_alt, fermion_greens_calculator.n_stab)
+    end
 
     # initialize fermion green's function matrices and their determinants determinants
     copyto!(G′, G)
