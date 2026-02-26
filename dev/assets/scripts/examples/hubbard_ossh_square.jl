@@ -340,6 +340,19 @@ function run_simulation(
             ]
         )
 
+        # Measure trace of bond correlations.
+        initialize_composite_correlation_measurement!(
+            measurement_container = measurement_container,
+            model_geometry = model_geometry,
+            name = "tr_bond",
+            correlation = "bond",
+            id_pairs = [(bond_px_id, bond_px_id), (bond_py_id, bond_py_id)],
+            coefficients = [+1.0, +1.0],
+            displacement_vecs = [[0.0, 0.0], [0.0, 0.0]],
+            time_displaced = false,
+            integrated = true
+        )
+
         # Measure composite bond correlation for detecting a bond ordered wave (BOW)
         # that breaks a C4 rotation symmetry.
         initialize_composite_correlation_measurement!(
@@ -349,20 +362,6 @@ function run_simulation(
             correlation = "bond",
             ids = [bond_px_id, bond_py_id, bond_nx_id, bond_ny_id],
             coefficients = [+1.0, +1.0im, -1.0, -1.0im],
-            displacement_vecs = [[0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [0.0, 0.0]],
-            time_displaced = false,
-            integrated = true
-        )
-
-        # Measure composite bond correlation for detecting a bond ordered wave (BOW)
-        # that breaks a C2 rotation symmetry.
-        initialize_composite_correlation_measurement!(
-            measurement_container = measurement_container,
-            model_geometry = model_geometry,
-            name = "BOW_C2",
-            correlation = "bond",
-            ids = [bond_px_id, bond_py_id, bond_nx_id, bond_ny_id],
-            coefficients = [+1.0, -1.0, +1.0, -1.0],
             displacement_vecs = [[0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [0.0, 0.0]],
             time_displaced = false,
             integrated = true
@@ -632,7 +631,7 @@ function run_simulation(
 
     # Calculate acceptance rates.
     metadata["hmc_acceptance_rate"] /= (N_measurements + N_therm)
-    metadata["local_acceptance_rate"] /= (N_local_updates * N_measurements + N_therm)
+    metadata["local_acceptance_rate"] /= N_local_updates * (N_measurements + N_therm)
 
     # Record largest numerical error encountered during simulation.
     metadata["dG"] = δG

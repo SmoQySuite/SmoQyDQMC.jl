@@ -601,7 +601,7 @@ function run_simulation(
     # Calculate acceptance rates.
     metadata["reflection_acceptance_rate"] /= (N_measurements + N_therm)
     metadata["hmc_acceptance_rate"] /= (N_measurements + N_therm)
-    metadata["local_acceptance_rate"] /= (N_local_updates * N_measurements + N_therm)
+    metadata["local_acceptance_rate"] /= N_local_updates * (N_measurements + N_therm)
 
     # Record largest numerical error encountered during simulation.
     metadata["dG"] = δG

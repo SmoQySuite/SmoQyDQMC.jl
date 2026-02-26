@@ -331,6 +331,19 @@ function run_simulation(
             ]
         )
 
+        # Measure trace of bond correlations.
+        initialize_composite_correlation_measurement!(
+            measurement_container = measurement_container,
+            model_geometry = model_geometry,
+            name = &quot;tr_bond&quot;,
+            correlation = &quot;bond&quot;,
+            id_pairs = [(bond_px_id, bond_px_id), (bond_py_id, bond_py_id)],
+            coefficients = [+1.0, +1.0],
+            displacement_vecs = [[0.0, 0.0], [0.0, 0.0]],
+            time_displaced = false,
+            integrated = true
+        )
+
         # Measure composite bond correlation for detecting a bond ordered wave (BOW)
         # that breaks a C4 rotation symmetry.
         initialize_composite_correlation_measurement!(
@@ -340,20 +353,6 @@ function run_simulation(
             correlation = &quot;bond&quot;,
             ids = [bond_px_id, bond_py_id, bond_nx_id, bond_ny_id],
             coefficients = [+1.0, +1.0im, -1.0, -1.0im],
-            displacement_vecs = [[0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [0.0, 0.0]],
-            time_displaced = false,
-            integrated = true
-        )
-
-        # Measure composite bond correlation for detecting a bond ordered wave (BOW)
-        # that breaks a C2 rotation symmetry.
-        initialize_composite_correlation_measurement!(
-            measurement_container = measurement_container,
-            model_geometry = model_geometry,
-            name = &quot;BOW_C2&quot;,
-            correlation = &quot;bond&quot;,
-            ids = [bond_px_id, bond_py_id, bond_nx_id, bond_ny_id],
-            coefficients = [+1.0, -1.0, +1.0, -1.0],
             displacement_vecs = [[0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [0.0, 0.0]],
             time_displaced = false,
             integrated = true
@@ -648,4 +647,4 @@ if abspath(PROGRAM_FILE) == @__FILE__
 
     # Finalize MPI.
     MPI.Finalize()
-end</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../bssh_chain/">« Bond Su-Schrieffer-Heeger Chain</a><a class="docs-footer-nextpage" href="../hubbard_ossh_square/">Square Optical Su-Schrieffer-Heeger-Hubbard Model »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.17.0 on <span class="colophon-date" title="Monday 23 February 2026 18:53">Monday 23 February 2026</span>. Using Julia version 1.12.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+end</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../bssh_chain/">« Bond Su-Schrieffer-Heeger Chain</a><a class="docs-footer-nextpage" href="../hubbard_ossh_square/">Square Optical Su-Schrieffer-Heeger-Hubbard Model »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.17.0 on <span class="colophon-date" title="Thursday 26 February 2026 20:40">Thursday 26 February 2026</span>. Using Julia version 1.12.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
