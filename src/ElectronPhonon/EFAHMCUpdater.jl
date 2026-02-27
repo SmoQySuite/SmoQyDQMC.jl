@@ -451,13 +451,9 @@ function hmc_update!(
             fermion_greens_calculator_up = fermion_greens_calculator_up,
             fermion_greens_calculator_dn = fermion_greens_calculator_dn,
             Bup = Bup, Bdn = Bdn, δG = δG, δθ = δθ, δG_max = δG_max,
-            active = update_stabilization_frequency
+            active = update_stabilization_frequency,
+            info = "EFA-HMC update"
         )
-        # if updated
-        #     println("In EFA-HMC Update")
-        #     println(fermion_greens_calculator_up.n_stab)
-        #     println(fermion_greens_calculator_dn.n_stab)
-        # end
 
     # if update is rejected
     else
@@ -789,7 +785,8 @@ function hmc_update!(
             G, logdetG, sgndetG,
             fermion_greens_calculator = fermion_greens_calculator,
             B = B, δG = δG, δθ = δθ, δG_max = δG_max,
-            active = update_stabilization_frequency
+            active = update_stabilization_frequency,
+            info = "EFA-HMC update"
         )
 
     # if update is rejected

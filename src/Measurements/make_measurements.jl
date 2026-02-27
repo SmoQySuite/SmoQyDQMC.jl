@@ -22,6 +22,7 @@
         tight_binding_parameters_dn::Union{Nothing, TightBindingParameters} = nothing,
         coupling_parameters::Tuple,
         δG::E, δθ::E, δG_max::E = 1e-5,
+        recompute_equaltime_greens::Bool = false,
         update_stabilization_frequency::Bool = false
     ) where {T<:Number, E<:AbstractFloat, D, N, P<:AbstractPropagator}
 
@@ -29,6 +30,8 @@ Make measurements, including time-displaced correlation and zero Matsubara frequ
 This method also returns `(logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ)`.
 Note that either the keyword `tight_binding_parameters` needs to be specified, or
 `tight_binding_parameters_up` and `tight_binding_parameters_dn` both need to be specified.
+If `recompute_equaltime_greens = true`, then the equal-time Green's functions are recomputed
+from scratch before measurements are made.
 """
 function make_measurements!(
     # ARGUMENTS
@@ -49,6 +52,7 @@ function make_measurements!(
     tight_binding_parameters_dn::Union{Nothing, TightBindingParameters} = nothing,
     coupling_parameters::Tuple,
     δG::E, δθ::E, δG_max::E = 1e-5,
+    recompute_equaltime_greens::Bool = false,
     update_stabilization_frequency::Bool = false
 ) where {T<:Number, E<:AbstractFloat, D, N, P<:AbstractPropagator}
 
@@ -64,6 +68,12 @@ function make_measurements!(
         a, a′, a″, pfft!
     ) = measurement_container
     tmp = selectdim(a, ndims(a), 1)
+
+    # if recomputing the equal-time Green's function from scratch.
+    if recompute_equaltime_greens
+        logdetGup, sgndetGup = calculate_equaltime_greens!(Gup, fermion_greens_calculator_up, Bup)
+        logdetGdn, sgndetGdn = calculate_equaltime_greens!(Gdn, fermion_greens_calculator_dn, Bdn)
+    end
 
     # assign spin-up and spin-down tight-binding parameters if necessary
     if !isnothing(tight_binding_parameters)
@@ -239,13 +249,9 @@ function make_measurements!(
         fermion_greens_calculator_up = fermion_greens_calculator_up,
         fermion_greens_calculator_dn = fermion_greens_calculator_dn,
         Bup = Bup, Bdn = Bdn, δG = δG, δθ = δθ, δG_max = δG_max,
-        active = update_stabilization_frequency
+        active = update_stabilization_frequency,
+        info = "measurements"
     )
-    # if updated
-    #     println("In Measurements")
-    #     println(fermion_greens_calculator_up.n_stab)
-    #     println(fermion_greens_calculator_dn.n_stab)
-    # end
 
     return (logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ)
 end
@@ -264,11 +270,14 @@ end
         tight_binding_parameters::TightBindingParameters,
         coupling_parameters::Tuple,
         δG::E, δθ::E, δG_max::E = 1e-5,
+        recompute_equaltime_greens::Bool = false,
         update_stabilization_frequency::Bool = false
     ) where {T<:Number, E<:AbstractFloat, D, N, P<:AbstractPropagator}
 
 Make measurements, including time-displaced correlation and zero Matsubara frequency measurements.
 This method also returns `(logdetG, sgndetG, δG, δθ)`.
+If `recompute_equaltime_greens = true`, then the equal-time Green's functions are recomputed
+from scratch before measurements are made.
 """
 function make_measurements!(
     # ARGUMENTS
@@ -283,6 +292,7 @@ function make_measurements!(
     tight_binding_parameters::TightBindingParameters,
     coupling_parameters::Tuple,
     δG::E, δθ::E, δG_max::E = 1e-5,
+    recompute_equaltime_greens::Bool = false,
     update_stabilization_frequency::Bool = false
 ) where {T<:Number, E<:AbstractFloat, D, N, P<:AbstractPropagator}
 
@@ -295,6 +305,11 @@ function make_measurements!(
         a, a′, a″, pfft!
     ) = measurement_container
     tmp = selectdim(a, ndims(a), 1)
+
+    # if recomputing the equal-time Green's function from scratch.
+    if recompute_equaltime_greens
+        logdetG, sgndetG = calculate_equaltime_greens!(G, fermion_greens_calculator, B)
+    end
 
     # calculate sign
     Sb = fermion_path_integral.Sb
@@ -446,7 +461,8 @@ function make_measurements!(
         G, logdetG, sgndetG,
         fermion_greens_calculator = fermion_greens_calculator,
         B = B, δG = δG, δθ = δθ, δG_max = δG_max,
-        active = update_stabilization_frequency
+        active = update_stabilization_frequency,
+        info = "measurements"
     )
 
     return (logdetG, sgndetG, δG, δθ)

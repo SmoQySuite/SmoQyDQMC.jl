@@ -10,7 +10,8 @@
         δG::R, δθ::R,
         δG_max::R,
         δG_min::R = 0.0,
-        active::Bool = true
+        active::Bool = true,
+        info::Union{Nothing,String} = nothing
     ) where {H<:Number, R<:Real, P<:AbstractPropagator}
 
 If the corrected error in the Green's function matrix is too large, `δG > δG_max`, then increase the frequency of
@@ -38,7 +39,8 @@ function update_stabilization_frequency!(
     δG::R, δθ::R,
     δG_max::R,
     δG_min::R = 0.0,
-    active::Bool = true
+    active::Bool = true,
+    info::Union{Nothing,String} = nothing
 ) where {H<:Number, R<:Real, P<:AbstractPropagator}
 
     # make sure all fermion greens calculators are using the same stabilization period
@@ -57,7 +59,7 @@ function update_stabilization_frequency!(
         if active && (fermion_greens_calculator_up.n_stab > 1)
 
             # warn of numerical instability
-            @warn "Numerical instability encountered and stabilization frequency will be decremented." δG_max δG logdetGup logdetGdn n_stab n_stab-1
+            @warn "Numerical instability encountered and stabilization frequency will be decremented." δG_max δG logdetGup logdetGdn n_stab n_stab-1 info
 
             # set updated to true
             updated = true
@@ -85,14 +87,14 @@ function update_stabilization_frequency!(
         else
 
             # warn of numerical instability
-            @warn "Numerical instability encountered." δG_max δG logdetGup logdetGdn n_stab
+            @warn "Numerical instability encountered." δG_max δG logdetGup logdetGdn n_stab info
         end
 
     # if very numerically stable
     elseif active && (δG < δG_min)
 
         # notify that stabilization period being increased
-        @info "Stabilization frequency is being increased by one." δG_max δG logdetGup logdetGdn n_stab n_stab+1
+        @info "Stabilization frequency is being increased by one." δG_max δG logdetGup logdetGdn n_stab n_stab+1 info
 
         # increase the stabilization period by one
         n_stab = n_stab + 1
@@ -128,7 +130,8 @@ end
         δG::R, δθ::R,
         δG_max::R,
         δG_min::R = 0.0,
-        active::Bool = true
+        active::Bool = true,
+        info::Union{Nothing,String} = nothing
     ) where {H<:Number, R<:Real, P<:AbstractPropagator}
 
 If the corrected error in the Green's function matrix is too large, `δG > δG_max`, then increase the frequency of
@@ -154,7 +157,8 @@ function update_stabilization_frequency!(
     δG::R, δθ::R,
     δG_max::R,
     δG_min::R = 0.0,
-    active::Bool = true
+    active::Bool = true,
+    info::Union{Nothing,String} = nothing
 ) where {H<:Number, R<:Real, P<:AbstractPropagator}
 
     # make sure all fermion greens calculators are using the same stabilization period
@@ -170,7 +174,7 @@ function update_stabilization_frequency!(
         if active && (fermion_greens_calculator.n_stab > 1)
 
             # warn of numerical instability
-            @warn "Numerical instability encountered and stabilization period will be decremented." δG_max δG logdetG n_stab n_stab - 1
+            @warn "Numerical instability encountered and stabilization period will be decremented." δG_max δG logdetG n_stab n_stab - 1 info
 
             # set updated to true
             updated = true
@@ -195,7 +199,7 @@ function update_stabilization_frequency!(
         else
 
             # warn of numerical instability
-            @warn "Numerical instability encountered." δG_max δG logdetG n_stab
+            @warn "Numerical instability encountered." δG_max δG logdetG n_stab info
         end
 
     # if very numerically stable
