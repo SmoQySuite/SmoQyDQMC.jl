@@ -167,7 +167,8 @@ function radial_update!(
     try
         logdetGup′, sgndetGup′ = calculate_equaltime_greens!(Gup′, fermion_greens_calculator_up_alt, Bup)
         logdetGdn′, sgndetGdn′ = calculate_equaltime_greens!(Gdn′, fermion_greens_calculator_dn_alt, Bdn)
-    catch
+    catch e
+        @info "Failed to evaluate Green's function matrix for proposed state in radial update." exception=(e, catch_backtrace())
         logdetGup′, sgndetGup′ = NaN, NaN
         logdetGdn′, sgndetGdn′ = NaN, NaN
     end
@@ -373,7 +374,8 @@ function radial_update!(
     logdetG′, sgndetG′ = logdetG, sgndetG
     try
         logdetG′, sgndetG′ = calculate_equaltime_greens!(G′, fermion_greens_calculator_alt, B)
-    catch
+    catch e
+        @info "Failed to evaluate Green's function matrix for proposed state in radial update, update rejected." exception=(e, catch_backtrace())
         logdetG′, sgndetG′ = NaN, NaN
     end
 
