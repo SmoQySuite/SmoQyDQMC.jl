@@ -202,20 +202,18 @@ function _reflection_update!(
 ) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator}
 
     @assert fermion_path_integral_up.Sb == fermion_path_integral_dn.Sb "$(fermion_path_integral_up.Sb) ≠ $(fermion_path_integral_dn.Sb)"
+    @assert fermion_greens_calculator_up.forward == fermion_greens_calculator_dn.forward
+    @assert fermion_greens_calculator_up.l == fermion_greens_calculator_dn.l
 
     (; Δτ, α, sites, s, N) = hst_parameters
     Gup′ = fermion_greens_calculator_up_alt.G′
     Gdn′ = fermion_greens_calculator_dn_alt.G′
 
     # make sure stabilization frequencies match
-    if fermion_greens_calculator_up.n_stab != fermion_greens_calculator_up_alt.n_stab
-        resize!(fermion_greens_calculator_up_alt, fermion_greens_calculator_up.n_stab)
-    end
+    copyto!(fermion_greens_calculator_up_alt, fermion_greens_calculator_up)
 
     # make sure stabilization frequencies match
-    if fermion_greens_calculator_dn.n_stab != fermion_greens_calculator_dn_alt.n_stab
-        resize!(fermion_greens_calculator_dn_alt, fermion_greens_calculator_dn.n_stab)
-    end
+    copyto!(fermion_greens_calculator_dn_alt, fermion_greens_calculator_dn)
 
     # pick a random site/orbital in lattice with finite Hubbard U to perform reflection update on
     i     = rand(rng, 1:N)
@@ -304,25 +302,23 @@ function _swap_update!(
 ) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator}
 
     @assert fermion_path_integral_up.Sb == fermion_path_integral_dn.Sb "$(fermion_path_integral_up.Sb) ≠ $(fermion_path_integral_dn.Sb)"
+    @assert fermion_greens_calculator_up.forward == fermion_greens_calculator_dn.forward
+    @assert fermion_greens_calculator_up.l == fermion_greens_calculator_dn.l
 
     (; Δτ, α, sites, s, N) = hst_parameters
     Gup′ = fermion_greens_calculator_up_alt.G′
     Gdn′ = fermion_greens_calculator_dn_alt.G′
 
     # make sure stabilization frequencies match
-    if fermion_greens_calculator_up.n_stab != fermion_greens_calculator_up_alt.n_stab
-        resize!(fermion_greens_calculator_up_alt, fermion_greens_calculator_up.n_stab)
-    end
+    copyto!(fermion_greens_calculator_up_alt, fermion_greens_calculator_up)
 
     # make sure stabilization frequencies match
-    if fermion_greens_calculator_dn.n_stab != fermion_greens_calculator_dn_alt.n_stab
-        resize!(fermion_greens_calculator_dn_alt, fermion_greens_calculator_dn.n_stab)
-    end
+    copyto!(fermion_greens_calculator_dn_alt, fermion_greens_calculator_dn)
 
-    # ranomly pick two sites with Hubbard U interaction on them
+    # randomly pick two sites with Hubbard U interaction on them
     i, j = draw2(rng, N)
 
-    # get the site index associted with each Hubbard U
+    # get the site index associated with each Hubbard U
     site_i = sites[i]
     site_j = sites[j]
 

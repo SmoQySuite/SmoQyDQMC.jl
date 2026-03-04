@@ -64,6 +64,8 @@ function radial_update!(
 ) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator{T}}
 
     @assert fermion_path_integral_up.Sb == fermion_path_integral_dn.Sb "$(fermion_path_integral_up.Sb) ≠ $(fermion_path_integral_dn.Sb)"
+    @assert fermion_greens_calculator_up.forward == fermion_greens_calculator_dn.forward
+    @assert fermion_greens_calculator_up.l == fermion_greens_calculator_dn.l
 
     Gup′ = fermion_greens_calculator_up_alt.G′
     Gdn′ = fermion_greens_calculator_dn_alt.G′
@@ -77,14 +79,10 @@ function radial_update!(
     Lτ = fermion_path_integral_up.Lτ
 
     # make sure stabilization frequencies match
-    if fermion_greens_calculator_up.n_stab != fermion_greens_calculator_up_alt.n_stab
-        resize!(fermion_greens_calculator_up_alt, fermion_greens_calculator_up.n_stab)
-    end
+    copyto!(fermion_greens_calculator_up_alt, fermion_greens_calculator_up)
 
     # make sure stabilization frequencies match
-    if fermion_greens_calculator_dn.n_stab != fermion_greens_calculator_dn_alt.n_stab
-        resize!(fermion_greens_calculator_dn_alt, fermion_greens_calculator_dn.n_stab)
-    end
+    copyto!(fermion_greens_calculator_dn_alt, fermion_greens_calculator_dn)
 
     # get the number of phonon modes per unit cell
     nphonon = phonon_parameters.nphonon
@@ -298,9 +296,7 @@ function radial_update!(
     Lτ = fermion_path_integral.Lτ
 
     # make sure stabilization frequencies match
-    if fermion_greens_calculator.n_stab != fermion_greens_calculator_alt.n_stab
-        resize!(fermion_greens_calculator_alt, fermion_greens_calculator.n_stab)
-    end
+    copyto!(fermion_greens_calculator_alt, fermion_greens_calculator)
 
     # get the number of phonon modes per unit cell
     nphonon = phonon_parameters.nphonon

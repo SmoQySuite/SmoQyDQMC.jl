@@ -174,6 +174,8 @@ function hmc_update!(
 ) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator{T}}
 
     @assert fermion_path_integral_up.Sb == fermion_path_integral_dn.Sb "$(fermion_path_integral_up.Sb) ≠ $(fermion_path_integral_dn.Sb)"
+    @assert fermion_greens_calculator_up.forward == fermion_greens_calculator_dn.forward
+    @assert fermion_greens_calculator_up.l == fermion_greens_calculator_dn.l
 
     (; p, dSdx, Gup′, Gdn′, efa) = hmc_updater
     Δτ = electron_phonon_parameters.Δτ
@@ -204,14 +206,10 @@ function hmc_update!(
     copyto!(x_init, x)
 
     # make sure stabilization frequencies match
-    if fermion_greens_calculator_up.n_stab != fermion_greens_calculator_up_alt.n_stab
-        resize!(fermion_greens_calculator_up_alt, fermion_greens_calculator_up.n_stab)
-    end
+    copyto!(fermion_greens_calculator_up_alt, fermion_greens_calculator_up)
 
     # make sure stabilization frequencies match
-    if fermion_greens_calculator_dn.n_stab != fermion_greens_calculator_dn_alt.n_stab
-        resize!(fermion_greens_calculator_dn_alt, fermion_greens_calculator_dn.n_stab)
-    end
+    copyto!(fermion_greens_calculator_dn_alt, fermion_greens_calculator_dn)
 
     # initialize fermion green's function matrices and their determinants determinants
     copyto!(Gup′, Gup)
@@ -578,9 +576,7 @@ function hmc_update!(
     copyto!(x_init, x)
 
     # make sure stabilization frequencies match
-    if fermion_greens_calculator.n_stab != fermion_greens_calculator_alt.n_stab
-        resize!(fermion_greens_calculator_alt, fermion_greens_calculator.n_stab)
-    end
+    copyto!(fermion_greens_calculator_alt, fermion_greens_calculator)
 
     # initialize fermion green's function matrices and their determinants determinants
     copyto!(G′, G)

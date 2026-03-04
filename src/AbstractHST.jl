@@ -222,7 +222,7 @@ function local_updates!(
         δθ = maximum(abs, (δθ, δθup, δθdn))
 
         # keep spin-up and spin-down sectors synchronized
-        iterate(fermion_greens_calculator_dn, fermion_greens_calculator_up.forward)
+        iterate(fermion_greens_calculator_dn, fermion_greens_calculator_up)
     end
 
     # update stabilization frequency if required
@@ -359,7 +359,7 @@ function local_updates!(
         δθ = maximum(abs, (δθ, δθup, δθdn))
 
         # keep spin-up and spin-down sectors synchronized
-        iterate(fermion_greens_calculator_dn, fermion_greens_calculator_up.forward)
+        iterate(fermion_greens_calculator_dn, fermion_greens_calculator_up)
     end
 
     # update stabilization frequency if required
@@ -653,6 +653,8 @@ function reflection_update!(
 ) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator}
 
     @assert fermion_path_integral_up.Sb == fermion_path_integral_dn.Sb "$(fermion_path_integral_up.Sb) ≠ $(fermion_path_integral_dn.Sb)"
+    @assert fermion_greens_calculator_up.forward == fermion_greens_calculator_dn.forward
+    @assert fermion_greens_calculator_up.l == fermion_greens_calculator_dn.l
     
     (accepted, logdetGup, sgndetGup, logdetGdn, sgndetGdn) = _reflection_update!(
         Gup, logdetGup, sgndetGup,
@@ -818,6 +820,8 @@ function swap_update!(
 ) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator}
 
     @assert fermion_path_integral_up.Sb == fermion_path_integral_dn.Sb "$(fermion_path_integral_up.Sb) ≠ $(fermion_path_integral_dn.Sb)"
+    @assert fermion_greens_calculator_up.forward == fermion_greens_calculator_dn.forward
+    @assert fermion_greens_calculator_up.l == fermion_greens_calculator_dn.l
 
     # ensure there is more then one interaction in the lattice that was decoupled with a HS transformation
     if hst_parameters.N > 1

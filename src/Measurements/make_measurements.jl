@@ -58,6 +58,7 @@ function make_measurements!(
 
     @assert fermion_path_integral_up.Sb == fermion_path_integral_dn.Sb "$(fermion_path_integral_up.Sb) ≠ $(fermion_path_integral_dn.Sb)"
     @assert fermion_greens_calculator_up.forward == fermion_greens_calculator_dn.forward
+    @assert fermion_greens_calculator_up.l == fermion_greens_calculator_dn.l
 
     # extract temporary storage vectors
     (; 
@@ -190,7 +191,7 @@ function make_measurements!(
             δθ = maximum(abs, (δθ, δθup, δθdn))
 
             # Keep up and down spin Green's functions synchronized as iterating over imaginary time.
-            iterate(fermion_greens_calculator_dn, fermion_greens_calculator_up.forward)
+            iterate(fermion_greens_calculator_dn, fermion_greens_calculator_up)
         end
     end
 

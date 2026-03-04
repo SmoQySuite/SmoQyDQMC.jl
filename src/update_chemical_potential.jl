@@ -48,6 +48,8 @@ function update_chemical_potential!(
 
     # calculate sign
     @assert fermion_path_integral_up.Sb == fermion_path_integral_dn.Sb "$(fermion_path_integral_up.Sb) ≠ $(fermion_path_integral_dn.Sb)"
+    @assert fermion_greens_calculator_up.forward == fermion_greens_calculator_dn.forward
+    @assert fermion_greens_calculator_up.l == fermion_greens_calculator_dn.l
     Sb = fermion_path_integral_up.Sb
     sgn = isreal(Sb) ? sign(inv(sgndetGup) * inv(sgndetGdn)) : sign(exp(-1im*imag(Sb)) * inv(sgndetGup) * inv(sgndetGdn))
 
