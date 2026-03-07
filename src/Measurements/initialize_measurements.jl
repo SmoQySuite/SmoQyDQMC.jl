@@ -424,7 +424,7 @@ function initialize_correlation_measurement!(;
             integrated_correlations[correlation] = CorrelationContainer(D, T, false)
         end
 
-        # add time-dispalced correlation measurement
+        # add time-displaced correlation measurement
         push!(time_displaced_correlations[correlation].id_pairs, pair)
         push!(time_displaced_correlations[correlation].correlations, zeros(Complex{T}, L..., Lτ+1))
 
