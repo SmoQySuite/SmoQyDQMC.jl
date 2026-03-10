@@ -272,27 +272,17 @@ function hmc_update!(
             logdetGup′, sgndetGup′ = calculate_equaltime_greens!(Gup′, fermion_greens_calculator_up_alt, Bup)
             logdetGdn′, sgndetGdn′ = calculate_equaltime_greens!(Gdn′, fermion_greens_calculator_dn_alt, Bdn)
 
-            # calculate derivative of fermionic action for spin up
-            (logdetGup′, sgndetGup′, δGup′, δθup′) = fermionic_action_derivative!(
-                dSdx, Gup′, logdetGup′, sgndetGup′, δG′, δθ,
+            # calculate derivative of fermionic action
+            (logdetGup′, sgndetGup′, logdetGdn′, sgndetGdn′, δG′, δθ′) = fermionic_action_derivative!(
+                dSdx,
+                Gup′, logdetGup′, sgndetGup′,
+                Gdn′, logdetGdn′, sgndetGdn′,
+                δG′, δθ′,
                 electron_phonon_parameters,
                 fermion_greens_calculator_up_alt,
-                Bup,
-                spin = +1
-            )
-
-            # calculate derivative of fermionic action for spin down
-            (logdetGdn′, sgndetGdn′, δGdn′, δθdn′) = fermionic_action_derivative!(
-                dSdx, Gdn′, logdetGdn′, sgndetGdn′, δG′, δθ,
-                electron_phonon_parameters,
                 fermion_greens_calculator_dn_alt,
-                Bdn,
-                spin = -1
+                Bup, Bdn
             )
-
-            # record max numerical error
-            δG′ = max(δG′, δGup′, δGdn′)
-            δθ′ = max(δθ′, δθup′, δθdn′)
 
         # if failed to calculate derivative of fermionic action
         catch e

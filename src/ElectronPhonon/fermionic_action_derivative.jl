@@ -1,6 +1,58 @@
 # calculate the derivative of the fermionic action
 function fermionic_action_derivative!(
     dSdx::AbstractMatrix{E},
+    Gup::Matrix{T}, logdetGup::E, sgndetGup::T,
+    Gdn::Matrix{T}, logdetGdn::E, sgndetGdn::T,
+    δG::E, δθ::E,
+    electron_phonon_parameters::ElectronPhononParameters{T,E},
+    fermion_greens_calculator_up::FermionGreensCalculator{T,E},
+    fermion_greens_calculator_dn::FermionGreensCalculator{T,E},
+    Bup::Vector{P}, Bdn::Vector{P}
+) where {T<:Number, U<:Number, E<:AbstractFloat, P<:AbstractPropagator{T,U}}
+
+    # get some temporary storage matrices to work with
+    ldr_ws_up = fermion_greens_calculator_up.ldr_ws::LDRWorkspace{T}
+    ldr_ws_dn = fermion_greens_calculator_dn.ldr_ws::LDRWorkspace{T}
+    Gup′ = fermion_greens_calculator_up.G′::Matrix{T}
+    Gdn′ = fermion_greens_calculator_dn.G′::Matrix{T}
+    Gup″ = ldr_ws_up.M′::Matrix{T}
+    Gdn″ = ldr_ws_dn.M′::Matrix{T}
+    Gup‴ = ldr_ws_up.M″::Matrix{T}
+    Gdn‴ = ldr_ws_dn.M″::Matrix{T}
+
+    # Iterate over imaginary time τ=Δτ⋅l.
+    for l in fermion_greens_calculator_up
+
+        # Propagate equal-time Green's function matrix to current imaginary time G(τ±Δτ,τ±Δτ) ==> G(τ,τ)
+        # depending on whether iterating over imaginary time in the forward or reverse direction
+        propagate_equaltime_greens!(Gup, fermion_greens_calculator_up, Bup)
+        propagate_equaltime_greens!(Gdn, fermion_greens_calculator_dn, Bdn)
+
+        # calculate the derivative of the fermionic action with respect to each phonon field
+        # for the current imaginary time slice τ = Δτ⋅l
+        dSdx_l = @view dSdx[:,l]
+        _fermionic_action_derivative!(dSdx_l, l, Gup, sgndetGup, electron_phonon_parameters, Bup[l], Gup′, Gup″, Gup‴, spin = +1)
+        _fermionic_action_derivative!(dSdx_l, l, Gdn, sgndetGdn, electron_phonon_parameters, Bdn[l], Gdn′, Gdn″, Gdn‴, spin = -1)
+
+        # Periodically re-calculate the Green's function matrix for numerical stability.
+        logdetGup, sgndetGup, δGup, δθup = stabilize_equaltime_greens!(Gup, logdetGup, sgndetGup, fermion_greens_calculator_up, Bup, update_B̄=false)
+        logdetGdn, sgndetGdn, δGdn, δθdn = stabilize_equaltime_greens!(Gdn, logdetGdn, sgndetGdn, fermion_greens_calculator_dn, Bdn, update_B̄=false)
+
+        # record maximum error recorded by numerical stabilization
+        δG = max(δG, δGup, δGdn)
+        δθ = maximum(abs, (δθ, δθup, δθdn))
+
+        # keep spin-up and spin-down sectors synchronized
+        iterate(fermion_greens_calculator_dn, fermion_greens_calculator_up)
+    end
+
+    return (logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ)
+end
+
+
+# calculate the derivative of the fermionic action
+function fermionic_action_derivative!(
+    dSdx::AbstractMatrix{E},
     G::Matrix{T}, logdetG::E, sgndetG::T, δG::E, δθ::E,
     electron_phonon_parameters::ElectronPhononParameters{T,E},
     fermion_greens_calculator::FermionGreensCalculator{T,E},
