@@ -82,14 +82,14 @@ function HubbardDensityHirschHST(;
     # initialize HS fields
     s = rand(rng, -1:2:1, N, Lτ)
 
-    # initialize update permuation order
+    # initialize update permutation order
     update_perm = collect(1:N)
 
     return HubbardDensityHirschHST{T,E}(β, Δτ, Lτ, N, U, α, sites, s, update_perm)
 end
 
 
-# initialize fermion path integral to reflect intial HS field config
+# initialize fermion path integral to reflect initial HS field config
 function _initialize!(
     fermion_path_integral_up::FermionPathIntegral{H},
     fermion_path_integral_dn::FermionPathIntegral{H},
@@ -103,7 +103,7 @@ function _initialize!(
     return nothing
 end
 
-# initialize fermion path integral to reflect intial HS field config
+# initialize fermion path integral to reflect initial HS field config
 function _initialize!(
     fermion_path_integral::FermionPathIntegral{H},
     hst_parameters::HubbardDensityHirschHST{T},
@@ -182,7 +182,7 @@ function _local_updates!(
         # accept or reject proposed update
         if rand(rng) < P_il
 
-            # increment the cound of accepted spin flips
+            # increment the count of accepted spin flips
             accepted_spin_flips += 1
 
             # flip the spin
@@ -257,7 +257,7 @@ function _local_updates!(
         # accept or reject proposed update
         if rand(rng) < P_il
 
-            # increment the cound of accepted spin flips
+            # increment the count of accepted spin flips
             accepted_spin_flips += 1
 
             # flip the spin
@@ -266,7 +266,7 @@ function _local_updates!(
             # update diagonal on-site energy matrix
             V[site,l] += ΔV_il
 
-            # udpate bosonic action
+            # update bosonic action
             fermion_path_integral.Sb += ΔSb
 
             # update the spin-up and down Green's function
@@ -370,7 +370,7 @@ function _reflection_update!(
         @. s_i = -s_i′
         # revert diagonal on-site energy matrix
         @. Vup_i = +2*α[i] * s_i + Vup_i
-        @. Vdn_i = -2*α[i] * s_i + Vdn_i
+        @. Vdn_i = +2*α[i] * s_i + Vdn_i
         # revert propagator matrices
         @inbounds for l in eachindex(Bup)
             expmΔτVup_l = Bup[l].expmΔτV

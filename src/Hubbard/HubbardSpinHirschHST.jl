@@ -161,7 +161,7 @@ function _local_updates!(
         # accept or reject proposed update
         if rand(rng) < P_il
 
-            # increment the cound of accepted spin flips
+            # increment the count of accepted spin flips
             accepted_spin_flips += 1
 
             # flip the spin

@@ -88,7 +88,7 @@ function HubbardDensityGaussHermiteHST(;
     # initialize HS fields
     s = rand(rng, (-2,-1,+1,+2), (N, Lτ))
 
-    # initialize update permuation order
+    # initialize update permutation order
     update_perm = collect(1:N)
 
     return HubbardDensityGaussHermiteHST{T,E}(β, Δτ, Lτ, N, U, α, sites, s, update_perm)
@@ -269,7 +269,7 @@ function _local_updates!(
         # accept or reject proposed update
         if rand(rng) < P_il
 
-            # increment the cound of accepted spin flips
+            # increment the count of accepted spin flips
             accepted_spin_flips += 1
 
             # flip the spin

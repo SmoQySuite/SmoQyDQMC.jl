@@ -242,7 +242,11 @@ function eval_R(
     G::AbstractMatrix{T}, Δii::E, Δjj::E, i::Int, j::Int
 ) where {T<:Number, E<:Number}
 
-    return (1 + Δii*(1-G[i,i])) * (1 + Δjj*(1-G[j,j])) - Δii*Δjj*G[i,j]*G[j,i]
+    if iszero(Δii) || iszero(Δjj)
+        return 0.0
+    else
+        return (1 + Δii*(1-G[i,i])) * (1 + Δjj*(1-G[j,j])) - Δii*Δjj*G[i,j]*G[j,i]
+    end
 end
 
 # PERFORMANCE CRITICAL FUNCTION!!!
@@ -307,7 +311,7 @@ function _local_updates!(
     Vup = fermion_path_integral_up.V
     Vdn = fermion_path_integral_dn.V
 
-    # get HS fiels for specified imaginary-time slice
+    # get HS fields for specified imaginary-time slice
     s = @view hst_parameters.s[:,l]
 
     # counter for the number of accepted spin flips
@@ -426,7 +430,7 @@ function _local_updates!(
         Sb_nl′  = eval_Sgh(s_nl′) - 2*Δτ*α[n]*η_nl′
         ΔV_nl   = (+α[n] * η_nl′) - (+α[n] * η_nl)
 
-        # Note that Δ_il = exp(-Δτ[V_il(s′) - V_il(s)]) and Δ_jl = exp(-Δτ[V_jl(s′) - V_jl(s)])
+        # Note that Δ_il = exp(-Δτ[V_il(s′) - V_il(s)]) - 1 and Δ_jl = exp(-Δτ[V_jl(s′) - V_jl(s)]) - 1
         # are equal because we are coupling to a density channel, and there we say that
         # Δ_nl = Δ_il = Δ_jl where n labels the bond connecting sites i and j
         Δ_nl = expm1(-Δτ*ΔV_nl)
@@ -443,7 +447,7 @@ function _local_updates!(
         # accept or reject proposed update
         if rand(rng) < P_nl
 
-            # increment the cound of accepted spin flips
+            # increment the count of accepted spin flips
             accepted_spin_flips += 1
 
             # update HS field

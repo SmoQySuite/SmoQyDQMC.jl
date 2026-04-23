@@ -312,6 +312,9 @@ function local_updates!(
     # initialize vector to record acceptance rates
     acceptance_rates = @MVector zeros(R, length(hst_parameters))
 
+    # number of types of Hubbard-Stratonovich fields to update
+    N = length(hst_parameters)
+
     # Iterate over imaginary time τ=Δτ⋅l.
     for l in fermion_greens_calculator_up
 
@@ -539,6 +542,9 @@ function local_updates!(
 
     # initialize vector to record acceptance rates
     acceptance_rates = @MVector zeros(R, length(hst_parameters))
+
+    # number of types of Hubbard-Stratonovich fields to update
+    N = length(hst_parameters)
 
     # Iterate over imaginary time τ=Δτ⋅l.
     for l in fermion_greens_calculator
