@@ -1,9 +1,4 @@
-<!DOCTYPE html>
-<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Square Holstein-Hubbard Model · SmoQyDQMC.jl</title><meta name="title" content="Square Holstein-Hubbard Model · SmoQyDQMC.jl"/><meta property="og:title" content="Square Holstein-Hubbard Model · SmoQyDQMC.jl"/><meta property="twitter:title" content="Square Holstein-Hubbard Model · SmoQyDQMC.jl"/><meta name="description" content="Documentation for SmoQyDQMC.jl."/><meta property="og:description" content="Documentation for SmoQyDQMC.jl."/><meta property="twitter:description" content="Documentation for SmoQyDQMC.jl."/><meta property="og:url" content="https://smoqysuite.github.io/SmoQyDQMC.jl/stable/examples/hubbard_holstein_square/"/><meta property="twitter:url" content="https://smoqysuite.github.io/SmoQyDQMC.jl/stable/examples/hubbard_holstein_square/"/><link rel="canonical" href="https://smoqysuite.github.io/SmoQyDQMC.jl/stable/examples/hubbard_holstein_square/"/><script data-outdated-warner src="../../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../search_index.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-mocha.css" data-theme-name="catppuccin-mocha"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-macchiato.css" data-theme-name="catppuccin-macchiato"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-frappe.css" data-theme-name="catppuccin-frappe"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-latte.css" data-theme-name="catppuccin-latte"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../../">SmoQyDQMC.jl</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../../">Home</a></li><li><a class="tocitem" href="../../hamiltonian/">Supported Hamiltonians</a></li><li><a class="tocitem" href="../../simulation_output/">Simulation Output Overview</a></li><li><a class="tocitem" href="../../api/">API</a></li><li><span class="tocitem">Tutorials</span><ul><li><a class="tocitem" href="../../tutorials/hubbard_square/">1a) Square Hubbard Model</a></li><li><a class="tocitem" href="../../tutorials/hubbard_square_mpi/">1b) Square Hubbard Model with MPI Parallelization</a></li><li><a class="tocitem" href="../../tutorials/hubbard_square_checkpoint/">1c) Square Hubbard Model with Checkpointing</a></li><li><a class="tocitem" href="../../tutorials/hubbard_square_density_tuning/">1d) Square Hubbard Model with Density Tuning</a></li><li><a class="tocitem" href="../../tutorials/holstein_honeycomb/">2a) Honeycomb Holstein Model</a></li><li><a class="tocitem" href="../../tutorials/holstein_honeycomb_mpi/">2b) Honeycomb Holstein Model with MPI Parallelization</a></li><li><a class="tocitem" href="../../tutorials/holstein_honeycomb_checkpoint/">2c) Honeycomb Holstein Model with Checkpointing</a></li><li><a class="tocitem" href="../../tutorials/holstein_honeycomb_density_tuning/">2d) Honeycomb Holstein Model with Density Tuning</a></li></ul></li><li><span class="tocitem">Examples</span><ul><li><a class="tocitem" href="../ossh_chain/">Optical Su-Schrieffer-Heeger Chain</a></li><li><a class="tocitem" href="../bssh_chain/">Bond Su-Schrieffer-Heeger Chain</a></li><li><a class="tocitem" href="../ossh_square/">Square Optical Su-Schrieffer-Heeger Model</a></li><li><a class="tocitem" href="../bssh_square/">Bond Su-Schrieffer-Heeger Square</a></li><li><a class="tocitem" href="../ossh_honeycomb/">Honeycomb Optical Su-Schrieffer-Heeger Model</a></li><li><a class="tocitem" href="../hubbard_ossh_square/">Square Optical Su-Schrieffer-Heeger-Hubbard Model</a></li><li class="is-active"><a class="tocitem" href>Square Holstein-Hubbard Model</a></li><li><a class="tocitem" href="../ossh_hubbard_honeycomb/">Honeycomb Optical Su-Schrieffer-Heeger Hubbard Model</a></li></ul></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Examples</a></li><li class="is-active"><a href>Square Holstein-Hubbard Model</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Square Holstein-Hubbard Model</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/SmoQySuite/SmoQyDQMC.jl/blob/main/examples/hubbard_holstein_square.jl#" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="Square-Holstein-Hubbard-Model"><a class="docs-heading-anchor" href="#Square-Holstein-Hubbard-Model">Square Holstein-Hubbard Model</a><a id="Square-Holstein-Hubbard-Model-1"></a><a class="docs-heading-anchor-permalink" href="#Square-Holstein-Hubbard-Model" title="Permalink"></a></h1><p>Download this example as a <a href="../../assets/scripts/examples/hubbard_holstein_square.jl">Julia script</a>.</p><p>In this example we simulate the Holstein-Hubbard model on a square lattice, with a Hamiltonian given by</p><p class="math-container">\[\begin{align*}
-\hat{H} &amp; = \sum_i \left( \frac{1}{2M}\hat{P}_i^2 + \frac{1}{2} M \Omega^2 \hat{X}_i^2 \right) \\
-&amp; - t \sum_{\sigma,\langle i,j \rangle} \left( \hat{c}_{\sigma,i}^{\dagger} \hat{c}_{\sigma,j}^{\phantom\dagger} + \hat{c}_{\sigma,j}^{\dagger} \hat{c}_{\sigma,i}^{\phantom\dagger} \right) - \mu \sum_{\sigma,i} \hat{n}_{\sigma,i} \\
-&amp; + U \sum_i \left( \hat{n}_{\uparrow,i} - \tfrac{1}{2} \right)\left( \hat{n}_{\downarrow,j} + \tfrac{1}{2} \right) + \alpha \sum_{\sigma,i} \hat{X}_i \left( \hat{n}_{\sigma,i} - \tfrac{1}{2} \right)
-\end{align*}\]</p><p>in which the fluctuations in the position of dispersionless phonon modes placed on each site in the lattice modulate the on-site energy. In the above expression <span>$\hat{c}^\dagger_{\sigma,i} \ (\hat{c}^{\phantom \dagger}_{\sigma,i})$</span> creation (annihilation) operator a spin <span>$\sigma$</span> electron on site <span>$i$</span> in the lattice, and <span>$\hat{n}_{\sigma,i} = \hat{c}^\dagger_{\sigma,i} \hat{c}^{\phantom \dagger}_{\sigma,i}$</span> is corresponding electron number operator. Here the sum over <span>$\langle i,j \rangle$</span> runs over all nearest-neighbor pairs of sites in the lattice, and <span>$t$</span> and <span>$\mu$</span> are the nearest-neighbor hopping amplitude and chemical potential, respectively. The phonon position (momentum) operator for the dispersionless phonon mode on site <span>$i$</span> is given by <span>$\hat{X}_{i} \ (\hat{P}_{i})$</span>, where <span>$\Omega$</span> and <span>$M$</span> are the phonon frequency and associated ion mass respectively. Therefore, the strength of the electron-phonon coupling is controlled by the parameter <span>$\alpha$</span>. Lastly, the parameter <span>$U$</span> controls the strength of the on-site Hubbard interaction.</p><p>Note that this example script comes with all the bells and whistles so to speak, including support for MPI parallelization as well as checkpointing.</p><pre><code class="language-julia hljs">using SmoQyDQMC
+using SmoQyDQMC
 import SmoQyDQMC.LatticeUtilities as lu
 import SmoQyDQMC.JDQMCFramework as dqmcf
 
@@ -16,26 +11,26 @@ function run_simulation(
     comm::MPI.Comm; # MPI communicator.
     # KEYWORD ARGUMENTS
     sID, # Simulation ID.
-    U, # Hubbard interaction strength.
+    U, # Hubbard interaction.
     Ω, # Phonon energy.
-    α, # Electron-phonon coupling.
+    λ, # Electron-phonon coupling.
     μ, # Chemical potential.
     L, # System size.
     β, # Inverse temperature.
     N_therm, # Number of thermalization updates.
-    N_measurements, # Total number of measurements.
+    N_measurements, # Total number of measurements and measurement updates.
     N_bins, # Number of times bin-averaged measurements are written to file.
     N_local_updates, # Number of local update sweeps per HMC update and measurement.
     checkpoint_freq, # Frequency with which checkpoint files are written in hours.
     runtime_limit = Inf, # Simulation runtime limit in hours.
-    Nt = 8, # Number of time-steps in HMC update.
+    Nt = 4, # Number of time-steps in HMC update.
     Δτ = 0.05, # Discretization in imaginary time.
-    n_stab = 10, # Numerical stabilization period in imaginary-time slices.
+    n_stab = 5, # Numerical stabilization period in imaginary-time slices.
     δG_max = 1e-6, # Threshold for numerical error corrected by stabilization.
-    symmetric = false, # Whether symmetric propagator definition is used.
-    checkerboard = false, # Whether checkerboard approximation is used.
+    symmetric = true, # Whether symmetric propagator definition is used.
+    checkerboard = true, # Whether checkerboard approximation is used.
     seed = abs(rand(Int)), # Seed for random number generator.
-    filepath = &quot;.&quot; # Filepath to where data folder will be created.
+    filepath = "." # Filepath to where data folder will be created.
 )
 
     # Record when the simulation began.
@@ -48,7 +43,7 @@ function run_simulation(
     checkpoint_freq = checkpoint_freq * 60.0^2
 
     # Construct the foldername the data will be written to.
-    datafolder_prefix = @sprintf &quot;square_hol_hub_U%.2f_w%.2f_a%.2f_mu%.2f_L%d_b%.2f&quot; U Ω α μ L β
+    datafolder_prefix = @sprintf "ossh_hubbard_honeycomb_U%.2f_w%.2f_l%.2f_mu%.2f_L%d_b%.2f" U Ω λ μ L β
 
     # Get MPI process ID.
     pID = MPI.Comm_rank(comm)
@@ -57,7 +52,7 @@ function run_simulation(
     simulation_info = SimulationInfo(
         filepath = filepath,
         datafolder_prefix = datafolder_prefix,
-        write_bins_concurrent = (L &gt; 10),
+        write_bins_concurrent = (L > 7),
         sID = sID,
         pID = pID
     )
@@ -81,80 +76,83 @@ function run_simulation(
         metadata = Dict()
 
         # Record simulation parameters.
-        metadata[&quot;Nt&quot;] = Nt
-        metadata[&quot;N_therm&quot;] = N_therm
-        metadata[&quot;N_measurements&quot;] = N_measurements
-        metadata[&quot;N_bins&quot;] = N_bins
-        metadata[&quot;n_stab&quot;] = n_stab
-        metadata[&quot;dG_max&quot;] = δG_max
-        metadata[&quot;symmetric&quot;] = symmetric
-        metadata[&quot;checkerboard&quot;] = checkerboard
-        metadata[&quot;seed&quot;] = seed
-        metadata[&quot;reflection_acceptance_rate&quot;] = 0.0
-        metadata[&quot;hmc_acceptance_rate&quot;] = 0.0
-        metadata[&quot;local_acceptance_rate&quot;] = 0.0
+        metadata["Nt"] = Nt
+        metadata["N_therm"] = N_therm
+        metadata["N_measurements"] = N_measurements
+        metadata["N_bins"] = N_bins
+        metadata["n_stab"] = n_stab
+        metadata["dG_max"] = δG_max
+        metadata["symmetric"] = symmetric
+        metadata["checkerboard"] = checkerboard
+        metadata["seed"] = seed
+        metadata["hmc_acceptance_rate"] = 0.0
+        metadata["radial_acceptance_rate"] = 0.0
+        metadata["swap_acceptance_rate"] = 0.0
+        metadata["local_acceptance_rate"] = 0.0
 
-        # Initialize an instance of the type UnitCell.
+        # label the sublattice A and B
+        A, B = 1, 2
+
+        # Define lattice vectors.
+        a1 = [+3/2, +√3/2]
+        a2 = [+3/2, -√3/2]
+
+        # Define basis vectors for two orbitals in the honeycomb unit cell.
+        rA = [0.0, 0.0] # Location of sublattice A orbital in unit cell.
+        rB = [1.0, 0.0] # Location of sublattice B orbital in unit cell.
+
+        # Define the unit cell.
         unit_cell = lu.UnitCell(
-            lattice_vecs = [[1.0,0.0],
-                            [0.0,1.0]],
-            basis_vecs = [[0.0,0.0]]
+            lattice_vecs = [a1, a2],
+            basis_vecs = [rA, rB]
         )
 
-        # Initialize an instance of the type Lattice.
+        # Define finite lattice with periodic boundary conditions.
         lattice = lu.Lattice(
-            L = [L,L],
-            periodic = [true,true]
+            L = [L, L],
+            periodic = [true, true]
         )
 
-        # Get the number of sites in the lattice.
-        N = lu.nsites(unit_cell, lattice)
-
-        # Initialize an instance of the ModelGeometry type.
+        # Initialize model geometry.
         model_geometry = ModelGeometry(unit_cell, lattice)
 
-        # Define the nearest-neighbor bond in the x-direction.
-        bond_px = lu.Bond(orbitals = (1,1), displacement = [1,0])
+        # Define the first nearest-neighbor bond in a honeycomb lattice.
+        bond_AB_1 = lu.Bond(orbitals = (A,B), displacement = [0,0])
 
-        # Add this bond in x-direction to the model geometry.
-        bond_px_id = add_bond!(model_geometry, bond_px)
+        # Add the first nearest-neighbor bond in a honeycomb lattice to the model.
+        bond_AB_1_id = add_bond!(model_geometry, bond_AB_1)
 
-        # Define the nearest-neighbor bond in the y-direction.
-        bond_py = lu.Bond(orbitals = (1,1), displacement = [0,1])
+        # Define the second nearest-neighbor bond in a honeycomb lattice.
+        bond_AB_2 = lu.Bond(orbitals = (A,B), displacement = [-1,0])
 
-        # Add this bond in y-direction to the model geometry.
-        bond_py_id = add_bond!(model_geometry, bond_py)
+        # Add the second nearest-neighbor bond in a honeycomb lattice to the model.
+        bond_AB_2_id = add_bond!(model_geometry, bond_AB_2)
 
-        # Define the nearest-neighbor bond in the -x-direction.
-        bond_nx = lu.Bond(orbitals = (1,1), displacement = [-1,0])
+        # Define the third nearest-neighbor bond in a honeycomb lattice.
+        bond_AB_3 = lu.Bond(orbitals = (A,B), displacement = [0,-1])
 
-        # Add this bond in +x-direction to the model geometry.
-        bond_nx_id = add_bond!(model_geometry, bond_nx)
+        # Add the third nearest-neighbor bond in a honeycomb lattice to the model.
+        bond_AB_3_id = add_bond!(model_geometry, bond_AB_3)
 
-        # Define the nearest-neighbor bond in the -y-direction.
-        bond_ny = lu.Bond(orbitals = (1,1), displacement = [0,-1])
-
-        # Add this bond in +y-direction to the model geometry.
-        bond_ny_id = add_bond!(model_geometry, bond_ny)
-
-        # Define nearest-neighbor hopping amplitude, setting the energy scale for the system.
+        # Set nearest-neighbor hopping amplitude to unity,
+        # setting the energy scale in the model.
         t = 1.0
 
-        # Define the tight-binding model
+        # Define the honeycomb tight-binding model.
         tight_binding_model = TightBindingModel(
             model_geometry = model_geometry,
-            t_bonds = [bond_px, bond_py], # defines hopping
-            t_mean = [t, t], # defines corresponding hopping amplitude
-            μ = μ, # set chemical potential
-            ϵ_mean = [0.] # set the (mean) on-site energy
+            t_bonds = [bond_AB_1, bond_AB_2, bond_AB_3],
+            t_mean = [t, t, t],
+            μ  = μ,
+            ϵ_mean = [0.0, 0.0]
         )
 
         # Define the Hubbard interaction in the model.
         hubbard_model = HubbardModel(
             ph_sym_form = true, # if particle-hole symmetric form for Hubbard interaction is used.
-            U_orbital   = [1], # orbitals in unit cell with Hubbard interaction.
-            U_mean      = [U], # mean Hubbard interaction strength for corresponding orbital species in unit cell.
-            U_std       = [0.], # standard deviation of Hubbard interaction strength for corresponding orbital species in unit cell.
+            U_orbital   = [A, B], # orbitals in unit cell with Hubbard interaction.
+            U_mean      = [U, U], # mean Hubbard interaction strength for corresponding orbital species in unit cell.
+            U_std       = [0., 0.], # standard deviation of Hubbard interaction strength for corresponding orbital species in unit cell.
         )
 
         # Initialize a null electron-phonon model.
@@ -163,36 +161,138 @@ function run_simulation(
             tight_binding_model = tight_binding_model
         )
 
-        # Define a dispersionless phonon mode.
-        phonon = PhononMode(
-            basis_vec = [0.0,0.0],
+        # Define the sublattice A x-direction displacement phonon.
+        phonon_A_x = PhononMode(
+            basis_vec = rA,
             Ω_mean = Ω
         )
 
-        # Add dispersionless phonon mode phonon to the model.
-        phonon_id = add_phonon_mode!(
+        # Add the sublattice A x-direction displacement phonon to the electron-phonon model.
+        phonon_A_x_id = add_phonon_mode!(
             electron_phonon_model = electron_phonon_model,
-            phonon_mode = phonon
+            phonon_mode = phonon_A_x
         )
 
-        # Define first local Holstein coupling for first phonon mode.
-        holstein_coupling = HolsteinCoupling(
+        # Define the sublattice A y-direction displacement phonon.
+        phonon_A_y = PhononMode(
+            basis_vec = rA,
+            Ω_mean = Ω
+        )
+
+        # Add the sublattice A y-direction displacement phonon to the electron-phonon model.
+        phonon_A_y_id = add_phonon_mode!(
+            electron_phonon_model = electron_phonon_model,
+            phonon_mode = phonon_A_y
+        )
+
+        # Define the sublattice B x-direction displacement phonon.
+        phonon_B_x = PhononMode(
+            basis_vec = rB,
+            Ω_mean = Ω
+        )
+
+        # Add the sublattice B x-direction displacement phonon to the electron-phonon model.
+        phonon_B_x_id = add_phonon_mode!(
+            electron_phonon_model = electron_phonon_model,
+            phonon_mode = phonon_B_x
+        )
+
+        # Define the sublattice B y-direction displacement phonon.
+        phonon_B_y = PhononMode(
+            basis_vec = rB,
+            Ω_mean = Ω
+        )
+
+        # Add the sublattice B y-direction displacement phonon to the electron-phonon model.
+        phonon_B_y_id = add_phonon_mode!(
+            electron_phonon_model = electron_phonon_model,
+            phonon_mode = phonon_B_y
+        )
+
+        # calculate microscopic coupling constant λ = α²/(M⋅Ω²⋅t) with ħ = Kb = a = M = t = 1
+        α = Ω * sqrt(λ)
+
+        # Defines x-direction SSH modulation of first A to B nearest-neighbor hopping amplitude.
+        ossh_AB_1_x_coupling = SSHCoupling(
             model_geometry = model_geometry,
-            phonon_id = phonon_id,
-            orbital_id = 1,
-            displacement = [0, 0],
-            α_mean = α,
-            ph_sym_form = true,
+            tight_binding_model = tight_binding_model,
+            phonon_ids = (phonon_A_x_id, phonon_B_x_id),
+            bond = bond_AB_1,
+            α_mean = α
         )
 
-        # Add Holstein coupling to the model.
-        holstein_coupling_id = add_holstein_coupling!(
+        # Add x-direction SSH modulation of first A to B nearest-neighbor hopping amplitude to e-ph model.
+        ossh_AB_1_x_coupling_id = add_ssh_coupling!(
             electron_phonon_model = electron_phonon_model,
-            holstein_coupling = holstein_coupling,
-            model_geometry = model_geometry
+            ssh_coupling = ossh_AB_1_x_coupling,
+            tight_binding_model = tight_binding_model
         )
 
-        # Write a model summary to file.
+        # Defines x-direction SSH modulation of second A to B nearest-neighbor hopping amplitude.
+        ossh_AB_2_x_coupling = SSHCoupling(
+            model_geometry = model_geometry,
+            tight_binding_model = tight_binding_model,
+            phonon_ids = (phonon_A_x_id, phonon_B_x_id),
+            bond = bond_AB_2,
+            α_mean = -α*cos(π/3)
+        )
+
+        # Add x-direction SSH modulation of second A to B nearest-neighbor hopping amplitude to e-ph model.
+        ossh_AB_2_x_coupling_id = add_ssh_coupling!(
+            electron_phonon_model = electron_phonon_model,
+            ssh_coupling = ossh_AB_2_x_coupling,
+            tight_binding_model = tight_binding_model
+        )
+
+        # Defines y-direction SSH modulation of second A to B nearest-neighbor hopping amplitude.
+        ossh_AB_2_y_coupling = SSHCoupling(
+            model_geometry = model_geometry,
+            tight_binding_model = tight_binding_model,
+            phonon_ids = (phonon_A_y_id, phonon_B_y_id),
+            bond = bond_AB_2,
+            α_mean = -α*cos(π/6)
+        )
+
+        # Add y-direction SSH modulation of second A to B nearest-neighbor hopping amplitude to e-ph model.
+        ossh_AB_2_y_coupling_id = add_ssh_coupling!(
+            electron_phonon_model = electron_phonon_model,
+            ssh_coupling = ossh_AB_2_y_coupling,
+            tight_binding_model = tight_binding_model
+        )
+
+        # Defines x-direction SSH modulation of third A to B nearest-neighbor hopping amplitude.
+        ossh_AB_3_x_coupling = SSHCoupling(
+            model_geometry = model_geometry,
+            tight_binding_model = tight_binding_model,
+            phonon_ids = (phonon_A_x_id, phonon_B_x_id),
+            bond = bond_AB_3,
+            α_mean = -α*cos(π/3)
+        )
+
+        # Add x-direction SSH modulation of third A to B nearest-neighbor hopping amplitude to e-ph model.
+        ossh_AB_3_x_coupling_id = add_ssh_coupling!(
+            electron_phonon_model = electron_phonon_model,
+            ssh_coupling = ossh_AB_3_x_coupling,
+            tight_binding_model = tight_binding_model
+        )
+
+        # Defines y-direction SSH modulation of third A to B nearest-neighbor hopping amplitude.
+        ossh_AB_3_y_coupling = SSHCoupling(
+            model_geometry = model_geometry,
+            tight_binding_model = tight_binding_model,
+            phonon_ids = (phonon_A_y_id, phonon_B_y_id),
+            bond = bond_AB_3,
+            α_mean = α*cos(π/6)
+        )
+
+        # Add y-direction SSH modulation of third A to B nearest-neighbor hopping amplitude to e-ph model.
+        ossh_AB_3_y_coupling_id = add_ssh_coupling!(
+            electron_phonon_model = electron_phonon_model,
+            ssh_coupling = ossh_AB_3_y_coupling,
+            tight_binding_model = tight_binding_model
+        )
+
+        # Write model summary TOML file specifying Hamiltonian that will be simulated.
         model_summary(
             simulation_info = simulation_info,
             β = β, Δτ = Δτ,
@@ -243,26 +343,30 @@ function run_simulation(
         # Initialize the hubbard interaction related measurements.
         initialize_measurements!(measurement_container, hubbard_model)
 
-        # Initialize the single-particle electron Green&#39;s function measurement.
+        # Initialize the single-particle electron Green's function measurement.
         initialize_correlation_measurements!(
             measurement_container = measurement_container,
             model_geometry = model_geometry,
-            correlation = &quot;greens&quot;,
+            correlation = "greens",
             time_displaced = true,
             pairs = [
-                # Measure green&#39;s functions for all pairs or orbitals.
-                (1, 1),
+                # Measure green's functions for all pairs or orbitals.
+                (A, A), (B, B), (A, B), (B, A)
             ]
         )
 
-        # Initialize the single-particle electron Green&#39;s function measurement.
+        # Initialize the single-particle electron Green's function measurement.
         initialize_correlation_measurements!(
             measurement_container = measurement_container,
             model_geometry = model_geometry,
-            correlation = &quot;phonon_greens&quot;,
+            correlation = "phonon_greens",
             time_displaced = true,
             pairs = [
-                (phonon_id, phonon_id)
+                # Measure green's functions for all pairs of modes.
+                (phonon_A_x_id, phonon_A_x_id),
+                (phonon_A_y_id, phonon_A_y_id),
+                (phonon_B_x_id, phonon_B_x_id),
+                (phonon_B_y_id, phonon_B_y_id),
             ]
         )
 
@@ -270,11 +374,11 @@ function run_simulation(
         initialize_correlation_measurements!(
             measurement_container = measurement_container,
             model_geometry = model_geometry,
-            correlation = &quot;density&quot;,
+            correlation = "density",
             time_displaced = false,
             integrated = true,
             pairs = [
-                (1, 1),
+                (A, A), (B, B), (A, B), (B, A)
             ]
         )
 
@@ -282,11 +386,13 @@ function run_simulation(
         initialize_correlation_measurements!(
             measurement_container = measurement_container,
             model_geometry = model_geometry,
-            correlation = &quot;pair&quot;,
+            correlation = "pair",
             time_displaced = false,
             integrated = true,
             pairs = [
-                (1, 1),
+                # Measure local s-wave pair susceptibility associated with
+                # each orbital in the unit cell.
+                (A, A), (B, B), (A, B), (B, A)
             ]
         )
 
@@ -294,39 +400,109 @@ function run_simulation(
         initialize_correlation_measurements!(
             measurement_container = measurement_container,
             model_geometry = model_geometry,
-            correlation = &quot;spin_z&quot;,
+            correlation = "spin_z",
             time_displaced = false,
             integrated = true,
             pairs = [
-                (1, 1),
+                (A, A), (B, B), (A, B), (B, A)
             ]
         )
 
-        # Initialize the d-wave pair susceptibility measurement.
+        # Initialize the spin-z correlation function measurement.
+        initialize_correlation_measurements!(
+            measurement_container = measurement_container,
+            model_geometry = model_geometry,
+            correlation = "bond",
+            time_displaced = false,
+            integrated = true,
+            pairs = [
+                (bond_AB_1_id, bond_AB_1_id), (bond_AB_1_id, bond_AB_2_id), (bond_AB_1_id, bond_AB_3_id),
+                (bond_AB_2_id, bond_AB_1_id), (bond_AB_2_id, bond_AB_2_id), (bond_AB_2_id, bond_AB_3_id),
+                (bond_AB_3_id, bond_AB_1_id), (bond_AB_3_id, bond_AB_2_id), (bond_AB_3_id, bond_AB_3_id),
+            ]
+        )
+
+        # Initialize measurement of electron Green's function traced
+        # over both orbitals in the unit cell.
         initialize_composite_correlation_measurement!(
             measurement_container = measurement_container,
             model_geometry = model_geometry,
-            name = &quot;d-wave&quot;,
-            correlation = &quot;pair&quot;,
-            ids = [bond_px_id, bond_nx_id, bond_py_id, bond_ny_id],
-            coefficients = [0.5, 0.5, -0.5, -0.5],
+            name = "tr_greens",
+            correlation = "greens",
+            id_pairs = [(A, A), (B, B)],
+            coefficients = [1.0, 1.0],
             time_displaced = true,
+        )
+
+        # Initialize CDW correlation measurement.
+        initialize_composite_correlation_measurement!(
+            measurement_container = measurement_container,
+            model_geometry = model_geometry,
+            name = "cdw",
+            correlation = "density",
+            ids = [A, B],
+            coefficients = [1.0, -1.0],
+            time_displaced = false,
             integrated = true
         )
 
-        # Initialize trace of bond correlation measurements.
+        # Initialize AFM correlation measurement.
         initialize_composite_correlation_measurement!(
             measurement_container = measurement_container,
             model_geometry = model_geometry,
-            name = &quot;tr_bonds&quot;,
-            correlation = &quot;bond&quot;,
+            name = "afm",
+            correlation = "spin_z",
+            ids = [A, B],
+            coefficients = [1.0, -1.0],
+            time_displaced = false,
+            integrated = true
+        )
+
+        # Initialize C3 BOW correlation measurement
+        initialize_composite_correlation_measurement!(
+            measurement_container = measurement_container,
+            model_geometry = model_geometry,
+            name = "C3_bond",
+            correlation = "bond",
+            ids = [bond_AB_1_id, bond_AB_2_id, bond_AB_3_id],
+            coefficients = [1.0, exp(-1im*2π/3), exp(-1im*4π/3)],
+            time_displaced = false,
+            integrated = true
+        )
+
+        # Initialize alternate C3 BOW correlation measurement
+        initialize_composite_correlation_measurement!(
+            measurement_container = measurement_container,
+            model_geometry = model_geometry,
+            name = "C3_alt_bond",
+            correlation = "bond",
             id_pairs = [
-                (bond_px_id, bond_px_id),
-                (bond_py_id, bond_py_id)
+                (bond_AB_1_id, bond_AB_1_id), (bond_AB_2_id, bond_AB_2_id), (bond_AB_3_id, bond_AB_3_id),
+                (bond_AB_1_id, bond_AB_2_id), (bond_AB_2_id, bond_AB_1_id),
+                (bond_AB_1_id, bond_AB_3_id), (bond_AB_3_id, bond_AB_1_id),
+                (bond_AB_2_id, bond_AB_3_id), (bond_AB_3_id, bond_AB_2_id)
             ],
             coefficients = [
-                +1.0, +1.0
+                2.0, 2.0, 2.0,
+                -1.0, -1.0,
+                -1.0, -1.0,
+                -1.0, -1.0
             ],
+            time_displaced = false,
+            integrated = true
+        )
+
+        # Initialize C3 phonon green's correlation measurement
+        initialize_composite_correlation_measurement!(
+            measurement_container = measurement_container,
+            model_geometry = model_geometry,
+            name = "tr_phonon_greens",
+            correlation = "phonon_greens",
+            id_pairs = [
+                (phonon_A_x_id, phonon_A_x_id), (phonon_A_y_id, phonon_A_y_id),
+                (phonon_B_x_id, phonon_B_x_id), (phonon_B_y_id, phonon_B_y_id)
+            ],
+            coefficients = [1.0, 1.0, 1.0, 1.0],
             time_displaced = false,
             integrated = true
         )
@@ -338,11 +514,11 @@ function run_simulation(
             checkpoint_freq = checkpoint_freq,
             start_timestamp = start_timestamp,
             runtime_limit = runtime_limit,
-            exit_code = 13,
             # Contents of checkpoint file below.
             n_therm, n_measurements,
-            tight_binding_parameters, electron_phonon_parameters,
+            tight_binding_parameters,
             hubbard_parameters, hst_parameters,
+            electron_phonon_parameters,
             measurement_container, model_geometry, metadata, rng
         )
 
@@ -353,17 +529,20 @@ function run_simulation(
         checkpoint, checkpoint_timestamp = read_jld2_checkpoint(simulation_info)
 
         # Unpack contents of checkpoint dictionary.
-        tight_binding_parameters = checkpoint[&quot;tight_binding_parameters&quot;]
-        hubbard_parameters = checkpoint[&quot;hubbard_parameters&quot;]
-        hst_parameters = checkpoint[&quot;hst_parameters&quot;]
-        electron_phonon_parameters = checkpoint[&quot;electron_phonon_parameters&quot;]
-        measurement_container = checkpoint[&quot;measurement_container&quot;]
-        model_geometry = checkpoint[&quot;model_geometry&quot;]
-        metadata = checkpoint[&quot;metadata&quot;]
-        rng = checkpoint[&quot;rng&quot;]
-        n_therm = checkpoint[&quot;n_therm&quot;]
-        n_measurements = checkpoint[&quot;n_measurements&quot;]
+        tight_binding_parameters = checkpoint["tight_binding_parameters"]
+        hubbard_parameters = checkpoint["hubbard_parameters"]
+        hst_parameters = checkpoint["hst_parameters"]
+        electron_phonon_parameters = checkpoint["electron_phonon_parameters"]
+        measurement_container = checkpoint["measurement_container"]
+        model_geometry = checkpoint["model_geometry"]
+        metadata = checkpoint["metadata"]
+        rng = checkpoint["rng"]
+        n_therm = checkpoint["n_therm"]
+        n_measurements = checkpoint["n_measurements"]
     end
+
+    # calculate length of imaginary time axis.
+    Lτ = round(Int, β/Δτ)
 
     # Allocate FermionPathIntegral type for both the spin-up and spin-down electrons.
     fermion_path_integral_up = FermionPathIntegral(tight_binding_parameters = tight_binding_parameters, β = β, Δτ = Δτ)
@@ -391,16 +570,16 @@ function run_simulation(
     fermion_greens_calculator_up_alt = dqmcf.FermionGreensCalculator(fermion_greens_calculator_up)
     fermion_greens_calculator_dn_alt = dqmcf.FermionGreensCalculator(fermion_greens_calculator_dn)
 
-    # Allocate matrices for spin-up and spin-down electron Green&#39;s function matrices.
+    # Allocate matrices for spin-up and spin-down electron Green's function matrices.
     Gup = zeros(eltype(Bup[1]), size(Bup[1]))
     Gdn = zeros(eltype(Bdn[1]), size(Bdn[1]))
 
-    # Initialize the spin-up and spin-down electron Green&#39;s function matrices, also
+    # Initialize the spin-up and spin-down electron Green's function matrices, also
     # calculating their respective determinants as the same time.
     logdetGup, sgndetGup = dqmcf.calculate_equaltime_greens!(Gup, fermion_greens_calculator_up)
     logdetGdn, sgndetGdn = dqmcf.calculate_equaltime_greens!(Gdn, fermion_greens_calculator_dn)
 
-    # Allocate matrices for various time-displaced Green&#39;s function matrices.
+    # Allocate matrices for various time-displaced Green's function matrices.
     Gup_ττ = similar(Gup) # Gup(τ,τ)
     Gup_τ0 = similar(Gup) # Gup(τ,0)
     Gup_0τ = similar(Gup) # Gup(0,τ)
@@ -421,8 +600,25 @@ function run_simulation(
     # Iterate over number of thermalization updates to perform.
     for update in n_therm:N_therm
 
-        # Perform a reflection update.
-        (accepted, logdetGup, sgndetGup, logdetGdn, sgndetGdn) = reflection_update!(
+        # Perform a radial update.
+        (accepted, logdetGup, sgndetGup, logdetGdn, sgndetGdn) = radial_update!(
+            Gup, logdetGup, sgndetGup,
+            Gdn, logdetGdn, sgndetGdn,
+            electron_phonon_parameters,
+            fermion_path_integral_up = fermion_path_integral_up,
+            fermion_path_integral_dn = fermion_path_integral_dn,
+            fermion_greens_calculator_up = fermion_greens_calculator_up,
+            fermion_greens_calculator_dn = fermion_greens_calculator_dn,
+            fermion_greens_calculator_up_alt = fermion_greens_calculator_up_alt,
+            fermion_greens_calculator_dn_alt = fermion_greens_calculator_dn_alt,
+            Bup = Bup, Bdn = Bdn, rng = rng, σ = 1.0
+        )
+
+        # Record whether the radial update was accepted or rejected.
+        metadata["radial_acceptance_rate"] += accepted
+
+        # Perform a swap update.
+        (accepted, logdetGup, sgndetGup, logdetGdn, sgndetGdn) = swap_update!(
             Gup, logdetGup, sgndetGup,
             Gdn, logdetGdn, sgndetGdn,
             electron_phonon_parameters,
@@ -435,8 +631,8 @@ function run_simulation(
             Bup = Bup, Bdn = Bdn, rng = rng
         )
 
-        # Record whether the reflection update was accepted or rejected.
-        metadata[&quot;reflection_acceptance_rate&quot;] += accepted
+        # Record whether the swap update was accepted or rejected.
+        metadata["swap_acceptance_rate"] += accepted
 
         # Perform an HMC update.
         (accepted, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = hmc_update!(
@@ -453,7 +649,7 @@ function run_simulation(
         )
 
         # Record whether the HMC update was accepted or rejected.
-        metadata[&quot;hmc_acceptance_rate&quot;] += accepted
+        metadata["hmc_acceptance_rate"] += accepted
 
         # Iterate over number of local updates to perform.
         for local_update in 1:N_local_updates
@@ -472,7 +668,7 @@ function run_simulation(
             )
 
             # Record acceptance rate for sweep.
-            metadata[&quot;local_acceptance_rate&quot;] += acceptance_rate
+            metadata["local_acceptance_rate"] += acceptance_rate
         end
 
         # Write checkpoint file.
@@ -503,8 +699,25 @@ function run_simulation(
     # Iterate over measurements.
     for measurement in n_measurements:N_measurements
 
-        # Perform a reflection update.
-        (accepted, logdetGup, sgndetGup, logdetGdn, sgndetGdn) = reflection_update!(
+        # Perform a radial update.
+        (accepted, logdetGup, sgndetGup, logdetGdn, sgndetGdn) = radial_update!(
+            Gup, logdetGup, sgndetGup,
+            Gdn, logdetGdn, sgndetGdn,
+            electron_phonon_parameters,
+            fermion_path_integral_up = fermion_path_integral_up,
+            fermion_path_integral_dn = fermion_path_integral_dn,
+            fermion_greens_calculator_up = fermion_greens_calculator_up,
+            fermion_greens_calculator_dn = fermion_greens_calculator_dn,
+            fermion_greens_calculator_up_alt = fermion_greens_calculator_up_alt,
+            fermion_greens_calculator_dn_alt = fermion_greens_calculator_dn_alt,
+            Bup = Bup, Bdn = Bdn, rng = rng, σ = 1.0
+        )
+
+        # Record whether the radial update was accepted or rejected.
+        metadata["radial_acceptance_rate"] += accepted
+
+        # Perform a swap update.
+        (accepted, logdetGup, sgndetGup, logdetGdn, sgndetGdn) = swap_update!(
             Gup, logdetGup, sgndetGup,
             Gdn, logdetGdn, sgndetGdn,
             electron_phonon_parameters,
@@ -517,8 +730,8 @@ function run_simulation(
             Bup = Bup, Bdn = Bdn, rng = rng
         )
 
-        # Record whether the reflection update was accepted or rejected.
-        metadata[&quot;reflection_acceptance_rate&quot;] += accepted
+        # Record whether the swap update was accepted or rejected.
+        metadata["swap_acceptance_rate"] += accepted
 
         # Perform an HMC update.
         (accepted, logdetGup, sgndetGup, logdetGdn, sgndetGdn, δG, δθ) = hmc_update!(
@@ -535,7 +748,7 @@ function run_simulation(
         )
 
         # Record whether the HMC update was accepted or rejected.
-        metadata[&quot;hmc_acceptance_rate&quot;] += accepted
+        metadata["hmc_acceptance_rate"] += accepted
 
         # Iterate over number of local updates to perform.
         for local_update in 1:N_local_updates
@@ -554,7 +767,7 @@ function run_simulation(
             )
 
             # Record acceptance rate for sweep.
-            metadata[&quot;local_acceptance_rate&quot;] += acceptance_rate
+            metadata["local_acceptance_rate"] += acceptance_rate
         end
 
         # Make measurements.
@@ -604,12 +817,13 @@ function run_simulation(
     merge_bins(simulation_info)
 
     # Calculate acceptance rates.
-    metadata[&quot;reflection_acceptance_rate&quot;] /= (N_measurements + N_therm)
-    metadata[&quot;hmc_acceptance_rate&quot;] /= (N_measurements + N_therm)
-    metadata[&quot;local_acceptance_rate&quot;] /= N_local_updates * (N_measurements + N_therm)
+    metadata["swap_acceptance_rate"] /= (N_measurements + N_therm)
+    metadata["radial_acceptance_rate"] /= (N_measurements + N_therm)
+    metadata["hmc_acceptance_rate"] /= (N_measurements + N_therm)
+    metadata["local_acceptance_rate"] /= N_local_updates * (N_measurements + N_therm)
 
     # Record largest numerical error encountered during simulation.
-    metadata[&quot;dG&quot;] = δG
+    metadata["dG"] = δG
 
     # Write simulation metadata to simulation_info.toml file.
     save_simulation_info(simulation_info, metadata)
@@ -617,50 +831,78 @@ function run_simulation(
     # Process the simulation results, calculating final error bars for all measurements.
     # writing final statistics to CSV files.
     process_measurements(
-        comm;
+        comm,
         datafolder = simulation_info.datafolder,
         n_bins = N_bins,
         export_to_csv = true,
         scientific_notation = true,
-        decimals = 6,
-        delimiter = &quot; &quot;
+        decimals = 7,
+        delimiter = " "
     )
 
-    # Calculate CDW correlation ratio.
-    Rcdw, ΔRcdw = compute_correlation_ratio(
+    process_measurements(
+        pIDs = pID,
         datafolder = simulation_info.datafolder,
-        correlation = &quot;density&quot;,
-        type = &quot;equal-time&quot;,
-        id_pairs = [(1, 1)],
-        id_pair_coefficients = [1.0],
-        q_point = (L÷2, L÷2),
-        q_neighbors = [
-            (L÷2+1, L÷2), (L÷2-1, L÷2),
-            (L÷2, L÷2+1), (L÷2, L÷2-1)
-        ]
+        n_bins = N_bins,
+        export_to_csv = true,
+        scientific_notation = true,
+        decimals = 7,
+        delimiter = " "
     )
 
-    # Record the correlation ratio.
-    metadata[&quot;Rcdw_mean&quot;] = real(Rcdw)
-    metadata[&quot;Rcdw_std&quot;] = ΔRcdw
-
-    # Calculate AFM correlation ratio.
-    Rafm, ΔRafm = compute_correlation_ratio(
+    # AFM correlation ratio.
+    Rafm, ΔRafm = compute_composite_correlation_ratio(
+        comm;
         datafolder = simulation_info.datafolder,
-        correlation = &quot;spin_z&quot;,
-        type = &quot;equal-time&quot;,
-        id_pairs = [(1, 1)],
-        id_pair_coefficients = [1.0],
-        q_point = (L÷2, L÷2),
+        name = "afm",
+        type = "equal-time",
+        q_point = (0, 0),
         q_neighbors = [
-            (L÷2+1, L÷2), (L÷2-1, L÷2),
-            (L÷2, L÷2+1), (L÷2, L÷2-1)
+            (1, 0),   (0, 1),   (1, 1),
+            (L-1, 0), (0, L-1), (L-1, L-1)
         ]
     )
 
     # Record the AFM correlation ratio mean and standard deviation.
-    metadata[&quot;Rafm_mean&quot;] = real(Rafm)
-    metadata[&quot;Rafm_std&quot;] = ΔRafm
+    metadata["Rafm_mean_real"] = real(Rafm)
+    metadata["Rafm_mean_imag"] = imag(Rafm)
+    metadata["Rafm_std"] = ΔRafm
+
+    # KVBS correlation ratio.
+    Rkvbs, ΔRkvbs = compute_composite_correlation_ratio(
+        comm;
+        datafolder = simulation_info.datafolder,
+        name = "C3_bond",
+        type = "equal-time",
+        q_point = (L÷3, 2L÷3),
+        q_neighbors = [
+            (L÷3+1, 2L÷3+0), (L÷3+0, 2L÷3+1), (L÷3+1, 2L÷3+1),
+            (L÷3-1, 2L÷3+0), (L÷3+0, 2L÷3-1), (L÷3-1, 2L÷3-1)
+        ]
+    )
+
+    # Record the KVBS correlation ratio mean and standard deviation.
+    metadata["Rkvbs_mean_real"] = real(Rkvbs)
+    metadata["Rkvbs_mean_imag"] = imag(Rkvbs)
+    metadata["Rkvbs_std"] = ΔRkvbs
+
+    # KVBS alternate correlation ratio.
+    Rkvbs_alt, ΔRkvbs_alt = compute_composite_correlation_ratio(
+        comm;
+        datafolder = simulation_info.datafolder,
+        name = "C3_alt_bond",
+        type = "equal-time",
+        q_point = (L÷3, 2L÷3),
+        q_neighbors = [
+            (L÷3+1, 2L÷3+0), (L÷3+0, 2L÷3+1), (L÷3+1, 2L÷3+1),
+            (L÷3-1, 2L÷3+0), (L÷3+0, 2L÷3-1), (L÷3-1, 2L÷3-1)
+        ]
+    )
+
+    # Record the KVBS alternate correlation ratio mean and standard deviation.
+    metadata["Rkvbs_alt_mean_real"] = real(Rkvbs_alt)
+    metadata["Rkvbs_alt_mean_imag"] = imag(Rkvbs_alt)
+    metadata["Rkvbs_alt_std"] = ΔRkvbs_alt
 
     # Write simulation summary TOML file.
     save_simulation_info(simulation_info, metadata)
@@ -689,17 +931,18 @@ if abspath(PROGRAM_FILE) == @__FILE__
         sID = parse(Int, ARGS[1]), # Simulation ID.
         U = parse(Float64, ARGS[2]), # Hubbard interaction strength.
         Ω = parse(Float64, ARGS[3]), # Phonon energy.
-        α = parse(Float64, ARGS[4]), # Electron-phonon coupling.
+        λ = parse(Float64, ARGS[4]), # Electron-phonon coupling.
         μ = parse(Float64, ARGS[5]), # Chemical potential.
         L = parse(Int, ARGS[6]), # System size.
         β = parse(Float64, ARGS[7]), # Inverse temperature.
         N_therm = parse(Int, ARGS[8]), # Number of thermalization updates.
-        N_measurements = parse(Int, ARGS[9]), # Total number of measurements.
-        N_bins = parse(Int, ARGS[10]), # Number of times bin-averaged measurements are recorded.
+        N_measurements = parse(Int, ARGS[9]), # Total number of measurements and measurement updates.
+        N_bins = parse(Int, ARGS[10]), # Number of times bin-averaged measurements are written to file.
         N_local_updates = parse(Int, ARGS[11]), # Number of local update sweeps per HMC update and measurement.
         checkpoint_freq = parse(Float64, ARGS[12]), # Frequency with which checkpoint files are written in hours.
+        runtime_limit = checkbounds(Bool, ARGS, 13) ? parse(Float64, ARGS[13]) : Float64(Inf) # runtime limit in hours.
     )
 
     # Finalize MPI.
     MPI.Finalize()
-end</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../hubbard_ossh_square/">« Square Optical Su-Schrieffer-Heeger-Hubbard Model</a><a class="docs-footer-nextpage" href="../ossh_hubbard_honeycomb/">Honeycomb Optical Su-Schrieffer-Heeger Hubbard Model »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.17.0 on <span class="colophon-date" title="Wednesday 29 April 2026 19:42">Wednesday 29 April 2026</span>. Using Julia version 1.12.6.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+end
