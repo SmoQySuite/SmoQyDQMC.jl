@@ -371,15 +371,15 @@ function initialize_correlation_measurements!(;
     integrated::Bool = false
 )  where {T<:AbstractFloat, D, N}
 
-    # set integrated to false for electron green's function
-    if (integrated == true) && (correlation ∈ ("greens", "greens_up", "greens_dn"))
-        integrated = false
+    # # set integrated to false for electron green's function
+    # if (integrated == true) && (correlation ∈ ("greens", "greens_up", "greens_dn"))
+    #     integrated = false
     # if time-displaced measurements are being made then also make integrated measurements
-    elseif time_displaced == true
+    if time_displaced == true
         integrated = true
     end
 
-    # iterate over all bond/orbial ID pairs
+    # iterate over all bond/orbital ID pairs
     for pair in pairs
         initialize_correlation_measurement!(
             measurement_container = measurement_container,
@@ -543,11 +543,11 @@ function initialize_composite_correlation_measurement!(;
         "Only one of the keywords `ids` or `id_pairs` should be assigned."
     )
 
-    # set integrated to false for electron green's function
-    if (integrated == true) && (correlation ∈ ("greens", "greens_up", "greens_dn"))
-        integrated = false
+    # # set integrated to false for electron green's function
+    # if (integrated == true) && (correlation ∈ ("greens", "greens_up", "greens_dn"))
+    #     integrated = false
     # if time-displaced measurements are being made then also make integrated measurements
-    elseif time_displaced == true
+    if time_displaced == true
         integrated = true
     end
 

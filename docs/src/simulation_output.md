@@ -189,13 +189,14 @@ package currently supports.
 - `greens_dn`: (`ORBITAL_ID`) Measures spin-down [single-particle electron Green's functions.](https://smoqysuite.github.io/JDQMCMeasurements.jl/stable/api/#JDQMCMeasurements.greens!).
 - `density`: (`ORBITAL_ID`) Measures [total density correlation functions.](https://smoqysuite.github.io/JDQMCMeasurements.jl/stable/api/#JDQMCMeasurements.density_correlation!)
 - `spin_z`: (`ORBITAL_ID`) Measures [spin-z correlation functions.](https://smoqysuite.github.io/JDQMCMeasurements.jl/stable/api/#JDQMCMeasurements.spin_z_correlation!)
-- `spin_x`: (`ORBITAL_ID`) Measures [spin-z correlation functions.](https://smoqysuite.github.io/JDQMCMeasurements.jl/stable/api/#JDQMCMeasurements.spin_x_correlation!)
+- `spin_x`: (`ORBITAL_ID`) Measures [spin-x correlation functions.](https://smoqysuite.github.io/JDQMCMeasurements.jl/stable/api/#JDQMCMeasurements.spin_x_correlation!)
 - `pair`: (`BOND_ID`) Measures [pair correlation functions.](https://smoqysuite.github.io/JDQMCMeasurements.jl/stable/api/#JDQMCMeasurements.pair_correlation!)
 - `bond`: (`BOND_ID`) Measures [bond correlation functions.](https://smoqysuite.github.io/JDQMCMeasurements.jl/stable/api/#JDQMCMeasurements.bond_correlation!)
 - `current`: (`HOPPING_ID`) Measures [current correlation functions.](https://smoqysuite.github.io/JDQMCMeasurements.jl/stable/api/#JDQMCMeasurements.current_correlation!)
-- `phonon_greens`: (`PHONON_ID`) Measures phonon Green's functions, parameterized as the phonon position correlation function. The position space definition is given below, with ``n_\alpha`` and ``n_\gamma`` specifying phonon modes associated with orbitals ``\alpha`` and ``\gamma`` in the unit cell respectively.
+- `phonon_greens`: (`PHONON_ID`) Measures phonon Green's functions, parameterized as the phonon position correlation function.
+  The position space definition is given below, with ``\alpha`` and ``\gamma`` specifying a pair of phonon modes in the unit cell.
 ```math
-\mathcal{D}_{\mathbf{r}}^{n_\alpha, n_\gamma}(\tau) = \frac{1}{N} \sum_\mathbf{i} \langle \hat{X}_{n_\alpha,\mathbf{i}+\mathbf{r}}(\tau) \hat{X}_{n_\gamma,\mathbf{i}}(0) \rangle.
+\mathcal{D}_{\mathbf{r}}^{\alpha, \gamma}(\tau) = \frac{1}{N} \sum_\mathbf{i} \langle \hat{X}_{\alpha,\mathbf{i}+\mathbf{r}}(\tau) \hat{X}_{\gamma,\mathbf{i}}(0) \rangle.
 ```
 
 ### Composite Correlation Measurements
