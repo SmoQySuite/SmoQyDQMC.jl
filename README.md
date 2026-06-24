@@ -12,8 +12,9 @@ electron-phonon coupling.
 
 ## Funding
 
-The development of this code was supported by the U.S. Department of Energy, Office of Science, Basic Energy Sciences,
-under Award Number DE-SC0022311.
+Initial development of the v1.0 version of this package was supported by the U.S. Department of Energy, Office of Science, Basic Energy Sciences, under Award Number DE-SC0022311.
+Further development of the v2.0 version of this package was supported by the National Science Foundation under grant [No. OAC-2410280](https://www.nsf.gov/awardsearch/show-award?AWD_ID=2410280)
+and the Simons Foundation under a [Scientific Software Research Faculty award](https://www.simonsfoundation.org/2025/09/02/announcing-the-first-scientific-software-research-faculty-fellows/).
 
 ## Installation
 
