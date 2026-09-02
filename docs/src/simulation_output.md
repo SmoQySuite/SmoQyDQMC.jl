@@ -40,8 +40,8 @@ HDF5 files:
 
 ## Model Summary
 
-The function [`model_summary`](@ref) is used to a TOML file named `model_summary.toml` that full describes
-and parameterizes the Hamiltonian simulated in a DQMC simulation using [`SmoQyDQMC.jl`](https://github.com/SmoQySuite/SmoQyDQMC.jl).
+The function [`model_summary`](@ref) is used to a TOML file named `model_summary.toml` that fully describes
+and parametrizes the Hamiltonian simulated in a DQMC simulation using [`SmoQyDQMC.jl`](https://github.com/SmoQySuite/SmoQyDQMC.jl).
 Significantly, this method also defines the types of IDs
 (`ORBITAL_ID`, `BOND_ID`, `HOPPING_ID`, `PHONON_ID`, `HOLSTEIN_ID`, `SSH_ID`, `DISPERSION_ID`) that
 the various measurements are reported in terms of. The type of ID used to report correlation and local measurements are recorded in

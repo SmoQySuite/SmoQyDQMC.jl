@@ -260,6 +260,9 @@ function run_simulation(;
 # defining the model in a translationally invariant way. As [SmoQyDQMC.jl](https://github.com/SmoQySuite/SmoQyDQMC.jl.git) supports
 # random disorder in the terms appearing in the Hamiltonian, it is necessary to initialize separate parameter values for each unit cell in the lattice.
 # For instance, we need to initialize a separate number to represent the on-site energy for each orbital in our finite lattice.
+# To do so, we need to initialize instances of the [`TightBindingParameters`](@ref) and [`ElectronPhononParameters`](@ref) types, which will contain the
+# Hamiltonian parameters associated with the finite lattice. Additionally, the array storing the phonon field configuration that will be sampled during the
+# simulation is stored in the `electron_phonon_parameters.x` matrix; for more information refer to [Accessing the Phonon Fields Directly](@ref).
 
     ## Initialize tight-binding parameters.
     tight_binding_parameters = TightBindingParameters(

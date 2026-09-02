@@ -112,6 +112,7 @@ makedocs(;
         "Home" => "index.md",
         "Supported Hamiltonians" => "hamiltonian.md",
         "Simulation Output Overview" => "simulation_output.md",
+        "Tip & Tricks" => "tips_and_tricks.md",
         "API" => "api.md",
         "Tutorials" => tutorial_mds,
         "Examples" => example_mds,
