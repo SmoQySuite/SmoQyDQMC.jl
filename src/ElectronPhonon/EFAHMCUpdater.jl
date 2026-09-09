@@ -9,8 +9,10 @@ for the phonon degrees of freedom.
 - `Nt::Int`: Number of time-steps in HMC trajectory.
 - `Δt::E`: Average time-step size used in HMC update.
 - `δ::E`: Time-step used in EFA-HMC update is jittered by an amount `Δt = Δt * (1 + δ*(2*rand(rng)-1))`.
-- `x::Matrix{E}`: Records initial phonon configuration in position space.
+- `α::E`: Momentum persistence parameter `α ∈ [0.0, 1.0)`, with `α = 0.0` corresponding to full momentum refresh between EFA-HMC updates.
 - `p::Matrix{E}`: Conjugate momentum in HMC dynamics.
+- `x0::Matrix{E}`: For recording initial phonon fields are start of HMC update.
+- `p0::Matrix{E}`: For recording initial momentum at beginning of HMC update.
 - `dSdx::Matrix{E}`: Stores the derivative of the action.
 - `Gup′::Matrix{T}`: Intermediate spin-up Green's function matrix during HMC trajectory.
 - `Gdn′::Matrix{T}`: Intermediate spin-down Green's function matrix during HMC trajectory.
@@ -27,11 +29,17 @@ struct EFAHMCUpdater{T<:Number, E<:AbstractFloat, PFFT, PIFFT}
     # Amount of disorder in HMC time-step.
     δ::E
 
-    # position space phonon field configuration
-    x::Matrix{E}
+    # Momentum refresh parameter
+    α::E
 
     # momentum
     p::Matrix{E}
+
+    # store initial positions
+    x0::Matrix{E}
+
+    # store initial momentum
+    p0::Matrix{E}
 
     # action derivatives
     dSdx::Matrix{E}
@@ -54,7 +62,9 @@ end
         Nt::Int,
         Δt::E = π/(2*Nt),
         reg::E = 0.0,
-        δ::E = 0.05
+        δ::E = 0.05,
+        α::E = 0.0,
+        rng::AbstractRNG = Random.GLOBAL_RNG
     ) where {T<:Number, E<:AbstractFloat}
 
 # Keyword Arguments
@@ -65,6 +75,8 @@ end
 - `Δt::E = π/(2*Nt)`: Average step size used for HMC update.
 - `reg::E = 0.0`: Regularization used for mass in equations of motion.
 - `δ::E = 0.05`: Amount of jitter added to time-step used in EFA-HMC update.
+- `α::E = 0.0`: Momentum persistence parameter controlling how much of the momentum is refreshed between EFA-HMC updates.
+- `rng::AbstractRNG = Random.GLOBAL_RNG`: Random number generator used to initialize momentum.
 """
 function EFAHMCUpdater(;
     # KEYWORD ARGUMENTS
@@ -73,13 +85,17 @@ function EFAHMCUpdater(;
     Nt::Int,
     Δt::E = π/(2*Nt),
     reg::E = 0.0,
-    δ::E = 0.05
+    δ::E = 0.05,
+    α::E = 0.0,
+    rng::AbstractRNG = Random.GLOBAL_RNG
 ) where {T<:Number, E<:AbstractFloat}
 
+    @assert 0.0 ≤ α < 1.0
     (; β, Δτ, phonon_parameters, x) = electron_phonon_parameters
     (; Ω, M) = phonon_parameters
-    x0 = zero(x)
     p = zero(x)
+    x0 = zero(x)
+    p0 = zero(x)
     dSdx = zero(x)
     Gup′ = zero(G)
     Gdn′ = zero(G)
@@ -87,7 +103,11 @@ function EFAHMCUpdater(;
     # allocate and initialize ExactFourierAccelerator
     efa = ExactFourierAccelerator(Ω, M, β, Δτ, reg)
 
-    return EFAHMCUpdater(Nt, Δt, δ, x0, p, dSdx, Gup′, Gdn′, efa)
+    # initialize momentum
+    initialize_momentum!(p, efa, rng)
+    copyto!(p0, p)
+
+    return EFAHMCUpdater(Nt, Δt, δ, α, p, x0, p0, dSdx, Gup′, Gdn′, efa)
 end
 
 @doc raw"""
@@ -112,7 +132,8 @@ end
         recenter!::Function = identity,
         Nt::Int = hmc_updater.Nt,
         Δt::R = hmc_updater.Δt,
-        δ::R = hmc_updater.δ
+        δ::R = hmc_updater.δ,
+        α::R = hmc_updater.α
     ) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator{T}}
 
 Perform EFA-HMC update to the phonon degrees of freedom.
@@ -148,6 +169,7 @@ is a boolean field indicating whether the proposed HMC update was accepted or re
 - `Nt::Int = hmc_updater.Nt`: Number of time-steps used in EFA-HMC update.
 - `Δt::R = hmc_updater.Δt`: Average step size used for HMC update.
 - `δ::R = hmc_updater.δ`: Amount of jitter added to time-step used in EFA-HMC update.
+- `α::R = hmc_updater.α`: Momentum persistence parameter controlling how much of the momentum is refreshed between EFA-HMC updates.
 """
 function hmc_update!(
     # ARGUMENTS
@@ -170,14 +192,17 @@ function hmc_update!(
     recenter!::Function = identity,
     Nt::Int = hmc_updater.Nt,
     Δt::R = hmc_updater.Δt,
-    δ::R = hmc_updater.δ
+    δ::R = hmc_updater.δ,
+    α::R = hmc_updater.α
 ) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator{T}}
 
     @assert fermion_path_integral_up.Sb == fermion_path_integral_dn.Sb "$(fermion_path_integral_up.Sb) ≠ $(fermion_path_integral_dn.Sb)"
     @assert fermion_greens_calculator_up.forward == fermion_greens_calculator_dn.forward
     @assert fermion_greens_calculator_up.l == fermion_greens_calculator_dn.l
+    @assert 0.0 ≤ δ < 1.0
+    @assert 0.0 ≤ α < 1.0
 
-    (; p, dSdx, Gup′, Gdn′, efa) = hmc_updater
+    (; p, x0, p0, dSdx, Gup′, Gdn′, efa) = hmc_updater
     Δτ = electron_phonon_parameters.Δτ
     holstein_parameters_up = electron_phonon_parameters.holstein_parameters_up
     holstein_parameters_dn = electron_phonon_parameters.holstein_parameters_dn
@@ -202,8 +227,7 @@ function hmc_update!(
 
     # record initial phonon configuration
     x = electron_phonon_parameters.x
-    x_init = hmc_updater.x
-    copyto!(x_init, x)
+    copyto!(x0, x)
 
     # make sure stabilization frequencies match
     copyto!(fermion_greens_calculator_up_alt, fermion_greens_calculator_up)
@@ -219,8 +243,21 @@ function hmc_update!(
     logdetGdn′ = logdetGdn
     sgndetGdn′ = sgndetGdn
 
-    # initialize momentum and calculate initial kinetic energy
-    K = initialize_momentum!(p, efa, rng)
+    # sample new momentum and calculate corresponding kinetic energy
+    K = initialize_momentum!(p0, efa, rng)
+
+    # construct initial momentum using mixture new and old momentum
+    @. p = α * p + sqrt(1 - α^2) * p0
+
+    # if there is finite momentum persistence
+    if α > 0.0
+
+        # record initial momentum used in HMC update
+        copyto!(p0, p)
+
+        # calculate initial kinetic energy
+        K = kinetic_energy(p, efa)
+    end
 
     # calculate initial bosonic action
     Sb = bosonic_action(electron_phonon_parameters)
@@ -447,10 +484,13 @@ function hmc_update!(
     else
 
         # update fermion path integrals to reflect initial phonon configuration
-        update!(fermion_path_integral_up, fermion_path_integral_dn, electron_phonon_parameters, x_init, x)
+        update!(fermion_path_integral_up, fermion_path_integral_dn, electron_phonon_parameters, x0, x)
 
         # revert to initial phonon configuration
-        copyto!(electron_phonon_parameters.x, x_init)
+        copyto!(x, x0)
+
+        # revert to initial momentum but reflected
+        @. p = -p0
 
         # update the spin up and spin down propagators to reflect initial phonon configuration
         calculate_propagators!(
@@ -486,7 +526,8 @@ end
         recenter!::Function = identity,
         Nt::Int = hmc_updater.Nt,
         Δt::R = hmc_updater.Δt,
-        δ::R = hmc_updater.δ
+        δ::R = hmc_updater.δ,
+        α::R = hmc_updater.α
     ) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator{T}}
 
 Perform EFA-HMC update to the phonon degrees of freedom.
@@ -516,6 +557,7 @@ is a boolean field indicating whether the proposed HMC update was accepted or re
 - `Nt::Int = hmc_updater.Nt`: Number of time-steps used in EFA-HMC update.
 - `Δt::R = hmc_updater.Δt`: Average step size used for HMC update.
 - `δ::R = hmc_updater.δ`: Amount of jitter added to time-step used in EFA-HMC update.
+- `α::R = hmc_updater.α`: Momentum persistence parameter controlling how much of the momentum is refreshed between EFA-HMC updates.
 """
 function hmc_update!(
     # ARGUMENTS
@@ -534,11 +576,15 @@ function hmc_update!(
     recenter!::Function = identity,
     Nt::Int = hmc_updater.Nt,
     Δt::R = hmc_updater.Δt,
-    δ::R = hmc_updater.δ
+    δ::R = hmc_updater.δ,
+    α::R = hmc_updater.α
 ) where {H<:Number, T<:Number, R<:Real, P<:AbstractPropagator{T}}
 
-    (; p, dSdx, efa) = hmc_updater
+    (; p, x0, p0,dSdx, efa) = hmc_updater
     G′ = hmc_updater.Gup′
+
+    @assert 0.0 ≤ δ < 1.0
+    @assert 0.0 ≤ α < 1.0
 
     Δτ = electron_phonon_parameters.Δτ::R
     holstein_parameters = electron_phonon_parameters.holstein_parameters_up
@@ -562,8 +608,7 @@ function hmc_update!(
 
     # record initial phonon configuration
     x = electron_phonon_parameters.x
-    x_init = hmc_updater.x
-    copyto!(x_init, x)
+    copyto!(x0, x)
 
     # make sure stabilization frequencies match
     copyto!(fermion_greens_calculator_alt, fermion_greens_calculator)
@@ -573,8 +618,21 @@ function hmc_update!(
     logdetG′ = logdetG
     sgndetG′ = sgndetG
 
-    # initialize momentum and calculate initial kinetic energy
-    K = initialize_momentum!(p, efa, rng)
+    # sample new momentum and calculate corresponding kinetic energy
+    K = initialize_momentum!(p0, efa, rng)
+
+    # construct initial momentum using mixture new and old momentum
+    @. p = α * p + sqrt(1 - α^2) * p0
+
+    # if there is finite momentum persistence
+    if α > 0.0
+
+        # record initial momentum used in HMC update
+        copyto!(p0, p)
+
+        # calculate initial kinetic energy
+        K = kinetic_energy(p, efa)
+    end
 
     # calculate initial bosonic action
     Sb = bosonic_action(electron_phonon_parameters)
@@ -779,10 +837,13 @@ function hmc_update!(
     else
 
         # update fermion path integrals to reflect initial phonon configuration
-        update!(fermion_path_integral, electron_phonon_parameters, x_init, x)
+        update!(fermion_path_integral, electron_phonon_parameters, x0, x)
 
         # revert to initial phonon configuration
-        copyto!(x, x_init)
+        copyto!(x, x0)
+
+        # revert to initial momentum but reflected
+        @. p = -p0
 
         # update the spin up and spin down propagators to reflect initial phonon configuration
         calculate_propagators!(
