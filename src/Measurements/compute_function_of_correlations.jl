@@ -222,11 +222,11 @@ function _read_correlation_bins(
 
         # make sure valid imaginary-time is passed
         @assert(
-            (haskey(correlation, :l)) || iszero(mod(correlation.τ, Δτ)),
+            (haskey(correlation, :l)) || (abs(mod(correlation.τ/Δτ, 1.0)) < Δτ/100),
             "The passed imaginary-time :τ cannot be mapped to an imaginary-time slice as (τ%Δτ)≠0."
         )
 
-        # get the imaginary-time slice
+        # get the imaginary-time slice indexed from 1 instead of 0
         l = haskey(correlation, :l) ? correlation.l+1 : round(Int, correlation.τ/Δτ)+1
 
         # if a standard correlation measurement

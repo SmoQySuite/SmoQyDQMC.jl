@@ -109,7 +109,7 @@ function SSHParameters(;
         hopping_bond_ids = tight_binding_parameters_up.bond_ids::Vector{Int}
 
         # get the slice of hopping neighbor table associated with each bond ID
-        hopping_bond_slices = tight_binding_parameters_up.bond_slices::Vector{UnitRange{Int}}
+        hopping_bond_slices = tight_binding_parameters_up.hopping_slices::Vector{UnitRange{Int}}
 
         # allocate arrays of ssh coupling parameters
         α_up  = zeros(T, Nssh)

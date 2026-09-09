@@ -224,7 +224,7 @@ and ``\mu`` is the chemical potential.
 - `const t::Vector{T}`: The hopping energy ``t_{i,j}`` associated with each pair of neighboring orbitals connected by a bond in the lattice.
 - `const neighbor_table::Matrix{Int}`: Neighbor table containing all pairs of orbitals in the lattices connected by a bond, with a non-zero hopping energy between them.
 - `const bond_ids::Vector{Int}`: The bond ID definitions that define the types of hopping in the lattice.
-- `const bond_slices::Vector{UnitRange{Int}}`: Slices of `neighbor_table` corresponding to given bond ID i.e. the neighbors `neighbor_table[:,bond_slices[i]]` corresponds the `bond_ids[i]` bond defintion.
+- `const hopping_slices::Vector{UnitRange{Int}}`: Slices of `neighbor_table` corresponding to given hopping ID i.e. the neighbors `neighbor_table[:,i]` corresponds to the `i`'th hopping ID.
 - `const norbital::Int`: Number of orbitals per unit cell.
 """
 mutable struct TightBindingParameters{T<:Number, E<:AbstractFloat}
@@ -245,7 +245,7 @@ mutable struct TightBindingParameters{T<:Number, E<:AbstractFloat}
     const bond_ids::Vector{Int}
 
     # view into neighbor table for each bond ID
-    const bond_slices::Vector{UnitRange{Int}}
+    const hopping_slices::Vector{UnitRange{Int}}
 
     # number of orbitals per unit cell
     const norbital::Int
@@ -297,9 +297,9 @@ function TightBindingParameters(;
     # get th slice of bonds in the neighbor_table associated with
     # hopping ID (and corresponding bond ID)
     bond_ids = copy(tight_binding_model.t_bond_ids)
-    bond_slices = UnitRange{Int}[]
+    hopping_slices = UnitRange{Int}[]
     for i in eachindex(bond_ids)
-        push!(bond_slices, (i-1)*N+1:i*N)
+        push!(hopping_slices, ((i-1)*N+1) : (i*N))
     end
 
     # get number of bond definitions in model
@@ -321,5 +321,5 @@ function TightBindingParameters(;
         end
     end
 
-    return TightBindingParameters(μ, ϵ, t, neighbor_table, bond_ids, bond_slices, n)
+    return TightBindingParameters(μ, ϵ, t, neighbor_table, bond_ids, hopping_slices, n)
 end

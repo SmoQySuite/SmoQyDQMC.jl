@@ -952,7 +952,7 @@ function make_equaltime_measurements!(
 
         elseif correlation == "current_upup"
 
-            (; bond_ids, bond_slices) = tight_binding_parameters_up
+            (; bond_ids, hopping_slices) = tight_binding_parameters_up
             tup = fermion_path_integral_up.t
 
             for i in eachindex(id_pairs)
@@ -966,10 +966,10 @@ function make_equaltime_measurements!(
                 # get the bond definitions
                 bond_0 = bonds[bond_id_0]
                 bond_1 = bonds[bond_id_1]
-                # get the effective hopping amptlitudes for each of the two hopping ID's in question
-                tup0 = @view tup[bond_slices[hopping_id_0], Lτ]
+                # get the effective hopping amplitudes for each of the two hopping ID's in question
+                tup0 = @view tup[hopping_slices[hopping_id_0], Lτ]
                 tup0′ = reshape(tup0, lattice.L...)
-                tup1 = @view tup[bond_slices[hopping_id_1], Lτ]
+                tup1 = @view tup[hopping_slices[hopping_id_1], Lτ]
                 tup1′ = reshape(tup1, lattice.L...)
                 # measure the current-current correlation
                 current_correlation!(correlations[i], bond_1, bond_0, tup1′, tup0′, unit_cell, lattice,
@@ -978,7 +978,7 @@ function make_equaltime_measurements!(
 
         elseif correlation == "current_dndn"
 
-            (; bond_ids, bond_slices) = tight_binding_parameters_dn
+            (; bond_ids, hopping_slices) = tight_binding_parameters_dn
             tdn = fermion_path_integral_dn.t
 
             for i in eachindex(id_pairs)
@@ -992,10 +992,10 @@ function make_equaltime_measurements!(
                 # get the bond definitions
                 bond_0 = bonds[bond_id_0]
                 bond_1 = bonds[bond_id_1]
-                # get the effective hopping amptlitudes for each of the two hopping ID's in question
-                tdn0 = @view tdn[bond_slices[hopping_id_0], Lτ]
+                # get the effective hopping amplitudes for each of the two hopping ID's in question
+                tdn0 = @view tdn[hopping_slices[hopping_id_0], Lτ]
                 tdn0′ = reshape(tdn0, lattice.L...)
-                tdn1 = @view tdn[bond_slices[hopping_id_1], Lτ]
+                tdn1 = @view tdn[hopping_slices[hopping_id_1], Lτ]
                 tdn1′ = reshape(tdn1, lattice.L...)
                 # measure the current-current correlation
                 current_correlation!(correlations[i], bond_1, bond_0, tdn1′, tdn0′, unit_cell, lattice,
@@ -1004,7 +1004,7 @@ function make_equaltime_measurements!(
 
         elseif correlation == "current_updn"
 
-            (; bond_ids, bond_slices) = tight_binding_parameters_up
+            (; bond_ids, hopping_slices) = tight_binding_parameters_up
             tup = fermion_path_integral_up.t
             tdn = fermion_path_integral_dn.t
 
@@ -1019,10 +1019,10 @@ function make_equaltime_measurements!(
                 # get the bond definitions
                 bond_0 = bonds[bond_id_0]
                 bond_1 = bonds[bond_id_1]
-                # get the effective hopping amptlitudes for each of the two hopping ID's in question
-                tup1 = @view tup[bond_slices[hopping_id_1], Lτ]
+                # get the effective hopping amplitudes for each of the two hopping ID's in question
+                tup1 = @view tup[hopping_slices[hopping_id_1], Lτ]
                 tup1′ = reshape(tup1, lattice.L...)
-                tdn0 = @view tdn[bond_slices[hopping_id_0], Lτ]
+                tdn0 = @view tdn[hopping_slices[hopping_id_0], Lτ]
                 tdn0′ = reshape(tdn0, lattice.L...)
                 # measure the current-current correlation
                 current_correlation!(correlations[i], bond_1, bond_0, tup1′, tdn0′, unit_cell, lattice,
@@ -1031,7 +1031,7 @@ function make_equaltime_measurements!(
 
         elseif correlation == "current_dnup"
 
-            (; bond_ids, bond_slices) = tight_binding_parameters_up
+            (; bond_ids, hopping_slices) = tight_binding_parameters_up
             tup = fermion_path_integral_up.t
             tdn = fermion_path_integral_dn.t
 
@@ -1046,10 +1046,10 @@ function make_equaltime_measurements!(
                 # get the bond definitions
                 bond_0 = bonds[bond_id_0]
                 bond_1 = bonds[bond_id_1]
-                # get the effective hopping amptlitudes for each of the two hopping ID's in question
-                tup0 = @view tup[bond_slices[hopping_id_0], Lτ]
+                # get the effective hopping amplitudes for each of the two hopping ID's in question
+                tup0 = @view tup[hopping_slices[hopping_id_0], Lτ]
                 tup0′ = reshape(tup0, lattice.L...)
-                tdn1 = @view tdn[bond_slices[hopping_id_1], Lτ]
+                tdn1 = @view tdn[hopping_slices[hopping_id_1], Lτ]
                 tdn1′ = reshape(tdn1, lattice.L...)
                 # measure the current-current correlation
                 current_correlation!(correlations[i], bond_1, bond_0, tdn1′, tup0′, unit_cell, lattice,
@@ -1058,7 +1058,7 @@ function make_equaltime_measurements!(
 
         elseif correlation == "current"
 
-            (; bond_ids, bond_slices) = tight_binding_parameters_up
+            (; bond_ids, hopping_slices) = tight_binding_parameters_up
             tup = fermion_path_integral_up.t
             tdn = fermion_path_integral_dn.t
 
@@ -1073,14 +1073,14 @@ function make_equaltime_measurements!(
                 # get the bond definitions
                 bond_0 = bonds[bond_id_0]
                 bond_1 = bonds[bond_id_1]
-                # get the effective hopping amptlitudes for each of the two hopping ID's in question
-                tup0 = @view tup[bond_slices[hopping_id_0], Lτ]
+                # get the effective hopping amplitudes for each of the two hopping ID's in question
+                tup0 = @view tup[hopping_slices[hopping_id_0], Lτ]
                 tup0′ = reshape(tup0, lattice.L...)
-                tup1 = @view tup[bond_slices[hopping_id_1], Lτ]
+                tup1 = @view tup[hopping_slices[hopping_id_1], Lτ]
                 tup1′ = reshape(tup1, lattice.L...)
-                tdn0 = @view tdn[bond_slices[hopping_id_0], Lτ]
+                tdn0 = @view tdn[hopping_slices[hopping_id_0], Lτ]
                 tdn0′ = reshape(tdn0, lattice.L...)
-                tdn1 = @view tdn[bond_slices[hopping_id_1], Lτ]
+                tdn1 = @view tdn[hopping_slices[hopping_id_1], Lτ]
                 tdn1′ = reshape(tdn1, lattice.L...)
                 # measure the current-current correlation
                 current_correlation!(correlations[i], bond_1, bond_0, tup1′, tup0′, tdn1′, tdn0′, unit_cell, lattice,
@@ -1403,7 +1403,7 @@ function make_equaltime_composite_measurements!(
 
         elseif correlation == "current_upup"
 
-            (; bond_ids, bond_slices) = tight_binding_parameters_up
+            (; bond_ids, hopping_slices) = tight_binding_parameters_up
             tup = fermion_path_integral_up.t
 
             for i in eachindex(ids)
@@ -1419,10 +1419,10 @@ function make_equaltime_composite_measurements!(
                 # get the bond definitions
                 bond_0 = bonds[bond_id_0]
                 bond_1 = bonds[bond_id_1]
-                # get the effective hopping amptlitudes for each of the two hopping ID's in question
-                tup0 = @view tup[bond_slices[hopping_id_0], Lτ]
+                # get the effective hopping amplitudes for each of the two hopping ID's in question
+                tup0 = @view tup[hopping_slices[hopping_id_0], Lτ]
                 tup0′ = reshape(tup0, lattice.L...)
-                tup1 = @view tup[bond_slices[hopping_id_1], Lτ]
+                tup1 = @view tup[hopping_slices[hopping_id_1], Lτ]
                 tup1′ = reshape(tup1, lattice.L...)
                 # measure the current-current correlation
                 current_correlation!(
@@ -1436,7 +1436,7 @@ function make_equaltime_composite_measurements!(
 
         elseif correlation == "current_dndn"
 
-            (; bond_ids, bond_slices) = tight_binding_parameters_dn
+            (; bond_ids, hopping_slices) = tight_binding_parameters_dn
             tdn = fermion_path_integral_dn.t
 
             for i in eachindex(ids)
@@ -1452,10 +1452,10 @@ function make_equaltime_composite_measurements!(
                 # get the bond definitions
                 bond_0 = bonds[bond_id_0]
                 bond_1 = bonds[bond_id_1]
-                # get the effective hopping amptlitudes for each of the two hopping ID's in question
-                tdn0 = @view tdn[bond_slices[hopping_id_0], Lτ]
+                # get the effective hopping amplitudes for each of the two hopping ID's in question
+                tdn0 = @view tdn[hopping_slices[hopping_id_0], Lτ]
                 tdn0′ = reshape(tdn0, lattice.L...)
-                tdn1 = @view tdn[bond_slices[hopping_id_1], Lτ]
+                tdn1 = @view tdn[hopping_slices[hopping_id_1], Lτ]
                 tdn1′ = reshape(tdn1, lattice.L...)
                 # measure the current-current correlation
                 current_correlation!(
@@ -1469,7 +1469,7 @@ function make_equaltime_composite_measurements!(
 
         elseif correlation == "current_updn"
 
-            (; bond_ids, bond_slices) = tight_binding_parameters_up
+            (; bond_ids, hopping_slices) = tight_binding_parameters_up
             tup = fermion_path_integral_up.t
             tdn = fermion_path_integral_dn.t
 
@@ -1486,10 +1486,10 @@ function make_equaltime_composite_measurements!(
                 # get the bond definitions
                 bond_0 = bonds[bond_id_0]
                 bond_1 = bonds[bond_id_1]
-                # get the effective hopping amptlitudes for each of the two hopping ID's in question
-                tdn0 = @view tdn[bond_slices[hopping_id_0], Lτ]
+                # get the effective hopping amplitudes for each of the two hopping ID's in question
+                tdn0 = @view tdn[hopping_slices[hopping_id_0], Lτ]
                 tdn0′ = reshape(tdn0, lattice.L...)
-                tup1 = @view tup[bond_slices[hopping_id_1], Lτ]
+                tup1 = @view tup[hopping_slices[hopping_id_1], Lτ]
                 tup1′ = reshape(tup1, lattice.L...)
                 # measure the current-current correlation
                 current_correlation!(
@@ -1503,7 +1503,7 @@ function make_equaltime_composite_measurements!(
 
         elseif correlation == "current_dnup"
 
-            (; bond_ids, bond_slices) = tight_binding_parameters_up
+            (; bond_ids, hopping_slices) = tight_binding_parameters_up
             tup = fermion_path_integral_up.t
             tdn = fermion_path_integral_dn.t
 
@@ -1520,10 +1520,10 @@ function make_equaltime_composite_measurements!(
                 # get the bond definitions
                 bond_0 = bonds[bond_id_0]
                 bond_1 = bonds[bond_id_1]
-                # get the effective hopping amptlitudes for each of the two hopping ID's in question
-                tup0 = @view tup[bond_slices[hopping_id_0], Lτ]
+                # get the effective hopping amplitudes for each of the two hopping ID's in question
+                tup0 = @view tup[hopping_slices[hopping_id_0], Lτ]
                 tup0′ = reshape(tup0, lattice.L...)
-                tdn1 = @view tdn[bond_slices[hopping_id_1], Lτ]
+                tdn1 = @view tdn[hopping_slices[hopping_id_1], Lτ]
                 tdn1′ = reshape(tdn1, lattice.L...)
                 # measure the current-current correlation
                 current_correlation!(
@@ -1537,7 +1537,7 @@ function make_equaltime_composite_measurements!(
 
         elseif correlation == "current"
 
-            (; bond_ids, bond_slices) = tight_binding_parameters_up
+            (; bond_ids, hopping_slices) = tight_binding_parameters_up
             tup = fermion_path_integral_up.t
             tdn = fermion_path_integral_dn.t
 
@@ -1554,14 +1554,14 @@ function make_equaltime_composite_measurements!(
                 # get the bond definitions
                 bond_0 = bonds[bond_id_0]
                 bond_1 = bonds[bond_id_1]
-                # get the effective hopping amptlitudes for each of the two hopping ID's in question
-                tup0 = @view tup[bond_slices[hopping_id_0], Lτ]
+                # get the effective hopping amplitudes for each of the two hopping ID's in question
+                tup0 = @view tup[hopping_slices[hopping_id_0], Lτ]
                 tup0′ = reshape(tup0, lattice.L...)
-                tup1 = @view tup[bond_slices[hopping_id_1], Lτ]
+                tup1 = @view tup[hopping_slices[hopping_id_1], Lτ]
                 tup1′ = reshape(tup1, lattice.L...)
-                tdn0 = @view tdn[bond_slices[hopping_id_0], Lτ]
+                tdn0 = @view tdn[hopping_slices[hopping_id_0], Lτ]
                 tdn0′ = reshape(tdn0, lattice.L...)
-                tdn1 = @view tdn[bond_slices[hopping_id_1], Lτ]
+                tdn1 = @view tdn[hopping_slices[hopping_id_1], Lτ]
                 tdn1′ = reshape(tdn1, lattice.L...)
                 # measure the current-current correlation
                 current_correlation!(
@@ -1776,7 +1776,7 @@ function make_time_displaced_measurements!(
         
         elseif correlation == "current_upup"
 
-            (; bond_ids, bond_slices) = tight_binding_parameters_up
+            (; bond_ids, hopping_slices) = tight_binding_parameters_up
             tup = fermion_path_integral_up.t
 
             for i in eachindex(id_pairs)
@@ -1790,10 +1790,10 @@ function make_time_displaced_measurements!(
                 # get the bond definitions
                 bond_0 = bonds[bond_id_0]
                 bond_1 = bonds[bond_id_1]
-                # get the effective hopping amptlitudes for each of the two hopping ID's in question
-                tup0 = @view tup[bond_slices[hopping_id_0], Lτ]
+                # get the effective hopping amplitudes for each of the two hopping ID's in question
+                tup0 = @view tup[hopping_slices[hopping_id_0], Lτ]
                 tup0′ = reshape(tup0, lattice.L...)
-                tup1 = @view tup[bond_slices[hopping_id_1], mod1(l,Lτ)]
+                tup1 = @view tup[hopping_slices[hopping_id_1], mod1(l,Lτ)]
                 tup1′ = reshape(tup1, lattice.L...)
                 # measure the current-current correlation
                 correlation_array = selectdim(correlations[i], D+1, l+1)
@@ -1803,7 +1803,7 @@ function make_time_displaced_measurements!(
 
         elseif correlation == "current_dndn"
 
-            (; bond_ids, bond_slices) = tight_binding_parameters_dn
+            (; bond_ids, hopping_slices) = tight_binding_parameters_dn
             tdn = fermion_path_integral_dn.t
 
             for i in eachindex(id_pairs)
@@ -1817,10 +1817,10 @@ function make_time_displaced_measurements!(
                 # get the bond definitions
                 bond_0 = bonds[bond_id_0]
                 bond_1 = bonds[bond_id_1]
-                # get the effective hopping amptlitudes for each of the two hopping ID's in question
-                tdn0 = @view tdn[bond_slices[hopping_id_0], Lτ]
+                # get the effective hopping amplitudes for each of the two hopping ID's in question
+                tdn0 = @view tdn[hopping_slices[hopping_id_0], Lτ]
                 tdn0′ = reshape(tdn0, lattice.L...)
-                tdn1 = @view tdn[bond_slices[hopping_id_1], mod1(l,Lτ)]
+                tdn1 = @view tdn[hopping_slices[hopping_id_1], mod1(l,Lτ)]
                 tdn1′ = reshape(tdn1, lattice.L...)
                 # measure the current-current correlation
                 correlation_array = selectdim(correlations[i], D+1, l+1)
@@ -1830,7 +1830,7 @@ function make_time_displaced_measurements!(
 
         elseif correlation == "current_updn"
 
-            (; bond_ids, bond_slices) = tight_binding_parameters_up
+            (; bond_ids, hopping_slices) = tight_binding_parameters_up
             tup = fermion_path_integral_up.t
             tdn = fermion_path_integral_dn.t
 
@@ -1845,10 +1845,10 @@ function make_time_displaced_measurements!(
                 # get the bond definitions
                 bond_0 = bonds[bond_id_0]
                 bond_1 = bonds[bond_id_1]
-                # get the effective hopping amptlitudes for each of the two hopping ID's in question
-                tdn0 = @view tup[bond_slices[hopping_id_0], Lτ]
+                # get the effective hopping amplitudes for each of the two hopping ID's in question
+                tdn0 = @view tup[hopping_slices[hopping_id_0], Lτ]
                 tdn0′ = reshape(tdn0, lattice.L...)
-                tup1 = @view tdn[bond_slices[hopping_id_1], mod1(l,Lτ)]
+                tup1 = @view tdn[hopping_slices[hopping_id_1], mod1(l,Lτ)]
                 tup1′ = reshape(tup1, lattice.L...)
                 # measure the current-current correlation
                 correlation_array = selectdim(correlations[i], D+1, l+1)
@@ -1858,7 +1858,7 @@ function make_time_displaced_measurements!(
 
         elseif correlation == "current_dnup"
 
-            (; bond_ids, bond_slices) = tight_binding_parameters_up
+            (; bond_ids, hopping_slices) = tight_binding_parameters_up
             tup = fermion_path_integral_up.t
             tdn = fermion_path_integral_dn.t
 
@@ -1873,10 +1873,10 @@ function make_time_displaced_measurements!(
                 # get the bond definitions
                 bond_0 = bonds[bond_id_0]
                 bond_1 = bonds[bond_id_1]
-                # get the effective hopping amptlitudes for each of the two hopping ID's in question
-                tup0 = @view tdn[bond_slices[hopping_id_0], Lτ]
+                # get the effective hopping amplitudes for each of the two hopping ID's in question
+                tup0 = @view tdn[hopping_slices[hopping_id_0], Lτ]
                 tup0′ = reshape(tup0, lattice.L...)
-                tdn1 = @view tdn[bond_slices[hopping_id_1], mod1(l,Lτ)]
+                tdn1 = @view tdn[hopping_slices[hopping_id_1], mod1(l,Lτ)]
                 tdn1′ = reshape(tdn1, lattice.L...)
                 # measure the current-current correlation
                 correlation_array = selectdim(correlations[i], D+1, l+1)
@@ -1886,7 +1886,7 @@ function make_time_displaced_measurements!(
 
         elseif correlation == "current"
 
-            (; bond_ids, bond_slices) = tight_binding_parameters_up
+            (; bond_ids, hopping_slices) = tight_binding_parameters_up
             tup = fermion_path_integral_up.t
             tdn = fermion_path_integral_dn.t
 
@@ -1901,14 +1901,14 @@ function make_time_displaced_measurements!(
                 # get the bond definitions
                 bond_0 = bonds[bond_id_0]
                 bond_1 = bonds[bond_id_1]
-                # get the effective hopping amptlitudes for each of the two hopping ID's in question
-                tup0 = @view tup[bond_slices[hopping_id_0], Lτ]
+                # get the effective hopping amplitudes for each of the two hopping ID's in question
+                tup0 = @view tup[hopping_slices[hopping_id_0], Lτ]
                 tup0′ = reshape(tup0, lattice.L...)
-                tup1 = @view tup[bond_slices[hopping_id_1], mod1(l,Lτ)]
+                tup1 = @view tup[hopping_slices[hopping_id_1], mod1(l,Lτ)]
                 tup1′ = reshape(tup1, lattice.L...)
-                tdn0 = @view tdn[bond_slices[hopping_id_0], Lτ]
+                tdn0 = @view tdn[hopping_slices[hopping_id_0], Lτ]
                 tdn0′ = reshape(tdn0, lattice.L...)
-                tdn1 = @view tdn[bond_slices[hopping_id_1], mod1(l,Lτ)]
+                tdn1 = @view tdn[hopping_slices[hopping_id_1], mod1(l,Lτ)]
                 tdn1′ = reshape(tdn1, lattice.L...)
                 # measure the current-current correlation
                 correlation_array = selectdim(correlations[i], D+1, l+1)
@@ -2227,7 +2227,7 @@ function make_time_displaced_composite_measurements!(
         
         elseif correlation == "current_upup"
 
-            (; bond_ids, bond_slices) = tight_binding_parameters_up
+            (; bond_ids, hopping_slices) = tight_binding_parameters_up
             tup = fermion_path_integral_up.t
 
             for i in eachindex(id_pairs)
@@ -2243,10 +2243,10 @@ function make_time_displaced_composite_measurements!(
                 # get the bond definitions
                 bond_0 = bonds[bond_id_0]
                 bond_1 = bonds[bond_id_1]
-                # get the effective hopping amptlitudes for each of the two hopping ID's in question
-                tup0 = @view tup[bond_slices[hopping_id_0], Lτ]
+                # get the effective hopping amplitudes for each of the two hopping ID's in question
+                tup0 = @view tup[hopping_slices[hopping_id_0], Lτ]
                 tup0′ = reshape(tup0, lattice.L...)
-                tup1 = @view tup[bond_slices[hopping_id_1], mod1(l,Lτ)]
+                tup1 = @view tup[hopping_slices[hopping_id_1], mod1(l,Lτ)]
                 tup1′ = reshape(tup1, lattice.L...)
                 # measure the current-current correlation
                 current_correlation!(
@@ -2260,7 +2260,7 @@ function make_time_displaced_composite_measurements!(
 
         elseif correlation == "current_dndn"
 
-            (; bond_ids, bond_slices) = tight_binding_parameters_dn
+            (; bond_ids, hopping_slices) = tight_binding_parameters_dn
             tdn = fermion_path_integral_dn.t
 
             for i in eachindex(id_pairs)
@@ -2276,10 +2276,10 @@ function make_time_displaced_composite_measurements!(
                 # get the bond definitions
                 bond_0 = bonds[bond_id_0]
                 bond_1 = bonds[bond_id_1]
-                # get the effective hopping amptlitudes for each of the two hopping ID's in question
-                tdn0 = @view tdn[bond_slices[hopping_id_0], Lτ]
+                # get the effective hopping amplitudes for each of the two hopping ID's in question
+                tdn0 = @view tdn[hopping_slices[hopping_id_0], Lτ]
                 tdn0′ = reshape(tdn0, lattice.L...)
-                tdn1 = @view tdn[bond_slices[hopping_id_1], mod1(l,Lτ)]
+                tdn1 = @view tdn[hopping_slices[hopping_id_1], mod1(l,Lτ)]
                 tdn1′ = reshape(tdn1, lattice.L...)
                 # measure the current-current correlation
                 current_correlation!(
@@ -2293,7 +2293,7 @@ function make_time_displaced_composite_measurements!(
 
         elseif correlation == "current_updn"
 
-            (; bond_ids, bond_slices) = tight_binding_parameters_up
+            (; bond_ids, hopping_slices) = tight_binding_parameters_up
             tup = fermion_path_integral_up.t
             tdn = fermion_path_integral_dn.t
 
@@ -2310,10 +2310,10 @@ function make_time_displaced_composite_measurements!(
                 # get the bond definitions
                 bond_0 = bonds[bond_id_0]
                 bond_1 = bonds[bond_id_1]
-                # get the effective hopping amptlitudes for each of the two hopping ID's in question
-                tdn0 = @view tdn[bond_slices[hopping_id_0], Lτ]
+                # get the effective hopping amplitudes for each of the two hopping ID's in question
+                tdn0 = @view tdn[hopping_slices[hopping_id_0], Lτ]
                 tdn0′ = reshape(tdn0, lattice.L...)
-                tup1 = @view tup[bond_slices[hopping_id_1], mod1(l,Lτ)]
+                tup1 = @view tup[hopping_slices[hopping_id_1], mod1(l,Lτ)]
                 tup1′ = reshape(tup1, lattice.L...)
                 # measure the current-current correlation
                 current_correlation!(
@@ -2327,7 +2327,7 @@ function make_time_displaced_composite_measurements!(
 
         elseif correlation == "current_dnup"
 
-            (; bond_ids, bond_slices) = tight_binding_parameters_up
+            (; bond_ids, hopping_slices) = tight_binding_parameters_up
             tup = fermion_path_integral_up.t
             tdn = fermion_path_integral_dn.t
 
@@ -2344,10 +2344,10 @@ function make_time_displaced_composite_measurements!(
                 # get the bond definitions
                 bond_0 = bonds[bond_id_0]
                 bond_1 = bonds[bond_id_1]
-                # get the effective hopping amptlitudes for each of the two hopping ID's in question
-                tup0 = @view tdn[bond_slices[hopping_id_0], Lτ]
+                # get the effective hopping amplitudes for each of the two hopping ID's in question
+                tup0 = @view tdn[hopping_slices[hopping_id_0], Lτ]
                 tup0′ = reshape(tup0, lattice.L...)
-                tdn1 = @view tdn[bond_slices[hopping_id_1], mod1(l,Lτ)]
+                tdn1 = @view tdn[hopping_slices[hopping_id_1], mod1(l,Lτ)]
                 tdn1′ = reshape(tdn1, lattice.L...)
                 # measure the current-current correlation
                 current_correlation!(
@@ -2361,7 +2361,7 @@ function make_time_displaced_composite_measurements!(
 
         elseif correlation == "current"
 
-            (; bond_ids, bond_slices) = tight_binding_parameters_up
+            (; bond_ids, hopping_slices) = tight_binding_parameters_up
             tup = fermion_path_integral_up.t
             tdn = fermion_path_integral_dn.t
 
@@ -2378,14 +2378,14 @@ function make_time_displaced_composite_measurements!(
                 # get the bond definitions
                 bond_0 = bonds[bond_id_0]
                 bond_1 = bonds[bond_id_1]
-                # get the effective hopping amptlitudes for each of the two hopping ID's in question
-                tup0 = @view tup[bond_slices[hopping_id_0], Lτ]
+                # get the effective hopping amplitudes for each of the two hopping ID's in question
+                tup0 = @view tup[hopping_slices[hopping_id_0], Lτ]
                 tup0′ = reshape(tup0, lattice.L...)
-                tup1 = @view tup[bond_slices[hopping_id_1], mod1(l,Lτ)]
+                tup1 = @view tup[hopping_slices[hopping_id_1], mod1(l,Lτ)]
                 tup1′ = reshape(tup1, lattice.L...)
-                tdn0 = @view tdn[bond_slices[hopping_id_0], Lτ]
+                tdn0 = @view tdn[hopping_slices[hopping_id_0], Lτ]
                 tdn0′ = reshape(tdn0, lattice.L...)
-                tdn1 = @view tdn[bond_slices[hopping_id_1], mod1(l,Lτ)]
+                tdn1 = @view tdn[hopping_slices[hopping_id_1], mod1(l,Lτ)]
                 tdn1′ = reshape(tdn1, lattice.L...)
                 # measure the current-current correlation
                 current_correlation!(

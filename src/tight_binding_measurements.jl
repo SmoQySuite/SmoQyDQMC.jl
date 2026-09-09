@@ -52,16 +52,16 @@ function measure_bare_hopping_energy(
     G::Matrix{H}, hopping_id::Int
 ) where {H<:Number, T<:Number, E<:AbstractFloat}
 
-    (; t, neighbor_table, bond_slices) = tight_binding_parameters
+    (; t, neighbor_table, hopping_slices) = tight_binding_parameters
 
     # initialize hopping energy to zero
     h = zero(T)
 
     # get the neighbor table associated with the bond/hopping in question
-    nt = @view neighbor_table[:, bond_slices[hopping_id]]
+    nt = @view neighbor_table[:, hopping_slices[hopping_id]]
 
     # get the hopping associated with the bond/hopping in question
-    t′ = @view t[bond_slices[hopping_id]]
+    t′ = @view t[hopping_slices[hopping_id]]
 
     # iterate over each bond/hopping
     @fastmath @inbounds for n in axes(nt, 2)
@@ -99,17 +99,17 @@ function measure_hopping_energy(
     G::Matrix{H}, hopping_id::Int
 ) where {H<:Number, T<:Number, E<:AbstractFloat}
 
-    (; neighbor_table, bond_slices, bond_ids) = tight_binding_parameters
+    (; neighbor_table, hopping_slices, bond_ids) = tight_binding_parameters
     (; t, Lτ) = fermion_path_integral
 
     # initialize hopping energy to zero
     h = zero(T)
 
     # get the neighbor table associated with the bond/hopping in question
-    nt = @view neighbor_table[:, bond_slices[hopping_id]]
+    nt = @view neighbor_table[:, hopping_slices[hopping_id]]
 
     # get the hopping associated with the bond/hopping in question
-    t′ = @view t[bond_slices[hopping_id], Lτ]
+    t′ = @view t[hopping_slices[hopping_id], Lτ]
 
     # iterate over each bond/hopping
     @fastmath @inbounds for n in axes(nt, 2)
@@ -145,14 +145,14 @@ function measure_hopping_amplitude(
     hopping_id::Int
 ) where {H<:Number, T<:Number, E<:AbstractFloat}
 
-    (; neighbor_table, bond_slices, bond_ids) = tight_binding_parameters
+    (; neighbor_table, hopping_slices, bond_ids) = tight_binding_parameters
     (; t, Lτ) = fermion_path_integral
 
     # initialize hopping energy to zero
     t_avg = zero(T)
 
     # get the hopping associated with the bond/hopping in question
-    t′ = @view t[bond_slices[hopping_id], :]
+    t′ = @view t[hopping_slices[hopping_id], :]
 
     # normalize the measurement
     t_avg += mean(t′)
@@ -177,7 +177,7 @@ function measure_hopping_inversion(
     hopping_id::Int
 ) where {H<:Number, T<:Number, E<:AbstractFloat}
 
-    (; neighbor_table, bond_slices, bond_ids) = tight_binding_parameters
+    (; neighbor_table, hopping_slices, bond_ids) = tight_binding_parameters
     (; Lτ) = fermion_path_integral
 
     # bare hopping amplitudes
@@ -190,10 +190,10 @@ function measure_hopping_inversion(
     hopping_inversion = zero(E)
 
     # get the bare hopping amplitudes associated with bond
-    t0′ = @view t0[bond_slices[hopping_id]]
+    t0′ = @view t0[hopping_slices[hopping_id]]
 
     # get modulated hopping amplitudes associated with bond
-    tτ′ = @view tτ[bond_slices[hopping_id], :]
+    tτ′ = @view tτ[hopping_slices[hopping_id], :]
 
     # iterate over imaginary time slices
     for l in axes(tτ′,2)

@@ -97,17 +97,12 @@ function evolve_eom!(
                 # get initial position and momentum
                 x̃′ = x̃[i,n]
                 p̃′ = p̃[i,n]
-                # if finite frequency
-                if ωₙ > 1e-10
-                    # update position analytically
-                    x̃[i,n] = x̃′*cos(ωₙ*Δt) + p̃′/(ωₙ*mᵢ) * sin(ωₙ*Δt)
-                # if frequency is very near zero
-                elseif abs(ωₙ) ≤ 1e-10
-                    # update position numerically using taylor expansion of analytic expression
-                    x̃[i,n] = x̃′ + (Δt - Δt^3*ωₙ^2/6 + Δt^5*ωₙ^4/120) * p̃[i,n]/mᵢ
-                end
+                # update position using a more numerically stable version of the expression
+                # x̃[i,n] = x̃′ * cos(ωₙ*Δt) + p̃′ / (ωₙ*mᵢ) * sin(ωₙ*Δt)
+                # that uses the sinc(•) function
+                x̃[i,n] = x̃′ * cos(ωₙ*Δt) + p̃′ * Δt * sinc(ωₙ * Δt / π) / mᵢ
                 # update momentum
-                p̃[i,n] = p̃′*cos(ωₙ*Δt) - x̃′*(ωₙ*mᵢ) * sin(ωₙ*Δt)
+                p̃[i,n] = p̃′ * cos(ωₙ*Δt) - x̃′ * (ωₙ*mᵢ) * sin(ωₙ*Δt)
             end
         end
     end
