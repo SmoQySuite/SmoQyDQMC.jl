@@ -21,7 +21,7 @@
 
 Calculate the mean and error associated with computing a function of measured correlation functions.
 
-The correlation measurements that are passed as arguments to the function to evaluate are specified by the vector
+The correlation measurements that are passed are arguments of the function to evaluate are specified by the vector
 of named tuples `correlations`. The keys of the named tuple used to specify the correlation measurements are given below:
 
 - `name::String`: Name of correlation function.

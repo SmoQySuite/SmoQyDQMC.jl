@@ -264,6 +264,7 @@ process_measurements
 compute_correlation_ratio
 compute_composite_correlation_ratio
 compute_function_of_correlations
+compute_function_of_measurements
 ```
 
 ### Export Measurements

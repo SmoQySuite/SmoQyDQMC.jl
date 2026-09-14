@@ -9,7 +9,7 @@ for the phonon degrees of freedom.
 - `Nt::Int`: Number of time-steps in HMC trajectory.
 - `Δt::E`: Average time-step size used in HMC update.
 - `δ::E`: Time-step used in EFA-HMC update is jittered by an amount `Δt = Δt * (1 + δ*(2*rand(rng)-1))`.
-- `α::E`: Momentum persistence parameter `α ∈ [0.0, 1.0)`, with `α = 0.0` corresponding to full momentum refresh between EFA-HMC updates.
+- `α::E`: Momentum persistence parameter `α ∈ [0.0, 1.0]`, with `α = 0.0` corresponding to full momentum refresh between EFA-HMC updates.
 - `p::Matrix{E}`: Conjugate momentum in HMC dynamics.
 - `x0::Matrix{E}`: For recording initial phonon fields are start of HMC update.
 - `p0::Matrix{E}`: For recording initial momentum at beginning of HMC update.
@@ -90,7 +90,7 @@ function EFAHMCUpdater(;
     rng::AbstractRNG = Random.GLOBAL_RNG
 ) where {T<:Number, E<:AbstractFloat}
 
-    @assert 0.0 ≤ α < 1.0
+    @assert 0.0 ≤ α ≤ 1.0
     (; β, Δτ, phonon_parameters, x) = electron_phonon_parameters
     (; Ω, M) = phonon_parameters
     p = zero(x)
@@ -200,7 +200,7 @@ function hmc_update!(
     @assert fermion_greens_calculator_up.forward == fermion_greens_calculator_dn.forward
     @assert fermion_greens_calculator_up.l == fermion_greens_calculator_dn.l
     @assert 0.0 ≤ δ < 1.0
-    @assert 0.0 ≤ α < 1.0
+    @assert 0.0 ≤ α ≤ 1.0
 
     (; p, x0, p0, dSdx, Gup′, Gdn′, efa) = hmc_updater
     Δτ = electron_phonon_parameters.Δτ
@@ -584,7 +584,7 @@ function hmc_update!(
     G′ = hmc_updater.Gup′
 
     @assert 0.0 ≤ δ < 1.0
-    @assert 0.0 ≤ α < 1.0
+    @assert 0.0 ≤ α ≤ 1.0
 
     Δτ = electron_phonon_parameters.Δτ::R
     holstein_parameters = electron_phonon_parameters.holstein_parameters_up
