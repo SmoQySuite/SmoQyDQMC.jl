@@ -219,7 +219,7 @@ function run_simulation(
             β = β, Δτ = Δτ,
             model_geometry = model_geometry,
             tight_binding_model = tight_binding_model,
-            interactions = (electron_phonon_model,)
+            interactions = (electron_phonon_model, hubbard_model)
         )
 
         # Initialize tight-binding parameters.
