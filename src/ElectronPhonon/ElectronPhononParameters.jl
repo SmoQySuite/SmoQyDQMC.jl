@@ -117,29 +117,6 @@ function ElectronPhononParameters(;
     # allocate phonon fields
     x = zeros(E, Nphonon, Lτ)
 
-    # iterate over phonons
-    for phonon in 1:Nphonon
-        # if finite phonon mass
-        if isfinite(M[phonon])
-            # get the phonon fields
-            x_p = @view x[phonon,:]
-            # initialize phonon field
-            if iszero(Ω[phonon])
-                # uncertainty in phonon position
-                Δx = std_x_qho(β, 1.0, M[phonon])
-                # assign initial phonon position
-                x0 = Δx * randn(rng)
-                @. x_p = x0
-            else
-                # uncertainty in phonon position
-                Δx = std_x_qho(β, Ω[phonon], M[phonon])
-                # assign initial phonon position
-                x0 = Δx * randn(rng)
-                @. x_p = x0
-            end
-        end
-    end
-
     # initialize electron-phonon parameters
     electron_phonon_parameters = ElectronPhononParameters(
         β, Δτ, Lτ, x,
@@ -147,6 +124,11 @@ function ElectronPhononParameters(;
         dispersion_parameters,
         holstein_parameters_up, holstein_parameters_dn,
         ssh_parameters_up, ssh_parameters_dn
+    )
+
+    # initialize phonon fields
+    initialize_phonon_fields!(
+        electron_phonon_parameters, rng
     )
     
     return electron_phonon_parameters
@@ -351,4 +333,74 @@ function reduced_mass(M::T, M′::T) where {T<:AbstractFloat}
     end
 
     return M″
+end
+
+# initialize phonon fields
+function initialize_phonon_fields!(
+    electron_phonon_parameters::ElectronPhononParameters{T,R},
+    rng::AbstractRNG
+) where {T<:Number, R<:AbstractFloat}
+
+    (; x, β, phonon_parameters) = electron_phonon_parameters
+    (; Ω, M) = phonon_parameters
+
+    # iterate over phonon modes in lattice
+    for n in eachindex(Ω)
+        # get the phonon fields associated with the phonon mode
+        x_n = @view x[n,:]
+        # get frequency associated with phonon mode.
+        # if zero frequency then it defaults to unity.
+        Ω_n = iszero(Ω[n]) ? one(R) : Ω[n]
+        # get mass associated with phonon mode
+        M_n = M[n]
+        # if finite phonon mass
+        if isfinite(M_n)
+            # directly sample equilibrium quantum harmonic oscillator path
+            sample_qho_path!(x_n, Ω_n, M_n, β, rng)
+        # if a "frozen" phonon mode
+        else
+            # set frozen phonon mode fields to zero
+            fill!(x_n, zero(R))
+        end
+
+    end
+
+    return nothing
+end
+
+# sample equilibrium paths of quantum harmonic oscillator
+function sample_qho_path!(
+    x::AbstractVector{R},
+    Ω::R, M::R, β::R,
+    rng::AbstractRNG
+) where {R<:AbstractFloat}
+
+    # calculate length of imaginary-time axis
+    Lτ = length(x)
+
+    # calculate imaginary-time discretization
+    Δτ = β/Lτ
+
+    # sample the starting point from the exact diagonal density matrix
+    # ρ(x,x;β) ∝ exp[-M Ω tanh(βΩ/2) x²]  ⇒  σ² = 1 / (2 M Ω tanh(βΩ/2))
+    σ_0 = one(R) / sqrt(2 * M * Ω * tanh(β * Ω / 2))
+    x[1] = σ_0 * randn(rng, R)
+    x_end = x[1]  # periodic boundary condition: path must return to x[1]
+
+    # precompute quantities for the single-step propagator
+    coth_Δτ = one(R) / tanh(Ω * Δτ)
+    csch_Δτ = one(R) / sinh(Ω * Δτ)
+
+    # Levy construction: sample x[k] conditioned on x[k-1] and the endpoint x_end,
+    # which is reached after the remaining imaginary time τ′ = (Lτ - k + 1)Δτ
+    for k in 2:Lτ
+        τ′ = (Lτ - k + 1) * Δτ
+        γ_1 = coth_Δτ + one(R) / tanh(Ω * τ′)
+        γ_2 = x[k-1] * csch_Δτ + x_end / sinh(Ω * τ′)
+        μ = γ_2 / γ_1
+        σ = one(R) / sqrt(M * Ω * γ_1)
+        x[k] = μ + σ * randn(rng, R)
+    end
+
+    return nothing
 end
